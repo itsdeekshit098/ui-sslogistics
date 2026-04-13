@@ -13,7 +13,7 @@ export const DM_CARD_HEADER =
 
 // Active Document View Styles
 export const DM_ACTIVE_DOC_WRAPPER =
-  "flex bg-green-50/50 dark:bg-green-950/20 p-2 rounded items-center gap-2 mt-auto";
+  "flex bg-green-50/50 dark:bg-green-950/20 px-3 rounded-lg items-center justify-center gap-3 mt-auto h-[88px]";
 export const DM_BUTTON_VIEW =
   "flex-1 text-green-700 bg-white dark:bg-black hover:bg-green-100";
 export const DM_BUTTON_DELETE =
@@ -22,11 +22,14 @@ export const DM_BUTTON_DELETE =
 // Upload Missing State Styles
 export const DM_UPLOAD_WRAPPER = "mt-auto";
 export const DM_UPLOAD_DROPZONE =
-  "relative border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 hover:bg-muted/50 transition-colors text-center cursor-pointer";
+  "relative border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center h-[88px] hover:bg-muted/50 transition-colors cursor-pointer w-full";
 export const DM_UPLOAD_INPUT_FIELD =
   "absolute inset-0 w-full h-full opacity-0 cursor-pointer";
 export const DM_UPLOAD_ICON_CONTAINER =
-  "h-6 w-6 text-muted-foreground mx-auto mb-2";
+  "h-6 w-6 text-muted-foreground mb-1";
 export const DM_UPLOAD_SUBTITLE = "text-xs text-muted-foreground";
+
+export const DM_ERROR_WRAPPER = "bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4 border border-red-200 flex justify-between items-center";
+export const DM_ERROR_CLOSE = "text-red-400 hover:text-red-600 text-lg font-bold leading-none cursor-pointer";
 
 export const DM_LOADER_ICON = "h-4 w-4 animate-spin text-muted-foreground";

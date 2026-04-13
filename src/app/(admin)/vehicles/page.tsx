@@ -22,7 +22,9 @@ import {
   Van,
   FolderOpen,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
@@ -54,8 +56,10 @@ import {
   CA_MODAL_LABEL_SPACE,
 } from "./vehicles.styles";
 import { DocumentModal } from "@/components/documentModal";
+import { Skeleton } from "@/components/skeletonLoader";
 
 export default function VehiclesPage() {
+  const router = useRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -157,7 +161,6 @@ export default function VehiclesPage() {
         ),
       );
 
-      alert("Vehicle updated successfully!");
       setIsEditOpen(false);
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -188,7 +191,6 @@ export default function VehiclesPage() {
       // Remove vehicle from local state
       setVehicles((prev) => prev.filter((v) => v.id !== deletingVehicle.id));
 
-      alert("Vehicle deleted successfully!");
       setIsDeleteOpen(false);
       setDeletingVehicle(null);
     } catch (error) {
@@ -199,6 +201,14 @@ export default function VehiclesPage() {
 
   return (
     <div className={CA_VEHICLES_CONTAINER}>
+      <Button 
+          variant="ghost" 
+          onClick={() => router.back()} 
+          className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
+      >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+      </Button>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className={CA_VEHICLES_HEADER_TITLE}>Vehicles</h1>
@@ -223,7 +233,7 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {vehicles.length}
+              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.length}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Vehicles registered
@@ -239,7 +249,7 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {vehicles.filter((v) => v.status === "Active").length}
+              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.filter((v) => v.status === "Active").length}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Currently operational
@@ -255,7 +265,7 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {vehicles.filter((v) => v.status === "Maintenance").length}
+              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.filter((v) => v.status === "Maintenance").length}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               In service center
@@ -271,7 +281,7 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {vehicles.filter((v) => v.status === "Idle").length}
+              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.filter((v) => v.status === "Idle").length}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Available for assignment

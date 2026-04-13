@@ -7,12 +7,14 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, UploadCloud, Loader2 } from "lucide-react";
+import { Eye, Trash2, UploadCloud } from "lucide-react";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/(admin)/vehicles/vehicles.types";
-import { 
-    DM_DIALOG_CONTENT, 
-    DM_GRID_CONTAINER, 
+import { Skeleton } from "@/components/skeletonLoader";
+import { ConfirmModal } from "@/components/confirmModal";
+import {
+    DM_DIALOG_CONTENT,
+    DM_GRID_CONTAINER,
     DM_CARD_CONTAINER,
     DM_CARD_HEADER,
     DM_LOADER_ICON,
@@ -23,12 +25,16 @@ import {
     DM_UPLOAD_DROPZONE,
     DM_UPLOAD_INPUT_FIELD,
     DM_UPLOAD_ICON_CONTAINER,
-    DM_UPLOAD_SUBTITLE
+    DM_UPLOAD_SUBTITLE,
+    DM_ERROR_WRAPPER,
+    DM_ERROR_CLOSE
 } from "./documentModal.style";
 
 export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentModalProps) {
     const [loadingField, setLoadingField] = useState<string | null>(null);
     const [localVehicle, setLocalVehicle] = useState<Vehicle | null>(null);
+    const [deleteDocTarget, setDeleteDocTarget] = useState<{ key: string; url: string } | null>(null);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Sync prop to local state so we can mutate cleanly without parent waterfall
     useEffect(() => {
@@ -48,8 +54,9 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
         if (!e.target.files || e.target.files.length === 0 || !vehicle) return;
         const file = e.target.files[0];
 
+        setErrorMsg(null);
         setLoadingField(documentType);
-        
+
         try {
             const formData = new FormData();
             formData.append("file", file);
@@ -63,7 +70,11 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                 body: formData
             });
 
-            const resData = await res.json();
+            let resData: any = {};
+            try {
+                resData = await res.json();
+            } catch {}
+
             if (!res.ok) {
                 throw new Error(resData.error || "Upload failed");
             }
@@ -76,18 +87,19 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
             onUpdate(); // Trigger parent refetch in the background
         } catch (error: unknown) {
             console.error("Upload error:", error);
-            alert(`Failed to upload ${documentType}: ${error instanceof Error ? error.message : String(error)}`);
+            setErrorMsg(`Upload failed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setLoadingField(null);
             e.target.value = ''; // Reset input
         }
     };
 
-    const handleDelete = async (documentType: string, fileUrl: string) => {
-        if (!vehicle) return;
+    const executeDelete = async () => {
+        if (!vehicle || !deleteDocTarget) return;
 
-        if (!confirm("Are you sure you want to delete this document?")) return;
-
+        setErrorMsg(null);
+        const { key: documentType, url: fileUrl } = deleteDocTarget;
+        setDeleteDocTarget(null);
         setLoadingField(documentType);
         try {
             const res = await fetch("/api/vehicles/documents", {
@@ -101,9 +113,13 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                 })
             });
 
+            let errData: any = {};
+            try {
+                errData = await res.json();
+            } catch {}
+
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || "Delete failed");
+                throw new Error(errData.error || "Delete failed");
             }
 
             // Clean the UI up instantly so the 'Upload' button returns immediately
@@ -112,7 +128,7 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
             onUpdate();
         } catch (error: unknown) {
             console.error("Delete error:", error);
-            alert(`Failed to delete ${documentType}: ${error instanceof Error ? error.message : String(error)}`);
+            setErrorMsg(`Delete failed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setLoadingField(null);
         }
@@ -130,6 +146,13 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                     </DialogDescription>
                 </DialogHeader>
 
+                {errorMsg && (
+                    <div className={DM_ERROR_WRAPPER}>
+                        <span>{errorMsg}</span>
+                        <button onClick={() => setErrorMsg(null)} className={DM_ERROR_CLOSE}>&times;</button>
+                    </div>
+                )}
+
                 <div className={DM_GRID_CONTAINER}>
                     {docTypes.map((doc) => {
                         const url = localVehicle[doc.key as keyof Vehicle] as string | undefined;
@@ -140,27 +163,30 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                                 <div>
                                     <h4 className={DM_CARD_HEADER}>
                                         {doc.label}
-                                        {isLoading && <Loader2 className={DM_LOADER_ICON} />}
                                     </h4>
                                 </div>
-                                
-                                {url ? (
+
+                                {isLoading ? (
+                                    <div className="mt-auto w-full h-[88px]">
+                                        <Skeleton width="100%" height="100%" borderRadius="8px" />
+                                    </div>
+                                ) : url ? (
                                     <div className={DM_ACTIVE_DOC_WRAPPER}>
                                         <Button variant="outline" size="sm" className={DM_BUTTON_VIEW} asChild>
                                             <a href={url} target="_blank" rel="noreferrer">
                                                 <Eye className="h-4 w-4 mr-2" /> View
                                             </a>
                                         </Button>
-                                        <Button variant="outline" size="icon" className={DM_BUTTON_DELETE} onClick={() => handleDelete(doc.key, url)} disabled={isLoading}>
+                                        <Button variant="outline" size="icon" className={DM_BUTTON_DELETE} onClick={() => setDeleteDocTarget({ key: doc.key, url })} disabled={isLoading}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 ) : (
                                     <div className={DM_UPLOAD_WRAPPER}>
                                         <div className={DM_UPLOAD_DROPZONE}>
-                                            <input 
-                                                type="file" 
-                                                className={DM_UPLOAD_INPUT_FIELD} 
+                                            <input
+                                                type="file"
+                                                className={DM_UPLOAD_INPUT_FIELD}
                                                 accept=".pdf,.png,.jpg,.jpeg"
                                                 onChange={(e) => handleUpload(e, doc.key)}
                                                 disabled={isLoading}
@@ -175,6 +201,16 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                     })}
                 </div>
             </DialogContent>
+
+            <ConfirmModal
+                isOpen={!!deleteDocTarget}
+                onClose={() => !loadingField && setDeleteDocTarget(null)}
+                onConfirm={executeDelete}
+                title="Delete Document"
+                description="Are you sure you want to delete this document? This action cannot be undone."
+                confirmText="Delete"
+                isLoading={loadingField !== null}
+            />
         </Dialog>
     );
 }
