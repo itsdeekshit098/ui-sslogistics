@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
@@ -28,9 +29,9 @@ export default function AdminLayout({
 
             {/* Mobile Header */}
             <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-30">
-                <div className="flex items-center gap-2 font-semibold">
+                <Link href="/" className="flex items-center gap-2 font-semibold">
                     <span className="text-lg font-bold tracking-tight">SRI SRINIVASA</span>
-                </div>
+                </Link>
                 <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
                     <Menu className="h-5 w-5" />
                 </Button>

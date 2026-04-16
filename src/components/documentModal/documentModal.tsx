@@ -17,7 +17,6 @@ import {
     DM_GRID_CONTAINER,
     DM_CARD_CONTAINER,
     DM_CARD_HEADER,
-    DM_LOADER_ICON,
     DM_ACTIVE_DOC_WRAPPER,
     DM_BUTTON_VIEW,
     DM_BUTTON_DELETE,
@@ -29,6 +28,11 @@ import {
     DM_ERROR_WRAPPER,
     DM_ERROR_CLOSE
 } from "./documentModal.style";
+
+interface DocumentApiResponse {
+    error?: string;
+    url?: string;
+}
 
 export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentModalProps) {
     const [loadingField, setLoadingField] = useState<string | null>(null);
@@ -70,7 +74,7 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                 body: formData
             });
 
-            let resData: any = {};
+            let resData: DocumentApiResponse = {};
             try {
                 resData = await res.json();
             } catch {}
@@ -113,7 +117,7 @@ export function DocumentModal({ isOpen, onClose, vehicle, onUpdate }: DocumentMo
                 })
             });
 
-            let errData: any = {};
+            let errData: DocumentApiResponse = {};
             try {
                 errData = await res.json();
             } catch {}
