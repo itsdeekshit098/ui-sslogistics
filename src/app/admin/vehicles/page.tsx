@@ -22,6 +22,7 @@ import {
   FolderOpen,
   Trash2,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -99,9 +100,11 @@ export default function VehiclesPage() {
   // Delete Modal State
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState<Vehicle | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Function to actively reload logic easily
   const fetchVehiclesRefetch = async () => {
@@ -147,6 +150,7 @@ export default function VehiclesPage() {
   const handleUpdateVehicle = async () => {
     if (!editingVehicle) return;
 
+    setIsSaving(true);
     try {
       const res = await fetch("/api/vehicles", {
         method: "PUT",
@@ -173,6 +177,8 @@ export default function VehiclesPage() {
     } catch (error) {
       console.error("Unexpected error:", error);
       alert("Unexpected error updating vehicle.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -184,6 +190,7 @@ export default function VehiclesPage() {
   const handleDeleteVehicle = async () => {
     if (!deletingVehicle) return;
 
+    setIsDeleting(true);
     try {
       const res = await fetch(`/api/vehicles?id=${deletingVehicle.id}`, {
         method: "DELETE",
@@ -204,6 +211,8 @@ export default function VehiclesPage() {
     } catch (error) {
       console.error("Unexpected error:", error);
       alert("Unexpected error deleting vehicle.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -607,8 +616,9 @@ export default function VehiclesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleUpdateVehicle}>
-              <Save className="mr-2 h-4 w-4" /> Save changes
+            <Button type="submit" onClick={handleUpdateVehicle} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isSaving ? "Saving..." : "Save changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -650,8 +660,10 @@ export default function VehiclesPage() {
                 variant="destructive"
                 className="flex-1"
                 onClick={handleDeleteVehicle}
+                disabled={isDeleting}
               >
-                Delete Vehicle
+                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isDeleting ? "Deleting..." : "Delete Vehicle"}
               </Button>
             </div>
           </div>

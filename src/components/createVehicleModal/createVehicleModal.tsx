@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
-import { X, Save } from "lucide-react";
+import { X, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -227,7 +227,7 @@ const CreateVehicleForm: React.FC<{
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
-            <Save className="mr-2 h-4 w-4" />{" "}
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {loading ? "Saving..." : "Save Vehicle"}
           </Button>
         </div>

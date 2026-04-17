@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Save } from "lucide-react";
+import { ChevronLeft, Save, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mockVehicles } from "@/lib/mock-data";
@@ -231,7 +231,7 @@ export default function NewDieselRecordPage() {
                 disabled={loading}
                 className="w-full sm:w-auto"
               >
-                <Save className="mr-2 h-4 w-4" />{" "}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {loading ? "Saving..." : "Save Record"}
               </Button>
             </div>
