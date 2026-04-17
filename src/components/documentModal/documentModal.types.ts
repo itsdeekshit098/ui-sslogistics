@@ -1,4 +1,4 @@
-import { Vehicle } from "@/app/(admin)/vehicles/vehicles.types";
+import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 
 export interface DocumentModalProps {
     isOpen: boolean;

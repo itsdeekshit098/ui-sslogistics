@@ -89,14 +89,14 @@ export default function NewRepairRecordPage() {
       cost,
     });
     alert("Repair record saved successfully!");
-    router.push("/repair-records");
+    router.push("/admin/repair-records");
   };
 
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/repair-records">
+          <Link href="/admin/repair-records">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>

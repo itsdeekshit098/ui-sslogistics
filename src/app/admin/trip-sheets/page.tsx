@@ -108,7 +108,7 @@ export default function TripSheetsPage() {
           </p>
         </div>
         <Button className="w-full md:w-auto" asChild>
-          <Link href="/trip-sheets/new">
+          <Link href="/admin/trip-sheets/new">
             <Plus className="mr-2 h-4 w-4" /> Create Trip Sheet
           </Link>
         </Button>

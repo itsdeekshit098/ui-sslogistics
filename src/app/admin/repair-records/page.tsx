@@ -117,7 +117,7 @@ export default function RepairRecordsPage() {
           </p>
         </div>
         <Button className="w-full md:w-auto" asChild>
-          <Link href="/repair-records/new">
+          <Link href="/admin/repair-records/new">
             <Plus className="mr-2 h-4 w-4" /> Add Repair Record
           </Link>
         </Button>

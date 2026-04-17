@@ -77,7 +77,7 @@ export default function NewDieselRecordPage() {
       });
 
       if (response.ok) {
-        router.push("/diesel-records");
+        router.push("/admin/diesel-records");
       } else {
         console.error("Failed to save record");
         alert("Failed to save record");
@@ -94,7 +94,7 @@ export default function NewDieselRecordPage() {
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/diesel-records">
+          <Link href="/admin/diesel-records">
             <ChevronLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -224,7 +224,7 @@ export default function NewDieselRecordPage() {
 
             <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
               <Button variant="outline" className="w-full sm:w-auto" asChild>
-                <Link href="/diesel-records">Cancel</Link>
+                <Link href="/admin/diesel-records">Cancel</Link>
               </Button>
               <Button
                 onClick={handleSubmit}

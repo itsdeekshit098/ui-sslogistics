@@ -126,7 +126,7 @@ export default function DriversPage() {
           </p>
         </div>
         <Button className="w-full md:w-auto" asChild>
-          <Link href="/drivers/new">
+          <Link href="/admin/drivers/new">
             <Plus className="mr-2 h-4 w-4" /> Add Driver
           </Link>
         </Button>

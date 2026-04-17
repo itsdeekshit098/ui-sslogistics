@@ -35,7 +35,7 @@ export default function NewClientPage() {
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/clients">
+          <Link href="/admin/clients">
             <ChevronLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -109,7 +109,7 @@ export default function NewClientPage() {
 
             <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
               <Button variant="outline" className="w-full sm:w-auto" asChild>
-                <Link href="/clients">Cancel</Link>
+                <Link href="/admin/clients">Cancel</Link>
               </Button>
               <Button className="w-full sm:w-auto">
                 <Save className="mr-2 h-4 w-4" /> Save Client

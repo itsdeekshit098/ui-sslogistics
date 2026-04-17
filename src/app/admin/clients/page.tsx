@@ -126,7 +126,7 @@ export default function ClientsPage() {
           </p>
         </div>
         <Button className="w-full md:w-auto" asChild>
-          <Link href="/clients/new">
+          <Link href="/admin/clients/new">
             <Plus className="mr-2 h-4 w-4" /> Add Client
           </Link>
         </Button>

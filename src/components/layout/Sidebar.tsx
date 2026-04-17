@@ -17,27 +17,27 @@ import {
 const sidebarItems = [
   {
     name: "Dashboard",
-    href: "/dashboard",
+    href: "/admin",
     icon: LayoutDashboard,
     enabled: true,
   },
-  { name: "Vehicles", href: "/vehicles", icon: Truck, enabled: true },
-  { name: "Trip Sheets", href: "/trip-sheets", icon: FileText, enabled: false },
+  { name: "Vehicles", href: "/admin/vehicles", icon: Truck, enabled: true },
+  { name: "Trip Sheets", href: "/admin/trip-sheets", icon: FileText, enabled: false },
   {
     name: "Diesel Records",
-    href: "/diesel-records",
+    href: "/admin/diesel-records",
     icon: Fuel,
     enabled: false,
   },
   {
     name: "Repair Records",
-    href: "/repair-records",
+    href: "/admin/repair-records",
     icon: Wrench,
     enabled: false,
   },
-  { name: "Drivers", href: "/drivers", icon: Users, enabled: false },
-  { name: "Clients", href: "/clients", icon: Building2, enabled: false },
-  { name: "Reports", href: "/reports", icon: BarChart3, enabled: false },
+  { name: "Drivers", href: "/admin/drivers", icon: Users, enabled: false },
+  { name: "Clients", href: "/admin/clients", icon: Building2, enabled: false },
+  { name: "Reports", href: "/admin/reports", icon: BarChart3, enabled: false },
 ];
 
 interface SidebarProps {

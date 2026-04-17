@@ -53,7 +53,8 @@ export default function NewVehiclePage() {
       });
 
       if (response.ok) {
-        router.push("/vehicles");
+        router.push("/admin/vehicles");
+        router.refresh();
       } else {
         const errorData = await response.json();
         console.error("Failed to save vehicle", errorData);
@@ -75,7 +76,7 @@ export default function NewVehiclePage() {
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/vehicles">
+          <Link href="/admin/vehicles">
             <ChevronLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -199,7 +200,7 @@ export default function NewVehiclePage() {
 
             <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
               <Button variant="outline" asChild className="w-full sm:w-auto">
-                <Link href="/vehicles">Cancel</Link>
+                <Link href="/admin/vehicles">Cancel</Link>
               </Button>
               <Button
                 onClick={handleSubmit}

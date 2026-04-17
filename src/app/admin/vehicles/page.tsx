@@ -217,7 +217,7 @@ export default function VehiclesPage() {
           </p>
         </div>
         <Button className="w-full md:w-auto" asChild>
-          <Link href="/vehicles/new">
+          <Link href="/admin/vehicles/new">
             <Plus className="mr-2 h-4 w-4" /> Add Vehicle
           </Link>
         </Button>

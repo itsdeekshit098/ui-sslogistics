@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, UploadCloud } from "lucide-react";
 import { DocumentModalProps } from "./documentModal.types";
-import { Vehicle } from "@/app/(admin)/vehicles/vehicles.types";
+import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Skeleton } from "@/components/skeletonLoader";
 import { ConfirmModal } from "@/components/confirmModal";
 import {

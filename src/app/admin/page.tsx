@@ -15,7 +15,7 @@ const menuItems = [
   {
     title: "Vehicles",
     description: "Manage fleet vehicles",
-    href: "/vehicles",
+    href: "/admin/vehicles",
     icon: Truck,
     color: "text-blue-600",
     bgColor: "bg-blue-100",
@@ -24,7 +24,7 @@ const menuItems = [
   {
     title: "Drivers",
     description: "Manage driver profiles",
-    href: "/drivers",
+    href: "/admin/drivers",
     icon: Users,
     color: "text-green-600",
     bgColor: "bg-green-100",
@@ -33,7 +33,7 @@ const menuItems = [
   {
     title: "Clients",
     description: "Manage clients & vendors",
-    href: "/clients",
+    href: "/admin/clients",
     icon: Building2,
     color: "text-purple-600",
     bgColor: "bg-purple-100",
@@ -42,7 +42,7 @@ const menuItems = [
   {
     title: "Diesel Records",
     description: "Track fuel consumption",
-    href: "/diesel-records",
+    href: "/admin/diesel-records",
     icon: Fuel,
     color: "text-orange-600",
     bgColor: "bg-orange-100",
@@ -51,7 +51,7 @@ const menuItems = [
   {
     title: "Repair Records",
     description: "Maintenance logs",
-    href: "/repair-records",
+    href: "/admin/repair-records",
     icon: Wrench,
     color: "text-red-600",
     bgColor: "bg-red-100",
@@ -60,7 +60,7 @@ const menuItems = [
   {
     title: "Trip Sheets",
     description: "Daily trip entries",
-    href: "/trip-sheets",
+    href: "/admin/trip-sheets",
     icon: FileText,
     color: "text-indigo-600",
     bgColor: "bg-indigo-100",
@@ -69,7 +69,7 @@ const menuItems = [
   {
     title: "Reports",
     description: "View analytics",
-    href: "/reports",
+    href: "/admin/reports",
     icon: BarChart3,
     color: "text-cyan-600",
     bgColor: "bg-cyan-100",
