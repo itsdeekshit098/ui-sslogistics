@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -57,6 +56,12 @@ import {
 } from "./vehicles.styles";
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
+import dynamic from "next/dynamic";
+
+const CreateVehicleModal = dynamic(
+  () => import("@/components/createVehicleModal/createVehicleModal"),
+  { ssr: false }
+);
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -94,6 +99,9 @@ export default function VehiclesPage() {
   // Delete Modal State
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState<Vehicle | null>(null);
+
+  // Create Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // Function to actively reload logic easily
   const fetchVehiclesRefetch = async () => {
@@ -216,10 +224,8 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        <Button className="w-full md:w-auto" asChild>
-          <Link href="/admin/vehicles/new">
-            <Plus className="mr-2 h-4 w-4" /> Add Vehicle
-          </Link>
+        <Button className="w-full md:w-auto" onClick={() => setIsCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Add Vehicle
         </Button>
       </div>
 
@@ -658,6 +664,13 @@ export default function VehiclesPage() {
         onClose={() => setIsDocOpen(false)}
         vehicle={docVehicle}
         onUpdate={fetchVehiclesRefetch}
+      />
+
+      {/* Create Vehicle Modal */}
+      <CreateVehicleModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={fetchVehiclesRefetch}
       />
     </div>
   );

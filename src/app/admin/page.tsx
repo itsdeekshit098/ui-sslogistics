@@ -81,7 +81,7 @@ const menuItems = [
 
 export default function DashboardPage() {
   return (
-    <div className="container mx-auto px-4 py-4 md:p-8 space-y-6 md:space-y-8">
+    <div className="container mx-auto space-y-6 md:space-y-8">
       <div className="mb-2">
         <Button variant="ghost" className="w-fit -ml-2 text-muted-foreground hover:text-foreground" asChild>
           <Link href="/">

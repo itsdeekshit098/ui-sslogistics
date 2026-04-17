@@ -1,5 +1,5 @@
 export const CA_VEHICLES_CONTAINER =
-  "container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8";
+  "container mx-auto space-y-6 md:space-y-8";
 export const CA_VEHICLES_HEADER_TITLE =
   "text-2xl md:text-3xl font-bold tracking-tight";
 export const CA_VEHICLES_HEADER_DESC =

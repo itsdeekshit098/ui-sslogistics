@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Sri Srinivasa Secure Logistics (SSLogistics)",
   description:
     "Premium transport and operations management by Sri Srinivasa Secure Logistics (SSL). Reliable and secure enterprise logistics solutions.",
+  icons: {
+    icon: "/favicon.png",
+  },
   keywords: [
     "srisrinivasasecurelogistics",
     "sri srinivasa secure logistics",

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { SignOutButton } from "@/components/signOutButton";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -27,12 +27,14 @@ export default function AdminLayout({
             {/* Desktop Sidebar */}
             <Sidebar className="hidden md:block" />
 
-            {/* Mobile Header */}
-            <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-30">
-                <Link href="/" className="flex items-center gap-2 font-semibold">
-                    <span className="text-lg font-bold tracking-tight">SRI SRINIVASA</span>
-                </Link>
-                <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
+            {/* Mobile Floating Menu Button */}
+            <div className="md:hidden fixed top-4 right-4 z-40">
+                <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="rounded-full shadow-md bg-white/80 backdrop-blur border-slate-200 text-slate-700 hover:bg-white" 
+                    onClick={() => setIsMobileMenuOpen(true)}
+                >
                     <Menu className="h-5 w-5" />
                 </Button>
             </div>
@@ -53,7 +55,12 @@ export default function AdminLayout({
                 </div>
             )}
 
-            <div className="flex flex-col w-full">
+            <div className="flex flex-col w-full min-w-0">
+                {/* Desktop Header */}
+                <header className="hidden md:flex h-14 items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
+                    <SignOutButton variant="desktop" />
+                </header>
+
                 <main className="flex-1 p-4 md:p-6 overflow-x-hidden">{children}</main>
             </div>
         </div>

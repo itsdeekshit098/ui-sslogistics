@@ -13,6 +13,7 @@ import {
   Building2,
   Wrench,
 } from "lucide-react";
+import { SignOutButton } from "@/components/signOutButton";
 
 const sidebarItems = [
   {
@@ -101,6 +102,11 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                 </div>
               );
             })}
+            
+            <div className="md:hidden mt-4 pt-4 border-t border-slate-200/60" />
+            <div className="md:hidden">
+              <SignOutButton variant="mobile" />
+            </div>
           </nav>
         </div>
       </div>
