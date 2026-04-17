@@ -9,15 +9,17 @@ const path = require('path');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'documents';
-const GDRIVE_SERVICE_ACCOUNT_JSON = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
+const GDRIVE_CLIENT_ID = process.env.GDRIVE_CLIENT_ID;
+const GDRIVE_CLIENT_SECRET = process.env.GDRIVE_CLIENT_SECRET;
+const GDRIVE_REFRESH_TOKEN = process.env.GDRIVE_REFRESH_TOKEN;
 const GDRIVE_FOLDER_ID = process.env.GDRIVE_FOLDER_ID;
 
 const DB_DUMP_FILE = 'db-backup.sql';
 const STORAGE_DUMP_DIR = 'storage-backup';
 const ZIP_FILE_NAME = `backup-${new Date().toISOString().split('T')[0]}.zip`;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GDRIVE_SERVICE_ACCOUNT_JSON || !GDRIVE_FOLDER_ID) {
-  console.error("Missing required environment variables.");
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GDRIVE_FOLDER_ID || !GDRIVE_CLIENT_ID || !GDRIVE_CLIENT_SECRET || !GDRIVE_REFRESH_TOKEN) {
+  console.error("Missing required environment variables for OAuth2/Supabase.");
   process.exit(1);
 }
 
@@ -26,18 +28,39 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 async function downloadFolder(bucketName, folderPath = '') {
   console.log(`Listing files in ${bucketName}/${folderPath || '<root>'}`);
   
-  const { data: files, error } = await supabase.storage.from(bucketName).list(folderPath);
+  let allFiles = [];
+  let currentOffset = 0;
+  const limit = 1000;
 
-  if (error) {
-    console.error('Error listing files:', error);
+  while (true) {
+    const { data: files, error } = await supabase.storage.from(bucketName).list(folderPath, {
+      limit: limit,
+      offset: currentOffset
+    });
+
+    if (error) {
+      console.error('Error listing files:', error);
+      return;
+    }
+
+    if (!files || files.length === 0) {
+      break;
+    }
+
+    allFiles.push(...files);
+
+    if (files.length < limit) {
+      break;
+    }
+
+    currentOffset += limit;
+  }
+
+  if (allFiles.length === 0) {
     return;
   }
 
-  if (!files || files.length === 0) {
-    return;
-  }
-
-  for (const file of files) {
+  for (const file of allFiles) {
     const fullPath = folderPath ? `${folderPath}/${file.name}` : file.name;
 
     // If there is no metadata, Supabase treats it as a folder representation
@@ -115,22 +138,19 @@ async function createZip() {
 }
 
 async function uploadToGoogleDrive() {
-  console.log('Authenticating with Google Drive...');
+  console.log('Authenticating with Google Drive via OAuth2 refresh token...');
   
-  let credentials;
-  try {
-    credentials = JSON.parse(GDRIVE_SERVICE_ACCOUNT_JSON);
-  } catch (err) {
-    console.error("Invalid GDRIVE_SERVICE_ACCOUNT_JSON format. Ensure it is strict JSON:", err);
-    process.exit(1);
-  }
+  const oauth2Client = new google.auth.OAuth2(
+    GDRIVE_CLIENT_ID,
+    GDRIVE_CLIENT_SECRET,
+    "https://developers.google.com/oauthplayground"
+  );
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+  oauth2Client.setCredentials({
+    refresh_token: GDRIVE_REFRESH_TOKEN
   });
 
-  const drive = google.drive({ version: 'v3', auth });
+  const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
   console.log(`Uploading ${ZIP_FILE_NAME} to Google Drive...`);
   

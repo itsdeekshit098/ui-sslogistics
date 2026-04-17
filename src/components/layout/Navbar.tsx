@@ -20,7 +20,7 @@ export function Navbar() {
         {/* Actions */}
         <div className="flex items-center gap-4">
           <Button variant="default" className="gap-2 px-3 md:px-4" asChild>
-            <Link href="/dashboard">
+            <Link href="/admin">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Operations Portal</span>
               <span className="sm:hidden">Portal</span>
