@@ -61,7 +61,7 @@ import dynamic from "next/dynamic";
 
 const CreateVehicleModal = dynamic(
   () => import("@/components/createVehicleModal/createVehicleModal"),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function VehiclesPage() {
@@ -218,13 +218,13 @@ export default function VehiclesPage() {
 
   return (
     <div className={CA_VEHICLES_CONTAINER}>
-      <Button 
-          variant="ghost" 
-          onClick={() => router.back()} 
-          className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
+      <Button
+        variant="ghost"
+        onClick={() => router.back()}
+        className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
       >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
       </Button>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -233,7 +233,10 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        <Button className="w-full md:w-auto" onClick={() => setIsCreateOpen(true)}>
+        <Button
+          className="w-full md:w-auto"
+          onClick={() => setIsCreateOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add Vehicle
         </Button>
       </div>
@@ -248,7 +251,11 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.length}
+              {loading ? (
+                <Skeleton width="40px" height="28px" borderRadius="4px" />
+              ) : (
+                vehicles.length
+              )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Vehicles registered
@@ -264,7 +271,11 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.filter((v) => v.status === "Active").length}
+              {loading ? (
+                <Skeleton width="40px" height="28px" borderRadius="4px" />
+              ) : (
+                vehicles.filter((v) => v.status === "Active").length
+              )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Currently operational
@@ -280,7 +291,11 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.filter((v) => v.status === "Maintenance").length}
+              {loading ? (
+                <Skeleton width="40px" height="28px" borderRadius="4px" />
+              ) : (
+                vehicles.filter((v) => v.status === "Maintenance").length
+              )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               In service center
@@ -296,7 +311,11 @@ export default function VehiclesPage() {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : vehicles.filter((v) => v.status === "Idle").length}
+              {loading ? (
+                <Skeleton width="40px" height="28px" borderRadius="4px" />
+              ) : (
+                vehicles.filter((v) => v.status === "Idle").length
+              )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Available for assignment
@@ -616,8 +635,16 @@ export default function VehiclesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleUpdateVehicle} disabled={isSaving}>
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            <Button
+              type="submit"
+              onClick={handleUpdateVehicle}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
               {isSaving ? "Saving..." : "Save changes"}
             </Button>
           </DialogFooter>
@@ -662,7 +689,9 @@ export default function VehiclesPage() {
                 onClick={handleDeleteVehicle}
                 disabled={isDeleting}
               >
-                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isDeleting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isDeleting ? "Deleting..." : "Delete Vehicle"}
               </Button>
             </div>

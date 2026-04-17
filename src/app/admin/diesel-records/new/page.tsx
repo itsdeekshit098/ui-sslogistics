@@ -79,12 +79,13 @@ export default function NewDieselRecordPage() {
       if (response.ok) {
         router.push("/admin/diesel-records");
       } else {
-        console.error("Failed to save record");
-        alert("Failed to save record");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to save record", errorData);
+        alert(`Failed to save record: ${errorData.error || response.statusText || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error saving record:", error);
-      alert("Error saving record");
+      alert(`Error saving record: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }
