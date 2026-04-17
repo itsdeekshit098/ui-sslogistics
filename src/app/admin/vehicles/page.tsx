@@ -561,7 +561,7 @@ export default function VehiclesPage() {
 
       {/* Edit Vehicle Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[95vw] max-w-175 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-175 max-h-[85vh] overflow-y-auto rounded-xl sm:rounded-2xl">
           <DialogHeader>
             <DialogTitle>Edit Vehicle</DialogTitle>
             <DialogDescription>
@@ -690,7 +690,7 @@ export default function VehiclesPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="rounded-full bg-red-100 p-3">
               <Trash2 className="h-6 w-6 text-red-600" />

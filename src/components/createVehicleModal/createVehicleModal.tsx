@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getDefaultVehicleFormData } from "@/app/admin/vehicles/vehicles.utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   CA_MODAL_GRID,
   CA_MODAL_LABEL_SPACE,
@@ -47,13 +48,7 @@ const CreateVehicleForm: React.FC<{
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleClose]);
 
-  // Lock body scroll
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, []);
+  // Body lock handled automatically by Dialog
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -115,30 +110,13 @@ const CreateVehicleForm: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-      {/* Click outside to close (desktop only, disabled while submitting) */}
-      <div className="absolute inset-0 hidden sm:block" onClick={handleClose} />
-
-      <div
-        className="relative z-50 w-full bg-background flex flex-col shadow-xl animate-in slide-in-from-bottom h-[92vh] sm:h-auto sm:max-h-[85vh] sm:max-w-2xl rounded-t-xl sm:rounded-lg sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-vehicle-title"
-      >
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background px-4 py-4 sm:px-6 rounded-t-xl sm:rounded-t-lg">
-          <div>
-            <h2 id="create-vehicle-title" className="text-lg font-semibold tracking-tight">Add New Vehicle</h2>
-            <p className="text-sm text-muted-foreground hidden sm:block">Register a new vehicle to the fleet.</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={handleClose} disabled={loading} className="rounded-full">
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close</span>
-          </Button>
+    <div className="w-full">
+      {/* Scrollable Form Content */}
+      <div className="space-y-6 sm:mt-2">
+        <div className="mb-2 pr-8">
+          <h2 id="create-vehicle-title" className="text-xl sm:text-2xl font-bold tracking-tight">Add New Vehicle</h2>
+          <p className="text-sm text-muted-foreground hidden sm:block mt-1">Register a new vehicle to the fleet.</p>
         </div>
-
-        {/* Scrollable Form Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {submitError && (
              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
                  {submitError}
@@ -248,11 +226,10 @@ const CreateVehicleForm: React.FC<{
           <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mt-2">
             <strong>Note:</strong> You will be able to securely upload PDF and Image documents (RC, FC, Insurance, etc.) to Supabase Storage by clicking &quot;Manage Docs&quot; on the main vehicle table after successfully creating this vehicle entry.
           </div>
-        </div>
 
-        {/* Sticky Footer */}
-        <div className="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 border-t bg-background px-4 py-4 sm:px-6 rounded-b-xl sm:rounded-b-lg">
-          <Button variant="outline" onClick={handleClose} disabled={loading} className="w-full sm:w-auto">
+        {/* Footer Buttons */}
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 border-t mt-4">
+          <Button variant="outline" onClick={handleClose} disabled={loading} className="w-full sm:w-auto mb-2 sm:mb-0">
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
@@ -274,9 +251,13 @@ const CreateVehicleModal: React.FC<CreateVehicleModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  if (!isOpen) return null;
-
-  return <CreateVehicleForm onClose={onClose} onSuccess={onSuccess} />;
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 rounded-xl sm:rounded-2xl">
+        <CreateVehicleForm onClose={onClose} onSuccess={onSuccess} />
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default CreateVehicleModal;
