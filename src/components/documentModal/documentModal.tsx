@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, UploadCloud } from "lucide-react";
+import { Eye, Trash2, UploadCloud, Loader2 } from "lucide-react";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Skeleton } from "@/components/skeletonLoader";
@@ -31,7 +31,28 @@ import {
 
 interface DocumentApiResponse {
   error?: string;
-  url?: string;
+  filePath?: string;
+}
+
+interface SignedUrlResponse {
+  signedUrl?: string;
+  error?: string;
+}
+
+/**
+ * Fetches a time-limited signed URL from the backend for a private storage file path.
+ */
+async function fetchSignedUrl(filePath: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `/api/vehicles/documents?filePath=${encodeURIComponent(filePath)}`,
+    );
+    if (!res.ok) return null;
+    const data: SignedUrlResponse = await res.json();
+    return data.signedUrl || null;
+  } catch {
+    return null;
+  }
 }
 
 export function DocumentModal({
@@ -41,10 +62,11 @@ export function DocumentModal({
   onUpdate,
 }: DocumentModalProps) {
   const [loadingFields, setLoadingFields] = useState<string[]>([]);
+  const [viewingFields, setViewingFields] = useState<string[]>([]);
   const [localVehicle, setLocalVehicle] = useState<Vehicle | null>(null);
   const [deleteDocTarget, setDeleteDocTarget] = useState<{
     key: string;
-    url: string;
+    filePath: string;
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -61,6 +83,28 @@ export function DocumentModal({
     { key: "pollution_url", label: "Pollution (PUC)" },
     { key: "tax_url", label: "Road Tax" },
   ];
+
+  /**
+   * View a document by fetching a signed URL from the backend,
+   * then opening it in a new tab.
+   */
+  const handleView = async (filePath: string, docKey: string) => {
+    setViewingFields((prev) =>
+      prev.includes(docKey) ? prev : [...prev, docKey],
+    );
+    try {
+      const signedUrl = await fetchSignedUrl(filePath);
+      if (signedUrl) {
+        window.open(signedUrl, "_blank", "noreferrer");
+      } else {
+        setErrorMsg("Failed to generate secure document link. Please retry.");
+      }
+    } catch {
+      setErrorMsg("Failed to open document.");
+    } finally {
+      setViewingFields((prev) => prev.filter((key) => key !== docKey));
+    }
+  };
 
   const handleUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -99,14 +143,16 @@ export function DocumentModal({
         throw new Error(resData.error || "Upload failed");
       }
 
-      // Immediately update the local state to show the 'View' button instantly
-      if (resData.url) {
+      // Immediately update the local state with the file path
+      if (resData.filePath) {
         setLocalVehicle((prev) =>
-          prev ? ({ ...prev, [documentType]: resData.url } as Vehicle) : null,
+          prev
+            ? ({ ...prev, [documentType]: resData.filePath } as Vehicle)
+            : null,
         );
       }
 
-      onUpdate(documentType, resData.url); // Pass updated info strictly instead of full refetch
+      onUpdate(documentType, resData.filePath); // Pass updated file path to parent
     } catch (error: unknown) {
       console.error("Upload error:", error);
       setErrorMsg(
@@ -122,7 +168,7 @@ export function DocumentModal({
     if (!vehicle || !deleteDocTarget) return;
 
     setErrorMsg(null);
-    const { key: documentType, url: fileUrl } = deleteDocTarget;
+    const { key: documentType, filePath } = deleteDocTarget;
     setDeleteDocTarget(null);
     setLoadingFields((prev) =>
       prev.includes(documentType) ? prev : [...prev, documentType],
@@ -133,11 +179,8 @@ export function DocumentModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vehicleId: vehicle.id,
-          vehicleNumber: vehicle.vehicle_number
-            .replace(/\s+/g, "-")
-            .toUpperCase(),
           documentType,
-          fileUrl,
+          filePath,
         }),
       });
 
@@ -193,10 +236,11 @@ export function DocumentModal({
 
         <div className={DM_GRID_CONTAINER}>
           {docTypes.map((doc) => {
-            const url = localVehicle[doc.key as keyof Vehicle] as
+            const filePath = localVehicle[doc.key as keyof Vehicle] as
               | string
               | undefined;
             const isLoading = loadingFields.includes(doc.key);
+            const isViewing = viewingFields.includes(doc.key);
 
             return (
               <div key={doc.key} className={DM_CARD_CONTAINER}>
@@ -208,23 +252,29 @@ export function DocumentModal({
                   <div className="mt-auto w-full h-[88px]">
                     <Skeleton width="100%" height="100%" borderRadius="8px" />
                   </div>
-                ) : url ? (
+                ) : filePath ? (
                   <div className={DM_ACTIVE_DOC_WRAPPER}>
                     <Button
                       variant="outline"
                       size="sm"
                       className={DM_BUTTON_VIEW}
-                      asChild
+                      onClick={() => handleView(filePath, doc.key)}
+                      disabled={isViewing}
                     >
-                      <a href={url} target="_blank" rel="noreferrer">
-                        <Eye className="h-4 w-4 mr-2" /> View
-                      </a>
+                      {isViewing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Eye className="h-4 w-4 mr-2" />
+                      )}
+                      {isViewing ? "Opening..." : "View"}
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
                       className={DM_BUTTON_DELETE}
-                      onClick={() => setDeleteDocTarget({ key: doc.key, url })}
+                      onClick={() =>
+                        setDeleteDocTarget({ key: doc.key, filePath })
+                      }
                       disabled={isLoading}
                     >
                       <Trash2 className="h-4 w-4" />

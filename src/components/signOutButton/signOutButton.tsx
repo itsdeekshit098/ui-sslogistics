@@ -94,7 +94,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
           "flex items-center transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
           isDesktop
             ? "gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200"
-            : "mt-4 w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-red-600 hover:bg-red-50 transition-all duration-200 justify-start border border-slate-100",
+            : "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all duration-200 justify-start",
         )}
       >
         <LogOut
