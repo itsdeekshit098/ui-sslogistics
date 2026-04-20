@@ -6,7 +6,8 @@ import {
     DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 import type { ConfirmModalProps } from "./confirmModal.types";
 import {
     ModalContainer,
@@ -56,7 +57,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                             onClick={onConfirm}
                             disabled={isLoading}
                         >
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
                             {confirmText}
                         </Button>
                     </ActionWrapper>

@@ -22,7 +22,6 @@ import {
   FolderOpen,
   Trash2,
   ArrowLeft,
-  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -57,6 +56,7 @@ import {
 } from "./vehicles.styles";
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 import dynamic from "next/dynamic";
 
 const CreateVehicleModal = dynamic(
@@ -364,9 +364,7 @@ export default function VehiclesPage() {
           {/* Mobile Card View */}
           <div className="block md:hidden space-y-3">
             {loading ? (
-              <p className="text-center text-muted-foreground py-8">
-                Loading...
-              </p>
+              <LoadingSpinner size="md" centered label="Loading vehicles..." />
             ) : vehicles.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No vehicles found. Add one to get started.
@@ -469,8 +467,8 @@ export default function VehiclesPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
-                      Loading...
+                    <TableCell colSpan={8}>
+                      <LoadingSpinner size="sm" centered label="Loading vehicles..." />
                     </TableCell>
                   </TableRow>
                 ) : vehicles.length === 0 ? (
@@ -678,7 +676,7 @@ export default function VehiclesPage() {
               disabled={isSaving}
             >
               {isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <LoadingSpinner size="sm" className="mr-2" />
               ) : (
                 <Save className="mr-2 h-4 w-4" />
               )}
@@ -727,7 +725,7 @@ export default function VehiclesPage() {
                 disabled={isDeleting}
               >
                 {isDeleting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <LoadingSpinner size="sm" className="mr-2" />
                 )}
                 {isDeleting ? "Deleting..." : "Delete Vehicle"}
               </Button>
