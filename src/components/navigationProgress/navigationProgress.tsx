@@ -49,7 +49,10 @@ export function NavigationProgress() {
   useEffect(() => {
     if (prevPathnameRef.current !== pathname) {
       prevPathnameRef.current = pathname;
-      completeProgress();
+      const timeoutId = setTimeout(() => {
+        completeProgress();
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [pathname, completeProgress]);
 
