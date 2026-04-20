@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { NavigationProgress } from "@/components/navigationProgress";
 
 export const metadata: Metadata = {
   title: "Sri Srinivasa Secure Logistics (SSLogistics)",
@@ -40,6 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
+        <NavigationProgress />
         {children}
       </body>
     </html>

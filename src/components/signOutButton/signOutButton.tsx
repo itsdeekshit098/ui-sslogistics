@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { LogOut, Loader2 } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -74,7 +75,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
           >
             {isSigningOut ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <LoadingSpinner size="sm" />
                 <span>Signing out</span>
               </>
             ) : (

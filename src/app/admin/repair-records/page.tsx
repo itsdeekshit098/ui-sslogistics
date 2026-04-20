@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 
 import { mockVehicles } from "@/lib/mock-data";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 
 // Mock data for repair records
 interface RepairRecord {
@@ -160,9 +161,7 @@ export default function RepairRecordsPage() {
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-3">
               {loading ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Loading...
-                </p>
+                <LoadingSpinner size="md" centered label="Loading records..." />
               ) : records.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   No records found.
@@ -237,8 +236,8 @@ export default function RepairRecordsPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center">
-                        Loading...
+                      <TableCell colSpan={7}>
+                        <LoadingSpinner size="sm" centered label="Loading records..." />
                       </TableCell>
                     </TableRow>
                   ) : records.length === 0 ? (

@@ -7,7 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, UploadCloud, Loader2 } from "lucide-react";
+import { Eye, Trash2, UploadCloud } from "lucide-react";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Skeleton } from "@/components/skeletonLoader";
@@ -262,7 +263,7 @@ export function DocumentModal({
                       disabled={isViewing}
                     >
                       {isViewing ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <LoadingSpinner size="sm" className="mr-2" />
                       ) : (
                         <Eye className="h-4 w-4 mr-2" />
                       )}

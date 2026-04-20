@@ -1,10 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard } from "lucide-react";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 
 export function Navbar() {
+  const pathname = usePathname();
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handlePortalClick = () => {
+    // Don't show loading if we're already on an admin page
+    if (!pathname.startsWith("/admin")) {
+      setIsNavigating(true);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -19,11 +32,24 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <Button variant="default" className="gap-2 px-3 md:px-4" asChild>
+          <Button
+            variant="default"
+            className="gap-2 px-3 md:px-4 min-w-[110px]"
+            asChild
+            onClick={handlePortalClick}
+          >
             <Link href="/admin">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Operations Portal</span>
-              <span className="sm:hidden">Portal</span>
+              {isNavigating ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <LayoutDashboard className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {isNavigating ? "Loading..." : "Operations Portal"}
+              </span>
+              <span className="sm:hidden">
+                {isNavigating ? "..." : "Portal"}
+              </span>
             </Link>
           </Button>
         </div>
