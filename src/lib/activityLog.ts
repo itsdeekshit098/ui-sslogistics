@@ -1,0 +1,46 @@
+import { supabaseAdmin } from "@/lib/supabase";
+
+export type AuditAction =
+  | "CREATE_VEHICLE"
+  | "UPDATE_VEHICLE"
+  | "DELETE_VEHICLE"
+  | "UPLOAD_DOCUMENT"
+  | "DELETE_DOCUMENT";
+
+interface LogActivityParams {
+  action: AuditAction;
+  userId: string | null;
+  userEmail: string | null;
+  tableName: string;
+  recordId: number | string | null;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Writes an entry to the activity_log table.
+ * Fires and forgets — does NOT block the API response if logging fails.
+ */
+export async function logActivity({
+  action,
+  userId,
+  userEmail,
+  tableName,
+  recordId,
+  details = {},
+}: LogActivityParams): Promise<void> {
+  try {
+    await supabaseAdmin.from("activity_log").insert([
+      {
+        action,
+        user_id: userId,
+        user_email: userEmail,
+        table_name: tableName,
+        record_id: recordId ? Number(recordId) : null,
+        details,
+      },
+    ]);
+  } catch (err) {
+    // Log to server console but never fail the parent request
+    console.error("Failed to write activity log:", err);
+  }
+}

@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Building2,
   Wrench,
+  Activity,
 } from "lucide-react";
 import { SignOutButton } from "@/components/signOutButton";
 
@@ -39,6 +40,7 @@ const sidebarItems = [
   { name: "Drivers", href: "/admin/drivers", icon: Users, enabled: false },
   { name: "Clients", href: "/admin/clients", icon: Building2, enabled: false },
   { name: "Reports", href: "/admin/reports", icon: BarChart3, enabled: false },
+  { name: "Activity Log", href: "/admin/activity-log", icon: Activity, enabled: true },
 ];
 
 interface SidebarProps {
@@ -51,8 +53,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
 
   return (
     <div className={cn("border-r bg-muted/40 w-64 shrink-0", className)}>
-      <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center justify-between border-b px-4 lg:h-[60px] lg:px-6">
+      <div className="flex h-full max-h-screen flex-col">
+        <div className="flex h-14 items-center justify-between border-b px-4 lg:h-15 lg:px-6">
           <Link
             href="/"
             className="flex items-center gap-2 font-semibold"
@@ -102,12 +104,12 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                 </div>
               );
             })}
-
-            <div className="md:hidden mt-4 pt-4 border-t border-slate-200/60" />
-            <div className="md:hidden">
-              <SignOutButton variant="mobile" />
-            </div>
           </nav>
+        </div>
+
+        {/* Sign Out — Pinned to bottom */}
+        <div className="border-t border-slate-200/60 p-3 lg:p-4">
+          <SignOutButton variant="mobile" />
         </div>
       </div>
     </div>

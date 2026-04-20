@@ -40,17 +40,27 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // If hitting a protected route
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+
+  if (isAdminRoute || isApiRoute) {
     if (!user) {
+      if (isApiRoute) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       // Not logged in -> Redirect to /login
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);
     }
 
-    // Role check logic
-    const role = user.user_metadata?.role;
+    // Role check logic — MUST use app_metadata (server-only, tamper-proof)
+    // Never use user_metadata for RBAC — users can modify it themselves via SDK
+    const role = user.app_metadata?.role;
     if (role !== "admin" && role !== "staff") {
+      if (isApiRoute) {
+        return NextResponse.json({ error: "Forbidden - Insufficient permissions" }, { status: 403 });
+      }
       // Logged in but not the right role -> Redirect to /unauthorized
       const url = request.nextUrl.clone();
       url.pathname = "/unauthorized";

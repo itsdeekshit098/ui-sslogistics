@@ -57,7 +57,7 @@ export default function AdminLayout({
 
             <div className="flex flex-col w-full min-w-0">
                 {/* Desktop Header */}
-                <header className="hidden md:flex h-14 items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
+                <header className="hidden md:flex h-14 items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:h-15 lg:px-6 sticky top-0 z-30">
                     <SignOutButton variant="desktop" />
                 </header>
 

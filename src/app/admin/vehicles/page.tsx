@@ -743,14 +743,15 @@ export default function VehiclesPage() {
         vehicle={docVehicle}
         onUpdate={(documentType, newUrl) => {
           if (documentType && docVehicle) {
+            const value = newUrl || null;
             setVehicles((prev) =>
               prev.map((v) =>
                 v.id === docVehicle.id
-                  ? { ...v, [documentType]: newUrl || "" }
+                  ? { ...v, [documentType]: value }
                   : v,
               ),
             );
-            setDocVehicle((prev) => prev ? { ...prev, [documentType]: newUrl || "" } : null);
+            setDocVehicle((prev) => prev ? { ...prev, [documentType]: value } : null);
           } else {
             fetchVehiclesRefetch();
           }

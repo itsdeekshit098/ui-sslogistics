@@ -11,6 +11,7 @@ import {
   BarChart3,
   ArrowRight,
   ArrowLeft,
+  Activity,
 } from "lucide-react";
 
 const menuItems = [
@@ -76,6 +77,15 @@ const menuItems = [
     color: "text-cyan-600",
     bgColor: "bg-cyan-100",
     enabled: false,
+  },
+  {
+    title: "Activity Log",
+    description: "Track all actions",
+    href: "/admin/activity-log",
+    icon: Activity,
+    color: "text-teal-600",
+    bgColor: "bg-teal-100",
+    enabled: true,
   },
 ];
 
