@@ -1,8 +1,14 @@
-export const AL_CONTAINER = "container mx-auto space-y-6 md:space-y-8";
-export const AL_HEADER_TITLE = "text-2xl md:text-3xl font-bold tracking-tight";
-export const AL_HEADER_DESC = "text-sm md:text-base text-muted-foreground";
+import {
+  PAGE_CONTAINER,
+  PAGE_HEADER_TITLE,
+  PAGE_HEADER_DESC,
+} from "@/lib/designTokens";
 
-// Action badge color mappings
+// Re-export shared tokens for backward compatibility
+export const AL_CONTAINER = PAGE_CONTAINER;
+export const AL_HEADER_TITLE = PAGE_HEADER_TITLE;
+export const AL_HEADER_DESC = PAGE_HEADER_DESC;
+
 export const ACTION_STYLES: Record<
   string,
   { bg: string; text: string; icon: string }

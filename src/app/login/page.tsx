@@ -34,25 +34,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F0F4FF] p-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4 relative">
       <Link
         href="/"
-        className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium"
+        className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Home
       </Link>
 
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+      <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] shadow-[var(--card-shadow)] border border-border p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-[#DC2626] mb-2">
+          <h1 className="text-3xl font-bold tracking-tight text-destructive mb-2">
             Sri Srinivasa
           </h1>
-          <p className="text-slate-500 text-sm">Operations Portal</p>
+          <p className="text-muted-foreground text-sm">Operations Portal</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 text-sm text-red-800 bg-red-50 rounded-lg border border-red-100">
+          <div className="mb-6 p-4 text-sm text-destructive bg-destructive/10 rounded-[var(--input-radius)] border border-destructive/20">
             {error}
           </div>
         )}
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-foreground"
             >
               Email address
             </label>
@@ -71,7 +71,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-colors"
+              className="w-full px-4 py-2 border border-input bg-background rounded-[var(--input-radius)] focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
               placeholder="name@example.com"
             />
           </div>
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-foreground"
             >
               Password
             </label>
@@ -89,7 +89,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-colors"
+              className="w-full px-4 py-2 border border-input bg-background rounded-[var(--input-radius)] focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
               placeholder="••••••••"
             />
           </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center py-2.5 px-4 bg-[#0F172A] hover:bg-[#1e293b] text-white rounded-full font-medium transition-colors disabled:opacity-70"
+            className="w-full flex items-center justify-center py-2.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full font-medium transition-colors disabled:opacity-70"
           >
             {isLoading ? "Signing in..." : "Sign in to Operations Portal"}
           </button>

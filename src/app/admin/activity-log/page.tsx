@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Truck,
   Pencil,
   Trash2,
@@ -20,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/skeletonLoader";
+import { Pagination } from "@/components/pagination";
 import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";
 import {
   AL_CONTAINER,
@@ -84,9 +83,8 @@ export default function ActivityLogPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const limit = 25;
 
   const fetchLogs = useCallback(async (pageNum: number, isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -94,13 +92,12 @@ export default function ActivityLogPage() {
 
     try {
       const res = await fetch(
-        `/api/activity-log?page=${pageNum}&limit=${limit}`,
+        `/api/activity-log?page=${pageNum}&limit=${pageSize}`,
       );
       if (!res.ok) throw new Error("Failed to fetch");
 
       const result: ActivityLogResponse = await res.json();
       setEntries(result.data);
-      setTotalPages(result.totalPages);
       setTotal(result.total);
     } catch (error) {
       console.error("Error fetching activity logs:", error);
@@ -108,11 +105,11 @@ export default function ActivityLogPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
     fetchLogs(page);
-  }, [page, fetchLogs]);
+  }, [page, pageSize, fetchLogs]);
 
   const handleRefresh = () => {
     fetchLogs(page, true);
@@ -156,19 +153,21 @@ export default function ActivityLogPage() {
       </div>
 
       {/* Activity Feed */}
-      <Card>
-        <CardHeader className="p-4 md:p-6 pb-2 md:pb-3">
+      <Card className="flex flex-col overflow-hidden shadow-sm">
+        <CardHeader className="p-4 md:p-6 pb-2 md:pb-3 shrink-0">
           <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+        <CardContent className="flex flex-col p-0">
+          <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0">
           {loading ? (
-            <div className="space-y-4">
+            <div className="space-y-1">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton width="40px" height="40px" borderRadius="10px" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton width="60%" height="16px" borderRadius="4px" />
-                    <Skeleton width="40%" height="14px" borderRadius="4px" />
+                <div key={i} className="flex gap-3 p-3">
+                  <Skeleton width="40px" height="40px" borderRadius="10px" className="shrink-0" />
+                  <div className="flex-1 min-w-0 pt-1">
+                    <Skeleton width="30%" height="16px" borderRadius="4px" />
+                    <Skeleton width="60%" height="14px" borderRadius="4px" className="mt-2" />
+                    <Skeleton width="25%" height="12px" borderRadius="4px" className="mt-2" />
                   </div>
                 </div>
               ))}
@@ -226,16 +225,16 @@ export default function ActivityLogPage() {
                       </div>
 
                       {/* Details */}
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground w-full">
                         {Object.entries(details)
                           .filter(
                             ([key]) =>
                               key !== "vehicle_number" && key !== "changes",
                           )
                           .map(([key, value]) => (
-                            <span key={key}>
-                              {formatDetailKey(key)}:{" "}
-                              <span className="text-foreground/70">
+                            <span key={key} className="inline-flex max-w-full truncate items-baseline pr-1">
+                              <span className="shrink-0">{formatDetailKey(key)}:</span>{" "}
+                              <span className="text-foreground/70 truncate ml-1">
                                 {formatDetailValue(value)}
                               </span>
                             </span>
@@ -248,9 +247,9 @@ export default function ActivityLogPage() {
                             .filter(([key]) => key !== "updated_by")
                             .slice(0, 4)
                             .map(([key, value]) => (
-                              <span key={key}>
-                                {formatDetailKey(key)}:{" "}
-                                <span className="text-foreground/70">
+                              <span key={key} className="inline-flex max-w-full truncate items-baseline pr-1">
+                                <span className="shrink-0">{formatDetailKey(key)}:</span>{" "}
+                                <span className="text-foreground/70 truncate ml-1">
                                   {formatDetailValue(value)}
                                 </span>
                               </span>
@@ -274,33 +273,22 @@ export default function ActivityLogPage() {
               })}
             </div>
           )}
+          </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 mt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+          {total > 0 && (
+            <div className="relative z-20 shrink-0 border-t border-border bg-background px-4 py-2 shadow-[0_-4px_6px_-4px_rgba(0,0,0,0.05)]">
+              <Pagination
+                page={page}
+                totalCount={total}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 20, 50, 100]}
+                onPageChange={(p) => setPage(p)}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1); // Reset to page 1
+                }}
+              />
             </div>
           )}
         </CardContent>

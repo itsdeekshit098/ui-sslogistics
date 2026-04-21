@@ -1,48 +1,19 @@
-import styled from "styled-components";
+// Migrated from styled-components to Tailwind string constants
+// for design system consistency and dark mode support.
 
-export const ModalContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  text-align: center;
-`;
+export const CM_CONTAINER =
+  "flex flex-col items-center gap-4 text-center";
 
-export const IconWrapper = styled.div`
-  border-radius: 9999px;
-  background-color: #fee2e2;
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+export const CM_ICON_WRAPPER =
+  "rounded-full bg-destructive/10 p-3 flex items-center justify-center [&_svg]:h-6 [&_svg]:w-6 [&_svg]:text-destructive";
 
-  svg {
-    height: 1.5rem;
-    width: 1.5rem;
-    color: #dc2626;
-  }
-`;
+export const CM_TEXT_CONTAINER = "";
 
-export const TextContainer = styled.div``;
+export const CM_TITLE =
+  "text-lg font-semibold text-foreground";
 
-export const ModalTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-`;
+export const CM_DESC =
+  "text-sm text-muted-foreground mt-1";
 
-export const ModalDesc = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-`;
-
-export const ActionWrapper = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  width: 100%;
-
-  button {
-    flex: 1;
-  }
-`;
+export const CM_ACTION_WRAPPER =
+  "flex gap-3 w-full [&_button]:flex-1";

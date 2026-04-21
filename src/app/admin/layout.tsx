@@ -32,7 +32,7 @@ export default function AdminLayout({
                 <Button 
                     variant="outline" 
                     size="icon" 
-                    className="rounded-full shadow-md bg-white/80 backdrop-blur border-slate-200 text-slate-700 hover:bg-white" 
+                    className="rounded-[var(--input-radius)] shadow-md bg-background/80 backdrop-blur border-border text-foreground hover:bg-background" 
                     onClick={() => setIsMobileMenuOpen(true)}
                 >
                     <Menu className="h-5 w-5" />

@@ -108,7 +108,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
 
         {/* Sign Out — Pinned to bottom */}
-        <div className="border-t border-slate-200/60 p-3 lg:p-4">
+        <div className="border-t border-border p-3 lg:p-4">
           <SignOutButton variant="mobile" />
         </div>
       </div>
