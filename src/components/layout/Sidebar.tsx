@@ -13,8 +13,10 @@ import {
   Building2,
   Wrench,
   Activity,
+  Lock,
 } from "lucide-react";
 import { SignOutButton } from "@/components/signOutButton";
+import { ThemeToggle } from "@/components/themeToggle";
 
 const sidebarItems = [
   {
@@ -52,22 +54,32 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <div className={cn("border-r bg-muted/40 w-64 shrink-0", className)}>
-      <div className="flex h-full max-h-screen flex-col">
-        <div className="flex h-14 items-center justify-between border-b px-4 lg:h-15 lg:px-6">
+    <div className={cn("bg-card w-72 md:w-64 shrink-0", className)}>
+      <div className="flex w-full h-full max-h-screen flex-col">
+        {/* Brand Header */}
+        <div className="flex h-16 items-center border-b border-border/50 px-5">
           <Link
             href="/"
-            className="flex items-center gap-2 font-semibold"
+            className="flex items-center gap-3 group"
             onClick={onClose}
           >
-            <Truck className="h-6 w-6" />
-            <span className="text-lg font-bold tracking-tight">
-              SRI SRINIVASA
-            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10">
+              <Truck className="h-5 w-5 text-brand" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-extrabold tracking-tight text-brand leading-none">
+                SRI SRINIVASA
+              </span>
+              <span className="text-[10px] font-medium text-muted-foreground tracking-wider uppercase mt-0.5">
+                Secure Logistics
+              </span>
+            </div>
           </Link>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto py-3 w-full">
+          <nav className="flex flex-col gap-0.5 px-3 w-full">
             {sidebarItems.map((item) => {
               const isActive = pathname === item.href;
               const isEnabled = item.enabled;
@@ -79,14 +91,17 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                     href={item.href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-3 md:py-2 transition-all hover:text-primary active:bg-muted/80",
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all w-full",
                       isActive
-                        ? "bg-muted text-primary"
-                        : "text-muted-foreground",
+                        ? "bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
                     )}
                   >
-                    <item.icon className="h-5 w-5 md:h-4 md:w-4" />
-                    <span className="text-base md:text-sm">{item.name}</span>
+                    <item.icon className={cn(
+                      "h-[18px] w-[18px] shrink-0",
+                      isActive && "text-primary"
+                    )} />
+                    <span className="truncate">{item.name}</span>
                   </Link>
                 );
               }
@@ -94,21 +109,23 @@ export function Sidebar({ className, onClose }: SidebarProps) {
               return (
                 <div
                   key={item.href}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 md:py-2 text-muted-foreground/50 cursor-not-allowed"
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground/40 cursor-not-allowed w-full"
                 >
-                  <item.icon className="h-5 w-5 md:h-4 md:w-4" />
-                  <span className="text-base md:text-sm">{item.name}</span>
-                  <span className="ml-auto text-xs bg-muted-foreground/10 px-2 py-1 rounded-full">
-                    Coming Soon
-                  </span>
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  <span className="truncate">{item.name}</span>
+                  <Lock className="h-3 w-3 ml-auto shrink-0 opacity-50" />
                 </div>
               );
             })}
           </nav>
         </div>
 
-        {/* Sign Out — Pinned to bottom */}
-        <div className="border-t border-slate-200/60 p-3 lg:p-4">
+        {/* Footer — Pinned to bottom */}
+        <div className="border-t border-border/50 p-3 space-y-2">
+          <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-muted/40">
+            <span className="text-xs font-medium text-muted-foreground">Appearance</span>
+            <ThemeToggle />
+          </div>
           <SignOutButton variant="mobile" />
         </div>
       </div>

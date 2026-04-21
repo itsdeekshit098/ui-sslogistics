@@ -1,36 +1,42 @@
-export const AL_CONTAINER = "container mx-auto space-y-6 md:space-y-8";
-export const AL_HEADER_TITLE = "text-2xl md:text-3xl font-bold tracking-tight";
-export const AL_HEADER_DESC = "text-sm md:text-base text-muted-foreground";
+import {
+  PAGE_CONTAINER,
+  PAGE_HEADER_TITLE,
+  PAGE_HEADER_DESC,
+} from "@/lib/designTokens";
 
-// Action badge color mappings
+// Re-export shared tokens for backward compatibility
+export const AL_CONTAINER = PAGE_CONTAINER;
+export const AL_HEADER_TITLE = PAGE_HEADER_TITLE;
+export const AL_HEADER_DESC = PAGE_HEADER_DESC;
+
 export const ACTION_STYLES: Record<
   string,
   { bg: string; text: string; icon: string }
 > = {
   CREATE_VEHICLE: {
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    icon: "text-emerald-500",
+    bg: "bg-emerald-50 dark:bg-emerald-500/10",
+    text: "text-emerald-700 dark:text-emerald-400",
+    icon: "text-emerald-500 dark:text-emerald-400",
   },
   UPDATE_VEHICLE: {
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    icon: "text-blue-500",
+    bg: "bg-blue-50 dark:bg-blue-500/10",
+    text: "text-blue-700 dark:text-blue-400",
+    icon: "text-blue-500 dark:text-blue-400",
   },
   DELETE_VEHICLE: {
-    bg: "bg-red-50",
-    text: "text-red-700",
-    icon: "text-red-500",
+    bg: "bg-red-50 dark:bg-red-500/10",
+    text: "text-red-700 dark:text-red-400",
+    icon: "text-red-500 dark:text-red-400",
   },
   UPLOAD_DOCUMENT: {
-    bg: "bg-violet-50",
-    text: "text-violet-700",
-    icon: "text-violet-500",
+    bg: "bg-violet-50 dark:bg-violet-500/10",
+    text: "text-violet-700 dark:text-violet-400",
+    icon: "text-violet-500 dark:text-violet-400",
   },
   DELETE_DOCUMENT: {
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    icon: "text-amber-500",
+    bg: "bg-amber-50 dark:bg-amber-500/10",
+    text: "text-amber-700 dark:text-amber-400",
+    icon: "text-amber-500 dark:text-amber-400",
   },
 };
 

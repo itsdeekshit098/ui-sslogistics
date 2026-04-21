@@ -10,12 +10,12 @@ import { Trash2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import type { ConfirmModalProps } from "./confirmModal.types";
 import {
-    ModalContainer,
-    IconWrapper,
-    TextContainer,
-    ModalTitle,
-    ModalDesc,
-    ActionWrapper
+    CM_CONTAINER,
+    CM_ICON_WRAPPER,
+    CM_TEXT_CONTAINER,
+    CM_TITLE,
+    CM_DESC,
+    CM_ACTION_WRAPPER
 } from "./confirmModal.style";
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -33,18 +33,18 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-md">
-                <ModalContainer>
-                    <IconWrapper>
+                <div className={CM_CONTAINER}>
+                    <div className={CM_ICON_WRAPPER}>
                         {icon ? icon : <Trash2 />}
-                    </IconWrapper>
-                    <TextContainer>
-                        <ModalTitle>{title}</ModalTitle>
-                        <ModalDesc>{description}</ModalDesc>
-                    </TextContainer>
+                    </div>
+                    <div className={CM_TEXT_CONTAINER}>
+                        <h3 className={CM_TITLE}>{title}</h3>
+                        <p className={CM_DESC}>{description}</p>
+                    </div>
                     
                     {children}
 
-                    <ActionWrapper>
+                    <div className={CM_ACTION_WRAPPER}>
                         <Button
                             variant="outline"
                             onClick={onClose}
@@ -60,8 +60,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                             {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
                             {confirmText}
                         </Button>
-                    </ActionWrapper>
-                </ModalContainer>
+                    </div>
+                </div>
             </DialogContent>
         </Dialog>
     );

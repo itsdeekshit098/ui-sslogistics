@@ -24,7 +24,7 @@ export const Dialog = ({ children, open, onOpenChange }: { children: React.React
 export const DialogContent = ({ children, className }: { children: React.ReactNode; className?: string }) => {
     const { onOpenChange } = React.useContext(DialogContext)
     return (
-        <div className={cn("relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg duration-200 animate-in zoom-in-95 sm:rounded-lg", className)}>
+        <div className={cn("relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-[var(--modal-shadow)] duration-200 animate-in zoom-in-95 rounded-[var(--modal-radius)]", className)}>
             <button
                 className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
                 onClick={() => onOpenChange(false)}
