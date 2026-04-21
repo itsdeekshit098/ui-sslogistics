@@ -81,11 +81,15 @@ export function NavigationProgress() {
     return () => document.removeEventListener("click", handleClick, true);
   }, [pathname, startProgress]);
 
-  if (!state.visible) return null;
-
   return (
     // Outer rail: fixed to top edge, full width, 3px tall, above everything
-    <div className="fixed top-0 left-0 right-0 h-[3px] z-[9999] pointer-events-none">
+    <div
+      aria-hidden="true"
+      className={cn(
+        "fixed top-0 left-0 right-0 h-[3px] z-[9999] pointer-events-none transition-opacity duration-300",
+        state.visible ? "opacity-100" : "opacity-0"
+      )}
+    >
       {/* Inner bar: only width is truly dynamic and must stay as inline style */}
       <div
         className={cn(

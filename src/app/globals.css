@@ -29,9 +29,22 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
+  /* Semantic Variables added */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
 
   /* ─── Radius Tokens ─── */
   --radius-xs: calc(var(--radius) - 4px);
@@ -122,11 +135,23 @@
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
 
+  --success: hsl(142.1 76.2% 36.3%);
+  --success-foreground: hsl(355.7 100% 97.3%);
+
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(48 96% 89%);
+
+  --info: hsl(221.2 83.2% 53.3%);
+  --info-foreground: hsl(210 40% 98%);
+
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(240 10% 3.9%);
 
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(240 10% 3.9%);
+
+  --brand: hsl(0 72% 46%);
+  --brand-foreground: hsl(0 0% 100%);
 
   --border: hsl(240 5.9% 90%);
   --input: hsl(240 5.9% 90%);
@@ -193,15 +218,28 @@
   --destructive: hsl(0 62.8% 30.6%);
   --destructive-foreground: hsl(0 0% 98%);
 
-  --card: hsl(240 6% 6.5%);
+  --success: hsl(149 65.1% 30.2%);
+  --success-foreground: hsl(0 0% 98%);
+
+  --warning: hsl(48 96.6% 40.8%);
+  --warning-foreground: hsl(0 0% 98%);
+
+  --info: hsl(217.2 91.2% 59.8%);
+  --info-foreground: hsl(0 0% 98%);
+
+  /* Neutral dark layered backgrounds avoiding pure black */
+  --card: hsl(240 3.7% 10%);
   --card-foreground: hsl(0 0% 98%);
 
-  --popover: hsl(240 6% 6.5%);
+  --popover: hsl(240 3.7% 10%);
   --popover-foreground: hsl(0 0% 98%);
 
   --border: hsl(240 3.7% 15.9%);
   --input: hsl(240 3.7% 15.9%);
   --ring: hsl(240 4.9% 83.9%);
+
+  --brand: hsl(0 72% 56%);
+  --brand-foreground: hsl(0 0% 100%);
 
   /* ─── Shadows (Dark) ─── */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
@@ -209,4 +247,30 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+}
+
+/* ─── Scrollbar Custom Utility ─── */
+@layer utilities {
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: var(--secondary) transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: var(--secondary);
+    border-radius: 20px;
+    border: 2px solid transparent;
+  }
+
+  .scrollbar-custom:hover::-webkit-scrollbar-thumb {
+    background-color: var(--muted-foreground);
+  }
 }

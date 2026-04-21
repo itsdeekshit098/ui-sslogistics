@@ -215,92 +215,94 @@ export function DocumentModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={DM_DIALOG_CONTENT}>
-        <DialogHeader>
-          <DialogTitle>Document Management</DialogTitle>
-          <DialogDescription>
-            Documents for {localVehicle.vehicle_number} | {localVehicle.company}{" "}
-            {localVehicle.model}
-          </DialogDescription>
-        </DialogHeader>
+        <div className="max-h-[85vh] overflow-y-auto p-4 md:p-6 scrollbar-custom">
+          <DialogHeader>
+            <DialogTitle>Document Management</DialogTitle>
+            <DialogDescription>
+              Documents for {localVehicle.vehicle_number} | {localVehicle.company}{" "}
+              {localVehicle.model}
+            </DialogDescription>
+          </DialogHeader>
 
-        {errorMsg && (
-          <div className={DM_ERROR_WRAPPER}>
-            <span>{errorMsg}</span>
-            <button
-              onClick={() => setErrorMsg(null)}
-              className={DM_ERROR_CLOSE}
-            >
-              &times;
-            </button>
-          </div>
-        )}
+          {errorMsg && (
+            <div className={DM_ERROR_WRAPPER}>
+              <span>{errorMsg}</span>
+              <button
+                onClick={() => setErrorMsg(null)}
+                className={DM_ERROR_CLOSE}
+              >
+                &times;
+              </button>
+            </div>
+          )}
 
-        <div className={DM_GRID_CONTAINER}>
-          {docTypes.map((doc) => {
-            const filePath = localVehicle[doc.key as keyof Vehicle] as
-              | string
-              | undefined;
-            const isLoading = loadingFields.includes(doc.key);
-            const isViewing = viewingFields.includes(doc.key);
+          <div className={DM_GRID_CONTAINER}>
+            {docTypes.map((doc) => {
+              const filePath = localVehicle[doc.key as keyof Vehicle] as
+                | string
+                | undefined;
+              const isLoading = loadingFields.includes(doc.key);
+              const isViewing = viewingFields.includes(doc.key);
 
-            return (
-              <div key={doc.key} className={DM_CARD_CONTAINER}>
-                <div>
-                  <h4 className={DM_CARD_HEADER}>{doc.label}</h4>
-                </div>
-
-                {isLoading ? (
-                  <div className="mt-auto w-full h-[88px]">
-                    <Skeleton width="100%" height="100%" borderRadius="8px" />
+              return (
+                <div key={doc.key} className={DM_CARD_CONTAINER}>
+                  <div>
+                    <h4 className={DM_CARD_HEADER}>{doc.label}</h4>
                   </div>
-                ) : filePath ? (
-                  <div className={DM_ACTIVE_DOC_WRAPPER}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={DM_BUTTON_VIEW}
-                      onClick={() => handleView(filePath, doc.key)}
-                      disabled={isViewing}
-                    >
-                      {isViewing ? (
-                        <LoadingSpinner size="sm" className="mr-2" />
-                      ) : (
-                        <Eye className="h-4 w-4 mr-2" />
-                      )}
-                      {isViewing ? "Opening..." : "View"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className={DM_BUTTON_DELETE}
-                      onClick={() =>
-                        setDeleteDocTarget({ key: doc.key, filePath })
-                      }
-                      disabled={isLoading}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className={DM_UPLOAD_WRAPPER}>
-                    <div className={DM_UPLOAD_DROPZONE}>
-                      <input
-                        type="file"
-                        className={DM_UPLOAD_INPUT_FIELD}
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={(e) => handleUpload(e, doc.key)}
-                        disabled={isLoading}
-                      />
-                      <UploadCloud className={DM_UPLOAD_ICON_CONTAINER} />
-                      <span className={DM_UPLOAD_SUBTITLE}>
-                        Upload Document
-                      </span>
+
+                  {isLoading ? (
+                    <div className="mt-auto w-full h-[88px]">
+                      <Skeleton width="100%" height="100%" borderRadius="8px" />
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  ) : filePath ? (
+                    <div className={DM_ACTIVE_DOC_WRAPPER}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={DM_BUTTON_VIEW}
+                        onClick={() => handleView(filePath, doc.key)}
+                        disabled={isViewing}
+                      >
+                        {isViewing ? (
+                          <LoadingSpinner size="sm" className="mr-2" />
+                        ) : (
+                          <Eye className="h-4 w-4 mr-2" />
+                        )}
+                        {isViewing ? "Opening..." : "View"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className={DM_BUTTON_DELETE}
+                        onClick={() =>
+                          setDeleteDocTarget({ key: doc.key, filePath })
+                        }
+                        disabled={isLoading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className={DM_UPLOAD_WRAPPER}>
+                      <div className={DM_UPLOAD_DROPZONE}>
+                        <input
+                          type="file"
+                          className={DM_UPLOAD_INPUT_FIELD}
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          onChange={(e) => handleUpload(e, doc.key)}
+                          disabled={isLoading}
+                        />
+                        <UploadCloud className={DM_UPLOAD_ICON_CONTAINER} />
+                        <span className={DM_UPLOAD_SUBTITLE}>
+                          Upload Document
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </DialogContent>
 

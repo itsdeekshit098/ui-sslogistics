@@ -254,8 +254,10 @@ const CreateVehicleModal: React.FC<CreateVehicleModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 rounded-xl sm:rounded-2xl">
-        <CreateVehicleForm onClose={onClose} onSuccess={onSuccess} />
+      <DialogContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+        <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
+          <CreateVehicleForm onClose={onClose} onSuccess={onSuccess} />
+        </div>
       </DialogContent>
     </Dialog>
   );

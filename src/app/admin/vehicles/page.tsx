@@ -22,6 +22,8 @@ import {
   FolderOpen,
   Trash2,
   ArrowLeft,
+  Filter,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -42,11 +44,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Vehicle } from "./vehicles.types";
+import { Vehicle, VehicleType, VEHICLE_TYPES } from "./vehicles.types";
 import {
   getDefaultVehicleFormData,
   getStatusBadgeVariant,
 } from "./vehicles.utils";
+import { useVehicleSearch } from "./useVehicleSearch";
+import HighlightMatch from "./highlightMatch";
 import {
   CA_VEHICLES_CONTAINER,
   CA_VEHICLES_HEADER_TITLE,
@@ -92,7 +96,10 @@ export default function VehiclesPage() {
   const [editFormData, setEditFormData] = useState<Omit<Vehicle, "id">>(
     getDefaultVehicleFormData(),
   );
-  const [editErrors, setEditErrors] = useState<{ vehicle_number?: string; vehicle_type?: string }>({});
+  const [editErrors, setEditErrors] = useState<{
+    vehicle_number?: string;
+    vehicle_type?: string;
+  }>({});
   const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
 
   // Document Modal State
@@ -107,6 +114,19 @@ export default function VehiclesPage() {
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Search & Filter
+  const {
+    searchQuery,
+    debouncedQuery,
+    typeFilter,
+    filteredVehicles,
+    setSearchQuery,
+    setTypeFilter,
+    resetFilters,
+  } = useVehicleSearch(vehicles);
+
+  const hasActiveFilters = searchQuery !== "" || typeFilter !== "all";
 
   // Function to actively reload logic easily
   const fetchVehiclesRefetch = async () => {
@@ -155,7 +175,10 @@ export default function VehiclesPage() {
     if (!editingVehicle) return;
 
     const newErrors: { vehicle_number?: string; vehicle_type?: string } = {};
-    if (!editFormData.vehicle_number || editFormData.vehicle_number.trim() === "") {
+    if (
+      !editFormData.vehicle_number ||
+      editFormData.vehicle_number.trim() === ""
+    ) {
       newErrors.vehicle_number = "Vehicle Number is required";
     }
     if (!editFormData.vehicle_type || editFormData.vehicle_type.trim() === "") {
@@ -174,7 +197,9 @@ export default function VehiclesPage() {
     const payload = {
       id: editingVehicle.id,
       ...editFormData,
-      last_service_date: editFormData.last_service_date ? editFormData.last_service_date : null
+      last_service_date: editFormData.last_service_date
+        ? editFormData.last_service_date
+        : null,
     };
 
     try {
@@ -187,7 +212,9 @@ export default function VehiclesPage() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("Error updating vehicle:", errorData);
-        setEditSubmitError(`Failed to update vehicle: ${errorData.error || res.statusText}`);
+        setEditSubmitError(
+          `Failed to update vehicle: ${errorData.error || res.statusText}`,
+        );
         return;
       }
 
@@ -353,10 +380,64 @@ export default function VehiclesPage() {
       <Card>
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg md:text-xl">Vehicle List</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search vehicles..." className="pl-8" />
+            <CardTitle className="text-lg md:text-xl">
+              Vehicle List
+              {!loading && hasActiveFilters && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({filteredVehicles.length} of {vehicles.length})
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search vehicle number..."
+                  className="pl-8 pr-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) =>
+                  setTypeFilter(value as VehicleType | "all")
+                }
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="All Types" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {VEHICLE_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type === "Tempo" ? "Tempo Traveller" : type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="text-xs"
+                >
+                  <X className="mr-1 h-3.5 w-3.5" /> Clear
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -365,19 +446,24 @@ export default function VehiclesPage() {
           <div className="block md:hidden space-y-3">
             {loading ? (
               <LoadingSpinner size="md" centered label="Loading vehicles..." />
-            ) : vehicles.length === 0 ? (
+            ) : filteredVehicles.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No vehicles found. Add one to get started.
+                {hasActiveFilters
+                  ? "No vehicles match your search criteria."
+                  : "No vehicles found. Add one to get started."}
               </p>
             ) : (
-              vehicles.map((vehicle) => (
+              filteredVehicles.map((vehicle) => (
                 <div
                   key={vehicle.id}
                   className="border rounded-lg p-3 space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm">
-                      {vehicle.vehicle_number}
+                      <HighlightMatch
+                        text={vehicle.vehicle_number}
+                        query={debouncedQuery}
+                      />
                     </span>
                     <Badge
                       variant={
@@ -468,20 +554,29 @@ export default function VehiclesPage() {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={8}>
-                      <LoadingSpinner size="sm" centered label="Loading vehicles..." />
+                      <LoadingSpinner
+                        size="sm"
+                        centered
+                        label="Loading vehicles..."
+                      />
                     </TableCell>
                   </TableRow>
-                ) : vehicles.length === 0 ? (
+                ) : filteredVehicles.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center">
-                      No vehicles found. Add one to get started.
+                      {hasActiveFilters
+                        ? "No vehicles match your search criteria."
+                        : "No vehicles found. Add one to get started."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  vehicles.map((vehicle) => (
+                  filteredVehicles.map((vehicle) => (
                     <TableRow key={vehicle.id}>
                       <TableCell className="font-medium">
-                        {vehicle.vehicle_number}
+                        <HighlightMatch
+                          text={vehicle.vehicle_number}
+                          query={debouncedQuery}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -559,130 +654,158 @@ export default function VehiclesPage() {
 
       {/* Edit Vehicle Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[95vw] max-w-175 max-h-[85vh] overflow-y-auto rounded-xl sm:rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Vehicle</DialogTitle>
-            <DialogDescription>
-              Make changes to the vehicle details here. Click save when
-              you&apos;re done.
-            </DialogDescription>
-          </DialogHeader>
-          {editSubmitError && (
-             <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
-                 {editSubmitError}
-             </div>
-          )}
-          <div className="grid gap-4 py-4">
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="vehicle_number">Vehicle Number <span className="text-red-500">*</span></Label>
-                <Input
-                  id="vehicle_number"
-                  value={editFormData.vehicle_number}
-                  onChange={(e) => {
-                    handleEditChange(e);
-                    if (editErrors.vehicle_number) setEditErrors(prev => ({...prev, vehicle_number: undefined}));
-                  }}
-                  className={editErrors.vehicle_number ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
-                {editErrors.vehicle_number && <p className="text-xs text-red-500 mt-1">{editErrors.vehicle_number}</p>}
+        <DialogContent className="w-[95vw] max-w-175 p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+          <div className="max-h-[85vh] overflow-y-auto p-4 md:p-6 scrollbar-custom">
+            <DialogHeader>
+              <DialogTitle>Edit Vehicle</DialogTitle>
+              <DialogDescription>
+                Make changes to the vehicle details here. Click save when
+                you&apos;re done.
+              </DialogDescription>
+            </DialogHeader>
+            {editSubmitError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
+                {editSubmitError}
               </div>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="vehicle_type">Vehicle Type <span className="text-red-500">*</span></Label>
-                <Select
-                  value={editFormData.vehicle_type}
-                  onValueChange={(value) => {
-                    handleEditSelectChange("vehicle_type", value);
-                    if (editErrors.vehicle_type) setEditErrors(prev => ({...prev, vehicle_type: undefined}));
-                  }}
-                >
-                  <SelectTrigger className={editErrors.vehicle_type ? "border-red-500 focus:ring-red-500" : ""}>
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Bus">Bus</SelectItem>
-                    <SelectItem value="Car">Car</SelectItem>
-                    <SelectItem value="Tempo">Tempo Traveller</SelectItem>
-                    <SelectItem value="Truck">Truck</SelectItem>
-                  </SelectContent>
-                </Select>
+            )}
+            <div className="grid gap-4 py-4">
+              <div className={CA_MODAL_GRID}>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="vehicle_number">
+                    Vehicle Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="vehicle_number"
+                    value={editFormData.vehicle_number}
+                    onChange={(e) => {
+                      handleEditChange(e);
+                      if (editErrors.vehicle_number)
+                        setEditErrors((prev) => ({
+                          ...prev,
+                          vehicle_number: undefined,
+                        }));
+                    }}
+                    className={
+                      editErrors.vehicle_number
+                        ? "border-red-500 focus-visible:ring-red-500"
+                        : ""
+                    }
+                  />
+                  {editErrors.vehicle_number && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {editErrors.vehicle_number}
+                    </p>
+                  )}
+                </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="vehicle_type">
+                    Vehicle Type <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={editFormData.vehicle_type}
+                    onValueChange={(value) => {
+                      handleEditSelectChange("vehicle_type", value);
+                      if (editErrors.vehicle_type)
+                        setEditErrors((prev) => ({
+                          ...prev,
+                          vehicle_type: undefined,
+                        }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={
+                        editErrors.vehicle_type
+                          ? "border-red-500 focus:ring-red-500"
+                          : ""
+                      }
+                    >
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bus">Bus</SelectItem>
+                      <SelectItem value="Car">Car</SelectItem>
+                      <SelectItem value="Tempo">Tempo Traveller</SelectItem>
+                      <SelectItem value="Truck">Truck</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
 
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  value={editFormData.company}
-                  onChange={handleEditChange}
-                />
+              <div className={CA_MODAL_GRID}>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="company">Company</Label>
+                  <Input
+                    id="company"
+                    value={editFormData.company}
+                    onChange={handleEditChange}
+                  />
+                </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="model">Model</Label>
+                  <Input
+                    id="model"
+                    value={editFormData.model}
+                    onChange={handleEditChange}
+                  />
+                </div>
               </div>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="model">Model</Label>
-                <Input
-                  id="model"
-                  value={editFormData.model}
-                  onChange={handleEditChange}
-                />
-              </div>
-            </div>
 
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="capacity">Capacity</Label>
-                <Input
-                  id="capacity"
-                  value={editFormData.capacity}
-                  onChange={handleEditChange}
-                />
+              <div className={CA_MODAL_GRID}>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="capacity">Capacity</Label>
+                  <Input
+                    id="capacity"
+                    value={editFormData.capacity}
+                    onChange={handleEditChange}
+                  />
+                </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="last_service_date">Last Service Date</Label>
+                  <Input
+                    id="last_service_date"
+                    type="date"
+                    value={editFormData.last_service_date || ""}
+                    onChange={handleEditChange}
+                  />
+                </div>
               </div>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="last_service_date">Last Service Date</Label>
-                <Input
-                  id="last_service_date"
-                  type="date"
-                  value={editFormData.last_service_date || ""}
-                  onChange={handleEditChange}
-                />
-              </div>
-            </div>
 
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={editFormData.status}
-                  onValueChange={(value) =>
-                    handleEditSelectChange("status", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Maintenance">Maintenance</SelectItem>
-                    <SelectItem value="Idle">Idle</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className={CA_MODAL_GRID}>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={editFormData.status}
+                    onValueChange={(value) =>
+                      handleEditSelectChange("status", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Maintenance">Maintenance</SelectItem>
+                      <SelectItem value="Idle">Idle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
+            <DialogFooter>
+              <Button
+                type="submit"
+                onClick={handleUpdateVehicle}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <LoadingSpinner size="sm" className="mr-2" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {isSaving ? "Saving..." : "Save changes"}
+              </Button>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              onClick={handleUpdateVehicle}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isSaving ? "Saving..." : "Save changes"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -724,9 +847,7 @@ export default function VehiclesPage() {
                 onClick={handleDeleteVehicle}
                 disabled={isDeleting}
               >
-                {isDeleting && (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                )}
+                {isDeleting && <LoadingSpinner size="sm" className="mr-2" />}
                 {isDeleting ? "Deleting..." : "Delete Vehicle"}
               </Button>
             </div>
@@ -744,12 +865,12 @@ export default function VehiclesPage() {
             const value = newUrl || null;
             setVehicles((prev) =>
               prev.map((v) =>
-                v.id === docVehicle.id
-                  ? { ...v, [documentType]: value }
-                  : v,
+                v.id === docVehicle.id ? { ...v, [documentType]: value } : v,
               ),
             );
-            setDocVehicle((prev) => prev ? { ...prev, [documentType]: value } : null);
+            setDocVehicle((prev) =>
+              prev ? { ...prev, [documentType]: value } : null,
+            );
           } else {
             fetchVehiclesRefetch();
           }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard } from "lucide-react";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { ThemeToggle } from "@/components/themeToggle";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -24,17 +25,18 @@ export function Navbar() {
         {/* Logo */}
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl md:text-2xl font-extrabold tracking-tight text-red-600">
+            <span className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight text-brand">
               Sri Srinivasa
             </span>
           </Link>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
+          <ThemeToggle />
           <Button
             variant="default"
-            className="gap-2 px-3 md:px-4 min-w-[110px]"
+            className="gap-2 px-3 sm:px-4 sm:min-w-[110px]"
             asChild
             onClick={handlePortalClick}
           >
