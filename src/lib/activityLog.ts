@@ -5,7 +5,10 @@ export type AuditAction =
   | "UPDATE_VEHICLE"
   | "DELETE_VEHICLE"
   | "UPLOAD_DOCUMENT"
-  | "DELETE_DOCUMENT";
+  | "DELETE_DOCUMENT"
+  | "CREATE_DIESEL_RECORD"
+  | "UPDATE_DIESEL_RECORD"
+  | "DELETE_DIESEL_RECORD";
 
 interface LogActivityParams {
   action: AuditAction;

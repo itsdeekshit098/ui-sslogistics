@@ -107,15 +107,15 @@ export default function TripSheetsPage() {
             Manage and track all vehicle trips and assignments.
           </p>
         </div>
-        <Button className="w-full md:w-auto" asChild>
-          <Link href="/admin/trip-sheets/new">
+        <Button data-testid="app-admin-trip-sheets-button-1" className="w-full md:w-auto" asChild>
+          <Link data-testid="app-admin-trip-sheets-link-1" href="/admin/trip-sheets/new">
             <Plus className="mr-2 h-4 w-4" /> Create Trip Sheet
           </Link>
         </Button>
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={selectedVehicleId} onValueChange={handleVehicleChange}>
+        <Select data-testid="app-admin-trip-sheets-select-1" value={selectedVehicleId} onValueChange={handleVehicleChange}>
           <SelectTrigger className="w-full sm:w-[280px]">
             <SelectValue placeholder="Select Vehicle" />
           </SelectTrigger>
@@ -130,7 +130,7 @@ export default function TripSheetsPage() {
       </div>
 
       {selectedVehicleId && (
-        <Card>
+        <Card data-testid="app-admin-trip-sheets-card-1">
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-xl">
@@ -143,7 +143,7 @@ export default function TripSheetsPage() {
               </CardTitle>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search trips..." className="pl-8" />
+                <Input data-testid="app-admin-trip-sheets-input-1" placeholder="Search trips..." className="pl-8" />
               </div>
             </div>
           </CardHeader>
@@ -184,7 +184,7 @@ export default function TripSheetsPage() {
                       <div>Client: {trip.client}</div>
                     </div>
                     <div className="flex justify-end">
-                      <Button variant="ghost" size="sm" className="text-xs h-7">
+                      <Button data-testid="app-admin-trip-sheets-button-2" variant="ghost" size="sm" className="text-xs h-7">
                         View
                       </Button>
                     </div>
@@ -197,7 +197,7 @@ export default function TripSheetsPage() {
             <div className="hidden md:block">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow data-testid="app-admin-trip-sheets-tablerow-1">
                     <TableHead>Trip ID</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Driver</TableHead>
@@ -208,20 +208,20 @@ export default function TripSheetsPage() {
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
+                    <TableRow data-testid="app-admin-trip-sheets-tablerow-2">
                       <TableCell colSpan={6} className="text-center">
                         Loading...
                       </TableCell>
                     </TableRow>
                   ) : records.length === 0 ? (
-                    <TableRow>
+                    <TableRow data-testid="app-admin-trip-sheets-tablerow-3">
                       <TableCell colSpan={6} className="text-center">
                         No trips found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     records.map((trip) => (
-                      <TableRow key={trip.id}>
+                      <TableRow data-testid="app-admin-trip-sheets-tablerow-4" key={trip.id}>
                         <TableCell className="font-medium">{trip.id}</TableCell>
                         <TableCell>{trip.date}</TableCell>
                         <TableCell>{trip.driver}</TableCell>
@@ -240,7 +240,7 @@ export default function TripSheetsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
+                          <Button data-testid="app-admin-trip-sheets-button-3" variant="ghost" size="sm">
                             View
                           </Button>
                         </TableCell>

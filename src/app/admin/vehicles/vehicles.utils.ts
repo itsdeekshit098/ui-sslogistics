@@ -128,4 +128,7 @@ export const getDefaultVehicleFormData = (): Omit<Vehicle, "id"> => ({
   permit_url: "",
   pollution_url: "",
   tax_url: "",
+  expected_kml: null,
+  tank_capacity: null,
+  fuel_type: "Diesel",
 });

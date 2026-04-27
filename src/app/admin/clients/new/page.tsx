@@ -34,8 +34,8 @@ export default function NewClientPage() {
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/clients">
+        <Button data-testid="app-admin-clients-new-button-1" variant="ghost" size="icon" asChild>
+          <Link data-testid="app-admin-clients-new-link-1" href="/admin/clients">
             <ChevronLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -50,7 +50,7 @@ export default function NewClientPage() {
       </div>
 
       <div className="grid gap-6 max-w-2xl">
-        <Card>
+        <Card data-testid="app-admin-clients-new-card-1">
           <CardHeader>
             <CardTitle>Company Details</CardTitle>
             <CardDescription>Enter the company information.</CardDescription>
@@ -58,12 +58,12 @@ export default function NewClientPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Company Name</Label>
-              <Input id="name" placeholder="e.g. Mobis India Pvt Ltd" />
+              <Input data-testid="app-admin-clients-new-input-1" id="name" placeholder="e.g. Mobis India Pvt Ltd" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="type">Company Type</Label>
-              <Select
+              <Select data-testid="app-admin-clients-new-select-1"
                 value={formData.type}
                 onValueChange={(value) => handleValueChange("type", value)}
               >
@@ -80,23 +80,23 @@ export default function NewClientPage() {
 
             <div className="space-y-2">
               <Label htmlFor="location">Location / Address</Label>
-              <Input id="location" placeholder="Industrial Park, Penukonda" />
+              <Input data-testid="app-admin-clients-new-input-2" id="location" placeholder="Industrial Park, Penukonda" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contact-person">Contact Person</Label>
-                <Input id="contact-person" placeholder="Name" />
+                <Input data-testid="app-admin-clients-new-input-3" id="contact-person" placeholder="Name" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Contact Phone</Label>
-                <Input id="phone" placeholder="+91..." />
+                <Input data-testid="app-admin-clients-new-input-4" id="phone" placeholder="+91..." />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="contracts">Active Contracts</Label>
-              <Input
+              <Input data-testid="app-admin-clients-new-input-5"
                 id="contracts"
                 placeholder="e.g. Employee Transport, Logistics"
               />
@@ -108,10 +108,10 @@ export default function NewClientPage() {
             </div>
 
             <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
-              <Button variant="outline" className="w-full sm:w-auto" asChild>
-                <Link href="/admin/clients">Cancel</Link>
+              <Button data-testid="app-admin-clients-new-button-2" variant="outline" className="w-full sm:w-auto" asChild>
+                <Link data-testid="app-admin-clients-new-link-2" href="/admin/clients">Cancel</Link>
               </Button>
-              <Button className="w-full sm:w-auto">
+              <Button data-testid="app-admin-clients-new-button-3" className="w-full sm:w-auto">
                 <Save className="mr-2 h-4 w-4" /> Save Client
               </Button>
             </div>

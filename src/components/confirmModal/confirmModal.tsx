@@ -45,14 +45,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     {children}
 
                     <div className={CM_ACTION_WRAPPER}>
-                        <Button
+                        <Button data-testid="components-confirmModal-confirmModal-button-1"
                             variant="outline"
                             onClick={onClose}
                             disabled={isLoading}
                         >
                             {cancelText}
                         </Button>
-                        <Button
+                        <Button data-testid="components-confirmModal-confirmModal-button-2"
                             variant="destructive"
                             onClick={onConfirm}
                             disabled={isLoading}

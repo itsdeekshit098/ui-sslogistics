@@ -18,6 +18,9 @@ export interface Vehicle {
   permit_url?: string;
   pollution_url?: string;
   tax_url?: string;
+  expected_kml?: number | null;
+  tank_capacity?: number | null;
+  fuel_type?: string;
   created_at?: string;
   updated_at?: string;
 }

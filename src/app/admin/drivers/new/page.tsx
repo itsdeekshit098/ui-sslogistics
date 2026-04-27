@@ -34,8 +34,8 @@ export default function NewDriverPage() {
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/drivers">
+        <Button data-testid="app-admin-drivers-new-button-1" variant="ghost" size="icon" asChild>
+          <Link data-testid="app-admin-drivers-new-link-1" href="/admin/drivers">
             <ChevronLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -50,7 +50,7 @@ export default function NewDriverPage() {
       </div>
 
       <div className="grid gap-6 max-w-2xl">
-        <Card>
+        <Card data-testid="app-admin-drivers-new-card-1">
           <CardHeader>
             <CardTitle>Driver Details</CardTitle>
             <CardDescription>
@@ -61,33 +61,33 @@ export default function NewDriverPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="e.g. Ramesh Kumar" />
+                <Input data-testid="app-admin-drivers-new-input-1" id="name" placeholder="e.g. Ramesh Kumar" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" placeholder="+91 98765 43210" />
+                <Input data-testid="app-admin-drivers-new-input-2" id="phone" placeholder="+91 98765 43210" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="license">Driving License Number</Label>
-              <Input id="license" placeholder="AP02 2018001234" />
+              <Input data-testid="app-admin-drivers-new-input-3" id="license" placeholder="AP02 2018001234" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="expiry">License Expiry</Label>
-                <Input id="expiry" type="date" />
+                <Input data-testid="app-admin-drivers-new-input-4" id="expiry" type="date" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="experience">Experience (Years)</Label>
-                <Input id="experience" type="number" placeholder="5" />
+                <Input data-testid="app-admin-drivers-new-input-5" id="experience" type="number" placeholder="5" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="vehicle">Assign Vehicle (Optional)</Label>
-              <Select
+              <Select data-testid="app-admin-drivers-new-select-1"
                 value={formData.vehicle}
                 onValueChange={(value) => handleValueChange("vehicle", value)}
               >
@@ -107,7 +107,7 @@ export default function NewDriverPage() {
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select
+              <Select data-testid="app-admin-drivers-new-select-2"
                 value={formData.status}
                 onValueChange={(value) => handleValueChange("status", value)}
               >
@@ -123,10 +123,10 @@ export default function NewDriverPage() {
             </div>
 
             <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
-              <Button variant="outline" className="w-full sm:w-auto" asChild>
-                <Link href="/admin/drivers">Cancel</Link>
+              <Button data-testid="app-admin-drivers-new-button-2" variant="outline" className="w-full sm:w-auto" asChild>
+                <Link data-testid="app-admin-drivers-new-link-2" href="/admin/drivers">Cancel</Link>
               </Button>
-              <Button className="w-full sm:w-auto">
+              <Button data-testid="app-admin-drivers-new-button-3" className="w-full sm:w-auto">
                 <Save className="mr-2 h-4 w-4" /> Save Driver
               </Button>
             </div>

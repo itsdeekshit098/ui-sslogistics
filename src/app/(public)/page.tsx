@@ -122,14 +122,14 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
+              <Button data-testid="app-(public)-button-1"
                 size="lg"
                 className="w-full sm:w-auto h-12 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 text-base font-medium transition-all hover:scale-105"
                 onClick={handleContactClick}
               >
                 Start Now
               </Button>
-              <Button
+              <Button data-testid="app-(public)-button-2"
                 size="lg"
                 variant="ghost"
                 className="w-full sm:w-auto h-12 px-8 rounded-full text-foreground hover:bg-muted text-base font-medium"
@@ -164,7 +164,7 @@ export default function Home() {
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <Card className="h-full bg-card border border-border shadow-[var(--card-shadow)] hover:shadow-lg transition-all duration-300 rounded-[var(--card-radius)] group cursor-pointer hover:-translate-y-1">
+                <Card data-testid="app-(public)-card-1" className="h-full bg-card border border-border shadow-[var(--card-shadow)] hover:shadow-lg transition-all duration-300 rounded-[var(--card-radius)] group cursor-pointer hover:-translate-y-1">
                   <CardHeader className="pb-4">
                     <div className="h-12 w-12 rounded-[var(--input-radius)] bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center mb-6 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-colors">
                       <service.icon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -339,7 +339,7 @@ export default function Home() {
             requirements and experience the difference.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
+            <Button data-testid="app-(public)-button-3"
               size="lg"
               className="w-full sm:w-auto h-14 px-10 rounded-full bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 text-lg font-medium transition-all hover:-translate-y-1"
               onClick={handleContactClick}
@@ -356,7 +356,7 @@ export default function Home() {
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-foreground">Contact Us</h3>
-                <Button
+                <Button data-testid="app-(public)-button-4"
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowContactOptions(false)}
@@ -367,7 +367,7 @@ export default function Home() {
               </div>
 
               <div className="grid gap-4">
-                <Button
+                <Button data-testid="app-(public)-button-5"
                   size="lg"
                   className="w-full gap-3 bg-primary text-primary-foreground hover:bg-primary/90 h-14 text-lg"
                   asChild
@@ -378,7 +378,7 @@ export default function Home() {
                   </a>
                 </Button>
 
-                <Button
+                <Button data-testid="app-(public)-button-6"
                   size="lg"
                   className="w-full gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white h-14 text-lg"
                   asChild

@@ -117,7 +117,7 @@ export default function ActivityLogPage() {
 
   return (
     <div className={AL_CONTAINER}>
-      <Button
+      <Button data-testid="app-admin-activity-log-button-1"
         variant="ghost"
         onClick={() => router.back()}
         className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
@@ -138,7 +138,7 @@ export default function ActivityLogPage() {
             <Activity className="h-3.5 w-3.5 mr-1.5" />
             {loading ? "..." : `${total} entries`}
           </Badge>
-          <Button
+          <Button data-testid="app-admin-activity-log-button-2"
             variant="outline"
             size="sm"
             onClick={handleRefresh}
@@ -153,7 +153,7 @@ export default function ActivityLogPage() {
       </div>
 
       {/* Activity Feed */}
-      <Card className="flex flex-col overflow-hidden shadow-sm">
+      <Card data-testid="app-admin-activity-log-card-1" className="flex flex-col overflow-hidden shadow-sm">
         <CardHeader className="p-4 md:p-6 pb-2 md:pb-3 shrink-0">
           <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
         </CardHeader>

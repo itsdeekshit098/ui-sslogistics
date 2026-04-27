@@ -117,15 +117,15 @@ export default function RepairRecordsPage() {
             View and manage vehicle repair history.
           </p>
         </div>
-        <Button className="w-full md:w-auto" asChild>
-          <Link href="/admin/repair-records/new">
+        <Button data-testid="app-admin-repair-records-button-1" className="w-full md:w-auto" asChild>
+          <Link data-testid="app-admin-repair-records-link-1" href="/admin/repair-records/new">
             <Plus className="mr-2 h-4 w-4" /> Add Repair Record
           </Link>
         </Button>
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={selectedVehicleId} onValueChange={handleVehicleChange}>
+        <Select data-testid="app-admin-repair-records-select-1" value={selectedVehicleId} onValueChange={handleVehicleChange}>
           <SelectTrigger className="w-full sm:w-[280px]">
             <SelectValue placeholder="Select Vehicle" />
           </SelectTrigger>
@@ -140,7 +140,7 @@ export default function RepairRecordsPage() {
       </div>
 
       {selectedVehicleId && (
-        <Card>
+        <Card data-testid="app-admin-repair-records-card-1">
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-xl">
@@ -153,7 +153,7 @@ export default function RepairRecordsPage() {
               </CardTitle>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search records..." className="pl-8" />
+                <Input data-testid="app-admin-repair-records-input-1" placeholder="Search records..." className="pl-8" />
               </div>
             </div>
           </CardHeader>
@@ -223,7 +223,7 @@ export default function RepairRecordsPage() {
             <div className="hidden md:block">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow data-testid="app-admin-repair-records-tablerow-1">
                     <TableHead>Date</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Issues</TableHead>
@@ -235,20 +235,20 @@ export default function RepairRecordsPage() {
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
+                    <TableRow data-testid="app-admin-repair-records-tablerow-2">
                       <TableCell colSpan={7}>
                         <LoadingSpinner size="sm" centered label="Loading records..." />
                       </TableCell>
                     </TableRow>
                   ) : records.length === 0 ? (
-                    <TableRow>
+                    <TableRow data-testid="app-admin-repair-records-tablerow-3">
                       <TableCell colSpan={7} className="text-center">
                         No records found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     records.map((record) => (
-                      <TableRow key={record.id}>
+                      <TableRow data-testid="app-admin-repair-records-tablerow-4" key={record.id}>
                         <TableCell>{record.date}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 capitalize">

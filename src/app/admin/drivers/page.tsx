@@ -125,15 +125,15 @@ export default function DriversPage() {
             Manage driver profiles and vehicle assignments.
           </p>
         </div>
-        <Button className="w-full md:w-auto" asChild>
-          <Link href="/admin/drivers/new">
+        <Button data-testid="app-admin-drivers-button-1" className="w-full md:w-auto" asChild>
+          <Link data-testid="app-admin-drivers-link-1" href="/admin/drivers/new">
             <Plus className="mr-2 h-4 w-4" /> Add Driver
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3">
-        <Card>
+        <Card data-testid="app-admin-drivers-card-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               Total Drivers
@@ -149,7 +149,7 @@ export default function DriversPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card data-testid="app-admin-drivers-card-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               On Duty
@@ -165,7 +165,7 @@ export default function DriversPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="col-span-2 md:col-span-1">
+        <Card data-testid="app-admin-drivers-card-3" className="col-span-2 md:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               On Leave
@@ -183,13 +183,13 @@ export default function DriversPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-testid="app-admin-drivers-card-4">
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg md:text-xl">Driver List</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search drivers..." className="pl-8" />
+              <Input data-testid="app-admin-drivers-input-1" placeholder="Search drivers..." className="pl-8" />
             </div>
           </div>
         </CardHeader>
@@ -217,7 +217,7 @@ export default function DriversPage() {
                   <div>Vehicle: {driver.assignedVehicle}</div>
                 </div>
                 <div className="flex justify-end">
-                  <Button
+                  <Button data-testid="app-admin-drivers-button-2"
                     variant="ghost"
                     size="sm"
                     className="text-xs h-7"
@@ -234,7 +234,7 @@ export default function DriversPage() {
           <div className="hidden md:block">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow data-testid="app-admin-drivers-tablerow-1">
                   <TableHead>Driver Name</TableHead>
                   <TableHead>License No.</TableHead>
                   <TableHead>Phone</TableHead>
@@ -245,7 +245,7 @@ export default function DriversPage() {
               </TableHeader>
               <TableBody>
                 {drivers.map((driver) => (
-                  <TableRow key={driver.id}>
+                  <TableRow data-testid="app-admin-drivers-tablerow-2" key={driver.id}>
                     <TableCell className="font-medium">{driver.name}</TableCell>
                     <TableCell>{driver.license}</TableCell>
                     <TableCell>
@@ -265,7 +265,7 @@ export default function DriversPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
+                      <Button data-testid="app-admin-drivers-button-3"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditClick(driver)}
@@ -295,7 +295,7 @@ export default function DriversPage() {
               <Label htmlFor="name" className="text-right">
                 Name
               </Label>
-              <Input
+              <Input data-testid="app-admin-drivers-input-2"
                 id="name"
                 value={editFormData.name}
                 onChange={handleEditChange}
@@ -306,7 +306,7 @@ export default function DriversPage() {
               <Label htmlFor="license" className="text-right">
                 License
               </Label>
-              <Input
+              <Input data-testid="app-admin-drivers-input-3"
                 id="license"
                 value={editFormData.license}
                 onChange={handleEditChange}
@@ -317,7 +317,7 @@ export default function DriversPage() {
               <Label htmlFor="phone" className="text-right">
                 Phone
               </Label>
-              <Input
+              <Input data-testid="app-admin-drivers-input-4"
                 id="phone"
                 value={editFormData.phone}
                 onChange={handleEditChange}
@@ -328,7 +328,7 @@ export default function DriversPage() {
               <Label htmlFor="assignedVehicle" className="text-right">
                 Vehicle
               </Label>
-              <Input
+              <Input data-testid="app-admin-drivers-input-5"
                 id="assignedVehicle"
                 value={editFormData.assignedVehicle}
                 onChange={handleEditChange}
@@ -339,7 +339,7 @@ export default function DriversPage() {
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select
+              <Select data-testid="app-admin-drivers-select-1"
                 value={editFormData.status}
                 onValueChange={(value) =>
                   handleEditSelectChange("status", value)
@@ -357,7 +357,7 @@ export default function DriversPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleUpdateDriver}>
+            <Button data-testid="app-admin-drivers-button-4" type="submit" onClick={handleUpdateDriver}>
               <Save className="mr-2 h-4 w-4" />
               Save changes
             </Button>

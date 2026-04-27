@@ -61,12 +61,7 @@ import {
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
-import dynamic from "next/dynamic";
-
-const CreateVehicleModal = dynamic(
-  () => import("@/components/createVehicleModal/createVehicleModal"),
-  { ssr: false },
-);
+import { CreateVehicleModal } from "@/components/createVehicleModal";
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -156,6 +151,9 @@ export default function VehiclesPage() {
       permit_url: vehicle.permit_url || "",
       pollution_url: vehicle.pollution_url || "",
       tax_url: vehicle.tax_url || "",
+      expected_kml: vehicle.expected_kml ?? null,
+      tank_capacity: vehicle.tank_capacity ?? null,
+      fuel_type: vehicle.fuel_type || "Diesel",
     });
     setEditErrors({});
     setEditSubmitError(null);
@@ -272,6 +270,7 @@ export default function VehiclesPage() {
   return (
     <div className={CA_VEHICLES_CONTAINER}>
       <Button
+        data-testid="vehicles-back-btn"
         variant="ghost"
         onClick={() => router.back()}
         className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
@@ -287,6 +286,7 @@ export default function VehiclesPage() {
           </p>
         </div>
         <Button
+          data-testid="vehicles-add-btn"
           className="w-full md:w-auto"
           onClick={() => setIsCreateOpen(true)}
         >
@@ -392,6 +392,7 @@ export default function VehiclesPage() {
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  data-testid="vehicles-search-input"
                   placeholder="Search vehicle number..."
                   className="pl-8 pr-8"
                   value={searchQuery}
@@ -399,6 +400,7 @@ export default function VehiclesPage() {
                 />
                 {searchQuery && (
                   <button
+                    data-testid="vehicles-search-clear-btn"
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
@@ -430,6 +432,7 @@ export default function VehiclesPage() {
               </Select>
               {hasActiveFilters && (
                 <Button
+                  data-testid="vehicles-filter-clear-btn"
                   variant="ghost"
                   size="sm"
                   onClick={resetFilters}
@@ -500,6 +503,7 @@ export default function VehiclesPage() {
                   </div>
                   <div className="flex gap-2 pt-1">
                     <Button
+                      data-testid={`mobile-doc-btn-${vehicle.id}`}
                       variant="secondary"
                       size="sm"
                       className="flex-1 text-xs h-8"
@@ -511,7 +515,8 @@ export default function VehiclesPage() {
                       <FolderOpen className="mr-1 h-3.5 w-3.5" /> Docs
                     </Button>
                     <Button
-                      variant="ghost"
+                      data-testid={`mobile-edit-btn-${vehicle.id}`}
+                      variant="secondary"
                       size="sm"
                       className="text-xs h-8"
                       onClick={() => handleEditClick(vehicle)}
@@ -519,6 +524,7 @@ export default function VehiclesPage() {
                       Edit
                     </Button>
                     <Button
+                      data-testid={`mobile-delete-btn-${vehicle.id}`}
                       variant="destructive"
                       size="sm"
                       className="text-xs h-8 px-2"
@@ -615,6 +621,7 @@ export default function VehiclesPage() {
                       </TableCell>
                       <TableCell>
                         <Button
+                          data-testid={`desktop-doc-btn-${vehicle.id}`}
                           variant="secondary"
                           size="sm"
                           onClick={() => {
@@ -628,6 +635,7 @@ export default function VehiclesPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
+                            data-testid={`desktop-edit-btn-${vehicle.id}`}
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditClick(vehicle)}
@@ -635,6 +643,7 @@ export default function VehiclesPage() {
                             Edit
                           </Button>
                           <Button
+                            data-testid={`desktop-delete-btn-${vehicle.id}`}
                             variant="destructive"
                             size="sm"
                             onClick={() => handleDeleteClick(vehicle)}
@@ -788,6 +797,67 @@ export default function VehiclesPage() {
                       <SelectItem value="Idle">Idle</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="fuel_type">Fuel Type</Label>
+                  <Select
+                    value={editFormData.fuel_type || "Diesel"}
+                    onValueChange={(value) =>
+                      handleEditSelectChange("fuel_type", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Fuel Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Diesel">Diesel</SelectItem>
+                      <SelectItem value="Petrol">Petrol</SelectItem>
+                      <SelectItem value="CNG">CNG</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className={CA_MODAL_GRID}>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="expected_kml">Expected Km/L</Label>
+                  <Input
+                    id="expected_kml"
+                    type="number"
+                    placeholder="e.g. 4.5"
+                    step="0.01"
+                    min="0"
+                    value={editFormData.expected_kml ?? ""}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        expected_kml: e.target.value
+                          ? parseFloat(e.target.value)
+                          : null,
+                      }))
+                    }
+                    onWheel={(e) => e.currentTarget.blur()}
+                  />
+                </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
+                  <Input
+                    id="tank_capacity"
+                    type="number"
+                    placeholder="e.g. 200"
+                    step="0.01"
+                    min="0"
+                    value={editFormData.tank_capacity ?? ""}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        tank_capacity: e.target.value
+                          ? parseFloat(e.target.value)
+                          : null,
+                      }))
+                    }
+                    onWheel={(e) => e.currentTarget.blur()}
+                  />
                 </div>
               </div>
             </div>

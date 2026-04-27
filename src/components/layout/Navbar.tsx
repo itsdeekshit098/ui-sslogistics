@@ -24,7 +24,7 @@ export function Navbar() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" data-testid="navbar-logo-link" className="flex items-center gap-2">
             <span className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight text-brand">
               Sri Srinivasa
             </span>
@@ -35,12 +35,13 @@ export function Navbar() {
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
           <ThemeToggle />
           <Button
+            data-testid="navbar-portal-btn"
             variant="default"
             className="gap-2 px-3 sm:px-4 sm:min-w-[110px]"
             asChild
             onClick={handlePortalClick}
           >
-            <Link href="/admin">
+            <Link data-testid="components-layout-Navbar-link-1" href="/admin">
               {isNavigating ? (
                 <LoadingSpinner size="sm" />
               ) : (

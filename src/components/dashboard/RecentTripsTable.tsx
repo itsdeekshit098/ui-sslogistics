@@ -46,7 +46,7 @@ const recentTrips = [
 
 export function RecentTripsTable() {
   return (
-    <Card className="col-span-1 md:col-span-3">
+    <Card data-testid="components-dashboard-RecentTripsTable-card-1" className="col-span-1 md:col-span-3">
       <CardHeader className="p-4 md:p-6">
         <CardTitle className="text-base md:text-lg">Recent Trips</CardTitle>
       </CardHeader>
@@ -83,7 +83,7 @@ export function RecentTripsTable() {
         <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow data-testid="components-dashboard-RecentTripsTable-tablerow-1">
                 <TableHead>Trip ID</TableHead>
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Driver</TableHead>
@@ -93,7 +93,7 @@ export function RecentTripsTable() {
             </TableHeader>
             <TableBody>
               {recentTrips.map((trip) => (
-                <TableRow key={trip.id}>
+                <TableRow data-testid="components-dashboard-RecentTripsTable-tablerow-2" key={trip.id}>
                   <TableCell className="font-medium">{trip.id}</TableCell>
                   <TableCell>{trip.vehicle}</TableCell>
                   <TableCell>{trip.driver}</TableCell>
