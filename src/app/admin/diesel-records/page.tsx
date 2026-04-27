@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Pencil, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -241,6 +241,15 @@ export default function DieselRecordsPage() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="container mx-auto px-3 py-3 md:p-6 space-y-4 md:space-y-8">
+        <Button
+          data-testid="diesel-back-btn"
+          variant="ghost"
+          onClick={() => router.back()}
+          className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
