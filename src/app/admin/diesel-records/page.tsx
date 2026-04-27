@@ -11,8 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Trash2, Pencil, AlertTriangle } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Plus, Trash2, Pencil, AlertTriangle } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -35,6 +34,9 @@ import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Pagination } from "@/components/pagination";
 import { createClient } from "@/utils/supabase/client";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
+import { RefreshCw, Fuel } from "lucide-react";
+import { ErrorState } from "@/components/errorState";
+import { EmptyState } from "@/components/emptyState";
 
 interface VehicleOption {
   id: number;
@@ -51,12 +53,15 @@ export default function DieselRecordsPage() {
 
   // Initialise from URL params
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
+  const [vehiclesError, setVehiclesError] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
     searchParams.get("vehicle_id") || "",
   );
   const [records, setRecords] = useState<DieselRecordWithVehicle[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] =
@@ -83,21 +88,28 @@ export default function DieselRecordsPage() {
     fetchRole();
   }, []);
 
-  // Fetch vehicles on mount
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        const res = await fetch("/api/vehicles");
-        if (res.ok) {
-          const data = await res.json();
-          setVehicles(data);
-        }
-      } catch {
-        console.error("Failed to fetch vehicles");
+  // Fetch vehicles
+  const fetchVehicles = useCallback(async () => {
+    setVehiclesLoading(true);
+    setVehiclesError(null);
+    try {
+      const res = await fetch("/api/vehicles");
+      if (res.ok) {
+        const data = await res.json();
+        setVehicles(data);
+      } else {
+        setVehiclesError("Failed to load vehicles. Please try again.");
       }
-    };
-    fetchVehicles();
+    } catch {
+      setVehiclesError("Network error loading vehicles. Please try again.");
+    } finally {
+      setVehiclesLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
 
   // Sync state to URL
   const updateUrl = useCallback(
@@ -122,6 +134,7 @@ export default function DieselRecordsPage() {
       return;
     }
     setLoading(true);
+    setRecordsError(null);
     try {
       const res = await fetch(
         `/api/diesel-records?vehicle_id=${selectedVehicleId}&page=${page}&pageSize=${pageSize}`,
@@ -130,9 +143,13 @@ export default function DieselRecordsPage() {
         const result = await res.json();
         setRecords(result.data);
         setTotalRecords(result.total);
+      } else {
+        setRecordsError("Failed to load diesel records. Please try again.");
       }
     } catch {
-      console.error("Failed to fetch diesel records");
+      setRecordsError(
+        "Network error loading records. Please check your connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -186,18 +203,6 @@ export default function DieselRecordsPage() {
     setPage(1); // Reset to page 1 on page size change
   };
 
-  // Filter by search
-  const filteredRecords = records.filter((r) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      r.driver_name.toLowerCase().includes(q) ||
-      r.station?.toLowerCase().includes(q) ||
-      r.fill_type.toLowerCase().includes(q) ||
-      r.payment_method?.toLowerCase().includes(q)
-    );
-  });
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return {
@@ -250,8 +255,14 @@ export default function DieselRecordsPage() {
               data-testid="admin-diesel-add-btn"
               className="w-full md:w-auto"
               onClick={() => setIsCreateOpen(true)}
+              disabled={vehiclesLoading || !!vehiclesError}
             >
-              <Plus className="mr-2 h-4 w-4" /> Add Diesel Entry
+              {vehiclesLoading ? (
+                <LoadingSpinner size="sm" className="mr-2" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              {vehiclesLoading ? "Loading Vehicles..." : "Add Diesel Entry"}
             </Button>
           )}
         </div>
@@ -262,9 +273,16 @@ export default function DieselRecordsPage() {
               <Select
                 value={selectedVehicleId}
                 onValueChange={handleVehicleChange}
+                disabled={vehiclesLoading}
               >
                 <SelectTrigger className="w-full sm:w-[280px]">
-                  <SelectValue placeholder="Select Vehicle" />
+                  {vehiclesLoading ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <LoadingSpinner size="sm" /> Loading vehicles...
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Select Vehicle" />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {vehicles.map((v) => (
@@ -274,7 +292,32 @@ export default function DieselRecordsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {vehiclesError && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchVehicles}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> Retry
+                </Button>
+              )}
             </div>
+            {vehiclesError && !vehiclesLoading && (
+              <ErrorState
+                title="Couldn’t load vehicles"
+                description={vehiclesError}
+                onRetry={fetchVehicles}
+              />
+            )}
+
+            {!vehiclesLoading && !vehiclesError && !selectedVehicleId && (
+              <EmptyState
+                icon={Fuel}
+                title="Select a Vehicle"
+                description="Choose a vehicle from the dropdown above to view its diesel records."
+              />
+            )}
 
             {userRole === "admin" && selectedVehicleId && (
               <Card>
@@ -288,31 +331,33 @@ export default function DieselRecordsPage() {
                         )?.vehicle_number
                       }
                     </CardTitle>
-                    <div className="relative w-full sm:w-64">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        data-testid="admin-diesel-search-input"
-                        placeholder="Search records..."
-                        className="pl-8"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
                   {/* Mobile Card View */}
                   <div className="block lg:hidden space-y-2">
                     {loading ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        Loading...
-                      </p>
-                    ) : filteredRecords.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        No records found.
-                      </p>
+                      <LoadingSpinner
+                        size="md"
+                        centered
+                        label="Loading records..."
+                      />
+                    ) : recordsError ? (
+                      <ErrorState
+                        title="Couldn’t load records"
+                        description={recordsError}
+                        onRetry={fetchRecords}
+                      />
+                    ) : records.length === 0 ? (
+                      <EmptyState
+                        icon={Fuel}
+                        title="No Diesel Records"
+                        description="No diesel entries recorded for this vehicle yet."
+                        actionLabel="Add Diesel Entry"
+                        onAction={() => setIsCreateOpen(true)}
+                      />
                     ) : (
-                      filteredRecords.map((record) => {
+                      records.map((record) => {
                         const { date, time } = formatDate(record.fill_date);
                         return (
                           <div
@@ -456,13 +501,13 @@ export default function DieselRecordsPage() {
                               const warnings = getRecordWarnings(record);
                               if (warnings.length === 0) return null;
                               return (
-                                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-md space-y-1">
+                                <div className="bg-amber-200 dark:bg-yellow-500 border border-yellow-500 dark:border-yellow-600 px-3 py-2 rounded-md space-y-1">
                                   {warnings.map((w, i) => (
                                     <div
                                       key={i}
-                                      className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300"
+                                      className="flex items-center gap-2 text-xs font-semibold text-black"
                                     >
-                                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-black" />
                                       {w}
                                     </div>
                                   ))}
@@ -536,24 +581,38 @@ export default function DieselRecordsPage() {
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell
-                              colSpan={userRole === "admin" ? 23 : 22}
-                              className="text-center"
-                            >
-                              Loading...
+                            <TableCell colSpan={userRole === "admin" ? 23 : 22}>
+                              <LoadingSpinner
+                                size="sm"
+                                centered
+                                label="Loading records..."
+                              />
                             </TableCell>
                           </TableRow>
-                        ) : filteredRecords.length === 0 ? (
+                        ) : recordsError ? (
                           <TableRow>
-                            <TableCell
-                              colSpan={userRole === "admin" ? 23 : 22}
-                              className="text-center"
-                            >
-                              No records found.
+                            <TableCell colSpan={userRole === "admin" ? 23 : 22}>
+                              <ErrorState
+                                title="Couldn’t load records"
+                                description={recordsError}
+                                onRetry={fetchRecords}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ) : records.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={userRole === "admin" ? 23 : 22}>
+                              <EmptyState
+                                icon={Fuel}
+                                title="No Diesel Records"
+                                description="No diesel entries recorded for this vehicle yet."
+                                actionLabel="Add Diesel Entry"
+                                onAction={() => setIsCreateOpen(true)}
+                              />
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredRecords.map((record) => {
+                          records.map((record) => {
                             const { date, time } = formatDate(record.fill_date);
                             return (
                               <TableRow key={record.id}>
@@ -670,8 +729,8 @@ export default function DieselRecordsPage() {
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <div className="flex items-center gap-1 cursor-pointer">
-                                            <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                            <span className="text-xs text-amber-500 font-medium whitespace-nowrap">
+                                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                            <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">
                                               {warnings.length} issue
                                               {warnings.length > 1 ? "s" : ""}
                                             </span>

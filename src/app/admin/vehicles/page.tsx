@@ -28,7 +28,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -62,28 +62,36 @@ import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { CreateVehicleModal } from "@/components/createVehicleModal";
+import { ErrorState } from "@/components/errorState";
+import { EmptyState } from "@/components/emptyState";
 
 export default function VehiclesPage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchVehicles = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch("/api/vehicles");
+      if (!res.ok) throw new Error("Failed to fetch");
+
+      const data = await res.json();
+      setVehicles(data as Vehicle[]);
+    } catch {
+      setFetchError(
+        "We couldn\u2019t load your vehicles. Please check your connection and try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        const res = await fetch("/api/vehicles");
-        if (!res.ok) throw new Error("Failed to fetch");
-
-        const data = await res.json();
-        setVehicles(data as Vehicle[]);
-      } catch (error) {
-        console.error("Error fetching vehicles:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchVehicles();
-  }, []);
+  }, [fetchVehicles]);
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -123,15 +131,17 @@ export default function VehiclesPage() {
 
   const hasActiveFilters = searchQuery !== "" || typeFilter !== "all";
 
-  // Function to actively reload logic easily
   const fetchVehiclesRefetch = async () => {
+    setFetchError(null);
     try {
       const res = await fetch("/api/vehicles");
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setVehicles(data as Vehicle[]);
-    } catch (error) {
-      console.error("Error refetching vehicles:", error);
+    } catch {
+      setFetchError(
+        "We couldn\u2019t refresh your vehicles. Please try again.",
+      );
     }
   };
 
@@ -449,12 +459,30 @@ export default function VehiclesPage() {
           <div className="block md:hidden space-y-3">
             {loading ? (
               <LoadingSpinner size="md" centered label="Loading vehicles..." />
+            ) : fetchError ? (
+              <ErrorState
+                title="Couldn\u2019t load vehicles"
+                description={fetchError}
+                onRetry={fetchVehicles}
+              />
             ) : filteredVehicles.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                {hasActiveFilters
-                  ? "No vehicles match your search criteria."
-                  : "No vehicles found. Add one to get started."}
-              </p>
+              hasActiveFilters ? (
+                <EmptyState
+                  icon={Search}
+                  title="No Matches Found"
+                  description="No vehicles match your current search or filter. Try adjusting your criteria."
+                  actionLabel="Clear Filters"
+                  onAction={resetFilters}
+                />
+              ) : (
+                <EmptyState
+                  icon={Truck}
+                  title="No Vehicles Found"
+                  description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
+                  actionLabel="Add Vehicle"
+                  onAction={() => setIsCreateOpen(true)}
+                />
+              )
             ) : (
               filteredVehicles.map((vehicle) => (
                 <div
@@ -567,12 +595,36 @@ export default function VehiclesPage() {
                       />
                     </TableCell>
                   </TableRow>
+                ) : fetchError ? (
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <ErrorState
+                        title="Couldn\u2019t load vehicles"
+                        description={fetchError}
+                        onRetry={fetchVehicles}
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : filteredVehicles.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
-                      {hasActiveFilters
-                        ? "No vehicles match your search criteria."
-                        : "No vehicles found. Add one to get started."}
+                    <TableCell colSpan={8}>
+                      {hasActiveFilters ? (
+                        <EmptyState
+                          icon={Search}
+                          title="No Matches Found"
+                          description="No vehicles match your current search or filter. Try adjusting your criteria."
+                          actionLabel="Clear Filters"
+                          onAction={resetFilters}
+                        />
+                      ) : (
+                        <EmptyState
+                          icon={Truck}
+                          title="No Vehicles Found"
+                          description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
+                          actionLabel="Add Vehicle"
+                          onAction={() => setIsCreateOpen(true)}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : (
