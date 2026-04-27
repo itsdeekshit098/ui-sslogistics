@@ -1,14 +1,14 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth } from "@/lib/auth";
+import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import type { CreateDieselPayload } from "@/app/admin/diesel-records/dieselRecords.types";
 
 // ─── GET — Fetch diesel records for a vehicle (paginated) ───
 export async function GET(req: Request) {
   try {
-    await requireAdminAuth();
+    await requireUserAuth();
 
     const { searchParams } = new URL(req.url);
     const vehicleId = searchParams.get("vehicle_id");
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
 // ─── POST — Create diesel record with cycle logic ───
 export async function POST(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireUserAuth();
     const body: CreateDieselPayload = await req.json();
 
     // ── 1. Validate required fields ──
