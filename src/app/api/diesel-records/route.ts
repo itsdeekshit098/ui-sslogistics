@@ -84,29 +84,7 @@ export async function POST(req: Request) {
     const vehicleId = Number(body.vehicle_id);
     const currentOdo = Number(body.current_odo);
     const fuelLitres = Number(body.fuel_litres);
-    const pricePerL = Number(body.price_per_l) || 0;
-
-    if (!Number.isFinite(vehicleId) || vehicleId <= 0) {
-      return NextResponse.json({ error: "Invalid vehicle ID" }, { status: 400 });
-    }
-    if (!Number.isFinite(currentOdo) || currentOdo <= 0) {
-      return NextResponse.json(
-        { error: "Invalid odometer reading (must be a positive number)" },
-        { status: 400 },
-      );
-    }
-    if (!Number.isFinite(fuelLitres) || fuelLitres <= 0) {
-      return NextResponse.json(
-        { error: "Invalid fuel litres (must be a positive number)" },
-        { status: 400 },
-      );
-    }
-    if (!Number.isFinite(pricePerL) || pricePerL < 0) {
-      return NextResponse.json(
-        { error: "Invalid price per litre (must be non-negative)" },
-        { status: 400 },
-      );
-    }
+    const pricePerL = Number(body.price_per_l);
 
     // ── 2. Fetch vehicle master (expected_kml, tank_capacity) ──
     const { data: vehicle, error: vErr } = await supabaseAdmin
@@ -375,20 +353,6 @@ export async function PUT(req: Request) {
 
     const fuelLitres = Number(fuel_litres);
     const pricePerL = Number(price_per_l) || 0;
-
-    if (!Number.isFinite(fuelLitres) || fuelLitres <= 0) {
-      return NextResponse.json(
-        { error: "Invalid fuel litres (must be a positive number)" },
-        { status: 400 },
-      );
-    }
-    if (!Number.isFinite(pricePerL) || pricePerL < 0) {
-      return NextResponse.json(
-        { error: "Invalid price per litre (must be non-negative)" },
-        { status: 400 },
-      );
-    }
-
     const amount = round2(fuelLitres * pricePerL);
 
     // ── 2. Update the record ──
@@ -577,203 +541,26 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Missing record ID" }, { status: 400 });
     }
 
-    // ── 1. Fetch record details before deleting ──
-    const { data: record, error: fetchErr } = await supabaseAdmin
+    // Fetch record details before deleting (for audit log)
+    const { data: record } = await supabaseAdmin
       .from("diesel_records")
-      .select("*")
+      .select(
+        "id, vehicle_id, driver_name, fill_type, fuel_litres, current_odo, cycle_id",
+      )
       .eq("id", Number(id))
       .single();
 
-    if (fetchErr || !record) {
+    if (!record) {
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
-    const isFirstRecord = record.prev_odo === null;
-    let idsToDelete = [Number(id)];
-    let nextFullFillId: number | null = null;
-
-    // ── 2. Handle First Record Deletion (Orphan Cleanup) ──
-    if (isFirstRecord) {
-      // Find subsequent partials that depend on this first record
-      const { data: successors } = await supabaseAdmin
-        .from("diesel_records")
-        .select("id, fill_type")
-        .eq("vehicle_id", record.vehicle_id)
-        .gt("fill_date", record.fill_date)
-        .order("fill_date", { ascending: true });
-
-      if (successors) {
-        for (const s of successors) {
-          if (s.fill_type === "partial") {
-            idsToDelete.push(s.id);
-          } else {
-            nextFullFillId = s.id;
-            break;
-          }
-        }
-      }
-    }
-
-    // ── 3. Perform the deletion ──
-    const { error: delErr } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("diesel_records")
       .delete()
-      .in("id", idsToDelete);
+      .eq("id", Number(id));
 
-    if (delErr) {
-      return NextResponse.json({ error: delErr.message }, { status: 500 });
-    }
-
-    // ── 4. Handle Full Fill ripples (Cycle ID shifting) ──
-    if (record.fill_type === "full") {
-      // Decrement cycle_id for all remaining future records of this vehicle
-      await supabaseAdmin.rpc("decrement_cycle_ids", {
-        p_vehicle_id: record.vehicle_id,
-        p_after_date: record.fill_date,
-      });
-    }
-
-    // ── 5. Repair the chain and recalculate efficiency ──
-    if (isFirstRecord) {
-      // If we deleted the first chain, the next Full Fill is the new 'start'
-      if (nextFullFillId) {
-        await supabaseAdmin
-          .from("diesel_records")
-          .update({
-            prev_odo: null,
-            distance: null,
-            cycle_status: "open",
-            kml: null,
-            dev_pct: null,
-            cost_per_km: null,
-            cycle_distance: null,
-            cycle_fuel: null,
-          })
-          .eq("id", nextFullFillId);
-      }
-    } else {
-      // NORMAL REPAIR LOGIC (for non-first records)
-      // Find the record immediately after the deleted one
-      const { data: nextRecord } = await supabaseAdmin
-        .from("diesel_records")
-        .select("id, current_odo, fill_date")
-        .eq("vehicle_id", record.vehicle_id)
-        .gt("fill_date", record.fill_date)
-        .order("fill_date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (nextRecord) {
-        // Optimization: The new previous odo for the next record is simply the
-        // prev_odo of the record we just deleted! We don't need to fetch it.
-        const newPrevOdo = record.prev_odo;
-        const newDistance =
-          newPrevOdo !== null
-            ? round1(nextRecord.current_odo - newPrevOdo)
-            : null;
-
-        // Update the next record's link
-        await supabaseAdmin
-          .from("diesel_records")
-          .update({
-            prev_odo: newPrevOdo,
-            distance: newDistance,
-          })
-          .eq("id", nextRecord.id);
-
-        // Identify the closing record for cycle recalculation
-        const { data: closingRecord } = await supabaseAdmin
-          .from("diesel_records")
-          .select("id, current_odo, fill_date, fuel_litres, amount")
-          .eq("vehicle_id", record.vehicle_id)
-          .eq("cycle_status", "closed")
-          .gte("fill_date", nextRecord.fill_date)
-          .order("fill_date", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (closingRecord) {
-          const { data: openingFull } = await supabaseAdmin
-            .from("diesel_records")
-            .select("id, current_odo, fill_date")
-            .eq("vehicle_id", record.vehicle_id)
-            .eq("fill_type", "full")
-            .lt("fill_date", closingRecord.fill_date)
-            .neq("id", closingRecord.id)
-            .order("fill_date", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (openingFull) {
-            const cycleDistance =
-              closingRecord.current_odo - openingFull.current_odo;
-
-            const { data: intermediates } = await supabaseAdmin
-              .from("diesel_records")
-              .select("fuel_litres, amount")
-              .eq("vehicle_id", record.vehicle_id)
-              .gt("fill_date", openingFull.fill_date)
-              .lt("fill_date", closingRecord.fill_date)
-              .order("fill_date", { ascending: true });
-
-            const intermediateLitres = intermediates
-              ? intermediates.reduce((sum, e) => sum + Number(e.fuel_litres), 0)
-              : 0;
-            const intermediateAmount = intermediates
-              ? intermediates.reduce((sum, e) => sum + Number(e.amount), 0)
-              : 0;
-
-            const cycleLitres =
-              intermediateLitres + Number(closingRecord.fuel_litres);
-            const cycleAmount =
-              intermediateAmount + Number(closingRecord.amount);
-
-            const { data: vehicle } = await supabaseAdmin
-              .from("vehicles")
-              .select("expected_kml")
-              .eq("id", record.vehicle_id)
-              .single();
-
-            const expectedKml = vehicle?.expected_kml ?? null;
-            let kml: number | null = null;
-            let devPct: number | null = null;
-            let costPerKm: number | null = null;
-
-            if (cycleDistance > 0 && cycleLitres > 0) {
-              kml = round2(cycleDistance / cycleLitres);
-              costPerKm = round2(cycleAmount / cycleDistance);
-              if (expectedKml && expectedKml > 0) {
-                devPct = round2(((kml - expectedKml) / expectedKml) * 100);
-              }
-            }
-
-            await supabaseAdmin
-              .from("diesel_records")
-              .update({
-                kml,
-                dev_pct: devPct,
-                cost_per_km: costPerKm,
-                expected_kml: expectedKml,
-                cycle_distance: round1(cycleDistance),
-                cycle_fuel: round2(cycleLitres),
-                cycle_status: "closed",
-              })
-              .eq("id", closingRecord.id);
-          } else {
-            await supabaseAdmin
-              .from("diesel_records")
-              .update({
-                kml: null,
-                dev_pct: null,
-                cost_per_km: null,
-                cycle_distance: null,
-                cycle_fuel: null,
-                cycle_status: "open",
-              })
-              .eq("id", closingRecord.id);
-          }
-        }
-      }
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     after(() =>
@@ -783,14 +570,18 @@ export async function DELETE(req: Request) {
         userEmail: authUser.email,
         tableName: "diesel_records",
         recordId: Number(id),
-        details: record,
+        details: {
+          vehicle_id: record.vehicle_id,
+          driver_name: record.driver_name,
+          fill_type: record.fill_type,
+          fuel_litres: record.fuel_litres,
+          current_odo: record.current_odo,
+          cycle_id: record.cycle_id,
+        },
       }),
     );
 
-    return NextResponse.json(
-      { message: "Record deleted and cycles recalculated" },
-      { status: 200 },
-    );
+    return NextResponse.json({ message: "Record deleted" }, { status: 200 });
   } catch (err: unknown) {
     if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
       return NextResponse.json({ error: err.message }, { status: 401 });
@@ -802,4 +593,3 @@ export async function DELETE(req: Request) {
     );
   }
 }
-
