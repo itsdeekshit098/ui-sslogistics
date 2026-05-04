@@ -589,7 +589,7 @@ export async function DELETE(req: Request) {
     }
 
     const isFirstRecord = record.prev_odo === null;
-    const idsToDelete = [Number(id)];
+    let idsToDelete = [Number(id)];
     let nextFullFillId: number | null = null;
 
     // ── 2. Handle First Record Deletion (Orphan Cleanup) ──
