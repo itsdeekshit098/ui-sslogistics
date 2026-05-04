@@ -259,7 +259,9 @@ export default function DieselRecordsPage() {
               Track fuel consumption, cycles, and efficiency for all vehicles.
             </p>
           </div>
-          {(userRole === "admin" || userRole === "driver") && (
+          {(userRole === "admin" ||
+            userRole === "driver" ||
+            userRole === "staff") && (
             <Button
               data-testid="admin-diesel-add-btn"
               className="w-full md:w-auto"
@@ -276,7 +278,9 @@ export default function DieselRecordsPage() {
           )}
         </div>
 
-        {userRole === "admin" && (
+        {(userRole === "admin" ||
+          userRole === "driver" ||
+          userRole === "staff") && (
           <>
             <div className="flex items-center gap-4">
               <Select
@@ -328,8 +332,11 @@ export default function DieselRecordsPage() {
               />
             )}
 
-            {userRole === "admin" && selectedVehicleId && (
-              <Card>
+            {(userRole === "admin" ||
+              userRole === "driver" ||
+              userRole === "staff") &&
+              selectedVehicleId && (
+                <Card>
                 <CardHeader className="p-3 md:p-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <CardTitle className="text-lg md:text-xl">
