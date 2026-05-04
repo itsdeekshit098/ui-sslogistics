@@ -84,7 +84,17 @@ export async function POST(req: Request) {
     const vehicleId = Number(body.vehicle_id);
     const currentOdo = Number(body.current_odo);
     const fuelLitres = Number(body.fuel_litres);
-    const pricePerL = Number(body.price_per_l);
+    
+    let pricePerL = 0;
+    if (body.price_per_l !== undefined && body.price_per_l !== null) {
+      pricePerL = Number(body.price_per_l);
+      if (isNaN(pricePerL) || !isFinite(pricePerL) || pricePerL < 0) {
+        return NextResponse.json(
+          { error: "Invalid price per litre" },
+          { status: 400 }
+        );
+      }
+    }
 
     // ── 2. Fetch vehicle master (expected_kml, tank_capacity) ──
     const { data: vehicle, error: vErr } = await supabaseAdmin
@@ -354,7 +364,15 @@ export async function PUT(req: Request) {
     }
 
     const fuelLitres = Number(fuel_litres);
-    const pricePerL = Number(price_per_l) || 0;
+    
+    let pricePerL = 0;
+    if (price_per_l !== undefined && price_per_l !== null && price_per_l !== "") {
+      pricePerL = Number(price_per_l);
+      if (isNaN(pricePerL) || !isFinite(pricePerL) || pricePerL < 0) {
+        return NextResponse.json({ error: "Invalid price per litre" }, { status: 400 });
+      }
+    }
+
     const amount = round2(fuelLitres * pricePerL);
 
     // ── 2. Update the record ──
@@ -386,7 +404,6 @@ export async function PUT(req: Request) {
       // Determine which closing record needs recalculation
       let closingRecordId: number | null = null;
       let closingOdo: number;
-      let closingFillDate: string;
       let closingFuelLitres: number;
       let closingAmount: number;
 
@@ -394,14 +411,13 @@ export async function PUT(req: Request) {
         // This record IS the cycle-closing full fill
         closingRecordId = existing.id;
         closingOdo = existing.current_odo;
-        closingFillDate = existing.fill_date;
         closingFuelLitres = fuelLitres; // use new value
         closingAmount = amount; // use new value
       } else {
         // Find the next cycle-closing record after this one
         const { data: nextClosed } = await supabaseAdmin
           .from("diesel_records")
-          .select("id, current_odo, fill_date, fuel_litres, amount")
+          .select("id, current_odo, fuel_litres, amount")
           .eq("vehicle_id", existing.vehicle_id)
           .eq("cycle_status", "closed")
           .gt("id", existing.id)
@@ -412,7 +428,6 @@ export async function PUT(req: Request) {
         if (nextClosed) {
           closingRecordId = nextClosed.id;
           closingOdo = nextClosed.current_odo;
-          closingFillDate = nextClosed.fill_date;
           closingFuelLitres = Number(nextClosed.fuel_litres);
           closingAmount = Number(nextClosed.amount);
         }

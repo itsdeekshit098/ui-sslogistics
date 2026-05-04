@@ -37,6 +37,7 @@ const EditDieselForm: React.FC<{
   });
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleClose = useCallback(() => {
     if (!loading) onClose();
@@ -56,11 +57,19 @@ const EditDieselForm: React.FC<{
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
     setSubmitError(null);
+    setFieldErrors((prev) => ({ ...prev, [id]: "" }));
   };
 
   const handleSubmit = async () => {
-    if (!formData.driverName || !formData.fuelLitres) {
-      setSubmitError("Driver name and fuel litres are required");
+    const errors: Record<string, string> = {};
+    if (!formData.driverName.trim()) errors.driverName = "Driver name is required";
+    if (!formData.fuelLitres) errors.fuelLitres = "Fuel is required";
+    else if (parseFloat(formData.fuelLitres) <= 0) errors.fuelLitres = "Must be > 0";
+    if (formData.pricePerL && parseFloat(formData.pricePerL) < 0) errors.pricePerL = "Must be ≥ 0";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setSubmitError("Please fix the validation errors below.");
       return;
     }
 
@@ -167,7 +176,9 @@ const EditDieselForm: React.FC<{
               placeholder="Driver Name"
               value={formData.driverName}
               onChange={handleChange}
+              className={fieldErrors.driverName ? "border-red-500 focus-visible:ring-red-500" : ""}
             />
+            {fieldErrors.driverName && <p className="text-xs text-red-500">{fieldErrors.driverName}</p>}
           </div>
 
           {/* Fuel & Price */}
@@ -185,7 +196,9 @@ const EditDieselForm: React.FC<{
                 value={formData.fuelLitres}
                 onChange={handleChange}
                 onWheel={(e) => e.currentTarget.blur()}
+                className={fieldErrors.fuelLitres ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
+              {fieldErrors.fuelLitres && <p className="text-xs text-red-500">{fieldErrors.fuelLitres}</p>}
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="pricePerL">Price per L (₹)</Label>
@@ -198,7 +211,9 @@ const EditDieselForm: React.FC<{
                 value={formData.pricePerL}
                 onChange={handleChange}
                 onWheel={(e) => e.currentTarget.blur()}
+                className={fieldErrors.pricePerL ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
+              {fieldErrors.pricePerL && <p className="text-xs text-red-500">{fieldErrors.pricePerL}</p>}
             </div>
           </div>
 
