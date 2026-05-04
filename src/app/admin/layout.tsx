@@ -4,9 +4,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { SignOutButton } from "@/components/signOutButton";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
 import styles from "./adminLayout.module.css";
 
 export default function AdminLayout({
