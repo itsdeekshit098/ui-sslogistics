@@ -120,6 +120,7 @@ export async function POST(req: Request) {
       .select("id, current_odo, cycle_id, fill_type, cycle_status")
       .eq("vehicle_id", vehicleId)
       .order("fill_date", { ascending: false })
+      .order("id", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -176,6 +177,7 @@ export async function POST(req: Request) {
           .eq("vehicle_id", vehicleId)
           .eq("fill_type", "full")
           .order("fill_date", { ascending: false })
+          .order("id", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -188,8 +190,8 @@ export async function POST(req: Request) {
             .from("diesel_records")
             .select("fuel_litres, amount")
             .eq("vehicle_id", vehicleId)
-            .gt("fill_date", lastFullFill.fill_date)
-            .order("fill_date", { ascending: true });
+            .gt("id", lastFullFill.id)
+            .order("id", { ascending: true });
 
           const intermediateLitres = cycleEntries
             ? cycleEntries.reduce((sum, e) => sum + Number(e.fuel_litres), 0)
@@ -402,8 +404,8 @@ export async function PUT(req: Request) {
           .select("id, current_odo, fill_date, fuel_litres, amount")
           .eq("vehicle_id", existing.vehicle_id)
           .eq("cycle_status", "closed")
-          .gt("fill_date", existing.fill_date)
-          .order("fill_date", { ascending: true })
+          .gt("id", existing.id)
+          .order("id", { ascending: true })
           .limit(1)
           .maybeSingle();
 
@@ -423,9 +425,9 @@ export async function PUT(req: Request) {
           .select("id, current_odo, fill_date")
           .eq("vehicle_id", existing.vehicle_id)
           .eq("fill_type", "full")
-          .lt("fill_date", closingFillDate!)
-          .neq("id", closingRecordId)
+          .lt("id", closingRecordId!)
           .order("fill_date", { ascending: false })
+          .order("id", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -437,9 +439,9 @@ export async function PUT(req: Request) {
             .from("diesel_records")
             .select("fuel_litres, amount")
             .eq("vehicle_id", existing.vehicle_id)
-            .gt("fill_date", openingFull.fill_date)
-            .lt("fill_date", closingFillDate!)
-            .order("fill_date", { ascending: true });
+            .gt("id", openingFull.id)
+            .lt("id", closingRecordId!)
+            .order("id", { ascending: true });
 
           const intermediateLitres = intermediates
             ? intermediates.reduce((sum, e) => sum + Number(e.fuel_litres), 0)
