@@ -79,9 +79,11 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const isMobile = !!onClose;
-  const { userRole } = useAuth();
+  const { userRole, loading: authLoading } = useAuth();
 
   const filteredItems = sidebarItems.filter((item) => {
+    if (authLoading) return false;
+
     if (userRole === "driver") {
       if (item.name === "Vehicles" || item.name === "Activity Log") {
         return false;

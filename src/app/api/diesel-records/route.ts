@@ -84,6 +84,16 @@ export async function POST(req: Request) {
     const vehicleId = Number(body.vehicle_id);
     const currentOdo = Number(body.current_odo);
     const fuelLitres = Number(body.fuel_litres);
+
+    if (isNaN(vehicleId) || !isFinite(vehicleId)) {
+      return NextResponse.json({ error: "Invalid vehicle_id" }, { status: 400 });
+    }
+    if (isNaN(currentOdo) || !isFinite(currentOdo) || currentOdo < 0) {
+      return NextResponse.json({ error: "Invalid odometer reading" }, { status: 400 });
+    }
+    if (isNaN(fuelLitres) || !isFinite(fuelLitres) || fuelLitres <= 0) {
+      return NextResponse.json({ error: "Invalid fuel litres" }, { status: 400 });
+    }
     
     let pricePerL = 0;
     if (body.price_per_l !== undefined && body.price_per_l !== null) {
