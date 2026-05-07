@@ -103,7 +103,6 @@ export default function DashboardPage() {
     }
     return true;
   });
-  console.log("visible menu items", visibleMenuItems);
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
