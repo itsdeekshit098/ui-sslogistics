@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { NavigationProgress } from "@/components/navigationProgress";
 import { ThemeProvider } from "@wrksz/themes/next";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,8 +56,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
         >
-          <NavigationProgress />
-          {children}
+          <AuthProvider>
+            <NavigationProgress />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

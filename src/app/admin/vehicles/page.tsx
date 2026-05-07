@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,7 @@ export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
+  const { userRole, loading: authLoading } = useAuth();
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
@@ -113,6 +114,7 @@ export default function VehiclesPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState<Vehicle | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -245,6 +247,7 @@ export default function VehiclesPage() {
 
   const handleDeleteClick = (vehicle: Vehicle) => {
     setDeletingVehicle(vehicle);
+    setDeleteError(null);
     setIsDeleteOpen(true);
   };
 
@@ -252,6 +255,7 @@ export default function VehiclesPage() {
     if (!deletingVehicle) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/vehicles?id=${deletingVehicle.id}`, {
         method: "DELETE",
@@ -260,7 +264,9 @@ export default function VehiclesPage() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("Error deleting vehicle:", errorData);
-        alert(`Failed to delete vehicle: ${errorData.error || res.statusText}`);
+        setDeleteError(
+          `Failed to delete vehicle: ${errorData.error || res.statusText}`,
+        );
         return;
       }
 
@@ -271,7 +277,7 @@ export default function VehiclesPage() {
       setDeletingVehicle(null);
     } catch (error) {
       console.error("Unexpected error:", error);
-      alert("Unexpected error deleting vehicle.");
+      setDeleteError("Unexpected error deleting vehicle.");
     } finally {
       setIsDeleting(false);
     }
@@ -295,13 +301,15 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        <Button
-          data-testid="vehicles-add-btn"
-          className="w-full md:w-auto"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Vehicle
-        </Button>
+        {userRole === "admin" && (
+          <Button
+            data-testid="vehicles-add-btn"
+            className="w-full md:w-auto"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -542,27 +550,31 @@ export default function VehiclesPage() {
                     >
                       <FolderOpen className="mr-1 h-3.5 w-3.5" /> Docs
                     </Button>
-                    <Button
-                      data-testid={`mobile-edit-btn-${vehicle.id}`}
-                      variant="secondary"
-                      size="sm"
-                      className="text-xs h-8"
-                      onClick={() => handleEditClick(vehicle)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      data-testid={`mobile-delete-btn-${vehicle.id}`}
-                      variant="destructive"
-                      size="sm"
-                      className="text-xs h-8 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(vehicle);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {userRole === "admin" && (
+                      <>
+                        <Button
+                          data-testid={`mobile-edit-btn-${vehicle.id}`}
+                          variant="secondary"
+                          size="sm"
+                          className="text-xs h-8"
+                          onClick={() => handleEditClick(vehicle)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          data-testid={`mobile-delete-btn-${vehicle.id}`}
+                          variant="destructive"
+                          size="sm"
+                          className="text-xs h-8 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(vehicle);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))
@@ -581,7 +593,9 @@ export default function VehiclesPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Last Service</TableHead>
                   <TableHead>Documents</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {userRole === "admin" && (
+                    <TableHead className="text-right">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -684,26 +698,28 @@ export default function VehiclesPage() {
                           <FolderOpen className="mr-2 h-4 w-4" /> Manage Docs
                         </Button>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            data-testid={`desktop-edit-btn-${vehicle.id}`}
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditClick(vehicle)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            data-testid={`desktop-delete-btn-${vehicle.id}`}
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteClick(vehicle)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {userRole === "admin" && (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              data-testid={`desktop-edit-btn-${vehicle.id}`}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditClick(vehicle)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              data-testid={`desktop-delete-btn-${vehicle.id}`}
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteClick(vehicle)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -725,8 +741,15 @@ export default function VehiclesPage() {
               </DialogDescription>
             </DialogHeader>
             {editSubmitError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
-                {editSubmitError}
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
+                <span>{editSubmitError}</span>
+                <button
+                  type="button"
+                  onClick={() => setEditSubmitError(null)}
+                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 mt-0.5"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
             <div className="grid gap-4 py-4">
@@ -947,6 +970,18 @@ export default function VehiclesPage() {
                 be undone.
               </p>
             </div>
+            {deleteError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
+                <span className="flex-1">{deleteError}</span>
+                <button
+                  type="button"
+                  onClick={() => setDeleteError(null)}
+                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 self-center cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             {deletingVehicle && (
               <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md w-full">
                 <p className="font-medium">{deletingVehicle.vehicle_number}</p>

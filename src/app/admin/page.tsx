@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +15,7 @@ import {
   ArrowLeft,
   Activity,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const menuItems = [
   {
@@ -90,10 +93,23 @@ const menuItems = [
 ];
 
 export default function DashboardPage() {
+  const { userRole } = useAuth();
+
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (userRole === "driver") {
+      if (item.title === "Vehicles" || item.title === "Activity Log") {
+        return false;
+      }
+    }
+    return true;
+  });
+  console.log("visible menu items", visibleMenuItems);
+
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
       <div className="mb-2">
-        <Button data-testid="app-admin-button-1"
+        <Button
+          data-testid="app-admin-button-1"
           variant="ghost"
           className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
           asChild
@@ -114,18 +130,21 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const isEnabled = item.enabled;
 
           if (isEnabled) {
             return (
               <Link
-                data-testid={`admin-dashboard-card-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                data-testid={`admin-dashboard-card-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                 key={item.href}
                 href={item.href}
                 className="group block h-full"
               >
-                <Card data-testid="app-admin-card-1" className="h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/50 dark:hover:border-primary/50 active:scale-[0.98]">
+                <Card
+                  data-testid="app-admin-card-1"
+                  className="h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/50 dark:hover:border-primary/50 active:scale-[0.98]"
+                >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
                     <div
                       className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${item.bgColor}`}
@@ -150,7 +169,8 @@ export default function DashboardPage() {
           }
 
           return (
-            <Card data-testid="app-admin-card-2"
+            <Card
+              data-testid="app-admin-card-2"
               key={item.href}
               className="h-full opacity-50 cursor-not-allowed border-dashed border-border/40"
             >

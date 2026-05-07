@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/context/AuthContext";
 
 const sidebarItems = [
   {
@@ -78,6 +79,16 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const isMobile = !!onClose;
+  const { userRole } = useAuth();
+
+  const filteredItems = sidebarItems.filter((item) => {
+    if (userRole === "driver") {
+      if (item.name === "Vehicles" || item.name === "Activity Log") {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -126,7 +137,7 @@ export function Sidebar({
                 collapsed && !isMobile ? "px-2" : "px-3",
               )}
             >
-              {sidebarItems.map((item) => {
+              {filteredItems.map((item) => {
                 const isActive = pathname === item.href;
                 const isEnabled = item.enabled;
 
