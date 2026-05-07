@@ -5,6 +5,18 @@ import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import type { CreateDieselPayload } from "@/app/admin/diesel-records/dieselRecords.types";
 
+const isBlankString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim() === "";
+
+const parseFiniteNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || isBlankString(value)) {
+    return null;
+  }
+
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
 // ─── GET — Fetch diesel records for a vehicle (paginated) ───
 export async function GET(req: Request) {
   try {
@@ -62,11 +74,14 @@ export async function POST(req: Request) {
 
     // ── 1. Validate required fields ──
     if (
-      !body.vehicle_id ||
-      !body.driver_name ||
+      body.vehicle_id === null ||
+      body.vehicle_id === undefined ||
+      !body.driver_name?.trim() ||
       !body.fill_type ||
-      !body.fuel_litres ||
-      !body.current_odo
+      body.fuel_litres === null ||
+      body.fuel_litres === undefined ||
+      body.current_odo === null ||
+      body.current_odo === undefined
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -81,19 +96,43 @@ export async function POST(req: Request) {
       );
     }
 
-    const vehicleId = Number(body.vehicle_id);
-    const currentOdo = Number(body.current_odo);
-    const fuelLitres = Number(body.fuel_litres);
+    const vehicleId = parseFiniteNumber(body.vehicle_id);
+    const currentOdo = parseFiniteNumber(body.current_odo);
+    const fuelLitres = parseFiniteNumber(body.fuel_litres);
+
+    if (
+      vehicleId === null ||
+      !Number.isInteger(vehicleId) ||
+      vehicleId <= 0
+    ) {
+      return NextResponse.json(
+        { error: "Invalid vehicle_id" },
+        { status: 400 },
+      );
+    }
+    if (currentOdo === null || currentOdo < 0) {
+      return NextResponse.json(
+        { error: "Invalid odometer reading" },
+        { status: 400 },
+      );
+    }
+    if (fuelLitres === null || fuelLitres <= 0) {
+      return NextResponse.json(
+        { error: "Invalid fuel litres" },
+        { status: 400 },
+      );
+    }
     
     let pricePerL = 0;
     if (body.price_per_l !== undefined && body.price_per_l !== null) {
-      pricePerL = Number(body.price_per_l);
-      if (isNaN(pricePerL) || !isFinite(pricePerL) || pricePerL < 0) {
+      const parsedPricePerL = parseFiniteNumber(body.price_per_l);
+      if (parsedPricePerL === null || parsedPricePerL < 0) {
         return NextResponse.json(
           { error: "Invalid price per litre" },
           { status: 400 }
         );
       }
+      pricePerL = parsedPricePerL;
     }
 
     // ── 2. Fetch vehicle master (expected_kml, tank_capacity) ──

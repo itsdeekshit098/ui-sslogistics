@@ -14,13 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Tooltip,
@@ -32,6 +25,7 @@ import { CreateDieselModal } from "@/components/createDieselModal";
 import { EditDieselModal } from "@/components/editDieselModal";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Pagination } from "@/components/pagination";
+import { Typeahead } from "@/components/typeahead";
 import { useAuth } from "@/context/AuthContext";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
 import { RefreshCw, Fuel } from "lucide-react";
@@ -269,28 +263,28 @@ export default function DieselRecordsPage() {
         {(userRole === "admin" || userRole === "staff") && (
           <>
             <div className="flex items-center gap-4">
-              <Select
+              <Typeahead
+                id="diesel-records-vehicle"
+                data-testid="diesel-records-vehicle-typeahead"
+                className="w-full sm:w-[280px]"
+                options={vehicles}
                 value={selectedVehicleId}
                 onValueChange={handleVehicleChange}
-                disabled={vehiclesLoading}
-              >
-                <SelectTrigger className="w-full sm:w-[280px]">
-                  {vehiclesLoading ? (
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <LoadingSpinner size="sm" /> Loading vehicles...
-                    </span>
-                  ) : (
-                    <SelectValue placeholder="Select Vehicle" />
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id.toString()}>
-                      {v.vehicle_number} — {v.company} {v.model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                getOptionValue={(vehicle) => vehicle.id.toString()}
+                getOptionLabel={(vehicle) =>
+                  `${vehicle.vehicle_number} — ${vehicle.company} ${vehicle.model}`.trim()
+                }
+                getOptionKeywords={(vehicle) => [
+                  vehicle.vehicle_number,
+                  vehicle.company,
+                  vehicle.model,
+                ]}
+                placeholder={
+                  vehiclesLoading ? "Loading vehicles..." : "Search vehicle..."
+                }
+                emptyMessage="No vehicles found."
+                disabled={vehiclesLoading || Boolean(vehiclesError)}
+              />
               {vehiclesError && (
                 <Button
                   variant="outline"

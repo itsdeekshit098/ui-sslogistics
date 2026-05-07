@@ -93,9 +93,11 @@ const menuItems = [
 ];
 
 export default function DashboardPage() {
-  const { userRole } = useAuth();
+  const { userRole, loading: authLoading } = useAuth();
 
   const visibleMenuItems = menuItems.filter((item) => {
+    if (authLoading) return false;
+
     if (userRole === "driver") {
       if (item.title === "Vehicles" || item.title === "Activity Log") {
         return false;

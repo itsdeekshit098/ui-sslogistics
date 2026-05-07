@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { CreateDieselModalProps } from "./createDieselModal.types";
 import { Save, AlertTriangle } from "lucide-react";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { Typeahead } from "@/components/typeahead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,12 +104,16 @@ const CreateDieselForm: React.FC<{
     if (!formData.date) errors.date = "Date is required";
     if (!formData.time) errors.time = "Time is required";
     if (!formData.vehicleId) errors.vehicleId = "Vehicle is required";
-    if (!formData.driverName.trim()) errors.driverName = "Driver name is required";
+    if (!formData.driverName.trim())
+      errors.driverName = "Driver name is required";
     if (!formData.currentOdo) errors.currentOdo = "Odometer is required";
-    else if (parseFloat(formData.currentOdo) < 0) errors.currentOdo = "Must be ≥ 0";
+    else if (parseFloat(formData.currentOdo) < 0)
+      errors.currentOdo = "Must be ≥ 0";
     if (!formData.fuelLitres) errors.fuelLitres = "Fuel is required";
-    else if (parseFloat(formData.fuelLitres) <= 0) errors.fuelLitres = "Must be > 0";
-    if (formData.pricePerL && parseFloat(formData.pricePerL) < 0) errors.pricePerL = "Must be ≥ 0";
+    else if (parseFloat(formData.fuelLitres) <= 0)
+      errors.fuelLitres = "Must be > 0";
+    if (formData.pricePerL && parseFloat(formData.pricePerL) < 0)
+      errors.pricePerL = "Must be ≥ 0";
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -180,13 +185,6 @@ const CreateDieselForm: React.FC<{
           </p>
         </div>
 
-        {/* Error */}
-        {submitError && (
-          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm border border-red-100 dark:border-red-800">
-            {submitError}
-          </div>
-        )}
-
         {/* Warnings */}
         {warnings.length > 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3 rounded-md space-y-1">
@@ -216,9 +214,15 @@ const CreateDieselForm: React.FC<{
                 type="date"
                 value={formData.date}
                 onChange={handleChange}
-                className={fieldErrors.date ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  fieldErrors.date
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {fieldErrors.date && <p className="text-xs text-red-500">{fieldErrors.date}</p>}
+              {fieldErrors.date && (
+                <p className="text-xs text-red-500">{fieldErrors.date}</p>
+              )}
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="time">
@@ -230,38 +234,49 @@ const CreateDieselForm: React.FC<{
                 type="time"
                 value={formData.time}
                 onChange={handleChange}
-                className={fieldErrors.time ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  fieldErrors.time
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {fieldErrors.time && <p className="text-xs text-red-500">{fieldErrors.time}</p>}
+              {fieldErrors.time && (
+                <p className="text-xs text-red-500">{fieldErrors.time}</p>
+              )}
             </div>
           </div>
 
           {/* Vehicle */}
           <div className={MODAL_LABEL_SPACE}>
-            <Label>
+            <Label htmlFor="vehicleId">
               Vehicle <span className="text-red-500">*</span>
             </Label>
-            <Select
+            <Typeahead
+              id="vehicleId"
               data-testid="components-createDieselModal-createDieselModal-select-1"
+              options={vehicles}
               value={formData.vehicleId}
-              onValueChange={(v) => {
-                setFormData((prev) => ({ ...prev, vehicleId: v }));
+              onValueChange={(vehicleId) => {
+                setFormData((prev) => ({ ...prev, vehicleId }));
                 setSubmitError(null);
                 setFieldErrors((prev) => ({ ...prev, vehicleId: "" }));
               }}
-            >
-              <SelectTrigger className={fieldErrors.vehicleId ? "border-red-500 focus:ring-red-500" : ""}>
-                <SelectValue placeholder="Select Vehicle" />
-              </SelectTrigger>
-              <SelectContent>
-                {vehicles.map((v) => (
-                  <SelectItem key={v.id} value={v.id.toString()}>
-                    {v.vehicle_number} — {v.company} {v.model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fieldErrors.vehicleId && <p className="text-xs text-red-500">{fieldErrors.vehicleId}</p>}
+              getOptionValue={(vehicle) => vehicle.id.toString()}
+              getOptionLabel={(vehicle) =>
+                `${vehicle.vehicle_number} — ${vehicle.company} ${vehicle.model}`.trim()
+              }
+              getOptionKeywords={(vehicle) => [
+                vehicle.vehicle_number,
+                vehicle.company,
+                vehicle.model,
+              ]}
+              placeholder="Search vehicle..."
+              emptyMessage="No vehicles found."
+              invalid={Boolean(fieldErrors.vehicleId)}
+            />
+            {fieldErrors.vehicleId && (
+              <p className="text-xs text-red-500">{fieldErrors.vehicleId}</p>
+            )}
             {selectedVehicle && (
               <p className="text-xs text-muted-foreground">
                 Tank: {selectedVehicle.tank_capacity ?? "—"}L · Exp Km/L:{" "}
@@ -281,9 +296,15 @@ const CreateDieselForm: React.FC<{
               placeholder="Driver Name"
               value={formData.driverName}
               onChange={handleChange}
-              className={fieldErrors.driverName ? "border-red-500 focus-visible:ring-red-500" : ""}
+              className={
+                fieldErrors.driverName
+                  ? "border-red-500 focus-visible:ring-red-500"
+                  : ""
+              }
             />
-            {fieldErrors.driverName && <p className="text-xs text-red-500">{fieldErrors.driverName}</p>}
+            {fieldErrors.driverName && (
+              <p className="text-xs text-red-500">{fieldErrors.driverName}</p>
+            )}
           </div>
 
           {/* Fill Type & Odometer */}
@@ -332,9 +353,15 @@ const CreateDieselForm: React.FC<{
                 value={formData.currentOdo}
                 onChange={handleChange}
                 onWheel={(e) => e.currentTarget.blur()}
-                className={fieldErrors.currentOdo ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  fieldErrors.currentOdo
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {fieldErrors.currentOdo && <p className="text-xs text-red-500">{fieldErrors.currentOdo}</p>}
+              {fieldErrors.currentOdo && (
+                <p className="text-xs text-red-500">{fieldErrors.currentOdo}</p>
+              )}
             </div>
           </div>
 
@@ -354,9 +381,15 @@ const CreateDieselForm: React.FC<{
                 value={formData.fuelLitres}
                 onChange={handleChange}
                 onWheel={(e) => e.currentTarget.blur()}
-                className={fieldErrors.fuelLitres ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  fieldErrors.fuelLitres
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {fieldErrors.fuelLitres && <p className="text-xs text-red-500">{fieldErrors.fuelLitres}</p>}
+              {fieldErrors.fuelLitres && (
+                <p className="text-xs text-red-500">{fieldErrors.fuelLitres}</p>
+              )}
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="pricePerL">Price per L (₹)</Label>
@@ -370,9 +403,15 @@ const CreateDieselForm: React.FC<{
                 value={formData.pricePerL}
                 onChange={handleChange}
                 onWheel={(e) => e.currentTarget.blur()}
-                className={fieldErrors.pricePerL ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={
+                  fieldErrors.pricePerL
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
               />
-              {fieldErrors.pricePerL && <p className="text-xs text-red-500">{fieldErrors.pricePerL}</p>}
+              {fieldErrors.pricePerL && (
+                <p className="text-xs text-red-500">{fieldErrors.pricePerL}</p>
+              )}
             </div>
           </div>
 
@@ -446,6 +485,11 @@ const CreateDieselForm: React.FC<{
         </div>
 
         {/* Footer */}
+        {submitError && (
+          <div className="rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            {submitError}
+          </div>
+        )}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 border-t mt-4">
           <Button
             data-testid="components-createDieselModal-createDieselModal-button-3"
