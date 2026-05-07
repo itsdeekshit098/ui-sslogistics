@@ -11,7 +11,7 @@ export interface AuthUser {
  * Returns null if the user is not authenticated.
  * Use this in API routes to identify who is performing an action.
  */
-async function getAuthUser(): Promise<AuthUser | null> {
+export async function getAuthUser(): Promise<AuthUser | null> {
   try {
     const supabase = await createClient();
     const {
@@ -28,6 +28,20 @@ async function getAuthUser(): Promise<AuthUser | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Strongly enforces that the user must be authenticated (admin, staff, or driver).
+ */
+export async function requireUserAuth(): Promise<AuthUser> {
+  const user = await getAuthUser();
+  if (!user) {
+    throw new Error("UNAUTHORIZED: Missing authentication instance");
+  }
+  if (user.role !== "admin" && user.role !== "staff" && user.role !== "driver") {
+    throw new Error("FORBIDDEN: Insufficient role privileges");
+  }
+  return user;
 }
 
 /**

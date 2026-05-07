@@ -4,9 +4,9 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { SignOutButton } from "@/components/signOutButton";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import styles from "./adminLayout.module.css";
 
 export default function AdminLayout({
   children,
@@ -14,6 +14,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
   // Close mobile menu on route change
@@ -23,13 +24,18 @@ export default function AdminLayout({
   }, [pathname]);
 
   return (
-    <div className="flex h-screen w-full flex-col md:flex-row overflow-hidden bg-background">
+    <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
       {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:block h-screen border-r border-border/50" />
+      <Sidebar
+        className="hidden md:block h-[100dvh] border-r border-border/50"
+        collapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+      />
 
       {/* Mobile Floating Menu Button */}
       <div className="md:hidden fixed top-4 right-4 z-40">
         <Button
+          data-testid="admin-mobile-menu-btn"
           variant="outline"
           size="icon"
           className="rounded-[var(--input-radius)] shadow-md bg-background/80 backdrop-blur border-border text-foreground hover:bg-background"
@@ -44,6 +50,7 @@ export default function AdminLayout({
         <div className="fixed inset-0 z-50 md:hidden">
           {/* Backdrop */}
           <div
+            data-testid="admin-mobile-overlay"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
@@ -57,13 +64,21 @@ export default function AdminLayout({
         </div>
       )}
 
-      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+      <div
+        className="flex flex-1 flex-col min-w-0 overflow-hidden"
+        data-testid="admin-layout"
+      >
         {/* Desktop Header */}
-        <header className="hidden md:flex h-14 shrink-0 items-center justify-end border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:h-15 lg:px-6 z-30">
+        <header className="hidden md:flex h-14 shrink-0 items-center justify-end bg-white dark:bg-background px-4 lg:h-15 lg:px-6 z-30 shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">
           <SignOutButton variant="desktop" />
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        <main
+          className={`flex-1 overflow-y-auto p-4 md:p-6 ${styles.adminMainCanvas}`}
+          data-testid="admin-main"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ export default function Pagination({
         <span>
           {startItem} - {endItem} of {totalCount}
         </span>
-        <Select
+        <Select data-testid="components-pagination-pagination-select-1"
           value={String(pageSize)}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >

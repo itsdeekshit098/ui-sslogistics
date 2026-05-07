@@ -95,8 +95,8 @@ export default function NewRepairRecordPage() {
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/repair-records">
+        <Button data-testid="app-admin-repair-records-new-button-1" variant="ghost" size="icon" asChild>
+          <Link data-testid="app-admin-repair-records-new-link-1" href="/admin/repair-records">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -111,7 +111,7 @@ export default function NewRepairRecordPage() {
       </div>
 
       {/* Vehicle Selection */}
-      <Card>
+      <Card data-testid="app-admin-repair-records-new-card-1">
         <CardHeader>
           <CardTitle>Select Vehicle</CardTitle>
           <CardDescription>
@@ -119,7 +119,7 @@ export default function NewRepairRecordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={selectedVehicleId} onValueChange={handleVehicleChange}>
+          <Select data-testid="app-admin-repair-records-new-select-1" value={selectedVehicleId} onValueChange={handleVehicleChange}>
             <SelectTrigger className="w-full md:w-[300px]">
               <SelectValue placeholder="Select Vehicle" />
             </SelectTrigger>
@@ -138,7 +138,7 @@ export default function NewRepairRecordPage() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Repair Category Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card
+            <Card data-testid="app-admin-repair-records-new-card-2"
               className={cn(
                 "cursor-pointer transition-all hover:border-primary/50",
                 selectedCategory === "electrical"
@@ -160,7 +160,7 @@ export default function NewRepairRecordPage() {
               </CardContent>
             </Card>
 
-            <Card
+            <Card data-testid="app-admin-repair-records-new-card-3"
               className={cn(
                 "cursor-pointer transition-all hover:border-primary/50",
                 selectedCategory === "mechanical"
@@ -185,7 +185,7 @@ export default function NewRepairRecordPage() {
 
           {/* Sub Options & Details */}
           {selectedCategory && (
-            <Card className="animate-in fade-in zoom-in-95 duration-300">
+            <Card data-testid="app-admin-repair-records-new-card-4" className="animate-in fade-in zoom-in-95 duration-300">
               <CardHeader>
                 <CardTitle className="capitalize">
                   {selectedCategory} Repair Details
@@ -220,7 +220,7 @@ export default function NewRepairRecordPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="cost">Estimated Cost (₹)</Label>
-                    <Input
+                    <Input data-testid="app-admin-repair-records-new-input-1"
                       id="cost"
                       placeholder="0.00"
                       type="number"
@@ -241,7 +241,7 @@ export default function NewRepairRecordPage() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button
+                  <Button data-testid="app-admin-repair-records-new-button-2"
                     size="lg"
                     onClick={handleSubmit}
                     disabled={selectedSubOptions.length === 0}

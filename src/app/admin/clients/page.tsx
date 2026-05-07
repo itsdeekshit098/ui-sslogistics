@@ -125,15 +125,15 @@ export default function ClientsPage() {
             Manage KIA plants and vendor companies.
           </p>
         </div>
-        <Button className="w-full md:w-auto" asChild>
-          <Link href="/admin/clients/new">
+        <Button data-testid="app-admin-clients-button-1" className="w-full md:w-auto" asChild>
+          <Link data-testid="app-admin-clients-link-1" href="/admin/clients/new">
             <Plus className="mr-2 h-4 w-4" /> Add Client
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3">
-        <Card>
+        <Card data-testid="app-admin-clients-card-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               Total Clients
@@ -149,7 +149,7 @@ export default function ClientsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card data-testid="app-admin-clients-card-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               KIA Plants
@@ -163,7 +163,7 @@ export default function ClientsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="col-span-2 md:col-span-1">
+        <Card data-testid="app-admin-clients-card-3" className="col-span-2 md:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               Vendors
@@ -179,13 +179,13 @@ export default function ClientsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-testid="app-admin-clients-card-4">
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg md:text-xl">Client List</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search clients..." className="pl-8" />
+              <Input data-testid="app-admin-clients-input-1" placeholder="Search clients..." className="pl-8" />
             </div>
           </div>
         </CardHeader>
@@ -212,7 +212,7 @@ export default function ClientsPage() {
                   <Badge variant="outline" className="text-xs">
                     {client.type}
                   </Badge>
-                  <Button
+                  <Button data-testid="app-admin-clients-button-2"
                     variant="ghost"
                     size="sm"
                     className="text-xs h-7"
@@ -229,7 +229,7 @@ export default function ClientsPage() {
           <div className="hidden md:block">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow data-testid="app-admin-clients-tablerow-1">
                   <TableHead>Company Name</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Type</TableHead>
@@ -240,7 +240,7 @@ export default function ClientsPage() {
               </TableHeader>
               <TableBody>
                 {clients.map((client) => (
-                  <TableRow key={client.id}>
+                  <TableRow data-testid="app-admin-clients-tablerow-2" key={client.id}>
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ export default function ClientsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
+                      <Button data-testid="app-admin-clients-button-3"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditClick(client)}
@@ -292,7 +292,7 @@ export default function ClientsPage() {
               <Label htmlFor="name" className="text-right">
                 Company
               </Label>
-              <Input
+              <Input data-testid="app-admin-clients-input-2"
                 id="name"
                 value={editFormData.name}
                 onChange={handleEditChange}
@@ -303,7 +303,7 @@ export default function ClientsPage() {
               <Label htmlFor="location" className="text-right">
                 Location
               </Label>
-              <Input
+              <Input data-testid="app-admin-clients-input-3"
                 id="location"
                 value={editFormData.location}
                 onChange={handleEditChange}
@@ -314,7 +314,7 @@ export default function ClientsPage() {
               <Label htmlFor="type" className="text-right">
                 Type
               </Label>
-              <Select
+              <Select data-testid="app-admin-clients-select-1"
                 value={editFormData.type}
                 onValueChange={(value) => handleEditSelectChange("type", value)}
               >
@@ -331,7 +331,7 @@ export default function ClientsPage() {
               <Label htmlFor="activeContracts" className="text-right">
                 Contracts
               </Label>
-              <Input
+              <Input data-testid="app-admin-clients-input-4"
                 id="activeContracts"
                 value={editFormData.activeContracts}
                 onChange={handleEditChange}
@@ -342,7 +342,7 @@ export default function ClientsPage() {
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select
+              <Select data-testid="app-admin-clients-select-2"
                 value={editFormData.status}
                 onValueChange={(value) =>
                   handleEditSelectChange("status", value)
@@ -359,7 +359,7 @@ export default function ClientsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleUpdateClient}>
+            <Button data-testid="app-admin-clients-button-4" type="submit" onClick={handleUpdateClient}>
               <Save className="mr-2 h-4 w-4" />
               Save changes
             </Button>

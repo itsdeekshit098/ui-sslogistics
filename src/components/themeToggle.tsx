@@ -10,7 +10,7 @@ export function ThemeToggle() {
   const { setTheme, theme } = useTheme()
 
   return (
-    <Button
+    <Button data-testid="components-themeToggle-button-1"
       variant="outline"
       size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}

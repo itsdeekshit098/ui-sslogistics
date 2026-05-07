@@ -20,6 +20,8 @@ import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/skeletonLoader";
 import { Pagination } from "@/components/pagination";
 import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";
+import { ErrorState } from "@/components/errorState";
+import { EmptyState } from "@/components/emptyState";
 import {
   AL_CONTAINER,
   AL_HEADER_TITLE,
@@ -82,30 +84,37 @@ export default function ActivityLogPage() {
   const [entries, setEntries] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
 
-  const fetchLogs = useCallback(async (pageNum: number, isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  const fetchLogs = useCallback(
+    async (pageNum: number, isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setFetchError(null);
 
-    try {
-      const res = await fetch(
-        `/api/activity-log?page=${pageNum}&limit=${pageSize}`,
-      );
-      if (!res.ok) throw new Error("Failed to fetch");
+      try {
+        const res = await fetch(
+          `/api/activity-log?page=${pageNum}&limit=${pageSize}`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch");
 
-      const result: ActivityLogResponse = await res.json();
-      setEntries(result.data);
-      setTotal(result.total);
-    } catch (error) {
-      console.error("Error fetching activity logs:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [pageSize]);
+        const result: ActivityLogResponse = await res.json();
+        setEntries(result.data);
+        setTotal(result.total);
+      } catch {
+        setFetchError(
+          "We couldn\u2019t load the activity log. Please check your connection and try again.",
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [pageSize],
+  );
 
   useEffect(() => {
     fetchLogs(page);
@@ -118,6 +127,7 @@ export default function ActivityLogPage() {
   return (
     <div className={AL_CONTAINER}>
       <Button
+        data-testid="app-admin-activity-log-button-1"
         variant="ghost"
         onClick={() => router.back()}
         className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
@@ -139,6 +149,7 @@ export default function ActivityLogPage() {
             {loading ? "..." : `${total} entries`}
           </Badge>
           <Button
+            data-testid="app-admin-activity-log-button-2"
             variant="outline"
             size="sm"
             onClick={handleRefresh}
@@ -153,126 +164,158 @@ export default function ActivityLogPage() {
       </div>
 
       {/* Activity Feed */}
-      <Card className="flex flex-col overflow-hidden shadow-sm">
+      <Card
+        data-testid="app-admin-activity-log-card-1"
+        className="flex flex-col overflow-hidden shadow-sm"
+      >
         <CardHeader className="p-4 md:p-6 pb-2 md:pb-3 shrink-0">
           <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col p-0">
           <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0">
-          {loading ? (
-            <div className="space-y-1">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex gap-3 p-3">
-                  <Skeleton width="40px" height="40px" borderRadius="10px" className="shrink-0" />
-                  <div className="flex-1 min-w-0 pt-1">
-                    <Skeleton width="30%" height="16px" borderRadius="4px" />
-                    <Skeleton width="60%" height="14px" borderRadius="4px" className="mt-2" />
-                    <Skeleton width="25%" height="12px" borderRadius="4px" className="mt-2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : entries.length === 0 ? (
-            <div className="text-center py-12">
-              <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground font-medium">
-                No activity recorded yet.
-              </p>
-              <p className="text-muted-foreground/70 text-sm mt-1">
-                Actions will appear here as you use the system.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {entries.map((entry) => {
-                const style = ACTION_STYLES[entry.action] || {
-                  bg: "bg-slate-50",
-                  text: "text-slate-700",
-                  icon: "text-slate-500",
-                };
-                const label = ACTION_LABELS[entry.action] || entry.action;
-                const Icon = ACTION_ICONS[entry.action] || Activity;
-                const details = entry.details || {};
-                const vehicleNumber =
-                  (details.vehicle_number as string) ||
-                  ((details.changes as Record<string, unknown>)
-                    ?.vehicle_number as string) ||
-                  null;
-
-                return (
-                  <div
-                    key={entry.id}
-                    className="group flex gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
-                  >
-                    {/* Icon */}
-                    <div
-                      className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-xl ${style.bg}`}
-                    >
-                      <Icon className={`h-4.5 w-4.5 ${style.icon}`} />
+            {loading ? (
+              <div className="space-y-1">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex gap-3 p-3">
+                    <Skeleton
+                      width="40px"
+                      height="40px"
+                      borderRadius="10px"
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 pt-1">
+                      <Skeleton width="30%" height="16px" borderRadius="4px" />
+                      <Skeleton
+                        width="60%"
+                        height="14px"
+                        borderRadius="4px"
+                        className="mt-2"
+                      />
+                      <Skeleton
+                        width="25%"
+                        height="12px"
+                        borderRadius="4px"
+                        className="mt-2"
+                      />
                     </div>
+                  </div>
+                ))}
+              </div>
+            ) : fetchError ? (
+              <ErrorState
+                title="Couldn\u2019t load activity log"
+                description={fetchError}
+                onRetry={() => fetchLogs(page)}
+              />
+            ) : entries.length === 0 ? (
+              <EmptyState
+                icon={Activity}
+                title="No Activity Recorded Yet"
+                description="Actions will appear here as you use the system. Try adding a vehicle or creating a diesel record."
+              />
+            ) : (
+              <div className="space-y-1">
+                {entries.map((entry) => {
+                  const style = ACTION_STYLES[entry.action] || {
+                    bg: "bg-slate-50",
+                    text: "text-slate-700",
+                    icon: "text-slate-500",
+                  };
+                  const label = ACTION_LABELS[entry.action] || entry.action;
+                  const Icon = ACTION_ICONS[entry.action] || Activity;
+                  const details = entry.details || {};
+                  const vehicleNumber =
+                    (details.vehicle_number as string) ||
+                    ((details.changes as Record<string, unknown>)
+                      ?.vehicle_number as string) ||
+                    null;
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <span className={`text-sm font-semibold ${style.text}`}>
-                          {label}
-                        </span>
-                        {vehicleNumber && (
-                          <span className="text-sm text-foreground font-medium">
-                            · {vehicleNumber}
-                          </span>
-                        )}
+                  return (
+                    <div
+                      key={entry.id}
+                      className="group flex gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                    >
+                      {/* Icon */}
+                      <div
+                        className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-xl ${style.bg}`}
+                      >
+                        <Icon className={`h-4.5 w-4.5 ${style.icon}`} />
                       </div>
 
-                      {/* Details */}
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground w-full">
-                        {Object.entries(details)
-                          .filter(
-                            ([key]) =>
-                              key !== "vehicle_number" && key !== "changes",
-                          )
-                          .map(([key, value]) => (
-                            <span key={key} className="inline-flex max-w-full truncate items-baseline pr-1">
-                              <span className="shrink-0">{formatDetailKey(key)}:</span>{" "}
-                              <span className="text-foreground/70 truncate ml-1">
-                                {formatDetailValue(value)}
-                              </span>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                          <span
+                            className={`text-sm font-semibold ${style.text}`}
+                          >
+                            {label}
+                          </span>
+                          {vehicleNumber && (
+                            <span className="text-sm text-foreground font-medium">
+                              · {vehicleNumber}
                             </span>
-                          ))}
-                        {!!details.changes &&
-                          typeof details.changes === "object" &&
-                          Object.entries(
-                            details.changes as Record<string, unknown>,
-                          )
-                            .filter(([key]) => key !== "updated_by")
-                            .slice(0, 4)
+                          )}
+                        </div>
+
+                        {/* Details */}
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground w-full">
+                          {Object.entries(details)
+                            .filter(
+                              ([key]) =>
+                                key !== "vehicle_number" && key !== "changes",
+                            )
                             .map(([key, value]) => (
-                              <span key={key} className="inline-flex max-w-full truncate items-baseline pr-1">
-                                <span className="shrink-0">{formatDetailKey(key)}:</span>{" "}
+                              <span
+                                key={key}
+                                className="inline-flex max-w-full truncate items-baseline pr-1"
+                              >
+                                <span className="shrink-0">
+                                  {formatDetailKey(key)}:
+                                </span>{" "}
                                 <span className="text-foreground/70 truncate ml-1">
                                   {formatDetailValue(value)}
                                 </span>
                               </span>
                             ))}
-                      </div>
+                          {!!details.changes &&
+                            typeof details.changes === "object" &&
+                            Object.entries(
+                              details.changes as Record<string, unknown>,
+                            )
+                              .filter(([key]) => key !== "updated_by")
+                              .slice(0, 4)
+                              .map(([key, value]) => (
+                                <span
+                                  key={key}
+                                  className="inline-flex max-w-full truncate items-baseline pr-1"
+                                >
+                                  <span className="shrink-0">
+                                    {formatDetailKey(key)}:
+                                  </span>{" "}
+                                  <span className="text-foreground/70 truncate ml-1">
+                                    {formatDetailValue(value)}
+                                  </span>
+                                </span>
+                              ))}
+                        </div>
 
-                      {/* User + Time */}
-                      <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground/70">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {entry.user_email || "System"}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatRelativeTime(entry.created_at)}
-                        </span>
+                        {/* User + Time */}
+                        <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground/70">
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {entry.user_email || "System"}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatRelativeTime(entry.created_at)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Pagination */}

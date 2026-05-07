@@ -1,12 +1,12 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth } from "@/lib/auth";
+import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 
 export async function GET() {
   try {
-    await requireAdminAuth();
+    await requireUserAuth();
 
     const { data, error } = await supabaseAdmin
       .from("vehicles")

@@ -93,14 +93,30 @@ export function DocumentModal({
     setViewingFields((prev) =>
       prev.includes(docKey) ? prev : [...prev, docKey],
     );
+
+    // Open a blank window immediately to bypass Safari popup blocker
+    let newWindow: Window | null = null;
+    try {
+      newWindow = window.open("", "_blank");
+    } catch (e) {
+      console.error("Popup blocked", e);
+    }
+
     try {
       const signedUrl = await fetchSignedUrl(filePath);
       if (signedUrl) {
-        window.open(signedUrl, "_blank", "noreferrer");
+        if (newWindow) {
+          newWindow.location.href = signedUrl;
+        } else {
+          // Fallback if window creation failed
+          window.open(signedUrl, "_blank", "noreferrer");
+        }
       } else {
+        if (newWindow) newWindow.close();
         setErrorMsg("Failed to generate secure document link. Please retry.");
       }
     } catch {
+      if (newWindow) newWindow.close();
       setErrorMsg("Failed to open document.");
     } finally {
       setViewingFields((prev) => prev.filter((key) => key !== docKey));
@@ -219,8 +235,8 @@ export function DocumentModal({
           <DialogHeader>
             <DialogTitle>Document Management</DialogTitle>
             <DialogDescription>
-              Documents for {localVehicle.vehicle_number} | {localVehicle.company}{" "}
-              {localVehicle.model}
+              Documents for {localVehicle.vehicle_number} |{" "}
+              {localVehicle.company} {localVehicle.model}
             </DialogDescription>
           </DialogHeader>
 
@@ -257,6 +273,7 @@ export function DocumentModal({
                   ) : filePath ? (
                     <div className={DM_ACTIVE_DOC_WRAPPER}>
                       <Button
+                        data-testid="components-documentModal-documentModal-button-1"
                         variant="outline"
                         size="sm"
                         className={DM_BUTTON_VIEW}
@@ -271,6 +288,7 @@ export function DocumentModal({
                         {isViewing ? "Opening..." : "View"}
                       </Button>
                       <Button
+                        data-testid="components-documentModal-documentModal-button-2"
                         variant="outline"
                         size="icon"
                         className={DM_BUTTON_DELETE}

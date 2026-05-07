@@ -30,7 +30,10 @@ const CreateVehicleForm: React.FC<{
   onSuccess: () => void | Promise<void>;
 }> = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState(getDefaultVehicleFormData());
-  const [errors, setErrors] = useState<{ vehicle_number?: string; vehicle_type?: string }>({});
+  const [errors, setErrors] = useState<{
+    vehicle_number?: string;
+    vehicle_type?: string;
+  }>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -81,7 +84,9 @@ const CreateVehicleForm: React.FC<{
 
     const payload = {
       ...formData,
-      last_service_date: formData.last_service_date ? formData.last_service_date : null
+      last_service_date: formData.last_service_date
+        ? formData.last_service_date
+        : null,
     };
 
     try {
@@ -100,12 +105,16 @@ const CreateVehicleForm: React.FC<{
       } else {
         const errorData = await response.json();
         console.error("Failed to save vehicle", errorData);
-        setSubmitError(`Failed to save vehicle: ${errorData.error || response.statusText}`);
+        setSubmitError(
+          `Failed to save vehicle: ${errorData.error || response.statusText}`,
+        );
         setLoading(false);
       }
     } catch (error: unknown) {
       console.error("Error saving vehicle:", error);
-      setSubmitError(`Error saving vehicle: ${error instanceof Error ? error.message : String(error)}`);
+      setSubmitError(
+        `Error saving vehicle: ${error instanceof Error ? error.message : String(error)}`,
+      );
       setLoading(false);
     }
   };
@@ -115,126 +124,235 @@ const CreateVehicleForm: React.FC<{
       {/* Scrollable Form Content */}
       <div className="space-y-6 sm:mt-2">
         <div className="mb-2 pr-8">
-          <h2 id="create-vehicle-title" className="text-xl sm:text-2xl font-bold tracking-tight">Add New Vehicle</h2>
-          <p className="text-sm text-muted-foreground hidden sm:block mt-1">Register a new vehicle to the fleet.</p>
+          <h2
+            id="create-vehicle-title"
+            className="text-xl sm:text-2xl font-bold tracking-tight"
+          >
+            Add New Vehicle
+          </h2>
+          <p className="text-sm text-muted-foreground hidden sm:block mt-1">
+            Register a new vehicle to the fleet.
+          </p>
         </div>
-          {submitError && (
-             <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
-                 {submitError}
-             </div>
-          )}
-          <div className="space-y-4">
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="vehicle_number">Vehicle Number <span className="text-red-500">*</span></Label>
-                <Input
-                  id="vehicle_number"
-                  placeholder="AP 02 AB 1234"
-                  value={formData.vehicle_number}
-                  onChange={(e) => {
-                    handleChange(e);
-                    if (errors.vehicle_number) setErrors(prev => ({...prev, vehicle_number: undefined}));
-                  }}
-                  className={errors.vehicle_number ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
-                {errors.vehicle_number && <p className="text-xs text-red-500 mt-1">{errors.vehicle_number}</p>}
-              </div>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="vehicle_type">Vehicle Type <span className="text-red-500">*</span></Label>
-                <Select
-                  value={formData.vehicle_type}
-                  onValueChange={(val) => {
-                    handleSelectChange("vehicle_type", val);
-                    if (errors.vehicle_type) setErrors(prev => ({...prev, vehicle_type: undefined}));
-                  }}
+        {submitError && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
+            {submitError}
+          </div>
+        )}
+        <div className="space-y-4">
+          <div className={CA_MODAL_GRID}>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="vehicle_number">
+                Vehicle Number <span className="text-red-500">*</span>
+              </Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-1"
+                id="vehicle_number"
+                placeholder="AP 02 AB 1234"
+                value={formData.vehicle_number}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.vehicle_number)
+                    setErrors((prev) => ({
+                      ...prev,
+                      vehicle_number: undefined,
+                    }));
+                }}
+                className={
+                  errors.vehicle_number
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
+              />
+              {errors.vehicle_number && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.vehicle_number}
+                </p>
+              )}
+            </div>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="vehicle_type">
+                Vehicle Type <span className="text-red-500">*</span>
+              </Label>
+              <Select data-testid="components-createVehicleModal-createVehicleModal-select-1"
+                value={formData.vehicle_type}
+                onValueChange={(val) => {
+                  handleSelectChange("vehicle_type", val);
+                  if (errors.vehicle_type)
+                    setErrors((prev) => ({ ...prev, vehicle_type: undefined }));
+                }}
+              >
+                <SelectTrigger
+                  className={
+                    errors.vehicle_type
+                      ? "border-red-500 focus:ring-red-500"
+                      : ""
+                  }
                 >
-                  <SelectTrigger className={errors.vehicle_type ? "border-red-500 focus:ring-red-500" : ""}>
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Bus">Bus</SelectItem>
-                    <SelectItem value="Car">Car</SelectItem>
-                    <SelectItem value="Tempo">Tempo Traveller</SelectItem>
-                    <SelectItem value="Truck">Truck</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.vehicle_type && <p className="text-xs text-red-500 mt-1">{errors.vehicle_type}</p>}
-              </div>
-            </div>
-
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  placeholder="e.g. Tata"
-                  value={formData.company}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="model">Model</Label>
-                <Input
-                  id="model"
-                  placeholder="e.g. Starbus"
-                  value={formData.model}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="capacity">Seating / Load Capacity</Label>
-                <Input
-                  id="capacity"
-                  placeholder="e.g. 40 Seater"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="last_service_date">Last Service Date</Label>
-                <Input
-                  id="last_service_date"
-                  type="date"
-                  value={formData.last_service_date || ""}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className={CA_MODAL_GRID}>
-              <div className={CA_MODAL_LABEL_SPACE}>
-                <Label htmlFor="status">Initial Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(val) => handleSelectChange("status", val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Maintenance">Maintenance</SelectItem>
-                    <SelectItem value="Idle">Idle</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SelectValue placeholder="Select Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Bus">Bus</SelectItem>
+                  <SelectItem value="Car">Car</SelectItem>
+                  <SelectItem value="Tempo">Tempo Traveller</SelectItem>
+                  <SelectItem value="Truck">Truck</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.vehicle_type && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.vehicle_type}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mt-2">
-            <strong>Note:</strong> You will be able to securely upload PDF and Image documents (RC, FC, Insurance, etc.) to Supabase Storage by clicking &quot;Manage Docs&quot; on the main vehicle table after successfully creating this vehicle entry.
+          <div className={CA_MODAL_GRID}>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="company">Company</Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-2"
+                id="company"
+                placeholder="e.g. Tata"
+                value={formData.company}
+                onChange={handleChange}
+              />
+            </div>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="model">Model</Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-3"
+                id="model"
+                placeholder="e.g. Starbus"
+                value={formData.model}
+                onChange={handleChange}
+              />
+            </div>
           </div>
+
+          <div className={CA_MODAL_GRID}>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="capacity">Seating / Load Capacity</Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-4"
+                id="capacity"
+                placeholder="e.g. 40 Seater"
+                value={formData.capacity}
+                onChange={handleChange}
+              />
+            </div>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="last_service_date">Last Service Date</Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-5"
+                id="last_service_date"
+                type="date"
+                value={formData.last_service_date || ""}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className={CA_MODAL_GRID}>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="status">Initial Status</Label>
+              <Select data-testid="components-createVehicleModal-createVehicleModal-select-2"
+                value={formData.status}
+                onValueChange={(val) => handleSelectChange("status", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Idle">Idle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="fuel_type">Fuel Type</Label>
+              <Select data-testid="components-createVehicleModal-createVehicleModal-select-3"
+                value={formData.fuel_type || "Diesel"}
+                onValueChange={(val) => handleSelectChange("fuel_type", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Fuel Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Diesel">Diesel</SelectItem>
+                  <SelectItem value="Petrol">Petrol</SelectItem>
+                  <SelectItem value="CNG">CNG</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className={CA_MODAL_GRID}>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="expected_kml">Expected Km/L</Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-6"
+                id="expected_kml"
+                type="number"
+                placeholder="e.g. 4.5"
+                step="0.01"
+                min="0"
+                value={formData.expected_kml ?? ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    expected_kml: e.target.value
+                      ? parseFloat(e.target.value)
+                      : null,
+                  }))
+                }
+                onWheel={(e) => e.currentTarget.blur()}
+              />
+            </div>
+            <div className={CA_MODAL_LABEL_SPACE}>
+              <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
+              <Input data-testid="components-createVehicleModal-createVehicleModal-input-7"
+                id="tank_capacity"
+                type="number"
+                placeholder="e.g. 200"
+                step="0.01"
+                min="0"
+                value={formData.tank_capacity ?? ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tank_capacity: e.target.value
+                      ? parseFloat(e.target.value)
+                      : null,
+                  }))
+                }
+                onWheel={(e) => e.currentTarget.blur()}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mt-2">
+          <strong>Note:</strong> You will be able to securely upload PDF and
+          Image documents (RC, FC, Insurance, etc.) to Supabase Storage by
+          clicking &quot;Manage Docs&quot; on the main vehicle table after
+          successfully creating this vehicle entry.
+        </div>
 
         {/* Footer Buttons */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 border-t mt-4">
-          <Button variant="outline" onClick={handleClose} disabled={loading} className="w-full sm:w-auto mb-2 sm:mb-0">
+          <Button data-testid="components-createVehicleModal-createVehicleModal-button-1"
+            variant="outline"
+            onClick={handleClose}
+            disabled={loading}
+            className="w-full sm:w-auto mb-2 sm:mb-0"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
-            {loading ? <LoadingSpinner size="sm" className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+          <Button data-testid="components-createVehicleModal-createVehicleModal-button-2"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
+            {loading ? (
+              <LoadingSpinner size="sm" className="mr-2" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             {loading ? "Saving..." : "Save Vehicle"}
           </Button>
         </div>

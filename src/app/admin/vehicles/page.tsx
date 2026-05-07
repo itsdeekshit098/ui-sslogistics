@@ -28,7 +28,8 @@ import {
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -61,34 +62,37 @@ import {
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
-import dynamic from "next/dynamic";
-
-const CreateVehicleModal = dynamic(
-  () => import("@/components/createVehicleModal/createVehicleModal"),
-  { ssr: false },
-);
+import { CreateVehicleModal } from "@/components/createVehicleModal";
+import { ErrorState } from "@/components/errorState";
+import { EmptyState } from "@/components/emptyState";
 
 export default function VehiclesPage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { userRole, loading: authLoading } = useAuth();
+  const fetchVehicles = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch("/api/vehicles");
+      if (!res.ok) throw new Error("Failed to fetch");
+
+      const data = await res.json();
+      setVehicles(data as Vehicle[]);
+    } catch {
+      setFetchError(
+        "We couldn\u2019t load your vehicles. Please check your connection and try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        const res = await fetch("/api/vehicles");
-        if (!res.ok) throw new Error("Failed to fetch");
-
-        const data = await res.json();
-        setVehicles(data as Vehicle[]);
-      } catch (error) {
-        console.error("Error fetching vehicles:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchVehicles();
-  }, []);
+  }, [fetchVehicles]);
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -110,6 +114,7 @@ export default function VehiclesPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState<Vehicle | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -128,15 +133,17 @@ export default function VehiclesPage() {
 
   const hasActiveFilters = searchQuery !== "" || typeFilter !== "all";
 
-  // Function to actively reload logic easily
   const fetchVehiclesRefetch = async () => {
+    setFetchError(null);
     try {
       const res = await fetch("/api/vehicles");
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setVehicles(data as Vehicle[]);
-    } catch (error) {
-      console.error("Error refetching vehicles:", error);
+    } catch {
+      setFetchError(
+        "We couldn\u2019t refresh your vehicles. Please try again.",
+      );
     }
   };
 
@@ -156,6 +163,9 @@ export default function VehiclesPage() {
       permit_url: vehicle.permit_url || "",
       pollution_url: vehicle.pollution_url || "",
       tax_url: vehicle.tax_url || "",
+      expected_kml: vehicle.expected_kml ?? null,
+      tank_capacity: vehicle.tank_capacity ?? null,
+      fuel_type: vehicle.fuel_type || "Diesel",
     });
     setEditErrors({});
     setEditSubmitError(null);
@@ -237,6 +247,7 @@ export default function VehiclesPage() {
 
   const handleDeleteClick = (vehicle: Vehicle) => {
     setDeletingVehicle(vehicle);
+    setDeleteError(null);
     setIsDeleteOpen(true);
   };
 
@@ -244,6 +255,7 @@ export default function VehiclesPage() {
     if (!deletingVehicle) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/vehicles?id=${deletingVehicle.id}`, {
         method: "DELETE",
@@ -252,7 +264,9 @@ export default function VehiclesPage() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("Error deleting vehicle:", errorData);
-        alert(`Failed to delete vehicle: ${errorData.error || res.statusText}`);
+        setDeleteError(
+          `Failed to delete vehicle: ${errorData.error || res.statusText}`,
+        );
         return;
       }
 
@@ -263,7 +277,7 @@ export default function VehiclesPage() {
       setDeletingVehicle(null);
     } catch (error) {
       console.error("Unexpected error:", error);
-      alert("Unexpected error deleting vehicle.");
+      setDeleteError("Unexpected error deleting vehicle.");
     } finally {
       setIsDeleting(false);
     }
@@ -272,6 +286,7 @@ export default function VehiclesPage() {
   return (
     <div className={CA_VEHICLES_CONTAINER}>
       <Button
+        data-testid="vehicles-back-btn"
         variant="ghost"
         onClick={() => router.back()}
         className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
@@ -286,12 +301,15 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        <Button
-          className="w-full md:w-auto"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Vehicle
-        </Button>
+        {userRole === "admin" && (
+          <Button
+            data-testid="vehicles-add-btn"
+            className="w-full md:w-auto"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -392,6 +410,7 @@ export default function VehiclesPage() {
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  data-testid="vehicles-search-input"
                   placeholder="Search vehicle number..."
                   className="pl-8 pr-8"
                   value={searchQuery}
@@ -399,6 +418,7 @@ export default function VehiclesPage() {
                 />
                 {searchQuery && (
                   <button
+                    data-testid="vehicles-search-clear-btn"
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
@@ -430,6 +450,7 @@ export default function VehiclesPage() {
               </Select>
               {hasActiveFilters && (
                 <Button
+                  data-testid="vehicles-filter-clear-btn"
                   variant="ghost"
                   size="sm"
                   onClick={resetFilters}
@@ -446,12 +467,30 @@ export default function VehiclesPage() {
           <div className="block md:hidden space-y-3">
             {loading ? (
               <LoadingSpinner size="md" centered label="Loading vehicles..." />
+            ) : fetchError ? (
+              <ErrorState
+                title="Couldn\u2019t load vehicles"
+                description={fetchError}
+                onRetry={fetchVehicles}
+              />
             ) : filteredVehicles.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                {hasActiveFilters
-                  ? "No vehicles match your search criteria."
-                  : "No vehicles found. Add one to get started."}
-              </p>
+              hasActiveFilters ? (
+                <EmptyState
+                  icon={Search}
+                  title="No Matches Found"
+                  description="No vehicles match your current search or filter. Try adjusting your criteria."
+                  actionLabel="Clear Filters"
+                  onAction={resetFilters}
+                />
+              ) : (
+                <EmptyState
+                  icon={Truck}
+                  title="No Vehicles Found"
+                  description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
+                  actionLabel="Add Vehicle"
+                  onAction={() => setIsCreateOpen(true)}
+                />
+              )
             ) : (
               filteredVehicles.map((vehicle) => (
                 <div
@@ -500,6 +539,7 @@ export default function VehiclesPage() {
                   </div>
                   <div className="flex gap-2 pt-1">
                     <Button
+                      data-testid={`mobile-doc-btn-${vehicle.id}`}
                       variant="secondary"
                       size="sm"
                       className="flex-1 text-xs h-8"
@@ -510,25 +550,31 @@ export default function VehiclesPage() {
                     >
                       <FolderOpen className="mr-1 h-3.5 w-3.5" /> Docs
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-8"
-                      onClick={() => handleEditClick(vehicle)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="text-xs h-8 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(vehicle);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {userRole === "admin" && (
+                      <>
+                        <Button
+                          data-testid={`mobile-edit-btn-${vehicle.id}`}
+                          variant="secondary"
+                          size="sm"
+                          className="text-xs h-8"
+                          onClick={() => handleEditClick(vehicle)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          data-testid={`mobile-delete-btn-${vehicle.id}`}
+                          variant="destructive"
+                          size="sm"
+                          className="text-xs h-8 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(vehicle);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))
@@ -547,7 +593,9 @@ export default function VehiclesPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Last Service</TableHead>
                   <TableHead>Documents</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {userRole === "admin" && (
+                    <TableHead className="text-right">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -561,12 +609,36 @@ export default function VehiclesPage() {
                       />
                     </TableCell>
                   </TableRow>
+                ) : fetchError ? (
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <ErrorState
+                        title="Couldn\u2019t load vehicles"
+                        description={fetchError}
+                        onRetry={fetchVehicles}
+                      />
+                    </TableCell>
+                  </TableRow>
                 ) : filteredVehicles.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
-                      {hasActiveFilters
-                        ? "No vehicles match your search criteria."
-                        : "No vehicles found. Add one to get started."}
+                    <TableCell colSpan={8}>
+                      {hasActiveFilters ? (
+                        <EmptyState
+                          icon={Search}
+                          title="No Matches Found"
+                          description="No vehicles match your current search or filter. Try adjusting your criteria."
+                          actionLabel="Clear Filters"
+                          onAction={resetFilters}
+                        />
+                      ) : (
+                        <EmptyState
+                          icon={Truck}
+                          title="No Vehicles Found"
+                          description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
+                          actionLabel="Add Vehicle"
+                          onAction={() => setIsCreateOpen(true)}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -615,6 +687,7 @@ export default function VehiclesPage() {
                       </TableCell>
                       <TableCell>
                         <Button
+                          data-testid={`desktop-doc-btn-${vehicle.id}`}
                           variant="secondary"
                           size="sm"
                           onClick={() => {
@@ -625,24 +698,28 @@ export default function VehiclesPage() {
                           <FolderOpen className="mr-2 h-4 w-4" /> Manage Docs
                         </Button>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditClick(vehicle)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteClick(vehicle)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {userRole === "admin" && (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              data-testid={`desktop-edit-btn-${vehicle.id}`}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditClick(vehicle)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              data-testid={`desktop-delete-btn-${vehicle.id}`}
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteClick(vehicle)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -664,8 +741,15 @@ export default function VehiclesPage() {
               </DialogDescription>
             </DialogHeader>
             {editSubmitError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
-                {editSubmitError}
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
+                <span>{editSubmitError}</span>
+                <button
+                  type="button"
+                  onClick={() => setEditSubmitError(null)}
+                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 mt-0.5"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
             <div className="grid gap-4 py-4">
@@ -789,6 +873,67 @@ export default function VehiclesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="fuel_type">Fuel Type</Label>
+                  <Select
+                    value={editFormData.fuel_type || "Diesel"}
+                    onValueChange={(value) =>
+                      handleEditSelectChange("fuel_type", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Fuel Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Diesel">Diesel</SelectItem>
+                      <SelectItem value="Petrol">Petrol</SelectItem>
+                      <SelectItem value="CNG">CNG</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className={CA_MODAL_GRID}>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="expected_kml">Expected Km/L</Label>
+                  <Input
+                    id="expected_kml"
+                    type="number"
+                    placeholder="e.g. 4.5"
+                    step="0.01"
+                    min="0"
+                    value={editFormData.expected_kml ?? ""}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        expected_kml: e.target.value
+                          ? parseFloat(e.target.value)
+                          : null,
+                      }))
+                    }
+                    onWheel={(e) => e.currentTarget.blur()}
+                  />
+                </div>
+                <div className={CA_MODAL_LABEL_SPACE}>
+                  <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
+                  <Input
+                    id="tank_capacity"
+                    type="number"
+                    placeholder="e.g. 200"
+                    step="0.01"
+                    min="0"
+                    value={editFormData.tank_capacity ?? ""}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        tank_capacity: e.target.value
+                          ? parseFloat(e.target.value)
+                          : null,
+                      }))
+                    }
+                    onWheel={(e) => e.currentTarget.blur()}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -825,6 +970,18 @@ export default function VehiclesPage() {
                 be undone.
               </p>
             </div>
+            {deleteError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
+                <span className="flex-1">{deleteError}</span>
+                <button
+                  type="button"
+                  onClick={() => setDeleteError(null)}
+                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 self-center cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             {deletingVehicle && (
               <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md w-full">
                 <p className="font-medium">{deletingVehicle.vehicle_number}</p>

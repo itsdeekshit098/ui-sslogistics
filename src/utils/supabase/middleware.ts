@@ -11,7 +11,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error(
-      "Missing Supabase environment variables! Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set."
+      "Missing Supabase environment variables! Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.",
     );
   }
 
@@ -22,13 +22,13 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
+          request.cookies.set(name, value),
         );
         supabaseResponse = NextResponse.next({
           request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set(name, value, options),
         );
       },
     },
@@ -57,9 +57,12 @@ export async function updateSession(request: NextRequest) {
     // Role check logic — MUST use app_metadata (server-only, tamper-proof)
     // Never use user_metadata for RBAC — users can modify it themselves via SDK
     const role = user.app_metadata?.role;
-    if (role !== "admin" && role !== "staff") {
+    if (role !== "admin" && role !== "staff" && role !== "driver") {
       if (isApiRoute) {
-        return NextResponse.json({ error: "Forbidden - Insufficient permissions" }, { status: 403 });
+        return NextResponse.json(
+          { error: "Forbidden - Insufficient permissions" },
+          { status: 403 },
+        );
       }
       // Logged in but not the right role -> Redirect to /unauthorized
       const url = request.nextUrl.clone();

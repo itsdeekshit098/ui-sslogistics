@@ -22,7 +22,7 @@ const data = [
 
 export function DieselChart() {
   return (
-    <Card className="col-span-1 md:col-span-4">
+    <Card data-testid="components-dashboard-DieselChart-card-1" className="col-span-1 md:col-span-4">
       <CardHeader className="p-4 md:p-6">
         <CardTitle className="text-base md:text-lg">
           Weekly Diesel Consumption (Liters)
