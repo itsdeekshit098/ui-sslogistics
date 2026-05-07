@@ -90,6 +90,13 @@ const Typeahead = <TOption,>({
     });
   }, [getOptionKeywords, getOptionLabel, options, searchText]);
 
+  const inputValue = open ? searchText : selectedLabel;
+  const shouldShowClear = clearable && !disabled && Boolean(inputValue);
+  const activeIndex =
+    filteredOptions.length > 0
+      ? Math.min(highlightedIndex, filteredOptions.length - 1)
+      : -1;
+
   const selectOption = useCallback(
     (option: TOption) => {
       onValueChange(getOptionValue(option), option);
@@ -110,6 +117,11 @@ const Typeahead = <TOption,>({
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return;
 
+    if (event.key === "Tab") {
+      setOpen(false);
+      return;
+    }
+
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setOpen(true);
@@ -127,13 +139,9 @@ const Typeahead = <TOption,>({
     }
 
     if (event.key === "Enter") {
-      if (!open || filteredOptions.length === 0) return;
+      if (!open || activeIndex < 0) return;
       event.preventDefault();
-      selectOption(
-        filteredOptions[
-          Math.min(highlightedIndex, filteredOptions.length - 1)
-        ],
-      );
+      selectOption(filteredOptions[activeIndex]);
       return;
     }
 
@@ -144,15 +152,21 @@ const Typeahead = <TOption,>({
     }
   };
 
-  const inputValue = open ? searchText : selectedLabel;
-  const shouldShowClear = clearable && !disabled && Boolean(inputValue);
-  const activeIndex =
-    filteredOptions.length > 0
-      ? Math.min(highlightedIndex, filteredOptions.length - 1)
-      : -1;
-
   return (
-    <div ref={rootRef} className={cn("relative w-full", className)}>
+    <div
+      ref={rootRef}
+      className={cn("relative w-full", className)}
+      onBlur={(event) => {
+        const nextFocusedElement = event.relatedTarget;
+        if (
+          nextFocusedElement instanceof Node &&
+          rootRef.current?.contains(nextFocusedElement)
+        ) {
+          return;
+        }
+        setOpen(false);
+      }}
+    >
       <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         ref={inputRef}
@@ -212,7 +226,7 @@ const Typeahead = <TOption,>({
             filteredOptions.map((option, index) => {
               const optionValue = getOptionValue(option);
               const isSelected = optionValue === value;
-              const isHighlighted = index === highlightedIndex;
+              const isHighlighted = index === activeIndex;
 
               return (
                 <button
@@ -220,6 +234,7 @@ const Typeahead = <TOption,>({
                   id={`${inputId}-option-${index}`}
                   type="button"
                   role="option"
+                  tabIndex={-1}
                   aria-selected={isSelected}
                   className={cn(
                     "flex min-h-11 w-full items-center gap-3 rounded-[calc(var(--input-radius)-1px)] px-3 py-2 text-left outline-none transition-colors",
