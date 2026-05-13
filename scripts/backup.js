@@ -2,7 +2,8 @@
 const { createClient } = require("@supabase/supabase-js");
 const ws = require("ws");
 const { google } = require("googleapis");
-const archiver = require("archiver");
+const archiverModule = require("archiver");
+const archiver = archiverModule.default || archiverModule;
 const fs = require("fs");
 const path = require("path");
 
