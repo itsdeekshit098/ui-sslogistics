@@ -2,8 +2,6 @@
 const { createClient } = require("@supabase/supabase-js");
 const ws = require("ws");
 const { google } = require("googleapis");
-const archiverModule = require("archiver");
-const archiver = archiverModule.default || archiverModule;
 const fs = require("fs");
 const path = require("path");
 
@@ -109,9 +107,10 @@ async function downloadFolder(bucketName, folderPath = "") {
 
 async function createZip() {
   console.log(`Creating zip archive: ${ZIP_FILE_NAME}`);
+  const { ZipArchive } = await import("archiver");
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(ZIP_FILE_NAME);
-    const archive = archiver("zip", {
+    const archive = new ZipArchive({
       zlib: { level: 9 }, // maximum compression
     });
 
