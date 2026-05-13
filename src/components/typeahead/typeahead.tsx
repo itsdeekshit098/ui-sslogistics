@@ -35,6 +35,7 @@ const Typeahead = <TOption,>({
   className,
   inputClassName,
   clearable = true,
+  footer,
   "data-testid": dataTestId,
 }: TypeaheadProps<TOption>) => {
   const generatedId = useId();
@@ -42,6 +43,7 @@ const Typeahead = <TOption,>({
   const listboxId = `${inputId}-listbox`;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const clearingRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -55,10 +57,7 @@ const Typeahead = <TOption,>({
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (
-        rootRef.current &&
-        !rootRef.current.contains(event.target as Node)
-      ) {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
@@ -108,10 +107,12 @@ const Typeahead = <TOption,>({
   );
 
   const clearSelection = useCallback(() => {
+    clearingRef.current = true;
     onValueChange("", null);
     setSearchText("");
     setHighlightedIndex(0);
-    setOpen(false);
+    setOpen(true);
+    inputRef.current?.focus();
   }, [onValueChange]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -187,6 +188,10 @@ const Typeahead = <TOption,>({
         placeholder={placeholder}
         value={inputValue}
         onFocus={() => {
+          if (clearingRef.current) {
+            clearingRef.current = false;
+            return;
+          }
           setSearchText(selectedLabel);
           setHighlightedIndex(0);
           setOpen(true);
@@ -266,6 +271,7 @@ const Typeahead = <TOption,>({
               {emptyMessage}
             </div>
           )}
+          {footer}
         </div>
       )}
     </div>

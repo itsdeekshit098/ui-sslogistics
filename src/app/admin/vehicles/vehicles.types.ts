@@ -1,4 +1,4 @@
-export type VehicleStatus = "Active" | "Maintenance" | "Idle" | string;
+export type VehicleStatus = "Active" | "Maintenance" | "Idle";
 
 export const VEHICLE_TYPES = ["Bus", "Car", "Tempo", "Truck"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];

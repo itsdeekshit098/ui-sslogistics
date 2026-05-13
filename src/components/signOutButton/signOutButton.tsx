@@ -41,8 +41,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
       // We flush the router state and push instead of refresh so auth boundary catches cleanly.
       router.push("/");
       router.refresh();
-    } catch (error) {
-      console.error("Failed to sign out:", error);
+    } catch {
       setIsSigningOut(false);
       setIsOpen(false);
     }

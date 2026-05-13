@@ -104,14 +104,12 @@ const CreateVehicleForm: React.FC<{
         onClose();
       } else {
         const errorData = await response.json();
-        console.error("Failed to save vehicle", errorData);
         setSubmitError(
           `Failed to save vehicle: ${errorData.error || response.statusText}`,
         );
         setLoading(false);
       }
     } catch (error: unknown) {
-      console.error("Error saving vehicle:", error);
       setSubmitError(
         `Error saving vehicle: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -145,7 +143,8 @@ const CreateVehicleForm: React.FC<{
               <Label htmlFor="vehicle_number">
                 Vehicle Number <span className="text-red-500">*</span>
               </Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-1"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-1"
                 id="vehicle_number"
                 placeholder="AP 02 AB 1234"
                 value={formData.vehicle_number}
@@ -173,7 +172,8 @@ const CreateVehicleForm: React.FC<{
               <Label htmlFor="vehicle_type">
                 Vehicle Type <span className="text-red-500">*</span>
               </Label>
-              <Select data-testid="components-createVehicleModal-createVehicleModal-select-1"
+              <Select
+                data-testid="components-createVehicleModal-createVehicleModal-select-1"
                 value={formData.vehicle_type}
                 onValueChange={(val) => {
                   handleSelectChange("vehicle_type", val);
@@ -208,7 +208,8 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="company">Company</Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-2"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-2"
                 id="company"
                 placeholder="e.g. Tata"
                 value={formData.company}
@@ -217,7 +218,8 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="model">Model</Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-3"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-3"
                 id="model"
                 placeholder="e.g. Starbus"
                 value={formData.model}
@@ -229,7 +231,8 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="capacity">Seating / Load Capacity</Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-4"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-4"
                 id="capacity"
                 placeholder="e.g. 40 Seater"
                 value={formData.capacity}
@@ -238,7 +241,8 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="last_service_date">Last Service Date</Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-5"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-5"
                 id="last_service_date"
                 type="date"
                 value={formData.last_service_date || ""}
@@ -250,7 +254,8 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="status">Initial Status</Label>
-              <Select data-testid="components-createVehicleModal-createVehicleModal-select-2"
+              <Select
+                data-testid="components-createVehicleModal-createVehicleModal-select-2"
                 value={formData.status}
                 onValueChange={(val) => handleSelectChange("status", val)}
               >
@@ -266,7 +271,8 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="fuel_type">Fuel Type</Label>
-              <Select data-testid="components-createVehicleModal-createVehicleModal-select-3"
+              <Select
+                data-testid="components-createVehicleModal-createVehicleModal-select-3"
                 value={formData.fuel_type || "Diesel"}
                 onValueChange={(val) => handleSelectChange("fuel_type", val)}
               >
@@ -285,7 +291,8 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="expected_kml">Expected Km/L</Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-6"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-6"
                 id="expected_kml"
                 type="number"
                 placeholder="e.g. 4.5"
@@ -305,7 +312,8 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-              <Input data-testid="components-createVehicleModal-createVehicleModal-input-7"
+              <Input
+                data-testid="components-createVehicleModal-createVehicleModal-input-7"
                 id="tank_capacity"
                 type="number"
                 placeholder="e.g. 200"
@@ -335,7 +343,8 @@ const CreateVehicleForm: React.FC<{
 
         {/* Footer Buttons */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 border-t mt-4">
-          <Button data-testid="components-createVehicleModal-createVehicleModal-button-1"
+          <Button
+            data-testid="components-createVehicleModal-createVehicleModal-button-1"
             variant="outline"
             onClick={handleClose}
             disabled={loading}
@@ -343,7 +352,8 @@ const CreateVehicleForm: React.FC<{
           >
             Cancel
           </Button>
-          <Button data-testid="components-createVehicleModal-createVehicleModal-button-2"
+          <Button
+            data-testid="components-createVehicleModal-createVehicleModal-button-2"
             onClick={handleSubmit}
             disabled={loading}
             className="w-full sm:w-auto"

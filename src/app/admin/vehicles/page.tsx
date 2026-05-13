@@ -28,7 +28,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
@@ -50,7 +50,6 @@ import {
   getDefaultVehicleFormData,
   getStatusBadgeVariant,
 } from "./vehicles.utils";
-import { useVehicleSearch } from "./useVehicleSearch";
 import HighlightMatch from "./highlightMatch";
 import {
   CA_VEHICLES_CONTAINER,
@@ -65,22 +64,67 @@ import { LoadingSpinner } from "@/components/loadingSpinner";
 import { CreateVehicleModal } from "@/components/createVehicleModal";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
+import { Pagination } from "@/components/pagination";
 
 export default function VehiclesPage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const { userRole, loading: authLoading } = useAuth();
+  const { userRole } = useAuth();
+
+  // Server-side pagination & filtering
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    maintenance: 0,
+    idle: 0,
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<VehicleType | "all">("all");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setPage(1);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchQuery]);
+
+  // Reset page when type filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter]);
+
+  const hasActiveFilters = searchQuery !== "" || typeFilter !== "all";
+
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await fetch("/api/vehicles");
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      });
+      if (debouncedQuery) params.set("search", debouncedQuery);
+      if (typeFilter !== "all") params.set("type", typeFilter);
+
+      const res = await fetch(`/api/vehicles?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
 
-      const data = await res.json();
-      setVehicles(data as Vehicle[]);
+      const json = await res.json();
+      const result = json.data ?? {};
+      setVehicles(result.data ?? []);
+      setTotal(result.total ?? 0);
+      if (result.stats) setStats(result.stats);
     } catch {
       setFetchError(
         "We couldn\u2019t load your vehicles. Please check your connection and try again.",
@@ -88,7 +132,7 @@ export default function VehiclesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedQuery, typeFilter]);
 
   useEffect(() => {
     fetchVehicles();
@@ -120,31 +164,16 @@ export default function VehiclesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Search & Filter
-  const {
-    searchQuery,
-    debouncedQuery,
-    typeFilter,
-    filteredVehicles,
-    setSearchQuery,
-    setTypeFilter,
-    resetFilters,
-  } = useVehicleSearch(vehicles);
-
-  const hasActiveFilters = searchQuery !== "" || typeFilter !== "all";
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setDebouncedQuery("");
+    setTypeFilter("all");
+    setPage(1);
+  }, []);
 
   const fetchVehiclesRefetch = async () => {
-    setFetchError(null);
-    try {
-      const res = await fetch("/api/vehicles");
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setVehicles(data as Vehicle[]);
-    } catch {
-      setFetchError(
-        "We couldn\u2019t refresh your vehicles. Please try again.",
-      );
-    }
+    // Re-fetch current page (used after create/edit/delete)
+    fetchVehicles();
   };
 
   const handleEditClick = (vehicle: Vehicle) => {
@@ -221,24 +250,16 @@ export default function VehiclesPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Error updating vehicle:", errorData);
         setEditSubmitError(
           `Failed to update vehicle: ${errorData.error || res.statusText}`,
         );
         return;
       }
 
-      // Update local state to reflect changes without a full refetch if you want,
-      // or simply fetch again. We'll update local state for speed.
-      setVehicles((prev) =>
-        prev.map((v) =>
-          v.id === editingVehicle.id ? { ...v, ...editFormData } : v,
-        ),
-      );
-
+      // Refetch to get fresh data from the server
+      await fetchVehicles();
       setIsEditOpen(false);
-    } catch (error) {
-      console.error("Unexpected error:", error);
+    } catch {
       setEditSubmitError("Unexpected error updating vehicle.");
     } finally {
       setIsSaving(false);
@@ -263,20 +284,18 @@ export default function VehiclesPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Error deleting vehicle:", errorData);
         setDeleteError(
           `Failed to delete vehicle: ${errorData.error || res.statusText}`,
         );
         return;
       }
 
-      // Remove vehicle from local state
-      setVehicles((prev) => prev.filter((v) => v.id !== deletingVehicle.id));
+      // Refetch to get fresh data from the server
+      await fetchVehicles();
 
       setIsDeleteOpen(false);
       setDeletingVehicle(null);
-    } catch (error) {
-      console.error("Unexpected error:", error);
+    } catch {
       setDeleteError("Unexpected error deleting vehicle.");
     } finally {
       setIsDeleting(false);
@@ -325,7 +344,7 @@ export default function VehiclesPage() {
               {loading ? (
                 <Skeleton width="40px" height="28px" borderRadius="4px" />
               ) : (
-                vehicles.length
+                stats.total
               )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
@@ -345,7 +364,7 @@ export default function VehiclesPage() {
               {loading ? (
                 <Skeleton width="40px" height="28px" borderRadius="4px" />
               ) : (
-                vehicles.filter((v) => v.status === "Active").length
+                stats.active
               )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
@@ -365,7 +384,7 @@ export default function VehiclesPage() {
               {loading ? (
                 <Skeleton width="40px" height="28px" borderRadius="4px" />
               ) : (
-                vehicles.filter((v) => v.status === "Maintenance").length
+                stats.maintenance
               )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
@@ -385,7 +404,7 @@ export default function VehiclesPage() {
               {loading ? (
                 <Skeleton width="40px" height="28px" borderRadius="4px" />
               ) : (
-                vehicles.filter((v) => v.status === "Idle").length
+                stats.idle
               )}
             </div>
             <p className="text-xs text-muted-foreground hidden sm:block">
@@ -402,7 +421,7 @@ export default function VehiclesPage() {
               Vehicle List
               {!loading && hasActiveFilters && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({filteredVehicles.length} of {vehicles.length})
+                  ({total} of {stats.total})
                 </span>
               )}
             </CardTitle>
@@ -469,11 +488,11 @@ export default function VehiclesPage() {
               <LoadingSpinner size="md" centered label="Loading vehicles..." />
             ) : fetchError ? (
               <ErrorState
-                title="Couldn\u2019t load vehicles"
+                title="Couldn't load vehicles"
                 description={fetchError}
                 onRetry={fetchVehicles}
               />
-            ) : filteredVehicles.length === 0 ? (
+            ) : vehicles.length === 0 ? (
               hasActiveFilters ? (
                 <EmptyState
                   icon={Search}
@@ -492,7 +511,7 @@ export default function VehiclesPage() {
                 />
               )
             ) : (
-              filteredVehicles.map((vehicle) => (
+              vehicles.map((vehicle) => (
                 <div
                   key={vehicle.id}
                   className="border rounded-lg p-3 space-y-2"
@@ -582,7 +601,7 @@ export default function VehiclesPage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden md:block">
+          <div className="hidden md:block rounded-md border border-border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -613,13 +632,13 @@ export default function VehiclesPage() {
                   <TableRow>
                     <TableCell colSpan={8}>
                       <ErrorState
-                        title="Couldn\u2019t load vehicles"
+                        title="Couldn't load vehicles"
                         description={fetchError}
                         onRetry={fetchVehicles}
                       />
                     </TableCell>
                   </TableRow>
-                ) : filteredVehicles.length === 0 ? (
+                ) : vehicles.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8}>
                       {hasActiveFilters ? (
@@ -642,7 +661,7 @@ export default function VehiclesPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredVehicles.map((vehicle) => (
+                  vehicles.map((vehicle) => (
                     <TableRow key={vehicle.id}>
                       <TableCell className="font-medium">
                         <HighlightMatch
@@ -726,6 +745,18 @@ export default function VehiclesPage() {
               </TableBody>
             </Table>
           </div>
+
+          {total > PAGE_SIZE && (
+            <div className="px-4 md:px-6 pb-4">
+              <Pagination
+                page={page}
+                totalCount={total}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                onPageSizeChange={() => {}}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -957,7 +988,7 @@ export default function VehiclesPage() {
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent className="max-w-md rounded-xl sm:rounded-2xl">
-          <div className="flex flex-col items-center space-y-4 text-center">
+          <div className="flex flex-col items-center space-y-2 text-center">
             <div className="rounded-full bg-red-100 p-3">
               <Trash2 className="h-6 w-6 text-red-600" />
             </div>
@@ -970,8 +1001,16 @@ export default function VehiclesPage() {
                 be undone.
               </p>
             </div>
+            {deletingVehicle && (
+              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md w-full">
+                <p className="font-medium">{deletingVehicle.vehicle_number}</p>
+                <p className="text-gray-600">
+                  {deletingVehicle.company} {deletingVehicle.model}
+                </p>
+              </div>
+            )}
             {deleteError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
+              <div className="bg-red-50 text-red-600 p-2 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
                 <span className="flex-1">{deleteError}</span>
                 <button
                   type="button"
@@ -980,14 +1019,6 @@ export default function VehiclesPage() {
                 >
                   <X className="h-4 w-4" />
                 </button>
-              </div>
-            )}
-            {deletingVehicle && (
-              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md w-full">
-                <p className="font-medium">{deletingVehicle.vehicle_number}</p>
-                <p className="text-gray-600">
-                  {deletingVehicle.company} {deletingVehicle.model}
-                </p>
               </div>
             )}
             <div className="flex gap-3 w-full">

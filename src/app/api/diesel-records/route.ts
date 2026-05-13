@@ -1,8 +1,8 @@
 import { after } from "next/server";
-import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
+import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import type { CreateDieselPayload } from "@/app/admin/diesel-records/dieselRecords.types";
 
 const isBlankString = (value: unknown): value is string =>
@@ -50,19 +50,12 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
-    return NextResponse.json({ data: data ?? [], total: count ?? 0 });
+    return apiSuccess({ data: data ?? [], total: count ?? 0 });
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
 
@@ -83,54 +76,32 @@ export async function POST(req: Request) {
       body.current_odo === null ||
       body.current_odo === undefined
     ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
+      return apiError("Missing required fields", 400);
     }
 
     if (!["full", "partial"].includes(body.fill_type)) {
-      return NextResponse.json(
-        { error: "fill_type must be 'full' or 'partial'" },
-        { status: 400 },
-      );
+      return apiError("fill_type must be 'full' or 'partial'", 400);
     }
 
     const vehicleId = parseFiniteNumber(body.vehicle_id);
     const currentOdo = parseFiniteNumber(body.current_odo);
     const fuelLitres = parseFiniteNumber(body.fuel_litres);
 
-    if (
-      vehicleId === null ||
-      !Number.isInteger(vehicleId) ||
-      vehicleId <= 0
-    ) {
-      return NextResponse.json(
-        { error: "Invalid vehicle_id" },
-        { status: 400 },
-      );
+    if (vehicleId === null || !Number.isInteger(vehicleId) || vehicleId <= 0) {
+      return apiError("Invalid vehicle_id", 400);
     }
     if (currentOdo === null || currentOdo < 0) {
-      return NextResponse.json(
-        { error: "Invalid odometer reading" },
-        { status: 400 },
-      );
+      return apiError("Invalid odometer reading", 400);
     }
     if (fuelLitres === null || fuelLitres <= 0) {
-      return NextResponse.json(
-        { error: "Invalid fuel litres" },
-        { status: 400 },
-      );
+      return apiError("Invalid fuel litres", 400);
     }
-    
+
     let pricePerL = 0;
     if (body.price_per_l !== undefined && body.price_per_l !== null) {
       const parsedPricePerL = parseFiniteNumber(body.price_per_l);
       if (parsedPricePerL === null || parsedPricePerL < 0) {
-        return NextResponse.json(
-          { error: "Invalid price per litre" },
-          { status: 400 }
-        );
+        return apiError("Invalid price per litre", 400);
       }
       pricePerL = parsedPricePerL;
     }
@@ -143,7 +114,7 @@ export async function POST(req: Request) {
       .single();
 
     if (vErr || !vehicle) {
-      return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
+      return apiError("Vehicle not found", 404);
     }
 
     // ── 3. Tank capacity warning (non-blocking, return in response) ──
@@ -164,7 +135,7 @@ export async function POST(req: Request) {
     }
 
     // ── 4. Get last entry for this vehicle (prev odo + cycle context) ──
-    const { data: lastEntry } = await supabaseAdmin
+    const { data: lastEntry, error: lastEntryErr } = await supabaseAdmin
       .from("diesel_records")
       .select("id, current_odo, cycle_id, fill_type, cycle_status")
       .eq("vehicle_id", vehicleId)
@@ -173,23 +144,22 @@ export async function POST(req: Request) {
       .limit(1)
       .maybeSingle();
 
+    if (lastEntryErr) {
+      return apiError(lastEntryErr.message, 500);
+    }
+
     // ── 5. Validate odometer is increasing (also catches duplicates) ──
     // DB unique index on (vehicle_id, current_odo) is the final safety net
     if (lastEntry && currentOdo <= lastEntry.current_odo) {
-      return NextResponse.json(
-        {
-          error: `Odometer must be greater than previous reading (${lastEntry.current_odo} km)`,
-        },
-        { status: 400 },
+      return apiError(
+        `Odometer must be greater than previous reading (${lastEntry.current_odo} km)`,
+        400,
       );
     }
 
     // ── 6. First fill must be a full fill ──
     if (!lastEntry && body.fill_type === "partial") {
-      return NextResponse.json(
-        { error: "First fill for this vehicle must be a Full fill" },
-        { status: 400 },
-      );
+      return apiError("First fill for this vehicle must be a Full fill", 400);
     }
 
     // ── 7. Calculate derived fields ──
@@ -220,7 +190,7 @@ export async function POST(req: Request) {
         // There IS a previous entry — close the cycle
 
         // Find the last FULL fill for this vehicle (start of current cycle)
-        const { data: lastFullFill } = await supabaseAdmin
+        const { data: lastFullFill, error: lastFullErr } = await supabaseAdmin
           .from("diesel_records")
           .select("id, current_odo, cycle_id, fill_date")
           .eq("vehicle_id", vehicleId)
@@ -230,17 +200,26 @@ export async function POST(req: Request) {
           .limit(1)
           .maybeSingle();
 
+        if (lastFullErr) {
+          return apiError(lastFullErr.message, 500);
+        }
+
         if (lastFullFill) {
           // There's a previous full fill — we can close the cycle
           const cycleDistance = currentOdo - lastFullFill.current_odo;
 
           // Sum all litres from entries AFTER the last full fill + this fill
-          const { data: cycleEntries } = await supabaseAdmin
-            .from("diesel_records")
-            .select("fuel_litres, amount")
-            .eq("vehicle_id", vehicleId)
-            .gt("id", lastFullFill.id)
-            .order("id", { ascending: true });
+          const { data: cycleEntries, error: cycleEntriesErr } =
+            await supabaseAdmin
+              .from("diesel_records")
+              .select("fuel_litres, amount")
+              .eq("vehicle_id", vehicleId)
+              .gt("id", lastFullFill.id)
+              .order("id", { ascending: true });
+
+          if (cycleEntriesErr) {
+            return apiError(cycleEntriesErr.message, 500);
+          }
 
           const intermediateLitres = cycleEntries
             ? cycleEntries.reduce((sum, e) => sum + Number(e.fuel_litres), 0)
@@ -308,7 +287,7 @@ export async function POST(req: Request) {
       .single();
 
     if (insertErr) {
-      return NextResponse.json({ error: insertErr.message }, { status: 500 });
+      return apiError(insertErr.message, 500);
     }
 
     // ── 9. Audit log ──
@@ -331,9 +310,8 @@ export async function POST(req: Request) {
       }),
     );
 
-    return NextResponse.json(
+    return apiSuccess(
       {
-        message: "Diesel record created successfully",
         id: newRecord?.id,
         cycle_id: cycleId,
         cycle_status: cycleStatus,
@@ -342,17 +320,11 @@ export async function POST(req: Request) {
         cost_per_km: costPerKm,
         warnings,
       },
-      { status: 201 },
+      "Diesel record created successfully",
+      201,
     );
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
 
@@ -362,10 +334,7 @@ export async function PUT(req: Request) {
     const authUser = await requireAdminAuth();
 
     if (authUser.role !== "admin") {
-      return NextResponse.json(
-        { error: "Only admins can edit diesel records" },
-        { status: 403 },
-      );
+      return apiError("Only admins can edit diesel records", 403);
     }
 
     const body = await req.json();
@@ -381,34 +350,37 @@ export async function PUT(req: Request) {
     } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "Missing record ID" }, { status: 400 });
+      return apiError("Missing record ID", 400);
     }
 
     if (!driver_name || !fuel_litres) {
-      return NextResponse.json(
-        { error: "Driver name and fuel litres are required" },
-        { status: 400 },
-      );
+      return apiError("Driver name and fuel litres are required", 400);
     }
 
     // ── 1. Fetch existing record before update ──
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingErr } = await supabaseAdmin
       .from("diesel_records")
       .select("*")
       .eq("id", Number(id))
       .single();
 
-    if (!existing) {
-      return NextResponse.json({ error: "Record not found" }, { status: 404 });
+    if (existingErr || !existing) {
+      return !existing && !existingErr
+        ? apiError("Record not found", 404)
+        : apiError(existingErr!.message, 500);
     }
 
     const fuelLitres = Number(fuel_litres);
-    
+
     let pricePerL = 0;
-    if (price_per_l !== undefined && price_per_l !== null && price_per_l !== "") {
+    if (
+      price_per_l !== undefined &&
+      price_per_l !== null &&
+      price_per_l !== ""
+    ) {
       pricePerL = Number(price_per_l);
       if (isNaN(pricePerL) || !isFinite(pricePerL) || pricePerL < 0) {
-        return NextResponse.json({ error: "Invalid price per litre" }, { status: 400 });
+        return apiError("Invalid price per litre", 400);
       }
     }
 
@@ -432,7 +404,7 @@ export async function PUT(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
     // ── 3. Recalculate cycle if fuel or price changed ──
@@ -454,7 +426,7 @@ export async function PUT(req: Request) {
         closingAmount = amount; // use new value
       } else {
         // Find the next cycle-closing record after this one
-        const { data: nextClosed } = await supabaseAdmin
+        const { data: nextClosed, error: nextClosedErr } = await supabaseAdmin
           .from("diesel_records")
           .select("id, current_odo, fuel_litres, amount")
           .eq("vehicle_id", existing.vehicle_id)
@@ -463,6 +435,10 @@ export async function PUT(req: Request) {
           .order("id", { ascending: true })
           .limit(1)
           .maybeSingle();
+
+        if (nextClosedErr) {
+          return apiError(nextClosedErr.message, 500);
+        }
 
         if (nextClosed) {
           closingRecordId = nextClosed.id;
@@ -474,7 +450,7 @@ export async function PUT(req: Request) {
 
       if (closingRecordId) {
         // Find the opening full fill (last full fill before the closing one)
-        const { data: openingFull } = await supabaseAdmin
+        const { data: openingFull, error: openingErr } = await supabaseAdmin
           .from("diesel_records")
           .select("id, current_odo, fill_date")
           .eq("vehicle_id", existing.vehicle_id)
@@ -485,17 +461,26 @@ export async function PUT(req: Request) {
           .limit(1)
           .maybeSingle();
 
+        if (openingErr) {
+          return apiError(openingErr.message, 500);
+        }
+
         if (openingFull) {
           const cycleDistance = closingOdo! - openingFull.current_odo;
 
           // Intermediates between opening and closing (DB already has updated values)
-          const { data: intermediates } = await supabaseAdmin
-            .from("diesel_records")
-            .select("fuel_litres, amount")
-            .eq("vehicle_id", existing.vehicle_id)
-            .gt("id", openingFull.id)
-            .lt("id", closingRecordId!)
-            .order("id", { ascending: true });
+          const { data: intermediates, error: intermediatesErr } =
+            await supabaseAdmin
+              .from("diesel_records")
+              .select("fuel_litres, amount")
+              .eq("vehicle_id", existing.vehicle_id)
+              .gt("id", openingFull.id)
+              .lt("id", closingRecordId!)
+              .order("id", { ascending: true });
+
+          if (intermediatesErr) {
+            return apiError(intermediatesErr.message, 500);
+          }
 
           const intermediateLitres = intermediates
             ? intermediates.reduce((sum, e) => sum + Number(e.fuel_litres), 0)
@@ -508,11 +493,15 @@ export async function PUT(req: Request) {
           const cycleAmount = intermediateAmount + closingAmount!;
 
           // Fetch vehicle expected_kml
-          const { data: vehicle } = await supabaseAdmin
+          const { data: vehicle, error: vehicleErr } = await supabaseAdmin
             .from("vehicles")
             .select("expected_kml")
             .eq("id", existing.vehicle_id)
             .single();
+
+          if (vehicleErr) {
+            return apiError(vehicleErr.message, 500);
+          }
 
           const expectedKml = vehicle?.expected_kml ?? null;
 
@@ -529,7 +518,7 @@ export async function PUT(req: Request) {
           }
 
           // Update the closing record with recalculated metrics
-          await supabaseAdmin
+          const { error: updateMetricsErr } = await supabaseAdmin
             .from("diesel_records")
             .update({
               kml,
@@ -540,6 +529,10 @@ export async function PUT(req: Request) {
               cycle_fuel: round2(cycleLitres),
             })
             .eq("id", closingRecordId);
+
+          if (updateMetricsErr) {
+            return apiError(updateMetricsErr.message, 500);
+          }
         }
       }
     }
@@ -555,16 +548,9 @@ export async function PUT(req: Request) {
       }),
     );
 
-    return NextResponse.json({ message: "Record updated" }, { status: 200 });
+    return apiSuccess(null, "Record updated");
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
 
@@ -582,23 +568,18 @@ export async function DELETE(req: Request) {
   try {
     const authUser = await requireAdminAuth();
 
-    // Only admin can delete, not staff
     if (authUser.role !== "admin") {
-      return NextResponse.json(
-        { error: "Only admins can delete diesel records" },
-        { status: 403 },
-      );
+      return apiError("Only admins can delete diesel records", 403);
     }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Missing record ID" }, { status: 400 });
+      return apiError("Missing record ID", 400);
     }
 
-    // Fetch record details before deleting (for audit log)
-    const { data: record } = await supabaseAdmin
+    const { data: record, error: recordErr } = await supabaseAdmin
       .from("diesel_records")
       .select(
         "id, vehicle_id, driver_name, fill_type, fuel_litres, current_odo, cycle_id",
@@ -606,8 +587,10 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id))
       .single();
 
-    if (!record) {
-      return NextResponse.json({ error: "Record not found" }, { status: 404 });
+    if (recordErr || !record) {
+      return !record && !recordErr
+        ? apiError("Record not found", 404)
+        : apiError(recordErr!.message, 500);
     }
 
     const { error } = await supabaseAdmin
@@ -616,7 +599,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
     after(() =>
@@ -637,15 +620,8 @@ export async function DELETE(req: Request) {
       }),
     );
 
-    return NextResponse.json({ message: "Record deleted" }, { status: 200 });
+    return apiSuccess(null, "Record deleted");
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }

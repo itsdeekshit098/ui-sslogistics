@@ -8,7 +8,22 @@ export type AuditAction =
   | "DELETE_DOCUMENT"
   | "CREATE_DIESEL_RECORD"
   | "UPDATE_DIESEL_RECORD"
-  | "DELETE_DIESEL_RECORD";
+  | "DELETE_DIESEL_RECORD"
+  | "CREATE_REPAIR_RECORD"
+  | "UPDATE_REPAIR_RECORD"
+  | "DELETE_REPAIR_RECORD"
+  // Technicians
+  | "CREATE_TECHNICIAN"
+  | "UPDATE_TECHNICIAN"
+  | "DELETE_TECHNICIAN"
+  // Drivers
+  | "CREATE_DRIVER"
+  | "UPDATE_DRIVER"
+  | "DELETE_DRIVER"
+  // External Trips
+  | "CREATE_EXTERNAL_TRIP"
+  | "UPDATE_EXTERNAL_TRIP"
+  | "DELETE_EXTERNAL_TRIP";
 
 interface LogActivityParams {
   action: AuditAction;

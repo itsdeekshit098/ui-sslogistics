@@ -2,36 +2,14 @@ import type { PageLoadingSkeletonProps } from "./pageLoadingSkeleton.types";
 
 function AdminSkeleton() {
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Sidebar skeleton */}
-      <div className="hidden md:flex w-64 shrink-0 border-r bg-muted/40 flex-col">
-        <div className="flex h-14 items-center border-b px-4 lg:h-15 lg:px-6">
-          <div className="h-5 w-36 rounded-md bg-muted animate-pulse" />
-        </div>
-        <div className="flex-1 p-4 space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-9 w-full rounded-lg bg-muted animate-pulse" />
-          ))}
-        </div>
+    <div className="flex-1 space-y-6">
+      <div className="h-9 w-48 rounded-md bg-muted animate-pulse" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+        ))}
       </div>
-
-      {/* Main content skeleton */}
-      <div className="flex flex-col w-full min-w-0">
-        {/* Header skeleton */}
-        <div className="hidden md:flex h-14 items-center justify-end border-b px-4 lg:h-15 lg:px-6">
-          <div className="h-8 w-24 rounded-md bg-muted animate-pulse" />
-        </div>
-        {/* Page content skeleton */}
-        <div className="flex-1 p-4 md:p-6 space-y-6">
-          <div className="h-9 w-48 rounded-md bg-muted animate-pulse" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
-            ))}
-          </div>
-          <div className="h-64 w-full rounded-xl bg-muted animate-pulse" />
-        </div>
-      </div>
+      <div className="h-64 w-full rounded-xl bg-muted animate-pulse" />
     </div>
   );
 }

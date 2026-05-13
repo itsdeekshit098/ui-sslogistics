@@ -17,4 +17,5 @@ export interface TypeaheadProps<TOption> {
   inputClassName?: string;
   clearable?: boolean;
   "data-testid"?: string;
+  footer?: React.ReactNode;
 }

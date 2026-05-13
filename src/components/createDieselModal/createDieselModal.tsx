@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { CreateDieselModalProps } from "./createDieselModal.types";
-import { Save, AlertTriangle } from "lucide-react";
+import { Save, AlertTriangle, UserPlus } from "lucide-react";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Typeahead } from "@/components/typeahead";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AddDriverModal } from "@/components/addDriverModal";
+import type { Driver } from "@/components/driversPage/driversPage.types";
 import type {
   FillType,
   PaymentMethod,
@@ -52,6 +54,24 @@ const CreateDieselForm: React.FC<{
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [driversList, setDriversList] = useState<Driver[]>([]);
+  const [showAddDriver, setShowAddDriver] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/drivers?pageSize=100")
+      .then((res) => res.json())
+      .then((json) => {
+        const arr = json.data?.data ?? json.data;
+        if (Array.isArray(arr)) setDriversList(arr);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleDriverAdded = (newDriver: Driver) => {
+    setDriversList((prev) => [...prev, newDriver]);
+    setFormData((prev) => ({ ...prev, driverName: newDriver.name }));
+    setShowAddDriver(false);
+  };
 
   const handleClose = useCallback(() => {
     if (!loading) onClose();
@@ -59,11 +79,11 @@ const CreateDieselForm: React.FC<{
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape" && !showAddDriver) handleClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
+  }, [handleClose, showAddDriver]);
 
   const selectedVehicle = vehicles.find(
     (v) => v.id.toString() === formData.vehicleId,
@@ -117,7 +137,7 @@ const CreateDieselForm: React.FC<{
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      setSubmitError("Please fix the validation errors below.");
+      setSubmitError("Please fix the validation errors above.");
       return;
     }
 
@@ -290,16 +310,42 @@ const CreateDieselForm: React.FC<{
             <Label htmlFor="driverName">
               Driver Name <span className="text-red-500">*</span>
             </Label>
-            <Input
-              data-testid="components-createDieselModal-createDieselModal-input-3"
+            <Typeahead
               id="driverName"
-              placeholder="Driver Name"
-              value={formData.driverName}
-              onChange={handleChange}
-              className={
-                fieldErrors.driverName
-                  ? "border-red-500 focus-visible:ring-red-500"
+              data-testid="components-createDieselModal-createDieselModal-driver-typeahead"
+              options={driversList.filter((d) => d.is_active)}
+              value={
+                driversList.find((d) => d.name === formData.driverName)
+                  ? String(
+                      driversList.find((d) => d.name === formData.driverName)!
+                        .id,
+                    )
                   : ""
+              }
+              onValueChange={(_driverId, driver) => {
+                const name = driver?.name ?? "";
+                setFormData((prev) => ({ ...prev, driverName: name }));
+                setFieldErrors((prev) => ({ ...prev, driverName: "" }));
+                setSubmitError(null);
+              }}
+              getOptionValue={(d) => d.id.toString()}
+              getOptionLabel={(d) => d.name}
+              getOptionDescription={(d) =>
+                [d.phone, d.place].filter(Boolean).join(" · ") || undefined
+              }
+              getOptionKeywords={(d) => [d.name, d.phone || "", d.place || ""]}
+              placeholder="Search drivers..."
+              emptyMessage="No drivers found."
+              invalid={Boolean(fieldErrors.driverName)}
+              footer={
+                <button
+                  type="button"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors"
+                  onClick={() => setShowAddDriver(true)}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Add New Driver
+                </button>
               }
             />
             {fieldErrors.driverName && (
@@ -515,6 +561,14 @@ const CreateDieselForm: React.FC<{
           </Button>
         </div>
       </div>
+
+      {/* ── Stacked Add Driver Modal ── */}
+      <AddDriverModal
+        isOpen={showAddDriver}
+        onClose={() => setShowAddDriver(false)}
+        onSuccess={handleDriverAdded}
+        mode="nested"
+      />
     </div>
   );
 };

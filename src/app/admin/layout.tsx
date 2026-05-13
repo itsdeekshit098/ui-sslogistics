@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import styles from "./adminLayout.module.css";
 
 export default function AdminLayout({
   children,
@@ -74,7 +73,7 @@ export default function AdminLayout({
         </header>
 
         <main
-          className={`flex-1 overflow-y-auto p-4 md:p-6 ${styles.adminMainCanvas}`}
+          className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f3f3f3] dark:bg-[#0c1521] transition-colors duration-300 scrollbar-custom"
           data-testid="admin-main"
         >
           {children}

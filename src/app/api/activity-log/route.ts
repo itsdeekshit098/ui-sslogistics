@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
 
@@ -14,9 +15,13 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Fetch total count
-    const { count } = await supabaseAdmin
+    const { count, error: countErr } = await supabaseAdmin
       .from("activity_log")
       .select("id", { count: "exact", head: true });
+
+    if (countErr) {
+      return apiError(countErr.message, 500);
+    }
 
     // Fetch paginated data
     const { data, error } = await supabaseAdmin
@@ -26,10 +31,10 @@ export async function GET(req: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
-    return NextResponse.json({
+    return apiSuccess({
       data,
       total: count || 0,
       page,
@@ -37,12 +42,6 @@ export async function GET(req: NextRequest) {
       totalPages: Math.ceil((count || 0) / limit),
     });
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED")) return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN")) return NextResponse.json({ error: err.message }, { status: 403 });
-    
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
