@@ -41,7 +41,7 @@ jobs:
           echo "Database dump completed."
 
       - name: Install Node Dependencies
-        run: npm install @supabase/supabase-js googleapis archiver
+        run: npm install @supabase/supabase-js googleapis archiver ws
 
       - name: Run Backup & Upload Script
         env:
