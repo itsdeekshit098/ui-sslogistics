@@ -49,6 +49,7 @@ export function TechniciansPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Technician | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -158,21 +159,22 @@ export function TechniciansPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/technicians?id=${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Failed to delete");
+        setDeleteError(data.error || "Failed to delete");
       } else {
         fetchTechnicians();
+        setDeleteTarget(null);
       }
     } catch {
-      alert("Network error");
+      setDeleteError("Network error");
     } finally {
       setDeleteLoading(false);
-      setDeleteTarget(null);
     }
   };
 
@@ -468,12 +470,16 @@ export function TechniciansPage() {
 
       <ConfirmModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Technician"
         description={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`}
         confirmText="Delete"
         isLoading={deleteLoading}
+        error={deleteError}
       />
     </div>
   );

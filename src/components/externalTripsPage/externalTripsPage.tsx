@@ -66,6 +66,7 @@ export function ExternalTripsPage() {
   const [deleteTarget, setDeleteTarget] =
     useState<ExternalTripWithDetails | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // ─── API URL builder ───
   const buildApiUrl = useCallback(
@@ -185,19 +186,22 @@ export function ExternalTripsPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/external-trips?id=${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const d = await res.json();
-        alert(d.error || "Failed to delete");
-      } else await fetchTrips(filters);
+        setDeleteError(d.error || "Failed to delete");
+      } else {
+        await fetchTrips(filters);
+        setDeleteTarget(null);
+      }
     } catch {
-      alert("Network error");
+      setDeleteError("Network error");
     } finally {
       setDeleteLoading(false);
-      setDeleteTarget(null);
     }
   };
 
@@ -742,12 +746,16 @@ export function ExternalTripsPage() {
       )}
       <ConfirmModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Trip"
         description={`Are you sure you want to delete this trip for ${deleteTarget?.vehicles?.vehicle_number || "this vehicle"}? This action cannot be undone.`}
         confirmText="Delete"
         isLoading={deleteLoading}
+        error={deleteError}
       />
     </div>
   );

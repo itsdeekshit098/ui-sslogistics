@@ -31,6 +31,7 @@ import type { DieselRecordWithVehicle } from "./dieselRecords.types";
 import { RefreshCw, Fuel } from "lucide-react";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
+import { ConfirmModal } from "@/components/confirmModal";
 
 interface VehicleOption {
   id: number;
@@ -61,6 +62,7 @@ export default function DieselRecordsPage() {
   const [deleteTarget, setDeleteTarget] =
     useState<DieselRecordWithVehicle | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<DieselRecordWithVehicle | null>(
     null,
   );
@@ -154,6 +156,7 @@ export default function DieselRecordsPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/diesel-records?id=${deleteTarget.id}`, {
         method: "DELETE",
@@ -163,10 +166,10 @@ export default function DieselRecordsPage() {
         fetchRecords();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete record");
+        setDeleteError(data.error || "Failed to delete record");
       }
     } catch {
-      alert("Network error deleting record");
+      setDeleteError("Network error deleting record");
     } finally {
       setIsDeleting(false);
     }
@@ -826,64 +829,38 @@ export default function DieselRecordsPage() {
           onSuccess={fetchRecords}
         />
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={!!deleteTarget}
-          onOpenChange={(open) => !open && setDeleteTarget(null)}
+        <ConfirmModal
+          isOpen={!!deleteTarget}
+          onClose={() => {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Diesel Record"
+          description="Are you sure? This action cannot be undone."
+          confirmText="Delete"
+          isLoading={isDeleting}
+          error={deleteError}
         >
-          <DialogContent className="max-w-md rounded-xl sm:rounded-2xl">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="rounded-full bg-red-100 p-3">
-                <Trash2 className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Delete Diesel Record</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Are you sure? This action cannot be undone.
-                </p>
-              </div>
-              {deleteTarget && (
-                <div className="text-sm bg-muted/50 p-3 rounded-md w-full text-left space-y-1">
-                  <p>
-                    <span className="text-muted-foreground">Date:</span>{" "}
-                    {formatDate(deleteTarget.fill_date).date}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Driver:</span>{" "}
-                    {deleteTarget.driver_name}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Odo:</span>{" "}
-                    {deleteTarget.current_odo} km ·{" "}
-                    <span className="text-muted-foreground">Fuel:</span>{" "}
-                    {deleteTarget.fuel_litres}L
-                  </p>
-                </div>
-              )}
-              <div className="flex gap-3 w-full">
-                <Button
-                  data-testid="admin-diesel-delete-cancel-btn"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setDeleteTarget(null)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  data-testid="admin-diesel-delete-confirm-btn"
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={handleDeleteConfirm}
-                  disabled={isDeleting}
-                >
-                  {isDeleting && <LoadingSpinner size="sm" className="mr-2" />}
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </Button>
-              </div>
+          {deleteTarget && (
+            <div className="text-sm bg-muted/50 p-3 rounded-md w-full text-left space-y-1">
+              <p>
+                <span className="text-muted-foreground">Date:</span>{" "}
+                {formatDate(deleteTarget.fill_date).date}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Driver:</span>{" "}
+                {deleteTarget.driver_name}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Odo:</span>{" "}
+                {deleteTarget.current_odo} km ·{" "}
+                <span className="text-muted-foreground">Fuel:</span>{" "}
+                {deleteTarget.fuel_litres}L
+              </p>
             </div>
-          </DialogContent>
-        </Dialog>
+          )}
+        </ConfirmModal>
       </div>
     </TooltipProvider>
   );

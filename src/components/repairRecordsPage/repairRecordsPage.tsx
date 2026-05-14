@@ -95,6 +95,7 @@ export function RepairRecordsPage() {
   const [deleteTarget, setDeleteTarget] =
     useState<RepairRecordWithVehicle | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // ─── Fetch vehicles ───
   useEffect(() => {
@@ -218,18 +219,21 @@ export function RepairRecordsPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/repair-records?id=${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        setDeleteLoading(false);
-        return;
+        const data = await res.json();
+        setDeleteError(data.error || "Failed to delete record");
+      } else {
+        setDeleteTarget(null);
+        fetchRecords();
       }
-      setDeleteTarget(null);
-      setDeleteLoading(false);
-      fetchRecords();
     } catch {
+      setDeleteError("Network error");
+    } finally {
       setDeleteLoading(false);
     }
   };
@@ -734,12 +738,16 @@ export function RepairRecordsPage() {
       {/* ─── Delete Confirm Modal ─── */}
       <ConfirmModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Repair Record"
         description={`Are you sure you want to delete this ${deleteTarget?.category} repair record? This action cannot be undone.`}
         confirmText="Delete"
         isLoading={deleteLoading}
+        error={deleteError}
       />
     </div>
   );

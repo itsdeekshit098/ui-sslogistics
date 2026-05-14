@@ -44,6 +44,7 @@ export function DriversPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Driver | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -122,21 +123,22 @@ export function DriversPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/drivers?id=${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Failed to delete");
+        setDeleteError(data.error || "Failed to delete");
       } else {
         fetchData();
+        setDeleteTarget(null);
       }
     } catch {
-      alert("Network error");
+      setDeleteError("Network error");
     } finally {
       setDeleteLoading(false);
-      setDeleteTarget(null);
     }
   };
 
@@ -406,12 +408,16 @@ export function DriversPage() {
 
       <ConfirmModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Driver"
         description={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`}
         confirmText="Delete"
         isLoading={deleteLoading}
+        error={deleteError}
       />
     </div>
   );

@@ -9,6 +9,7 @@ export interface ConfirmModalProps {
     confirmText?: string;
     cancelText?: string;
     isLoading?: boolean;
+    error?: string | null;
     icon?: React.ReactNode;
     children?: React.ReactNode;
 }
