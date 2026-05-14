@@ -1,35 +1,26 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { createClient } = require("@supabase/supabase-js");
-const ws = require("ws");
+const { Client } = require("pg");
 const { google } = require("googleapis");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
 
-// ─── Environment Variables ───
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Environment Variables required from GitHub Actions
+const SUPABASE_DB_URL = process.env.SUPABASE_DB_URL;
 const GDRIVE_CLIENT_ID = process.env.GDRIVE_CLIENT_ID;
 const GDRIVE_CLIENT_SECRET = process.env.GDRIVE_CLIENT_SECRET;
 const GDRIVE_REFRESH_TOKEN = process.env.GDRIVE_REFRESH_TOKEN;
 const GDRIVE_EXCEL_FOLDER_ID = process.env.GDRIVE_EXCEL_FOLDER_ID;
 
 if (
-  !SUPABASE_URL ||
-  !SUPABASE_SERVICE_KEY ||
+  !SUPABASE_DB_URL ||
   !GDRIVE_EXCEL_FOLDER_ID ||
   !GDRIVE_CLIENT_ID ||
   !GDRIVE_CLIENT_SECRET ||
   !GDRIVE_REFRESH_TOKEN
 ) {
-  console.error(
-    "Missing required environment variables. Need: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GDRIVE_CLIENT_ID, GDRIVE_CLIENT_SECRET, GDRIVE_REFRESH_TOKEN, GDRIVE_EXCEL_FOLDER_ID",
-  );
+  console.error("Missing required environment variables for PostgreSQL/Google Drive.");
   process.exit(1);
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  realtime: { transport: ws },
-});
 
 // ─── Tables to export (each becomes a sheet) ───
 const TABLES = [
@@ -43,36 +34,19 @@ const TABLES = [
   "activity_log",
 ];
 
-const PAGE_SIZE = 1000;
-
 /**
- * Fetch all rows from a table (handles pagination so we never miss rows).
+ * Fetch all rows from a table using direct PostgreSQL connection.
  */
-async function fetchAllRows(table) {
-  let allRows = [];
-  let offset = 0;
-
-  while (true) {
-    const { data, error } = await supabase
-      .from(table)
-      .select("*")
-      .order("id", { ascending: true })
-      .range(offset, offset + PAGE_SIZE - 1);
-
-    if (error) {
-      console.error(`  Error fetching ${table}:`, error.message);
-      return allRows;
-    }
-
-    if (!data || data.length === 0) break;
-
-    allRows.push(...data);
-
-    if (data.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
+async function fetchAllRows(client, table) {
+  try {
+    const result = await client.query(
+      `SELECT * FROM public."${table}" ORDER BY id ASC`,
+    );
+    return result.rows;
+  } catch (err) {
+    console.error(`  Error fetching ${table}:`, err.message);
+    return [];
   }
-
-  return allRows;
 }
 
 /**
@@ -80,6 +54,7 @@ async function fetchAllRows(table) {
  */
 function formatCellValue(value) {
   if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value) || typeof value === "object") {
     return JSON.stringify(value);
   }
@@ -89,14 +64,14 @@ function formatCellValue(value) {
 /**
  * Build the Excel workbook with one sheet per table.
  */
-async function buildExcelWorkbook() {
+async function buildExcelWorkbook(client) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "SS Logistics Backup";
   workbook.created = new Date();
 
   for (const table of TABLES) {
     console.log(`  Fetching: ${table}`);
-    const rows = await fetchAllRows(table);
+    const rows = await fetchAllRows(client, table);
     console.log(`    → ${rows.length} rows`);
 
     // Sheet name max 31 chars in Excel
@@ -196,9 +171,19 @@ async function main() {
   const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const fileName = `ss-logistics-data-${timestamp}.xlsx`;
 
+  // Connect directly to PostgreSQL (same approach as backup.js)
+  const client = new Client({
+    connectionString: SUPABASE_DB_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+
   try {
+    console.log("Connecting to database...");
+    await client.connect();
+    console.log("Connected ✓\n");
+
     console.log("========= [1/2] Exporting tables to Excel =========");
-    const workbook = await buildExcelWorkbook();
+    const workbook = await buildExcelWorkbook(client);
     await workbook.xlsx.writeFile(fileName);
     console.log(`Excel file created: ${fileName}`);
 
@@ -212,6 +197,8 @@ async function main() {
   } catch (error) {
     console.error("Export failed:", error);
     process.exit(1);
+  } finally {
+    await client.end();
   }
 }
 
