@@ -35,11 +35,6 @@ interface DocumentApiResponse {
   filePath?: string;
 }
 
-interface SignedUrlResponse {
-  signedUrl?: string;
-  error?: string;
-}
-
 /**
  * Fetches a time-limited signed URL from the backend for a private storage file path.
  */
@@ -49,8 +44,8 @@ async function fetchSignedUrl(filePath: string): Promise<string | null> {
       `/api/vehicles/documents?filePath=${encodeURIComponent(filePath)}`,
     );
     if (!res.ok) return null;
-    const data: SignedUrlResponse = await res.json();
-    return data.signedUrl || null;
+    const json = await res.json();
+    return json.data?.signedUrl || null;
   } catch {
     return null;
   }
@@ -98,8 +93,8 @@ export function DocumentModal({
     let newWindow: Window | null = null;
     try {
       newWindow = window.open("", "_blank");
-    } catch (e) {
-      console.error("Popup blocked", e);
+    } catch {
+      // popup blocked
     }
 
     try {
@@ -151,14 +146,11 @@ export function DocumentModal({
         body: formData,
       });
 
-      let resData: DocumentApiResponse = {};
-      try {
-        resData = await res.json();
-      } catch {}
-
+      const json = await res.json();
       if (!res.ok) {
-        throw new Error(resData.error || "Upload failed");
+        throw new Error(json.error || json.data?.error || "Upload failed");
       }
+      const resData: DocumentApiResponse = json.data ?? {};
 
       // Immediately update the local state with the file path
       if (resData.filePath) {
@@ -171,7 +163,6 @@ export function DocumentModal({
 
       onUpdate(documentType, resData.filePath); // Pass updated file path to parent
     } catch (error: unknown) {
-      console.error("Upload error:", error);
       setErrorMsg(
         `Upload failed: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -201,13 +192,9 @@ export function DocumentModal({
         }),
       });
 
-      let errData: DocumentApiResponse = {};
-      try {
-        errData = await res.json();
-      } catch {}
-
+      const json = await res.json();
       if (!res.ok) {
-        throw new Error(errData.error || "Delete failed");
+        throw new Error(json.error || json.data?.error || "Delete failed");
       }
 
       // Clean the UI up instantly so the 'Upload' button returns immediately
@@ -217,7 +204,6 @@ export function DocumentModal({
 
       onUpdate(documentType, null);
     } catch (error: unknown) {
-      console.error("Delete error:", error);
       setErrorMsg(
         `Delete failed: ${error instanceof Error ? error.message : String(error)}`,
       );

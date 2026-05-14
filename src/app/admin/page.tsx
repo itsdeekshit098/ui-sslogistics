@@ -14,6 +14,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Activity,
+  UserCog,
+  Route,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -34,7 +36,7 @@ const menuItems = [
     icon: Users,
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-500/10",
-    enabled: false,
+    enabled: true,
   },
   {
     title: "Clients",
@@ -61,7 +63,25 @@ const menuItems = [
     icon: Wrench,
     color: "text-red-600 dark:text-red-400",
     bgColor: "bg-red-50 dark:bg-red-500/10",
-    enabled: false,
+    enabled: true,
+  },
+  {
+    title: "Technicians",
+    description: "Manage technician profiles",
+    href: "/admin/technicians",
+    icon: UserCog,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
+    enabled: true,
+  },
+  {
+    title: "External Trips",
+    description: "Track vehicle trips & costs",
+    href: "/admin/external-trips",
+    icon: Route,
+    color: "text-sky-600 dark:text-sky-400",
+    bgColor: "bg-sky-50 dark:bg-sky-500/10",
+    enabled: true,
   },
   {
     title: "Trip Sheets",
@@ -99,7 +119,14 @@ export default function DashboardPage() {
     if (authLoading) return false;
 
     if (userRole === "driver") {
-      if (item.title === "Vehicles" || item.title === "Activity Log") {
+      if (
+        item.title === "Vehicles" ||
+        item.title === "Activity Log" ||
+        item.title === "Repair Records" ||
+        item.title === "Technicians" ||
+        item.title === "Drivers" ||
+        item.title === "External Trips"
+      ) {
         return false;
       }
     }

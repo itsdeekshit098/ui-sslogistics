@@ -64,11 +64,11 @@ export default function NewDieselRecordPage() {
       try {
         const res = await fetch("/api/vehicles");
         if (res.ok) {
-          const data = await res.json();
-          setVehicles(data);
+          const json = await res.json();
+          setVehicles(json.data?.data ?? []);
         }
       } catch {
-        console.error("Failed to fetch vehicles");
+        // non-fatal
       } finally {
         setLoadingVehicles(false);
       }

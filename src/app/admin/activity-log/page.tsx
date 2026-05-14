@@ -101,9 +101,10 @@ export default function ActivityLogPage() {
         );
         if (!res.ok) throw new Error("Failed to fetch");
 
-        const result: ActivityLogResponse = await res.json();
-        setEntries(result.data);
-        setTotal(result.total);
+        const json = await res.json();
+        const result: ActivityLogResponse = json.data ?? {};
+        setEntries(result.data ?? []);
+        setTotal(result.total ?? 0);
       } catch {
         setFetchError(
           "We couldn\u2019t load the activity log. Please check your connection and try again.",

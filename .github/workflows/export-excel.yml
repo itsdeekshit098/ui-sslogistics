@@ -1,0 +1,34 @@
+name: Export Database to Excel (Twice Daily)
+
+on:
+  schedule:
+    # Run at 06:00 UTC and 18:00 UTC every day (≈ 11:30 AM IST & 11:30 PM IST)
+    - cron: "0 6 * * *"
+    - cron: "0 18 * * *"
+  workflow_dispatch: # Enable manual triggering from GitHub UI
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: npm install @supabase/supabase-js googleapis exceljs ws
+
+      - name: Export Tables & Upload Excel
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_EXCEL_FOLDER_ID: ${{ secrets.GDRIVE_EXCEL_FOLDER_ID }}
+        run: node scripts/export-excel.js

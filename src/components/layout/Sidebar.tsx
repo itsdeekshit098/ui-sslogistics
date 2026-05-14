@@ -16,6 +16,8 @@ import {
   Lock,
   ChevronsLeft,
   ChevronsRight,
+  UserCog,
+  Route,
 } from "lucide-react";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
@@ -51,9 +53,21 @@ const sidebarItems = [
     name: "Repair Records",
     href: "/admin/repair-records",
     icon: Wrench,
-    enabled: false,
+    enabled: true,
   },
-  { name: "Drivers", href: "/admin/drivers", icon: Users, enabled: false },
+  {
+    name: "Technicians",
+    href: "/admin/technicians",
+    icon: UserCog,
+    enabled: true,
+  },
+  { name: "Drivers", href: "/admin/drivers", icon: Users, enabled: true },
+  {
+    name: "External Trips",
+    href: "/admin/external-trips",
+    icon: Route,
+    enabled: true,
+  },
   { name: "Clients", href: "/admin/clients", icon: Building2, enabled: false },
   { name: "Reports", href: "/admin/reports", icon: BarChart3, enabled: false },
   {
@@ -85,7 +99,14 @@ export function Sidebar({
     if (authLoading) return false;
 
     if (userRole === "driver") {
-      if (item.name === "Vehicles" || item.name === "Activity Log") {
+      if (
+        item.name === "Vehicles" ||
+        item.name === "Activity Log" ||
+        item.name === "Repair Records" ||
+        item.name === "Technicians" ||
+        item.name === "Drivers" ||
+        item.name === "External Trips"
+      ) {
         return false;
       }
     }
@@ -132,7 +153,7 @@ export function Sidebar({
           </div>
 
           {/* Navigation */}
-          <div className="flex-1 overflow-y-auto pb-3 pt-6 w-full">
+          <div className="flex-1 overflow-y-auto pb-3 pt-6 w-full scrollbar-custom">
             <nav
               className={cn(
                 "flex flex-col gap-0.5 w-full",

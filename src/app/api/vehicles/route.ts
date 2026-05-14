@@ -1,33 +1,92 @@
 import { after } from "next/server";
-import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
+import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 
-export async function GET() {
+/** Allowed columns for vehicle insert/update — prevents mass assignment */
+const ALLOWED_VEHICLE_FIELDS = [
+  "vehicle_number",
+  "vehicle_type",
+  "capacity",
+  "company",
+  "model",
+  "status",
+  "last_service_date",
+  "expected_kml",
+  "tank_capacity",
+  "fuel_type",
+] as const;
+
+function pickAllowedFields(body: Record<string, unknown>) {
+  const picked: Record<string, unknown> = {};
+  for (const key of ALLOWED_VEHICLE_FIELDS) {
+    if (key in body) {
+      const value = body[key];
+      picked[key] = value === "" ? null : value;
+    }
+  }
+  return picked;
+}
+
+export async function GET(req: Request) {
   try {
     await requireUserAuth();
 
-    const { data, error } = await supabaseAdmin
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize")) || 50),
+    );
+    const search = searchParams.get("search")?.trim() ?? "";
+    const type = searchParams.get("type")?.trim() ?? "";
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabaseAdmin
       .from("vehicles")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("id", { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (search) {
+      // Remove spaces for vehicle number matching (e.g. "AP01" matches "AP 01 AB 1234")
+      query = query.ilike("vehicle_number", `%${search}%`);
+    }
+    if (type) {
+      query = query.eq("vehicle_type", type);
     }
 
-    return NextResponse.json(data);
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
+    query = query.range(from, to);
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    const { data, error, count } = await query;
+
+    if (error) {
+      return apiError(error.message, 500);
+    }
+
+    // Stats — always return total counts per status (unaffected by search/type/pagination)
+    const { data: statsData, error: statsError } = await supabaseAdmin
+      .from("vehicles")
+      .select("status");
+
+    const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
+    if (statsError) {
+      return apiError(statsError.message, 500);
+    }
+    if (statsData) {
+      stats.total = statsData.length;
+      for (const v of statsData) {
+        if (v.status === "Active") stats.active++;
+        else if (v.status === "Maintenance") stats.maintenance++;
+        else if (v.status === "Idle") stats.idle++;
+      }
+    }
+
+    return apiSuccess({ data: data ?? [], total: count ?? 0, stats });
+  } catch (err: unknown) {
+    return handleApiError(err);
   }
 }
 
@@ -36,10 +95,7 @@ export async function POST(req: Request) {
     const authUser = await requireAdminAuth();
     const body = await req.json();
 
-    // Nullify empty strings securely
-    const payload = Object.fromEntries(
-      Object.entries(body).map(([k, v]) => [k, v === "" ? null : v]),
-    );
+    const payload = pickAllowedFields(body);
 
     // Attach who created this record
     payload.created_by = authUser.id;
@@ -52,10 +108,9 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
-    // Log the activity — use after() so the log survives Vercel's function teardown
     after(() =>
       logActivity({
         action: "CREATE_VEHICLE",
@@ -69,23 +124,12 @@ export async function POST(req: Request) {
           company: payload.company,
           model: payload.model,
         },
-      })
+      }),
     );
 
-    return NextResponse.json(
-      { message: "Vehicle created successfully" },
-      { status: 201 },
-    );
+    return apiSuccess({ id: data?.id }, "Vehicle created successfully", 201);
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
 
@@ -93,16 +137,13 @@ export async function PUT(req: Request) {
   try {
     const authUser = await requireAdminAuth();
     const body = await req.json();
-    const { id, ...updatePayload } = body;
+    const { id } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Missing vehicle ID" },
-        { status: 400 },
-      );
+      return apiError("Missing vehicle ID", 400);
     }
 
-    // Track who made this update
+    const updatePayload = pickAllowedFields(body);
     updatePayload.updated_by = authUser.id;
 
     const { error } = await supabaseAdmin
@@ -111,10 +152,9 @@ export async function PUT(req: Request) {
       .eq("id", id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
-    // Log the activity — use after() so the log survives Vercel's function teardown
     after(() =>
       logActivity({
         action: "UPDATE_VEHICLE",
@@ -125,23 +165,12 @@ export async function PUT(req: Request) {
         details: {
           changes: updatePayload,
         },
-      })
+      }),
     );
 
-    return NextResponse.json(
-      { message: "Vehicle updated successfully" },
-      { status: 200 },
-    );
+    return apiSuccess(null, "Vehicle updated successfully");
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
 
@@ -152,18 +181,19 @@ export async function DELETE(req: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Missing vehicle ID" },
-        { status: 400 },
-      );
+      return apiError("Missing vehicle ID", 400);
     }
 
     // Fetch vehicle details before deleting (for the audit log)
-    const { data: vehicle } = await supabaseAdmin
+    const { data: vehicle, error: fetchErr } = await supabaseAdmin
       .from("vehicles")
       .select("vehicle_number, vehicle_type, company, model")
       .eq("id", id)
       .single();
+
+    if (fetchErr || !vehicle) {
+      return apiError("Vehicle not found", 404);
+    }
 
     const { error } = await supabaseAdmin
       .from("vehicles")
@@ -171,10 +201,9 @@ export async function DELETE(req: Request) {
       .eq("id", id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message, 500);
     }
 
-    // Log the activity — use after() so the log survives Vercel's function teardown
     after(() =>
       logActivity({
         action: "DELETE_VEHICLE",
@@ -183,27 +212,16 @@ export async function DELETE(req: Request) {
         tableName: "vehicles",
         recordId: Number(id),
         details: {
-          vehicle_number: vehicle?.vehicle_number,
-          vehicle_type: vehicle?.vehicle_type,
-          company: vehicle?.company,
-          model: vehicle?.model,
+          vehicle_number: vehicle.vehicle_number,
+          vehicle_type: vehicle.vehicle_type,
+          company: vehicle.company,
+          model: vehicle.model,
         },
-      })
+      }),
     );
 
-    return NextResponse.json(
-      { message: "Vehicle deleted successfully" },
-      { status: 200 },
-    );
+    return apiSuccess(null, "Vehicle deleted successfully");
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith("UNAUTHORIZED"))
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    if (err instanceof Error && err.message.startsWith("FORBIDDEN"))
-      return NextResponse.json({ error: err.message }, { status: 403 });
-
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }

@@ -77,8 +77,8 @@ export default function DieselRecordsPage() {
     try {
       const res = await fetch("/api/vehicles");
       if (res.ok) {
-        const data = await res.json();
-        setVehicles(data);
+        const json = await res.json();
+        setVehicles(json.data?.data ?? []);
       } else {
         setVehiclesError("Failed to load vehicles. Please try again.");
       }
@@ -122,7 +122,8 @@ export default function DieselRecordsPage() {
         `/api/diesel-records?vehicle_id=${selectedVehicleId}&page=${page}&pageSize=${pageSize}`,
       );
       if (res.ok) {
-        const result = await res.json();
+        const json = await res.json();
+        const result = json.data ?? {};
         setRecords(result.data);
         setTotalRecords(result.total);
       } else {
@@ -298,7 +299,7 @@ export default function DieselRecordsPage() {
             </div>
             {vehiclesError && !vehiclesLoading && (
               <ErrorState
-                title="Couldn’t load vehicles"
+                title="Couldn't load vehicles"
                 description={vehiclesError}
                 onRetry={fetchVehicles}
               />
@@ -537,7 +538,7 @@ export default function DieselRecordsPage() {
                     </div>
 
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-x-auto">
+                    <div className="hidden lg:block rounded-md border border-border overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>

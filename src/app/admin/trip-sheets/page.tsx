@@ -23,7 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { mockVehicles } from "@/lib/mock-data";
+interface MockVehicle {
+  id: number;
+  vehicle_number: string;
+  company?: string;
+  model?: string;
+}
 
 interface TripSheet {
   id: string;
@@ -69,6 +74,22 @@ export default function TripSheetsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [records, setRecords] = useState<TripSheet[]>([]);
   const [loading, setLoading] = useState(false);
+  const [vehicles, setVehicles] = useState<MockVehicle[]>([]);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const res = await fetch("/api/vehicles");
+        if (res.ok) {
+          const json = await res.json();
+          setVehicles(json.data?.data ?? []);
+        }
+      } catch {
+        /* non-fatal */
+      }
+    };
+    fetchVehicles();
+  }, []);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -107,20 +128,31 @@ export default function TripSheetsPage() {
             Manage and track all vehicle trips and assignments.
           </p>
         </div>
-        <Button data-testid="app-admin-trip-sheets-button-1" className="w-full md:w-auto" asChild>
-          <Link data-testid="app-admin-trip-sheets-link-1" href="/admin/trip-sheets/new">
+        <Button
+          data-testid="app-admin-trip-sheets-button-1"
+          className="w-full md:w-auto"
+          asChild
+        >
+          <Link
+            data-testid="app-admin-trip-sheets-link-1"
+            href="/admin/trip-sheets/new"
+          >
             <Plus className="mr-2 h-4 w-4" /> Create Trip Sheet
           </Link>
         </Button>
       </div>
 
       <div className="flex items-center gap-4">
-        <Select data-testid="app-admin-trip-sheets-select-1" value={selectedVehicleId} onValueChange={handleVehicleChange}>
+        <Select
+          data-testid="app-admin-trip-sheets-select-1"
+          value={selectedVehicleId}
+          onValueChange={handleVehicleChange}
+        >
           <SelectTrigger className="w-full sm:w-[280px]">
             <SelectValue placeholder="Select Vehicle" />
           </SelectTrigger>
           <SelectContent>
-            {mockVehicles.map((v) => (
+            {vehicles.map((v) => (
               <SelectItem key={v.id} value={v.id.toString()}>
                 {v.vehicle_number} - {v.company} {v.model}
               </SelectItem>
@@ -136,14 +168,17 @@ export default function TripSheetsPage() {
               <CardTitle className="text-lg md:text-xl">
                 Trips for{" "}
                 {
-                  mockVehicles.find(
-                    (v) => v.id.toString() === selectedVehicleId,
-                  )?.vehicle_number
+                  vehicles.find((v) => v.id.toString() === selectedVehicleId)
+                    ?.vehicle_number
                 }
               </CardTitle>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input data-testid="app-admin-trip-sheets-input-1" placeholder="Search trips..." className="pl-8" />
+                <Input
+                  data-testid="app-admin-trip-sheets-input-1"
+                  placeholder="Search trips..."
+                  className="pl-8"
+                />
               </div>
             </div>
           </CardHeader>
@@ -184,7 +219,12 @@ export default function TripSheetsPage() {
                       <div>Client: {trip.client}</div>
                     </div>
                     <div className="flex justify-end">
-                      <Button data-testid="app-admin-trip-sheets-button-2" variant="ghost" size="sm" className="text-xs h-7">
+                      <Button
+                        data-testid="app-admin-trip-sheets-button-2"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7"
+                      >
                         View
                       </Button>
                     </div>
@@ -221,7 +261,10 @@ export default function TripSheetsPage() {
                     </TableRow>
                   ) : (
                     records.map((trip) => (
-                      <TableRow data-testid="app-admin-trip-sheets-tablerow-4" key={trip.id}>
+                      <TableRow
+                        data-testid="app-admin-trip-sheets-tablerow-4"
+                        key={trip.id}
+                      >
                         <TableCell className="font-medium">{trip.id}</TableCell>
                         <TableCell>{trip.date}</TableCell>
                         <TableCell>{trip.driver}</TableCell>
@@ -240,7 +283,11 @@ export default function TripSheetsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button data-testid="app-admin-trip-sheets-button-3" variant="ghost" size="sm">
+                          <Button
+                            data-testid="app-admin-trip-sheets-button-3"
+                            variant="ghost"
+                            size="sm"
+                          >
                             View
                           </Button>
                         </TableCell>

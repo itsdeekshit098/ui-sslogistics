@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 
 import type { SignOutButtonProps } from "./signOutButton.types";
+import * as styles from "./signOutButton.style";
 
 const SignOutButton: React.FC<SignOutButtonProps> = ({
   variant = "desktop",
@@ -26,25 +27,38 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
+  // Clear error when modal closes/opens
+  useEffect(() => {
+    if (!isOpen) {
+      setError(null);
+    }
+  }, [isOpen]);
+
   const handleSignOut = async () => {
     setIsSigningOut(true);
+    setError(null);
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+
+      if (signOutError) throw signOutError;
 
       // We flush the router state and push instead of refresh so auth boundary catches cleanly.
       router.push("/");
       router.refresh();
-    } catch (error) {
-      console.error("Failed to sign out:", error);
+    } catch (err) {
+      console.error("Sign out error:", err);
+      const message =
+        err instanceof Error ? err.message : "Failed to sign out. Please try again.";
+      setError(message);
       setIsSigningOut(false);
-      setIsOpen(false);
+      // Keep the modal open so the user can see the error
     }
   };
 
@@ -61,12 +75,16 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
             access the Operations Portal.
           </DialogDescription>
         </DialogHeader>
+
+        {error && <div style={styles.errorBanner}>{error}</div>}
+
         <DialogFooter className="mt-4 gap-2 sm:gap-0">
           <button
             data-testid="sign-out-cancel-btn"
             onClick={() => setIsOpen(false)}
             disabled={isSigningOut}
-            className="px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-md bg-slate-100 transition-colors disabled:opacity-50"
+            style={styles.cancelBtn}
+            className="hover:bg-slate-200 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -74,12 +92,13 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
             data-testid="sign-out-confirm-btn"
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors disabled:opacity-70 min-w-[100px]"
+            style={styles.confirmBtn}
+            className="hover:bg-red-700 transition-colors disabled:opacity-70"
           >
             {isSigningOut ? (
               <>
                 <LoadingSpinner size="sm" />
-                <span>Signing out</span>
+                <span className="ml-2">Signing out</span>
               </>
             ) : (
               "Sign Out"
@@ -95,13 +114,17 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
       <button
         data-testid="sign-out-trigger-btn"
         onClick={() => setIsOpen(true)}
-        className={cn(
-          "flex items-center transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-          isIcon
-            ? "justify-center rounded-lg p-2.5 text-muted-foreground hover:bg-red-50 cursor-pointer"
+        style={{
+          ...styles.triggerButton,
+          ...(isIcon
+            ? styles.iconTrigger
             : isDesktop
-              ? "gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md shadow-sm cursor-pointer"
-              : "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground transition-all duration-200 justify-start cursor-pointer",
+              ? styles.desktopTrigger
+              : styles.mobileTrigger),
+        }}
+        className={cn(
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          isIcon && "hover:bg-red-50",
         )}
       >
         <LogOut
@@ -115,7 +138,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
           )}
         />
         {!isIcon && (
-          <span className={cn(isDesktop && "hidden sm:inline-block")}>
+          <span className={cn("ml-2", isDesktop && "hidden sm:inline-block")}>
             Sign Out
           </span>
         )}
@@ -127,3 +150,4 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
 };
 
 export default SignOutButton;
+
