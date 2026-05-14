@@ -269,31 +269,37 @@ export function RepairRecordsPage() {
           </p>
         </div>
         {canWrite && (
-          <Button className="w-full md:w-auto" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" /> Add Repair Record
+          <Button
+            className="w-full md:w-auto"
+            onClick={openCreate}
+            disabled={vehiclesLoading || !!error}
+          >
+            {vehiclesLoading ? (
+              <LoadingSpinner size="sm" className="mr-2" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
+            {vehiclesLoading ? "Loading Vehicles..." : "Add Repair Record"}
           </Button>
         )}
       </div>
 
       {/* Vehicle Selector */}
       <div className="w-full sm:w-80">
-        {vehiclesLoading ? (
-          <LoadingSpinner size="sm" centered label="Loading vehicles..." />
-        ) : (
-          <Typeahead
-            id="repairVehicleFilter"
-            options={vehicles}
-            value={selectedVehicleId}
-            onValueChange={handleVehicleChange}
-            getOptionValue={(v) => v.id.toString()}
-            getOptionLabel={(v) =>
-              `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
-            }
-            getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
-            placeholder="Select a vehicle..."
-            emptyMessage="No vehicles found."
-          />
-        )}
+        <Typeahead
+          id="repairVehicleFilter"
+          options={vehicles}
+          value={selectedVehicleId}
+          onValueChange={handleVehicleChange}
+          getOptionValue={(v) => v.id.toString()}
+          getOptionLabel={(v) =>
+            `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+          }
+          getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
+          placeholder={vehiclesLoading ? "Loading vehicles..." : "Select a vehicle..."}
+          emptyMessage="No vehicles found."
+          disabled={vehiclesLoading}
+        />
       </div>
 
       {/* Error */}
