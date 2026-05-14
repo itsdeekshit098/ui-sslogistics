@@ -276,9 +276,11 @@ export function TechniciansPage() {
                       <th className="h-12 px-4 text-left font-medium">
                         Status
                       </th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Actions
-                      </th>
+                      {userRole === "admin" && (
+                        <th className="h-12 px-4 text-left font-medium">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-card">
@@ -321,32 +323,34 @@ export function TechniciansPage() {
                             {tech.is_active ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => toggleStatus(tech)}
-                              title={tech.is_active ? "Deactivate" : "Activate"}
-                            >
-                              {tech.is_active ? (
-                                <XCircle className="h-4 w-4 text-muted-foreground hover:text-amber-600" />
-                              ) : (
-                                <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-emerald-600" />
-                              )}
-                              <span className="sr-only">Toggle Status</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                              onClick={() => handleEdit(tech)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
-                            {userRole === "admin" && (
+                        {userRole === "admin" && (
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => toggleStatus(tech)}
+                                  title={tech.is_active ? "Deactivate" : "Activate"}
+                                >
+                                  {tech.is_active ? (
+                                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-amber-600" />
+                                  ) : (
+                                    <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-emerald-600" />
+                                  )}
+                                  <span className="sr-only">Toggle Status</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                  onClick={() => handleEdit(tech)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              </>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -356,9 +360,9 @@ export function TechniciansPage() {
                                 <Trash2 className="h-4 w-4" />
                                 <span className="sr-only">Delete</span>
                               </Button>
-                            )}
-                          </div>
-                        </td>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -410,20 +414,24 @@ export function TechniciansPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 border-t pt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleStatus(tech)}
-                      >
-                        {tech.is_active ? "Deactivate" : "Activate"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(tech)}
-                      >
-                        Edit
-                      </Button>
+                      {userRole === "admin" && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleStatus(tech)}
+                          >
+                            {tech.is_active ? "Deactivate" : "Activate"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(tech)}
+                          >
+                            Edit
+                          </Button>
+                        </>
+                      )}
                       {userRole === "admin" && (
                         <Button
                           variant="outline"

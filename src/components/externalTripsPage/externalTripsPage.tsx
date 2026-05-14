@@ -410,9 +410,11 @@ export function ExternalTripsPage() {
                       <th className="h-12 px-4 text-right font-medium">
                         Profit
                       </th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Actions
-                      </th>
+                      {userRole === "admin" && (
+                        <th className="h-12 px-4 text-left font-medium">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-card">
@@ -459,18 +461,18 @@ export function ExternalTripsPage() {
                             {profit >= 0 ? "+" : ""}
                             {fmtCurrency(profit)}
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                onClick={() => handleEdit(trip)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                                <span className="sr-only">Edit</span>
-                              </Button>
-                              {userRole === "admin" && (
+                          {userRole === "admin" && (
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                                  onClick={() => handleEdit(trip)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -480,9 +482,9 @@ export function ExternalTripsPage() {
                                   <Trash2 className="h-4 w-4" />
                                   <span className="sr-only">Delete</span>
                                 </Button>
-                              )}
-                            </div>
-                          </td>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -569,13 +571,15 @@ export function ExternalTripsPage() {
                         </div>
                       </div>
                       <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(trip)}
-                        >
-                          Edit
-                        </Button>
+                        {userRole === "admin" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(trip)}
+                          >
+                            Edit
+                          </Button>
+                        )}
                         {userRole === "admin" && (
                           <Button
                             variant="outline"

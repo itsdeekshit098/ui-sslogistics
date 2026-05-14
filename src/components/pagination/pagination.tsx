@@ -71,17 +71,17 @@ export default function Pagination({
           value={String(pageSize)}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger className="h-10 w-[160px] rounded-md border-border bg-background px-4 text-sm text-foreground shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] hover:border-border/80 focus:border-border data-[state=open]:border-border cursor-pointer">
-            <SelectValue placeholder={`${pageSize} / Page`} />
+          <SelectTrigger className="h-10 w-[80px] rounded-md border-border bg-background px-4 text-sm text-foreground shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] hover:border-border/80 focus:border-border data-[state=open]:border-border cursor-pointer">
+            <SelectValue placeholder={`${pageSize}`} />
           </SelectTrigger>
-          <SelectContent className="rounded-[1.5rem] border border-border bg-background text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)]">
+          <SelectContent className="min-w-[80px] rounded-[1.5rem] border border-border bg-background text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)]">
             {pageSizeOptions.map((size) => (
               <SelectItem
                 key={size}
                 value={String(size)}
-                className="rounded-xl py-2.5 pl-9 pr-4 cursor-pointer"
+                className="rounded-xl py-2.5 pl-8 pr-2 cursor-pointer"
               >
-                {size} / Page
+                {size}
               </SelectItem>
             ))}
           </SelectContent>

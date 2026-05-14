@@ -7,6 +7,7 @@ export const topBar: CSSProperties = {
   flexWrap: "wrap",
   gap: "0.75rem",
   alignItems: "center",
+  justifyContent: "space-between",
 };
 
 /* ─── Filter Drawer ─── */

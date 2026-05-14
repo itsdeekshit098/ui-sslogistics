@@ -409,7 +409,7 @@ export function RepairRecordsPage() {
                   <div
                     key={record.id}
                     className="border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => canWrite && openEdit(record)}
+                    onClick={() => isAdmin && openEdit(record)}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm">
@@ -479,13 +479,13 @@ export function RepairRecordsPage() {
                     <TableHead>Cost</TableHead>
                     <TableHead>Technician</TableHead>
                     <TableHead>Status</TableHead>
-                    {canWrite && <TableHead>Actions</TableHead>}
+                    {isAdmin && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recordsLoading ? (
                     <TableRow>
-                      <TableCell colSpan={canWrite ? 8 : 7}>
+                      <TableCell colSpan={isAdmin ? 8 : 7}>
                         <LoadingSpinner
                           size="sm"
                           centered
@@ -496,7 +496,7 @@ export function RepairRecordsPage() {
                   ) : filteredRecords.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={canWrite ? 8 : 7}
+                        colSpan={isAdmin ? 8 : 7}
                         className="text-center"
                       >
                         No records found.
@@ -507,11 +507,11 @@ export function RepairRecordsPage() {
                       <TableRow
                         key={record.id}
                         className={
-                          canWrite
+                          isAdmin
                             ? "cursor-pointer hover:bg-muted/50 transition-colors"
                             : ""
                         }
-                        onClick={() => canWrite && openEdit(record)}
+                        onClick={() => isAdmin && openEdit(record)}
                       >
                         <TableCell>
                           {record.repair_date.split("T")[0]}
@@ -558,7 +558,7 @@ export function RepairRecordsPage() {
                             {record.status}
                           </Badge>
                         </TableCell>
-                        {canWrite && (
+                        {isAdmin && (
                           <TableCell>
                             <div
                               className="flex items-center gap-1"
