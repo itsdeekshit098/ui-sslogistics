@@ -107,12 +107,17 @@ const Typeahead = <TOption,>({
   );
 
   const clearSelection = useCallback(() => {
-    clearingRef.current = true;
     onValueChange("", null);
     setSearchText("");
     setHighlightedIndex(0);
     setOpen(true);
-    inputRef.current?.focus();
+
+    // Only set the clearing flag and trigger focus if the input isn't already focused.
+    // This prevents clearingRef from getting "stuck" if onFocus doesn't fire.
+    if (document.activeElement !== inputRef.current) {
+      clearingRef.current = true;
+      inputRef.current?.focus();
+    }
   }, [onValueChange]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {

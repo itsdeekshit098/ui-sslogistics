@@ -27,10 +27,10 @@ export function apiError(error: string, status = 500): NextResponse {
 export function handleApiError(err: unknown): NextResponse {
   if (err instanceof Error) {
     if (err.message.startsWith("UNAUTHORIZED")) {
-      return apiError(err.message, 401);
+      return apiError("Unauthorized", 401);
     }
     if (err.message.startsWith("FORBIDDEN")) {
-      return apiError(err.message, 403);
+      return apiError("Forbidden", 403);
     }
   }
 

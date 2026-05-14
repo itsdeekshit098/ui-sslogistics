@@ -37,7 +37,15 @@ export default function Pagination({
       if (page <= 4) {
         pages.push(1, 2, 3, 4, 5, "...", totalPages);
       } else if (page > totalPages - 4) {
-        pages.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        pages.push(
+          1,
+          "...",
+          totalPages - 4,
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        );
       } else {
         pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
       }
@@ -48,16 +56,22 @@ export default function Pagination({
   if (totalCount === 0) return null;
 
   return (
-    <div className={cn("flex w-full flex-col items-center justify-center gap-4 py-4 text-sm text-muted-foreground sm:flex-row sm:justify-between", className)}>
+    <div
+      className={cn(
+        "flex w-full flex-col items-center justify-center gap-4 py-4 text-sm text-muted-foreground sm:flex-row sm:justify-between",
+        className,
+      )}
+    >
       <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-start">
         <span>
           {startItem} - {endItem} of {totalCount}
         </span>
-        <Select data-testid="components-pagination-pagination-select-1"
+        <Select
+          data-testid="components-pagination-pagination-select-1"
           value={String(pageSize)}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger className="h-10 w-[160px] rounded-md border-border bg-background px-4 text-sm text-foreground shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] hover:border-border/80 focus:border-border data-[state=open]:border-border">
+          <SelectTrigger className="h-10 w-[160px] rounded-md border-border bg-background px-4 text-sm text-foreground shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] hover:border-border/80 focus:border-border data-[state=open]:border-border cursor-pointer">
             <SelectValue placeholder={`${pageSize} / Page`} />
           </SelectTrigger>
           <SelectContent className="rounded-[1.5rem] border border-border bg-background text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)]">
@@ -65,7 +79,7 @@ export default function Pagination({
               <SelectItem
                 key={size}
                 value={String(size)}
-                className="rounded-xl py-2.5 pl-9 pr-4"
+                className="rounded-xl py-2.5 pl-9 pr-4 cursor-pointer"
               >
                 {size} / Page
               </SelectItem>
@@ -81,13 +95,16 @@ export default function Pagination({
           disabled={page <= 1}
           aria-label="Previous page"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 cursor-pointer" />
         </button>
 
         {getPageNumbers().map((pageNum, idx) => {
           if (pageNum === "...") {
             return (
-              <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">
+              <span
+                key={`ellipsis-${idx}`}
+                className="px-2 text-slate-400 cursor-pointer"
+              >
                 ...
               </span>
             );
@@ -96,10 +113,10 @@ export default function Pagination({
             <button
               key={`page-${pageNum}`}
               className={cn(
-                "flex h-8 min-w-[32px] items-center justify-center rounded-md px-2 transition-colors text-sm",
+                "flex h-8 min-w-[32px] items-center justify-center rounded-md px-2 transition-colors text-sm cursor-pointer",
                 page === pageNum
                   ? "bg-primary text-primary-foreground font-medium shadow hover:bg-primary/90"
-                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground",
               )}
               onClick={() => onPageChange(pageNum as number)}
             >
@@ -114,7 +131,7 @@ export default function Pagination({
           disabled={page >= totalPages}
           aria-label="Next page"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4 cursor-pointer" />
         </button>
       </div>
     </div>
