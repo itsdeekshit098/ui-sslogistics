@@ -72,6 +72,7 @@ export function SessionsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
+    let shouldClearLoading = true;
     try {
       setLoading(true);
       setError(null);
@@ -87,7 +88,9 @@ export function SessionsPage() {
       const fetchedTotal = json.data?.total ?? 0;
 
       // If we're on a page beyond results (e.g. users were deleted), reset to page 1
+      // Keep loading=true so there's no flash before the re-fetch
       if (fetchedUsers.length === 0 && page > 1) {
+        shouldClearLoading = false;
         setPage(1);
         return;
       }
@@ -97,7 +100,7 @@ export function SessionsPage() {
     } catch {
       setError("Failed to load users");
     } finally {
-      setLoading(false);
+      if (shouldClearLoading) setLoading(false);
     }
   }, [page, perPage]);
 

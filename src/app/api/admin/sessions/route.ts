@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { getAuthUser } from "@/lib/auth";
+import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 
@@ -42,22 +42,11 @@ function parseDevice(ua: string | null): string {
   return "Unknown device";
 }
 
-// ─── Auth guard ───
-
-async function requireStrictAdmin() {
-  const authUser = await getAuthUser();
-  if (!authUser || authUser.role !== "admin") {
-    return null;
-  }
-  return authUser;
-}
-
 // ─── GET — List users with their active sessions ───
 
 export async function GET(req: Request) {
   try {
-    const authUser = await requireStrictAdmin();
-    if (!authUser) return apiError("Forbidden", 403);
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -130,8 +119,7 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireStrictAdmin();
-    if (!authUser) return apiError("Forbidden", 403);
+    const authUser = await requireStrictAdminAuth();
 
     const body = await req.json();
     const { userId, action } = body;
@@ -218,8 +206,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireStrictAdmin();
-    if (!authUser) return apiError("Forbidden", 403);
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");

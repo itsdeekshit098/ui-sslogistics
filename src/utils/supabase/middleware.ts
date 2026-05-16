@@ -42,9 +42,10 @@ export async function updateSession(request: NextRequest) {
   // If hitting a protected route
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isAuthApiRoute = request.nextUrl.pathname.startsWith("/api/auth");
+  // Only the login endpoint needs to be publicly reachable without a session
+  const isPublicAuthRoute = request.nextUrl.pathname === "/api/auth/login";
 
-  if ((isAdminRoute || isApiRoute) && !isAuthApiRoute) {
+  if ((isAdminRoute || isApiRoute) && !isPublicAuthRoute) {
     if (!user) {
       if (isApiRoute) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
