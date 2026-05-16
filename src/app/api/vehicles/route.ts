@@ -186,6 +186,10 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const authUser = await requireAdminAuth();
+
+    if (authUser.role !== "admin") {
+      return apiError("Only admins can delete vehicles", 403);
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

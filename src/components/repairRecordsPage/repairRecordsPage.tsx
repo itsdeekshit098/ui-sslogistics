@@ -488,7 +488,7 @@ export function RepairRecordsPage() {
                   <div
                     key={record.id}
                     className="border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => isAdmin && openEdit(record)}
+                    onClick={() => canWrite && openEdit(record)}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm">
@@ -558,13 +558,13 @@ export function RepairRecordsPage() {
                     <TableHead>Cost</TableHead>
                     <TableHead>Technician</TableHead>
                     <TableHead>Status</TableHead>
-                    {isAdmin && <TableHead>Actions</TableHead>}
+                    {canWrite && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recordsLoading ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 8 : 7}>
+                      <TableCell colSpan={canWrite ? 8 : 7}>
                         <LoadingSpinner
                           size="sm"
                           centered
@@ -575,7 +575,7 @@ export function RepairRecordsPage() {
                   ) : filteredRecords.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={isAdmin ? 8 : 7}
+                        colSpan={canWrite ? 8 : 7}
                         className="text-center"
                       >
                         No records found.
@@ -637,7 +637,7 @@ export function RepairRecordsPage() {
                             {record.status}
                           </Badge>
                         </TableCell>
-                        {isAdmin && (
+                        {canWrite && (
                           <TableCell>
                             <div
                               className="flex items-center gap-1"

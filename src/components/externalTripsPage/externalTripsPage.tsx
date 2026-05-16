@@ -35,6 +35,8 @@ import * as styles from "./externalTripsPage.style";
 
 export function ExternalTripsPage() {
   const { userRole, loading: authLoading } = useAuth();
+  const isAdmin = userRole === "admin";
+  const canWrite = isAdmin || userRole === "staff";
 
   const [trips, setTrips] = useState<ExternalTripWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -257,9 +259,11 @@ export function ExternalTripsPage() {
             Track every vehicle trip, expenses, and revenue
           </p>
         </div>
-        <Button onClick={handleAddNew} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> New Trip
-        </Button>
+        {canWrite && (
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> New Trip
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border shadow-sm flex flex-col min-h-[500px] overflow-hidden">
@@ -410,7 +414,7 @@ export function ExternalTripsPage() {
                       <th className="h-12 px-4 text-right font-medium">
                         Profit
                       </th>
-                      {userRole === "admin" && (
+                      {canWrite && (
                         <th className="h-12 px-4 text-left font-medium">
                           Actions
                         </th>
@@ -461,7 +465,7 @@ export function ExternalTripsPage() {
                             {profit >= 0 ? "+" : ""}
                             {fmtCurrency(profit)}
                           </td>
-                          {userRole === "admin" && (
+                          {canWrite && (
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                   <Button
@@ -473,15 +477,17 @@ export function ExternalTripsPage() {
                                     <Pencil className="h-3.5 w-3.5" />
                                     <span className="sr-only">Edit</span>
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => setDeleteTarget(trip)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
+                                  {isAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                      onClick={() => setDeleteTarget(trip)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  )}
                               </div>
                             </td>
                           )}
@@ -571,7 +577,7 @@ export function ExternalTripsPage() {
                         </div>
                       </div>
                       <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {userRole === "admin" && (
+                        {canWrite && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -580,7 +586,7 @@ export function ExternalTripsPage() {
                             Edit
                           </Button>
                         )}
-                        {userRole === "admin" && (
+                        {isAdmin && (
                           <Button
                             variant="outline"
                             size="sm"

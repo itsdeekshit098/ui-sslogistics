@@ -26,6 +26,8 @@ const DEFAULT_PAGE_SIZE = 10;
 
 export function DriversPage() {
   const { userRole, loading: authLoading } = useAuth();
+  const isAdmin = userRole === "admin";
+  const canWrite = isAdmin || userRole === "staff";
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -192,9 +194,11 @@ export function DriversPage() {
             Manage your fleet drivers and their details
           </p>
         </div>
-        <Button onClick={handleAddNew} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Add Driver
-        </Button>
+        {canWrite && (
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Add Driver
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -269,7 +273,7 @@ export function DriversPage() {
                       <th className="h-12 px-4 text-left font-medium">
                         Status
                       </th>
-                      {userRole === "admin" && (
+                      {canWrite && (
                         <th className="h-12 px-4 text-left font-medium">
                           Actions
                         </th>
@@ -307,7 +311,7 @@ export function DriversPage() {
                             {driver.is_active ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        {userRole === "admin" && (
+                        {canWrite && (
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <>
@@ -327,16 +331,17 @@ export function DriversPage() {
                                   )}
                                   <span className="sr-only">Toggle Status</span>
                                 </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleEdit(driver)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                </>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleEdit(driver)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              </>
+                              {isAdmin && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -346,6 +351,7 @@ export function DriversPage() {
                                   <Trash2 className="h-3.5 w-3.5" />
                                   <span className="sr-only">Delete</span>
                                 </Button>
+                              )}
                             </div>
                           </td>
                         )}
@@ -392,7 +398,7 @@ export function DriversPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 border-t pt-3">
-                      {userRole === "admin" && (
+                      {canWrite && (
                         <>
                           <Button
                             variant="outline"
@@ -410,7 +416,7 @@ export function DriversPage() {
                           </Button>
                         </>
                       )}
-                      {userRole === "admin" && (
+                      {isAdmin && (
                         <Button
                           variant="outline"
                           size="sm"

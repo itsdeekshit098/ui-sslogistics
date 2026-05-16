@@ -26,6 +26,8 @@ const DEFAULT_PAGE_SIZE = 10;
 
 export function TechniciansPage() {
   const { userRole, loading: authLoading } = useAuth();
+  const isAdmin = userRole === "admin";
+  const canWrite = isAdmin || userRole === "staff";
 
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [specializations, setSpecializations] = useState<
@@ -238,9 +240,11 @@ export function TechniciansPage() {
             Manage your workshop technicians and their specializations
           </p>
         </div>
-        <Button onClick={handleAddNew} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Add Technician
-        </Button>
+        {canWrite && (
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Add Technician
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -317,7 +321,7 @@ export function TechniciansPage() {
                       <th className="h-12 px-4 text-left font-medium">
                         Status
                       </th>
-                      {userRole === "admin" && (
+                      {canWrite && (
                         <th className="h-12 px-4 text-left font-medium">
                           Actions
                         </th>
@@ -364,7 +368,7 @@ export function TechniciansPage() {
                             {tech.is_active ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        {userRole === "admin" && (
+                        {canWrite && (
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <>
@@ -382,16 +386,17 @@ export function TechniciansPage() {
                                   )}
                                   <span className="sr-only">Toggle Status</span>
                                 </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleEdit(tech)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                </>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleEdit(tech)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              </>
+                              {isAdmin && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -401,6 +406,7 @@ export function TechniciansPage() {
                                   <Trash2 className="h-3.5 w-3.5" />
                                   <span className="sr-only">Delete</span>
                                 </Button>
+                              )}
                             </div>
                           </td>
                         )}
@@ -455,7 +461,7 @@ export function TechniciansPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 border-t pt-3">
-                      {userRole === "admin" && (
+                      {canWrite && (
                         <>
                           <Button
                             variant="outline"
@@ -473,7 +479,7 @@ export function TechniciansPage() {
                           </Button>
                         </>
                       )}
-                      {userRole === "admin" && (
+                      {isAdmin && (
                         <Button
                           variant="outline"
                           size="sm"

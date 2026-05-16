@@ -17,16 +17,22 @@ export function IdleTimeoutModal({
 
   const modal = (
     <div style={styles.overlay}>
-      <div style={styles.card}>
+      <div 
+        style={styles.card}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="idle-modal-title"
+        aria-describedby="idle-modal-desc"
+      >
         <div style={styles.iconCircle}>
           <Clock
             style={{ width: "1.5rem", height: "1.5rem", color: "#eab308" }}
           />
         </div>
 
-        <h2 style={styles.title}>Session Expiring</h2>
+        <h2 id="idle-modal-title" style={styles.title}>Session Expiring</h2>
 
-        <p style={styles.description}>
+        <p id="idle-modal-desc" style={styles.description}>
           You&apos;ve been inactive for a while. For security, you&apos;ll be
           automatically logged out.
         </p>
@@ -41,7 +47,7 @@ export function IdleTimeoutModal({
           >
             Log Out Now
           </Button>
-          <Button className="flex-1" onClick={onStay}>
+          <Button className="flex-1" onClick={onStay} autoFocus>
             Stay Logged In
           </Button>
         </div>

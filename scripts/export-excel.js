@@ -34,20 +34,6 @@ const TABLES = [
   "activity_log",
 ];
 
-/**
- * Fetch all rows from a table using direct PostgreSQL connection.
- */
-async function fetchAllRows(client, table) {
-  try {
-    const result = await client.query(
-      `SELECT * FROM public."${table}" ORDER BY id ASC`,
-    );
-    return result.rows;
-  } catch (err) {
-    console.error(`  Error fetching ${table}:`, err.message);
-    return [];
-  }
-}
 
 /**
  * Format cell values for Excel readability.
@@ -71,47 +57,77 @@ async function buildExcelWorkbook(client) {
 
   for (const table of TABLES) {
     console.log(`  Fetching: ${table}`);
-    const rows = await fetchAllRows(client, table);
-    console.log(`    → ${rows.length} rows`);
-
-    // Sheet name max 31 chars in Excel
     const sheetName = table.length > 31 ? table.substring(0, 31) : table;
     const sheet = workbook.addWorksheet(sheetName);
 
-    if (rows.length === 0) {
+    let lastId = null;
+    let hasMore = true;
+    let totalRows = 0;
+    let columns = null;
+
+    while (hasMore) {
+      let query;
+      let params;
+
+      if (lastId === null) {
+        query = `SELECT * FROM public."${table}" ORDER BY id ASC LIMIT 1000`;
+        params = [];
+      } else {
+        query = `SELECT * FROM public."${table}" WHERE id > $1 ORDER BY id ASC LIMIT 1000`;
+        params = [lastId];
+      }
+
+      try {
+        const result = await client.query(query, params);
+        const rows = result.rows;
+
+        if (rows.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        if (totalRows === 0) {
+          columns = Object.keys(rows[0]);
+          sheet.columns = columns.map((col) => ({
+            header: col,
+            key: col,
+            width: Math.max(col.length + 2, 15),
+          }));
+
+          const headerRow = sheet.getRow(1);
+          headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+          headerRow.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF2563EB" },
+          };
+          headerRow.alignment = { vertical: "middle", horizontal: "center" };
+        }
+
+        for (const row of rows) {
+          const values = columns.map((col) => formatCellValue(row[col]));
+          sheet.addRow(values);
+        }
+
+        totalRows += rows.length;
+        lastId = rows[rows.length - 1].id;
+      } catch (err) {
+        console.error(`  Error fetching ${table}:`, err.message);
+        hasMore = false;
+      }
+    }
+
+    console.log(`    → ${totalRows} rows`);
+
+    if (totalRows === 0) {
       sheet.addRow(["(no data)"]);
-      continue;
+    } else {
+      // Auto-filter on all columns
+      sheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: columns.length },
+      };
     }
-
-    // Header row from the first row's keys
-    const columns = Object.keys(rows[0]);
-    sheet.columns = columns.map((col) => ({
-      header: col,
-      key: col,
-      width: Math.max(col.length + 2, 15),
-    }));
-
-    // Style header row
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    headerRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF2563EB" },
-    };
-    headerRow.alignment = { vertical: "middle", horizontal: "center" };
-
-    // Data rows
-    for (const row of rows) {
-      const values = columns.map((col) => formatCellValue(row[col]));
-      sheet.addRow(values);
-    }
-
-    // Auto-filter on all columns
-    sheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: 1, column: columns.length },
-    };
   }
 
   return workbook;
@@ -168,8 +184,10 @@ async function uploadToGoogleDrive(filePath) {
 
 async function main() {
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const fileName = `ss-logistics-data-${timestamp}.xlsx`;
+  const pad = (n) => n.toString().padStart(2, "0");
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const timeStr = `${pad(now.getHours())}h${pad(now.getMinutes())}m${pad(now.getSeconds())}s`;
+  const fileName = `ss-logistics-data_${dateStr}_${timeStr}.xlsx`;
 
   // Connect directly to PostgreSQL (same approach as backup.js)
   const client = new Client({

@@ -77,6 +77,8 @@ export default function VehiclesPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const { userRole, loading: authLoading } = useAuth();
+  const isAdmin = userRole === "admin";
+  const canWrite = isAdmin || userRole === "staff";
 
   // ─── Consolidated filter state ───
   const [pageSize, setPageSize] = useState(
@@ -115,7 +117,8 @@ export default function VehiclesPage() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hasActiveFilters = searchQuery !== "" || typeFilter !== "all" || statusFilter !== "";
+  const hasActiveFilters =
+    searchQuery !== "" || typeFilter !== "all" || statusFilter !== "";
 
   // ─── URL sync ───
   const syncUrl = useCallback(
@@ -251,8 +254,7 @@ export default function VehiclesPage() {
       overrideStatus: "",
       overridePage: 1,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchVehicles]);
 
   const handlePageChange = (p: number) => {
     setPage(p);
@@ -291,10 +293,10 @@ export default function VehiclesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchVehiclesRefetch = () => {
+  const fetchVehiclesRefetch = useCallback(() => {
     // Re-fetch current page (used after create/edit/delete)
     fetchVehicles();
-  };
+  }, [fetchVehicles]);
 
   const handleEditClick = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
@@ -425,7 +427,13 @@ export default function VehiclesPage() {
   if (authLoading || initialLoading)
     return <PageLoadingSkeleton variant="admin" />;
   if (fetchError && vehicles.length === 0)
-    return <ErrorState title="Error" description={fetchError} onRetry={() => fetchVehicles()} />;
+    return (
+      <ErrorState
+        title="Error"
+        description={fetchError}
+        onRetry={() => fetchVehicles()}
+      />
+    );
 
   return (
     <div className={CA_VEHICLES_CONTAINER}>
@@ -445,7 +453,7 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        {userRole === "admin" && (
+        {canWrite && (
           <Button
             data-testid="vehicles-add-btn"
             className="w-full md:w-auto"
@@ -585,7 +593,8 @@ export default function VehiclesPage() {
                 Filters
                 {(typeFilter !== "all" || statusFilter !== "") && (
                   <span style={styles.activeFilterBadge}>
-                    {(typeFilter !== "all" ? 1 : 0) + (statusFilter !== "" ? 1 : 0)}
+                    {(typeFilter !== "all" ? 1 : 0) +
+                      (statusFilter !== "" ? 1 : 0)}
                   </span>
                 )}
               </Button>
@@ -691,7 +700,7 @@ export default function VehiclesPage() {
                     >
                       <FolderOpen className="mr-1 h-3.5 w-3.5" /> Docs
                     </Button>
-                    {userRole === "admin" && (
+                    {canWrite && (
                       <>
                         <Button
                           data-testid={`mobile-edit-btn-${vehicle.id}`}
@@ -702,18 +711,20 @@ export default function VehiclesPage() {
                         >
                           Edit
                         </Button>
-                        <Button
-                          data-testid={`mobile-delete-btn-${vehicle.id}`}
-                          variant="destructive"
-                          size="sm"
-                          className="text-xs h-8 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(vehicle);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            data-testid={`mobile-delete-btn-${vehicle.id}`}
+                            variant="destructive"
+                            size="sm"
+                            className="text-xs h-8 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(vehicle);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
@@ -734,7 +745,7 @@ export default function VehiclesPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Last Service</TableHead>
                   <TableHead>Documents</TableHead>
-                  {userRole === "admin" && (
+                  {canWrite && (
                     <TableHead className="text-right">Actions</TableHead>
                   )}
                 </TableRow>
@@ -742,7 +753,7 @@ export default function VehiclesPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={canWrite ? 8 : 7}>
                       <LoadingSpinner
                         size="sm"
                         centered
@@ -839,7 +850,7 @@ export default function VehiclesPage() {
                           <FolderOpen className="mr-2 h-4 w-4" /> Manage Docs
                         </Button>
                       </TableCell>
-                      {userRole === "admin" && (
+                      {canWrite && (
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button
@@ -852,16 +863,18 @@ export default function VehiclesPage() {
                               <Pencil className="h-3.5 w-3.5" />
                               <span className="sr-only">Edit</span>
                             </Button>
-                            <Button
-                              data-testid={`desktop-delete-btn-${vehicle.id}`}
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteClick(vehicle)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                data-testid={`desktop-delete-btn-${vehicle.id}`}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteClick(vehicle)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       )}

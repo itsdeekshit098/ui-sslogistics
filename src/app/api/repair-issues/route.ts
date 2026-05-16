@@ -1,6 +1,6 @@
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireUserAuth } from "@/lib/auth";
+import { requireUserAuth, requireAdminAuth } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -35,8 +35,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    // Both staff and admin can add options, so requireUserAuth is sufficient
-    await requireUserAuth();
+    // Only staff and admin can add options
+    await requireAdminAuth();
     const body = await req.json();
 
     if (!body.name || body.name.trim() === "") {

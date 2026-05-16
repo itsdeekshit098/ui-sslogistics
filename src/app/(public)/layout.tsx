@@ -7,9 +7,9 @@ export default function PublicLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex min-h-screen flex-col">
+        <div className="flex h-[100dvh] flex-col overflow-y-auto overflow-x-hidden scrollbar-custom">
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 shrink-0">{children}</main>
             <Footer />
         </div>
     );
