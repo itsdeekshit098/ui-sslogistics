@@ -83,8 +83,17 @@ export function SessionsPage() {
         return;
       }
 
-      setUsers(json.data?.users ?? []);
-      setTotal(json.data?.total ?? 0);
+      const fetchedUsers = json.data?.users ?? [];
+      const fetchedTotal = json.data?.total ?? 0;
+
+      // If we're on a page beyond results (e.g. users were deleted), reset to page 1
+      if (fetchedUsers.length === 0 && page > 1) {
+        setPage(1);
+        return;
+      }
+
+      setUsers(fetchedUsers);
+      setTotal(fetchedTotal);
     } catch {
       setError("Failed to load users");
     } finally {

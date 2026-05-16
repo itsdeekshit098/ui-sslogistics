@@ -71,7 +71,8 @@ export async function GET(req: Request) {
       });
 
     if (usersError) {
-      return apiError(usersError.message, 500);
+      console.error("Failed to list users", usersError);
+      return apiError("Failed to load users", 500);
     }
 
     const allUsers = usersData.users || [];
@@ -163,7 +164,8 @@ export async function PUT(req: Request) {
         });
 
       if (banError) {
-        return apiError(banError.message, 500);
+        console.error("Failed to ban user", banError);
+        return apiError("Failed to ban user", 500);
       }
 
       await logActivity({
@@ -171,8 +173,9 @@ export async function PUT(req: Request) {
         userId: authUser.id,
         userEmail: authUser.email,
         tableName: "auth.users",
-        recordId: userId,
+        recordId: null,
         details: {
+          targetUserId: userId,
           targetEmail: targetUser.user.email,
           targetRole: targetUser.user.app_metadata?.role,
         },
@@ -188,7 +191,8 @@ export async function PUT(req: Request) {
       });
 
     if (unbanError) {
-      return apiError(unbanError.message, 500);
+      console.error("Failed to unban user", unbanError);
+      return apiError("Failed to unban user", 500);
     }
 
     await logActivity({
@@ -196,8 +200,9 @@ export async function PUT(req: Request) {
       userId: authUser.id,
       userEmail: authUser.email,
       tableName: "auth.users",
-      recordId: userId,
+      recordId: null,
       details: {
+        targetUserId: userId,
         targetEmail: targetUser.user.email,
         targetRole: targetUser.user.app_metadata?.role,
       },
@@ -243,7 +248,8 @@ export async function DELETE(req: Request) {
     );
 
     if (revokeError) {
-      return apiError(revokeError.message, 500);
+      console.error("Failed to revoke user sessions", revokeError);
+      return apiError("Failed to revoke sessions", 500);
     }
 
     await logActivity({
@@ -251,9 +257,9 @@ export async function DELETE(req: Request) {
       userId: authUser.id,
       userEmail: authUser.email,
       tableName: "auth.sessions",
-      recordId: userId,
+      recordId: null,
       details: {
-        action: "REVOKE_ALL_SESSIONS",
+        targetUserId: userId,
         targetEmail: targetUser.user.email,
         targetRole: targetUser.user.app_metadata?.role,
       },
