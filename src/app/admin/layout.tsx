@@ -10,10 +10,10 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
-/** 2 minutes idle → show warning */
+/** 15 minutes idle → show warning */
 const IDLE_MS = 15 * 60 * 1000;
 
-/** 60 second countdown before auto-logout */
+/** 30 second countdown before auto-logout */
 const WARNING_MS = 30 * 1000;
 
 export default function AdminLayout({
