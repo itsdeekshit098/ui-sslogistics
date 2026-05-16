@@ -23,7 +23,11 @@ export type AuditAction =
   // External Trips
   | "CREATE_EXTERNAL_TRIP"
   | "UPDATE_EXTERNAL_TRIP"
-  | "DELETE_EXTERNAL_TRIP";
+  | "DELETE_EXTERNAL_TRIP"
+  // Session Management
+  | "BAN_USER"
+  | "UNBAN_USER"
+  | "REVOKE_SESSIONS";
 
 interface LogActivityParams {
   action: AuditAction;

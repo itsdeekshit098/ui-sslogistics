@@ -18,6 +18,7 @@ import {
   ChevronsRight,
   UserCog,
   Route,
+  Shield,
 } from "lucide-react";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
@@ -76,6 +77,13 @@ const sidebarItems = [
     icon: Activity,
     enabled: true,
   },
+  {
+    name: "Sessions",
+    href: "/admin/sessions",
+    icon: Shield,
+    enabled: true,
+    adminOnly: true,
+  },
 ];
 
 interface SidebarProps {
@@ -97,6 +105,9 @@ export function Sidebar({
 
   const filteredItems = sidebarItems.filter((item) => {
     if (authLoading) return false;
+
+    // Items marked adminOnly are only visible to admin role
+    if (item.adminOnly && userRole !== "admin") return false;
 
     if (userRole === "driver") {
       if (

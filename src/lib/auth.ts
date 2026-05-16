@@ -58,3 +58,18 @@ export async function requireAdminAuth(): Promise<AuthUser> {
   }
   return user;
 }
+
+/**
+ * Strongly enforces that the user must be authenticated AND have the 'admin' role only.
+ * Use this for sensitive operations like session management, banning users, etc.
+ */
+export async function requireStrictAdminAuth(): Promise<AuthUser> {
+  const user = await getAuthUser();
+  if (!user) {
+    throw new Error("UNAUTHORIZED: Missing authentication instance");
+  }
+  if (user.role !== "admin") {
+    throw new Error("FORBIDDEN: Insufficient role privileges");
+  }
+  return user;
+}

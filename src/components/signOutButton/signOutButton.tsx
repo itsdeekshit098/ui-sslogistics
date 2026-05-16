@@ -5,8 +5,8 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { LoadingSpinner } from "@/components/loadingSpinner";
-import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   Dialog,
@@ -24,6 +24,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
   variant = "desktop",
 }) => {
   const router = useRouter();
+  const { refreshSession } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -44,12 +45,12 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
     setIsSigningOut(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const { error: signOutError } = await supabase.auth.signOut();
+      const res = await fetch("/api/auth/signout", { method: "POST" });
+      const json = await res.json();
 
-      if (signOutError) throw signOutError;
+      if (!res.ok || !json.success) throw new Error(json.error || "Sign out failed");
 
-      // We flush the router state and push instead of refresh so auth boundary catches cleanly.
+      await refreshSession();
       router.push("/");
       router.refresh();
     } catch (err) {
