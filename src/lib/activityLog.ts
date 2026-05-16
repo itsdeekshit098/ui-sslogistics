@@ -26,7 +26,8 @@ export type AuditAction =
   | "DELETE_EXTERNAL_TRIP"
   // Session Management
   | "BAN_USER"
-  | "UNBAN_USER";
+  | "UNBAN_USER"
+  | "REVOKE_SESSIONS";
 
 interface LogActivityParams {
   action: AuditAction;

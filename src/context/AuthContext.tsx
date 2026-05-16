@@ -12,12 +12,14 @@ interface AuthContextType {
   user: AuthUser | null;
   userRole: string | null;
   loading: boolean;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userRole: null,
   loading: true,
+  refreshSession: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -64,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [fetchSession]);
 
   return (
-    <AuthContext.Provider value={{ user, userRole, loading }}>
+    <AuthContext.Provider value={{ user, userRole, loading, refreshSession: fetchSession }}>
       {children}
     </AuthContext.Provider>
   );

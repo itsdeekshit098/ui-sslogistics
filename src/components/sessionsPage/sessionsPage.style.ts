@@ -244,3 +244,31 @@ export const actionsCell: CSSProperties = {
   flexWrap: "wrap",
 };
 
+/* ─── Pagination ─── */
+
+export const paginationContainer: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "1rem",
+  marginTop: "2rem",
+  padding: "1rem",
+};
+
+export const paginationButton: CSSProperties = {
+  padding: "0.5rem 1rem",
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  border: "1px solid var(--border)",
+  borderRadius: "var(--input-radius, 0.375rem)",
+  backgroundColor: "var(--background)",
+  cursor: "pointer",
+  transition: "all 0.15s ease",
+};
+
+export const paginationInfo: CSSProperties = {
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  color: "var(--muted-foreground)",
+};
+

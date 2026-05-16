@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   Dialog,
@@ -23,6 +24,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
   variant = "desktop",
 }) => {
   const router = useRouter();
+  const { refreshSession } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -48,7 +50,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
 
       if (!res.ok || !json.success) throw new Error(json.error || "Sign out failed");
 
-      // We flush the router state and push instead of refresh so auth boundary catches cleanly.
+      await refreshSession();
       router.push("/");
       router.refresh();
     } catch (err) {

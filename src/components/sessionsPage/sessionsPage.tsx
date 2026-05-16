@@ -57,6 +57,11 @@ export function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const perPage = 20;
+
   // Expanded user rows (to show sessions)
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
@@ -68,8 +73,9 @@ export function SessionsPage() {
 
   const fetchUsers = useCallback(async () => {
     try {
+      setLoading(true);
       setError(null);
-      const res = await fetch("/api/admin/sessions");
+      const res = await fetch(`/api/admin/sessions?page=${page}&perPage=${perPage}`);
       const json = await res.json();
 
       if (!res.ok || !json.success) {
@@ -78,12 +84,13 @@ export function SessionsPage() {
       }
 
       setUsers(json.data?.users ?? []);
+      setTotal(json.data?.total ?? 0);
     } catch {
       setError("Failed to load users");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, perPage]);
 
   useEffect(() => {
     if (!authLoading && isAdmin) {
@@ -493,6 +500,31 @@ export function SessionsPage() {
               );
             })}
           </div>
+
+          {/* ── Pagination ── */}
+          {total > perPage && (
+            <div style={styles.paginationContainer}>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={styles.paginationButton}
+                className="hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span style={styles.paginationInfo}>
+                Page {page} of {Math.ceil(total / perPage)}
+              </span>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(total / perPage)}
+                style={styles.paginationButton}
+                className="hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
 

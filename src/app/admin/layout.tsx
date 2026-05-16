@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 /** 15 minutes idle → show warning */
 const IDLE_MS = 15 * 60 * 1000;
@@ -24,6 +25,7 @@ export default function AdminLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { refreshSession } = useAuth();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -38,10 +40,11 @@ export default function AdminLayout({
     } catch {
       // Best-effort sign out
     } finally {
+      await refreshSession();
       router.push("/login");
       router.refresh();
     }
-  }, [router]);
+  }, [router, refreshSession]);
 
   const { showWarning, secondsLeft, stayLoggedIn } = useIdleTimeout({
     idleMs: IDLE_MS,

@@ -54,18 +54,27 @@ async function requireStrictAdmin() {
 
 // ─── GET — List users with their active sessions ───
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const authUser = await requireStrictAdmin();
     if (!authUser) return apiError("Forbidden", 403);
 
-    // 1. Get all users
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const perPage = parseInt(searchParams.get("perPage") || "20", 10);
+
+    // 1. Get users for the current page
     const { data: usersData, error: usersError } =
-      await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
+      await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage,
+      });
 
     if (usersError) {
       return apiError(usersError.message, 500);
     }
+
+    const allUsers = usersData.users || [];
 
     // 2. Get all active sessions via RPC
     const { data: sessionsData, error: sessionsError } =
@@ -84,7 +93,7 @@ export async function GET() {
     }
 
     // 4. Build response
-    const users = (usersData.users || []).map((u) => {
+    const users = allUsers.map((u) => {
       const userSessions = sessionsByUser.get(u.id) || [];
 
       return {
@@ -105,7 +114,12 @@ export async function GET() {
       };
     });
 
-    return apiSuccess({ users });
+    return apiSuccess({
+      users,
+      total: usersData.total || 0,
+      page,
+      perPage,
+    });
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -233,7 +247,7 @@ export async function DELETE(req: Request) {
     }
 
     await logActivity({
-      action: "BAN_USER",
+      action: "REVOKE_SESSIONS",
       userId: authUser.id,
       userEmail: authUser.email,
       tableName: "auth.sessions",
