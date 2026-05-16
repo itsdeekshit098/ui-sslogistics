@@ -72,28 +72,7 @@ export const getDefaultRepairFormData = (): RepairFormData => ({
   status: "Open",
 });
 
-export const REPAIR_OPTIONS: Record<RepairCategory, readonly string[]> = {
-  electrical: [
-    "Battery",
-    "Lights",
-    "Self Motor",
-    "Alternator",
-    "Wiring",
-    "Fuses",
-    "Horn",
-    "Indicators",
-  ],
-  mechanical: [
-    "Engine",
-    "Brakes",
-    "Clutch",
-    "Suspension",
-    "Gearbox",
-    "Tyres",
-    "Oil Service",
-    "Coolant System",
-  ],
-} as const;
+// REPAIR_OPTIONS has been moved to the backend and is fetched dynamically.
 
 export interface RepairSummary {
   totalCount: number;

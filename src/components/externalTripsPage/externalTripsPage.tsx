@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Plus,
   Search,
-  Edit2,
+  Pencil,
   Trash2,
   Truck,
   SlidersHorizontal,
@@ -464,24 +464,24 @@ export function ExternalTripsPage() {
                           {userRole === "admin" && (
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                  onClick={() => handleEdit(trip)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                  onClick={() => setDeleteTarget(trip)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleEdit(trip)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => setDeleteTarget(trip)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
                               </div>
                             </td>
                           )}

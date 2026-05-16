@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import {
@@ -287,8 +287,10 @@ export default function TripSheetsPage() {
                             data-testid="app-admin-trip-sheets-button-3"
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                           >
-                            View
+                            <Eye className="h-3.5 w-3.5" />
+                            <span className="sr-only">View</span>
                           </Button>
                         </TableCell>
                       </TableRow>

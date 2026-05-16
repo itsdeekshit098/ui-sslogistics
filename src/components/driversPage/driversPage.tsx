@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus,
   Search,
-  Edit2,
+  Pencil,
   CheckCircle2,
   XCircle,
   Trash2,
@@ -289,25 +289,25 @@ export function DriversPage() {
                                   )}
                                   <span className="sr-only">Toggle Status</span>
                                 </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleEdit(driver)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit</span>
+                                  </Button>
+                                </>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                  onClick={() => handleEdit(driver)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteTarget(driver)}
                                 >
-                                  <Edit2 className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Delete</span>
                                 </Button>
-                              </>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                onClick={() => setDeleteTarget(driver)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
                             </div>
                           </td>
                         )}

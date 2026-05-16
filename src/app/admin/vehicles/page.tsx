@@ -21,6 +21,7 @@ import {
   Van,
   FolderOpen,
   Trash2,
+  Pencil,
   ArrowLeft,
   Filter,
   X,
@@ -724,17 +725,21 @@ export default function VehiclesPage() {
                               data-testid={`desktop-edit-btn-${vehicle.id}`}
                               variant="ghost"
                               size="sm"
+                              className="h-8 w-8 p-0"
                               onClick={() => handleEditClick(vehicle)}
                             >
-                              Edit
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit</span>
                             </Button>
                             <Button
                               data-testid={`desktop-delete-btn-${vehicle.id}`}
-                              variant="destructive"
+                              variant="ghost"
                               size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               onClick={() => handleDeleteClick(vehicle)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span className="sr-only">Delete</span>
                             </Button>
                           </div>
                         </TableCell>

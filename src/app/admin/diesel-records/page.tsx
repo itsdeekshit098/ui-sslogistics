@@ -768,23 +768,25 @@ export default function DieselRecordsPage() {
                                       <div className="flex items-center gap-1">
                                         <Button
                                           data-testid={`admin-diesel-desktop-edit-${record.id}`}
-                                          variant="outline"
+                                          variant="ghost"
                                           size="sm"
-                                          className="h-7 px-2"
+                                          className="h-8 w-8 p-0"
                                           onClick={() => setEditTarget(record)}
                                         >
                                           <Pencil className="h-3.5 w-3.5" />
+                                          <span className="sr-only">Edit</span>
                                         </Button>
                                         <Button
                                           data-testid={`admin-diesel-desktop-delete-${record.id}`}
-                                          variant="destructive"
+                                          variant="ghost"
                                           size="sm"
-                                          className="h-7 px-2"
+                                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                                           onClick={() =>
                                             handleDeleteClick(record)
                                           }
                                         >
                                           <Trash2 className="h-3.5 w-3.5" />
+                                          <span className="sr-only">Delete</span>
                                         </Button>
                                       </div>
                                     </TableCell>
