@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { createClient } from "@/utils/supabase/client";
 
 function UnauthorizedContent() {
   const searchParams = useSearchParams();
@@ -13,17 +12,20 @@ function UnauthorizedContent() {
   useEffect(() => {
     // If no email in URL, fetch it from session
     if (!email) {
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data }) => {
-        if (data?.user?.email) setEmail(data.user.email);
-      });
+      fetch("/api/auth/session")
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.data?.email) setEmail(json.data.email);
+        })
+        .catch(() => {
+          // Silently ignore — user may not be authenticated
+        });
     }
   }, [email]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/signout", { method: "POST" });
     router.push("/");
     router.refresh();
   };

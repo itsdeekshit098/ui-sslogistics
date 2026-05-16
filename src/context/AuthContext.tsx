@@ -1,11 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
-import { createClient } from "@/utils/supabase/client";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+
+interface AuthUser {
+  id: string;
+  email: string | null;
+  role: string | null;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   userRole: string | null;
   loading: boolean;
 }
@@ -17,41 +21,47 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const supabase = createClient();
+  const fetchSession = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/session");
+      const json = await res.json();
 
-    // Fetch initial session
-    const fetchSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      
-      const currentUser = session?.user || null;
-      setUser(currentUser);
-      setUserRole(currentUser?.app_metadata?.role || null);
+      if (res.ok && json.success && json.data) {
+        setUser(json.data);
+        setUserRole(json.data.role || null);
+      } else {
+        setUser(null);
+        setUserRole(null);
+      }
+    } catch {
+      setUser(null);
+      setUserRole(null);
+    } finally {
       setLoading(false);
-    };
+    }
+  }, []);
 
+  useEffect(() => {
+    // Fetch session on mount
     fetchSession();
 
-    // Listen for auth changes (login, logout, token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentUser = session?.user || null;
-      setUser(currentUser);
-      setUserRole(currentUser?.app_metadata?.role || null);
-      setLoading(false);
-    });
+    // Re-check session when user returns to the tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchSession();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [fetchSession]);
 
   return (
     <AuthContext.Provider value={{ user, userRole, loading }}>

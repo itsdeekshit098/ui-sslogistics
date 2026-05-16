@@ -42,8 +42,9 @@ export async function updateSession(request: NextRequest) {
   // If hitting a protected route
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+  const isAuthApiRoute = request.nextUrl.pathname.startsWith("/api/auth");
 
-  if (isAdminRoute || isApiRoute) {
+  if ((isAdminRoute || isApiRoute) && !isAuthApiRoute) {
     if (!user) {
       if (isApiRoute) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

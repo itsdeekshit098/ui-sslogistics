@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,18 +17,26 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (authError) {
-      setError("Invalid email or password. Please try again.");
-      setIsLoading(false);
-    } else {
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        setError(json.error || "Invalid email or password. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
       router.push("/admin");
       router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setIsLoading(false);
     }
   };
 

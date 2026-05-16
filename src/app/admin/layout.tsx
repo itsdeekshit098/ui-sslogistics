@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 
 /** 15 minutes idle → show warning */
-const IDLE_MS = 15 * 60 * 1000;
+const IDLE_MS = 15 * 30 * 1000;
 
 /** 30 second countdown before auto-logout */
 const WARNING_MS = 30 * 1000;
@@ -35,8 +34,7 @@ export default function AdminLayout({
   // ── Idle Timeout ──────────────────────────────────────
   const handleIdleTimeout = useCallback(async () => {
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await fetch("/api/auth/signout", { method: "POST" });
     } catch {
       // Best-effort sign out
     } finally {
