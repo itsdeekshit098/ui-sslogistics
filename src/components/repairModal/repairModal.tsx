@@ -357,7 +357,11 @@ const RepairForm: React.FC<{
           </div>
 
           {fetchingData ? (
-            <LoadingSpinner size="md" centered label="Loading drivers..." />
+            <LoadingSpinner
+              size="md"
+              centered
+              label="Loading repair form data..."
+            />
           ) : (
             <>
               <div style={styles.formSection}>
