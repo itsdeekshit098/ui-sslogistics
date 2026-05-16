@@ -15,7 +15,8 @@ import {
     CM_TEXT_CONTAINER,
     CM_TITLE,
     CM_DESC,
-    CM_ACTION_WRAPPER
+    CM_ACTION_WRAPPER,
+    CM_ERROR
 } from "./confirmModal.style";
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -27,6 +28,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     confirmText = "Confirm",
     cancelText = "Cancel",
     isLoading = false,
+    error = null,
     icon,
     children
 }) => {
@@ -41,6 +43,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         <h3 className={CM_TITLE}>{title}</h3>
                         <p className={CM_DESC}>{description}</p>
                     </div>
+
+                    {error && (
+                        <div className={CM_ERROR} role="alert">
+                            {error}
+                        </div>
+                    )}
                     
                     {children}
 

@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Building2, MapPin, Save } from "lucide-react";
+import { Plus, Search, Building2, MapPin, Save, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -262,12 +262,15 @@ export default function ClientsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button data-testid="app-admin-clients-button-3"
+                      <Button
+                        data-testid="app-admin-clients-button-3"
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0"
                         onClick={() => handleEditClick(client)}
                       >
-                        Edit
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only">Edit</span>
                       </Button>
                     </TableCell>
                   </TableRow>

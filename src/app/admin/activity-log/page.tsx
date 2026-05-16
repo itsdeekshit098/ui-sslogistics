@@ -17,7 +17,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Skeleton } from "@/components/skeletonLoader";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Pagination } from "@/components/pagination";
 import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";
 import { ErrorState } from "@/components/errorState";
@@ -175,32 +175,8 @@ export default function ActivityLogPage() {
         <CardContent className="flex flex-col p-0">
           <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0">
             {loading ? (
-              <div className="space-y-1">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex gap-3 p-3">
-                    <Skeleton
-                      width="40px"
-                      height="40px"
-                      borderRadius="10px"
-                      className="shrink-0"
-                    />
-                    <div className="flex-1 min-w-0 pt-1">
-                      <Skeleton width="30%" height="16px" borderRadius="4px" />
-                      <Skeleton
-                        width="60%"
-                        height="14px"
-                        borderRadius="4px"
-                        className="mt-2"
-                      />
-                      <Skeleton
-                        width="25%"
-                        height="12px"
-                        borderRadius="4px"
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center justify-center py-24">
+                <LoadingSpinner size="lg" centered label="Loading activity logs..." />
               </div>
             ) : fetchError ? (
               <ErrorState

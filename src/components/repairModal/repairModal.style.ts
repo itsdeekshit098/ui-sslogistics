@@ -131,7 +131,7 @@ export const categoryCardSelected: CSSProperties = {
 
 export const categoryCardDisabled: CSSProperties = {
   opacity: 0.6,
-  cursor: "default",
+  cursor: "not-allowed",
 };
 
 export const categoryLabel: CSSProperties = {

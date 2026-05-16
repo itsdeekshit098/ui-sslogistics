@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus,
   Search,
-  Edit2,
+  Pencil,
   CheckCircle2,
   XCircle,
   Trash2,
@@ -26,6 +26,8 @@ const DEFAULT_PAGE_SIZE = 10;
 
 export function TechniciansPage() {
   const { userRole, loading: authLoading } = useAuth();
+  const isAdmin = userRole === "admin";
+  const canWrite = isAdmin || userRole === "staff";
 
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [specializations, setSpecializations] = useState<
@@ -49,16 +51,20 @@ export function TechniciansPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Technician | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Debounce search input
+  // Debounce search
   useEffect(() => {
+    // Skip if search hasn't actually changed from what was fetched
+    if (searchQuery === debouncedSearch) return;
+
     debounceRef.current = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setPage(1);
+      fetchTechnicians({ overrideSearch: searchQuery, overridePage: 1 });
     }, 500);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // Fetch specializations once
@@ -74,33 +80,57 @@ export function TechniciansPage() {
     }
   }, []);
 
-  // Fetch technicians (server-side paginated + search)
-  const fetchTechnicians = useCallback(async () => {
-    try {
-      setFetching(true);
-      setError(null);
+  // Fetch technicians (server-side paginated + search) — atomic, accepts overrides
+  const fetchTechnicians = useCallback(
+    async (opts?: { overrideSearch?: string; overridePage?: number; overridePageSize?: number }) => {
+      const search = opts?.overrideSearch ?? debouncedSearch;
+      const p = opts?.overridePage ?? page;
+      const ps = opts?.overridePageSize ?? pageSize;
 
-      const params = new URLSearchParams({
-        include_inactive: "true",
-        page: String(page),
-        pageSize: String(pageSize),
-      });
-      if (debouncedSearch) params.set("search", debouncedSearch);
+      try {
+        setFetching(true);
+        setError(null);
 
-      const res = await fetch(`/api/technicians?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch technicians");
+        const params = new URLSearchParams({
+          include_inactive: "true",
+          page: String(p),
+          pageSize: String(ps),
+        });
+        if (search) params.set("search", search);
 
-      const json = await res.json();
-      const result = json.data ?? {};
-      setTechnicians(result.data ?? []);
-      setTotal(result.total ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setFetching(false);
-      setInitialLoading(false);
-    }
-  }, [page, pageSize, debouncedSearch]);
+        const res = await fetch(`/api/technicians?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch technicians");
+
+        const json = await res.json();
+        const result = json.data ?? {};
+        setTechnicians(result.data ?? []);
+        setTotal(result.total ?? 0);
+
+        // Sync state on success
+        setPage(p);
+        setPageSize(ps);
+        setDebouncedSearch(search);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Network error");
+      } finally {
+        setFetching(false);
+        setInitialLoading(false);
+      }
+    },
+    [page, pageSize, debouncedSearch],
+  );
+
+  // Page change handler — set state immediately for visual feedback
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    fetchTechnicians({ overridePage: p });
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+    fetchTechnicians({ overridePage: 1, overridePageSize: size });
+  };
 
   useEffect(() => {
     if (!authLoading) {
@@ -108,9 +138,15 @@ export function TechniciansPage() {
     }
   }, [authLoading, fetchSpecializations]);
 
+  // Initial fetch
+  const initialFetchDone = useRef(false);
   useEffect(() => {
-    if (!authLoading) fetchTechnicians();
-  }, [authLoading, fetchTechnicians]);
+    if (!authLoading && !initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchTechnicians();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
 
   const handleSuccess = () => {
     fetchTechnicians();
@@ -158,21 +194,22 @@ export function TechniciansPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/technicians?id=${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Failed to delete");
+        setDeleteError(data.error || "Failed to delete");
       } else {
         fetchTechnicians();
+        setDeleteTarget(null);
       }
     } catch {
-      alert("Network error");
+      setDeleteError("Network error");
     } finally {
       setDeleteLoading(false);
-      setDeleteTarget(null);
     }
   };
 
@@ -203,9 +240,11 @@ export function TechniciansPage() {
             Manage your workshop technicians and their specializations
           </p>
         </div>
-        <Button onClick={handleAddNew} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Add Technician
-        </Button>
+        {canWrite && (
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Add Technician
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -222,7 +261,10 @@ export function TechniciansPage() {
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  fetchTechnicians({ overrideSearch: "", overridePage: 1 });
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Clear search"
               >
@@ -252,7 +294,12 @@ export function TechniciansPage() {
               }
               actionLabel={debouncedSearch ? "Clear Search" : "Add Technician"}
               onAction={
-                debouncedSearch ? () => setSearchQuery("") : handleAddNew
+                debouncedSearch
+                  ? () => {
+                      setSearchQuery("");
+                      fetchTechnicians({ overrideSearch: "", overridePage: 1 });
+                    }
+                  : handleAddNew
               }
               icon={Search}
             />
@@ -274,9 +321,11 @@ export function TechniciansPage() {
                       <th className="h-12 px-4 text-left font-medium">
                         Status
                       </th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Actions
-                      </th>
+                      {canWrite && (
+                        <th className="h-12 px-4 text-left font-medium">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-card">
@@ -319,44 +368,48 @@ export function TechniciansPage() {
                             {tech.is_active ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => toggleStatus(tech)}
-                              title={tech.is_active ? "Deactivate" : "Activate"}
-                            >
-                              {tech.is_active ? (
-                                <XCircle className="h-4 w-4 text-muted-foreground hover:text-amber-600" />
-                              ) : (
-                                <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-emerald-600" />
+                        {canWrite && (
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => toggleStatus(tech)}
+                                  title={tech.is_active ? "Deactivate" : "Activate"}
+                                >
+                                  {tech.is_active ? (
+                                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-amber-600" />
+                                  ) : (
+                                    <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-emerald-600" />
+                                  )}
+                                  <span className="sr-only">Toggle Status</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleEdit(tech)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              </>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteTarget(tech)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
                               )}
-                              <span className="sr-only">Toggle Status</span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                              onClick={() => handleEdit(tech)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
-                            {userRole === "admin" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                onClick={() => setDeleteTarget(tech)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            )}
-                          </div>
-                        </td>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -408,21 +461,25 @@ export function TechniciansPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 border-t pt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleStatus(tech)}
-                      >
-                        {tech.is_active ? "Deactivate" : "Activate"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(tech)}
-                      >
-                        Edit
-                      </Button>
-                      {userRole === "admin" && (
+                      {canWrite && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleStatus(tech)}
+                          >
+                            {tech.is_active ? "Deactivate" : "Activate"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(tech)}
+                          >
+                            Edit
+                          </Button>
+                        </>
+                      )}
+                      {isAdmin && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -445,11 +502,8 @@ export function TechniciansPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setPage(1);
-                }}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </div>
           )}
@@ -468,12 +522,16 @@ export function TechniciansPage() {
 
       <ConfirmModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Technician"
         description={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`}
         confirmText="Delete"
         isLoading={deleteLoading}
+        error={deleteError}
       />
     </div>
   );

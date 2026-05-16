@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Plus,
   Search,
-  Edit2,
+  Pencil,
   Trash2,
   Truck,
   SlidersHorizontal,
@@ -35,6 +35,8 @@ import * as styles from "./externalTripsPage.style";
 
 export function ExternalTripsPage() {
   const { userRole, loading: authLoading } = useAuth();
+  const isAdmin = userRole === "admin";
+  const canWrite = isAdmin || userRole === "staff";
 
   const [trips, setTrips] = useState<ExternalTripWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -66,6 +68,7 @@ export function ExternalTripsPage() {
   const [deleteTarget, setDeleteTarget] =
     useState<ExternalTripWithDetails | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // ─── API URL builder ───
   const buildApiUrl = useCallback(
@@ -185,19 +188,22 @@ export function ExternalTripsPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       const res = await fetch(`/api/external-trips?id=${deleteTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const d = await res.json();
-        alert(d.error || "Failed to delete");
-      } else await fetchTrips(filters);
+        setDeleteError(d.error || "Failed to delete");
+      } else {
+        await fetchTrips(filters);
+        setDeleteTarget(null);
+      }
     } catch {
-      alert("Network error");
+      setDeleteError("Network error");
     } finally {
       setDeleteLoading(false);
-      setDeleteTarget(null);
     }
   };
 
@@ -253,9 +259,11 @@ export function ExternalTripsPage() {
             Track every vehicle trip, expenses, and revenue
           </p>
         </div>
-        <Button onClick={handleAddNew} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> New Trip
-        </Button>
+        {canWrite && (
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> New Trip
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-xl border shadow-sm flex flex-col min-h-[500px] overflow-hidden">
@@ -406,9 +414,11 @@ export function ExternalTripsPage() {
                       <th className="h-12 px-4 text-right font-medium">
                         Profit
                       </th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Actions
-                      </th>
+                      {canWrite && (
+                        <th className="h-12 px-4 text-left font-medium">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-card">
@@ -455,30 +465,32 @@ export function ExternalTripsPage() {
                             {profit >= 0 ? "+" : ""}
                             {fmtCurrency(profit)}
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                                onClick={() => handleEdit(trip)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                                <span className="sr-only">Edit</span>
-                              </Button>
-                              {userRole === "admin" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                  onClick={() => setDeleteTarget(trip)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              )}
-                            </div>
-                          </td>
+                          {canWrite && (
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleEdit(trip)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit</span>
+                                  </Button>
+                                  {isAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                      onClick={() => setDeleteTarget(trip)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  )}
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -565,14 +577,16 @@ export function ExternalTripsPage() {
                         </div>
                       </div>
                       <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(trip)}
-                        >
-                          Edit
-                        </Button>
-                        {userRole === "admin" && (
+                        {canWrite && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(trip)}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        {isAdmin && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -742,12 +756,16 @@ export function ExternalTripsPage() {
       )}
       <ConfirmModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Trip"
         description={`Are you sure you want to delete this trip for ${deleteTarget?.vehicles?.vehicle_number || "this vehicle"}? This action cannot be undone.`}
         confirmText="Delete"
         isLoading={deleteLoading}
+        error={deleteError}
       />
     </div>
   );

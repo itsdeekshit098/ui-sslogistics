@@ -1,35 +1,26 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { createClient } = require("@supabase/supabase-js");
-const ws = require("ws");
+const { Client } = require("pg");
 const { google } = require("googleapis");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
 
-// ─── Environment Variables ───
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Environment Variables required from GitHub Actions
+const SUPABASE_DB_URL = process.env.SUPABASE_DB_URL;
 const GDRIVE_CLIENT_ID = process.env.GDRIVE_CLIENT_ID;
 const GDRIVE_CLIENT_SECRET = process.env.GDRIVE_CLIENT_SECRET;
 const GDRIVE_REFRESH_TOKEN = process.env.GDRIVE_REFRESH_TOKEN;
 const GDRIVE_EXCEL_FOLDER_ID = process.env.GDRIVE_EXCEL_FOLDER_ID;
 
 if (
-  !SUPABASE_URL ||
-  !SUPABASE_SERVICE_KEY ||
+  !SUPABASE_DB_URL ||
   !GDRIVE_EXCEL_FOLDER_ID ||
   !GDRIVE_CLIENT_ID ||
   !GDRIVE_CLIENT_SECRET ||
   !GDRIVE_REFRESH_TOKEN
 ) {
-  console.error(
-    "Missing required environment variables. Need: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GDRIVE_CLIENT_ID, GDRIVE_CLIENT_SECRET, GDRIVE_REFRESH_TOKEN, GDRIVE_EXCEL_FOLDER_ID",
-  );
+  console.error("Missing required environment variables for PostgreSQL/Google Drive.");
   process.exit(1);
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  realtime: { transport: ws },
-});
 
 // ─── Tables to export (each becomes a sheet) ───
 const TABLES = [
@@ -43,43 +34,13 @@ const TABLES = [
   "activity_log",
 ];
 
-const PAGE_SIZE = 1000;
-
-/**
- * Fetch all rows from a table (handles pagination so we never miss rows).
- */
-async function fetchAllRows(table) {
-  let allRows = [];
-  let offset = 0;
-
-  while (true) {
-    const { data, error } = await supabase
-      .from(table)
-      .select("*")
-      .order("id", { ascending: true })
-      .range(offset, offset + PAGE_SIZE - 1);
-
-    if (error) {
-      console.error(`  Error fetching ${table}:`, error.message);
-      return allRows;
-    }
-
-    if (!data || data.length === 0) break;
-
-    allRows.push(...data);
-
-    if (data.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-
-  return allRows;
-}
 
 /**
  * Format cell values for Excel readability.
  */
 function formatCellValue(value) {
   if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value) || typeof value === "object") {
     return JSON.stringify(value);
   }
@@ -89,54 +50,84 @@ function formatCellValue(value) {
 /**
  * Build the Excel workbook with one sheet per table.
  */
-async function buildExcelWorkbook() {
+async function buildExcelWorkbook(client) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "SS Logistics Backup";
   workbook.created = new Date();
 
   for (const table of TABLES) {
     console.log(`  Fetching: ${table}`);
-    const rows = await fetchAllRows(table);
-    console.log(`    → ${rows.length} rows`);
-
-    // Sheet name max 31 chars in Excel
     const sheetName = table.length > 31 ? table.substring(0, 31) : table;
     const sheet = workbook.addWorksheet(sheetName);
 
-    if (rows.length === 0) {
+    let lastId = null;
+    let hasMore = true;
+    let totalRows = 0;
+    let columns = null;
+
+    while (hasMore) {
+      let query;
+      let params;
+
+      if (lastId === null) {
+        query = `SELECT * FROM public."${table}" ORDER BY id ASC LIMIT 1000`;
+        params = [];
+      } else {
+        query = `SELECT * FROM public."${table}" WHERE id > $1 ORDER BY id ASC LIMIT 1000`;
+        params = [lastId];
+      }
+
+      try {
+        const result = await client.query(query, params);
+        const rows = result.rows;
+
+        if (rows.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        if (totalRows === 0) {
+          columns = Object.keys(rows[0]);
+          sheet.columns = columns.map((col) => ({
+            header: col,
+            key: col,
+            width: Math.max(col.length + 2, 15),
+          }));
+
+          const headerRow = sheet.getRow(1);
+          headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+          headerRow.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF2563EB" },
+          };
+          headerRow.alignment = { vertical: "middle", horizontal: "center" };
+        }
+
+        for (const row of rows) {
+          const values = columns.map((col) => formatCellValue(row[col]));
+          sheet.addRow(values);
+        }
+
+        totalRows += rows.length;
+        lastId = rows[rows.length - 1].id;
+      } catch (err) {
+        console.error(`  Error fetching ${table}:`, err.message);
+        hasMore = false;
+      }
+    }
+
+    console.log(`    → ${totalRows} rows`);
+
+    if (totalRows === 0) {
       sheet.addRow(["(no data)"]);
-      continue;
+    } else {
+      // Auto-filter on all columns
+      sheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: columns.length },
+      };
     }
-
-    // Header row from the first row's keys
-    const columns = Object.keys(rows[0]);
-    sheet.columns = columns.map((col) => ({
-      header: col,
-      key: col,
-      width: Math.max(col.length + 2, 15),
-    }));
-
-    // Style header row
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    headerRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF2563EB" },
-    };
-    headerRow.alignment = { vertical: "middle", horizontal: "center" };
-
-    // Data rows
-    for (const row of rows) {
-      const values = columns.map((col) => formatCellValue(row[col]));
-      sheet.addRow(values);
-    }
-
-    // Auto-filter on all columns
-    sheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: 1, column: columns.length },
-    };
   }
 
   return workbook;
@@ -193,12 +184,24 @@ async function uploadToGoogleDrive(filePath) {
 
 async function main() {
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const fileName = `ss-logistics-data-${timestamp}.xlsx`;
+  const pad = (n) => n.toString().padStart(2, "0");
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const timeStr = `${pad(now.getHours())}h${pad(now.getMinutes())}m${pad(now.getSeconds())}s`;
+  const fileName = `ss-logistics-data_${dateStr}_${timeStr}.xlsx`;
+
+  // Connect directly to PostgreSQL (same approach as backup.js)
+  const client = new Client({
+    connectionString: SUPABASE_DB_URL,
+    ssl: { rejectUnauthorized: false },
+  });
 
   try {
+    console.log("Connecting to database...");
+    await client.connect();
+    console.log("Connected ✓\n");
+
     console.log("========= [1/2] Exporting tables to Excel =========");
-    const workbook = await buildExcelWorkbook();
+    const workbook = await buildExcelWorkbook(client);
     await workbook.xlsx.writeFile(fileName);
     console.log(`Excel file created: ${fileName}`);
 
@@ -212,6 +215,8 @@ async function main() {
   } catch (error) {
     console.error("Export failed:", error);
     process.exit(1);
+  } finally {
+    await client.end();
   }
 }
 

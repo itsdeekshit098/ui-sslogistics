@@ -3,10 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { X, Zap, Settings, Save, Plus, UserPlus } from "lucide-react";
 import type { RepairModalProps } from "./repairModal.types";
-import {
-  REPAIR_OPTIONS,
-  getDefaultRepairFormData,
-} from "@/components/repairRecordsPage";
+import { getDefaultRepairFormData } from "@/components/repairRecordsPage";
 import type {
   Technician,
   SpecializationOption,
@@ -63,24 +60,46 @@ const RepairForm: React.FC<{
   >([]);
   const [showAddTechnician, setShowAddTechnician] = useState(false);
 
-  useEffect(() => {
-    // Fetch active and inactive technicians (so edit mode can still show them)
-    fetch("/api/technicians?include_inactive=true&pageSize=1000")
-      .then((res) => res.json())
-      .then((json) => {
-        const arr = json.data.data;
-        if (Array.isArray(arr)) setTechnicians(arr);
-      })
-      .catch(() => {});
+  // ─── Repair Options State ───
+  const [repairOptions, setRepairOptions] = useState<Record<string, string[]>>({
+    electrical: [],
+    mechanical: [],
+  });
+  const [addingIssue, setAddingIssue] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
 
-    fetch("/api/specializations")
-      .then((res) => res.json())
-      .then((json) => {
-        const arr = json.data;
-        if (Array.isArray(arr)) setSpecializations(arr);
-      })
-      .catch(() => {});
+  useEffect(() => {
+    setFetchingData(true);
+    Promise.all([
+      fetch("/api/technicians?include_inactive=true&pageSize=1000")
+        .then((res) => res.json())
+        .catch(() => ({ data: { data: [] } })),
+      fetch("/api/specializations")
+        .then((res) => res.json())
+        .catch(() => ({ data: [] })),
+      fetch("/api/repair-issues")
+        .then((res) => res.json())
+        .catch(() => ({ data: null })),
+    ]).then(([techRes, specRes, issuesRes]) => {
+      // Technicians
+      if (techRes?.data?.data && Array.isArray(techRes.data.data)) {
+        setTechnicians(techRes.data.data);
+      }
+      // Specializations
+      if (specRes?.data && Array.isArray(specRes.data)) {
+        setSpecializations(specRes.data);
+      }
+      // Repair Issues
+      if (issuesRes?.success && issuesRes.data) {
+        setRepairOptions(issuesRes.data);
+      }
+      setFetchingData(false);
+    });
   }, []);
+
+  const handleSpecializationAdded = (newSpec: SpecializationOption) => {
+    setSpecializations((prev) => [...prev, newSpec]);
+  };
 
   const handleTechnicianAdded = (newTech: Technician) => {
     setTechnicians((prev) => [...prev, newTech]);
@@ -114,35 +133,77 @@ const RepairForm: React.FC<{
     setSubmitError(null);
   };
 
-  // ─── Issue toggle ───
-
-  const toggleIssue = (issue: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      issues: prev.issues.includes(issue)
-        ? prev.issues.filter((i) => i !== issue)
-        : [...prev.issues, issue],
-    }));
-    setFieldErrors((prev) => ({ ...prev, issues: "" }));
-    setSubmitError(null);
-  };
-
   // ─── Add custom issue ───
 
-  const addCustomIssue = () => {
+  const addCustomIssue = async () => {
     const trimmed = customIssue.trim();
-    if (!trimmed) return;
-    if (formData.issues.includes(trimmed)) {
-      setCustomIssue("");
-      return; // already added
+    if (!trimmed || !formData.category) return;
+
+    // Prevent duplicate additions locally first
+    const existingOptions = repairOptions[formData.category] || [];
+    const normalizedNew = trimmed.toLowerCase().replace(/\s+/g, "");
+
+    const isDuplicate =
+      existingOptions.some(
+        (opt) => opt.toLowerCase().replace(/\s+/g, "") === normalizedNew,
+      ) ||
+      formData.issues.some(
+        (issue) => issue.toLowerCase().replace(/\s+/g, "") === normalizedNew,
+      );
+
+    if (isDuplicate) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        issues: "A similar issue already exists.",
+      }));
+      return;
     }
-    setFormData((prev) => ({
-      ...prev,
-      issues: [...prev.issues, trimmed],
-    }));
-    setCustomIssue("");
-    setFieldErrors((prev) => ({ ...prev, issues: "" }));
+
+    setAddingIssue(true);
     setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/repair-issues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: formData.category,
+          name: trimmed,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        const newIssueName = data.data.issue.name;
+        // Update local options state so it appears as a standard chip
+        setRepairOptions((prev) => ({
+          ...prev,
+          [formData.category!]: [
+            ...(prev[formData.category!] || []),
+            newIssueName,
+          ],
+        }));
+        // Select it automatically
+        setFormData((prev) => ({
+          ...prev,
+          issues: [...prev.issues, newIssueName],
+        }));
+        setCustomIssue("");
+        setFieldErrors((prev) => ({ ...prev, issues: "" }));
+      } else {
+        setFieldErrors((prev) => ({
+          ...prev,
+          issues: data.error || "Failed to add issue",
+        }));
+      }
+    } catch {
+      setFieldErrors((prev) => ({
+        ...prev,
+        issues: "Network error while adding issue",
+      }));
+    } finally {
+      setAddingIssue(false);
+    }
   };
 
   // ─── Input change ───
@@ -295,416 +356,483 @@ const RepairForm: React.FC<{
             </p>
           </div>
 
-          <div style={styles.formSection}>
-            {/* ── Vehicle ── */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>
-                Vehicle
-                {!isEdit && <span style={styles.requiredStar}>*</span>}
-              </label>
-              {isEdit && selectedVehicle ? (
-                <div
-                  style={{
-                    ...styles.readOnlyBadge,
-                    opacity: 0.6,
-                    cursor: "not-allowed",
-                    backgroundColor: "var(--muted)",
-                  }}
-                >
-                  {selectedVehicle.vehicle_number} — {selectedVehicle.company}{" "}
-                  {selectedVehicle.model}
-                </div>
-              ) : (
-                <>
-                  <Typeahead
-                    id="vehicleId"
-                    options={vehicles}
-                    value={formData.vehicleId}
-                    onValueChange={(vehicleId) => {
-                      setFormData((prev) => ({ ...prev, vehicleId }));
-                      setFieldErrors((prev) => ({ ...prev, vehicleId: "" }));
-                      setSubmitError(null);
-                    }}
-                    getOptionValue={(v) => v.id.toString()}
-                    getOptionLabel={(v) =>
-                      `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
-                    }
-                    getOptionKeywords={(v) => [
-                      v.vehicle_number,
-                      v.company,
-                      v.model,
-                    ]}
-                    placeholder="Search vehicle..."
-                    emptyMessage="No vehicles found."
-                    invalid={Boolean(fieldErrors.vehicleId)}
-                  />
-                  {fieldErrors.vehicleId && (
-                    <span style={styles.fieldError}>
-                      {fieldErrors.vehicleId}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* ── Date ── */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="date">
-                Date <span style={styles.requiredStar}>*</span>
-              </Label>
-              {isEdit ? (
-                <div
-                  style={{
-                    ...styles.readOnlyBadge,
-                    opacity: 0.6,
-                    cursor: "not-allowed",
-                    backgroundColor: "var(--muted)",
-                  }}
-                >
-                  {formData.date}
-                </div>
-              ) : (
-                <>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    style={
-                      fieldErrors.date ? { borderColor: "#ef4444" } : undefined
-                    }
-                  />
-                  {fieldErrors.date && (
-                    <span style={styles.fieldError}>{fieldErrors.date}</span>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* ── Category (radio-style cards) ── */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>
-                Category
-                {!isEdit && <span style={styles.requiredStar}>*</span>}
-              </label>
-
-              {isEdit ? (
-                <div
-                  style={{
-                    ...styles.readOnlyBadge,
-                    opacity: 0.6,
-                    cursor: "not-allowed",
-                    backgroundColor: "var(--muted)",
-                  }}
-                >
-                  {formData.category === "electrical" ? (
-                    <Zap
+          {fetchingData ? (
+            <LoadingSpinner
+              size="md"
+              centered
+              label="Loading repair form data..."
+            />
+          ) : (
+            <>
+              <div style={styles.formSection}>
+                {/* ── Vehicle ── */}
+                <div style={styles.fieldGroup}>
+                  <label style={styles.fieldLabel}>
+                    Vehicle
+                    {!isEdit && <span style={styles.requiredStar}>*</span>}
+                  </label>
+                  {isEdit && selectedVehicle ? (
+                    <div
                       style={{
-                        width: "1rem",
-                        height: "1rem",
-                        color: "#eab308",
-                      }}
-                    />
-                  ) : (
-                    <Settings
-                      style={{
-                        width: "1rem",
-                        height: "1rem",
-                        color: "#64748b",
-                      }}
-                    />
-                  )}
-                  <span style={{ textTransform: "capitalize" }}>
-                    {formData.category}
-                  </span>
-                </div>
-              ) : (
-                <div style={styles.categoryGrid}>
-                  {/* Electrical */}
-                  <div
-                    style={{
-                      ...styles.categoryCardBase,
-                      ...(formData.category === "electrical"
-                        ? styles.categoryCardSelected
-                        : {}),
-                    }}
-                    onClick={() => handleCategorySelect("electrical")}
-                  >
-                    <div>
-                      <div style={styles.categoryLabel}>Electrical</div>
-                      <div style={styles.categoryHint}>
-                        Battery, lights, wiring…
-                      </div>
-                    </div>
-                    <Zap
-                      style={{
-                        width: "1.25rem",
-                        height: "1.25rem",
-                        color: "#eab308",
-                      }}
-                    />
-                  </div>
-
-                  {/* Mechanical */}
-                  <div
-                    style={{
-                      ...styles.categoryCardBase,
-                      ...(formData.category === "mechanical"
-                        ? styles.categoryCardSelected
-                        : {}),
-                    }}
-                    onClick={() => handleCategorySelect("mechanical")}
-                  >
-                    <div>
-                      <div style={styles.categoryLabel}>Mechanical</div>
-                      <div style={styles.categoryHint}>
-                        Engine, brakes, clutch…
-                      </div>
-                    </div>
-                    <Settings
-                      style={{
-                        width: "1.25rem",
-                        height: "1.25rem",
-                        color: "#64748b",
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {fieldErrors.category && (
-                <span style={styles.fieldError}>{fieldErrors.category}</span>
-              )}
-            </div>
-
-            {/* ── Sub-issues (multi-select chips) ── */}
-            {formData.category && (
-              <div style={styles.fieldGroup}>
-                <label style={styles.fieldLabel}>
-                  Specific Issues <span style={styles.requiredStar}>*</span>
-                </label>
-                <div style={styles.issueGrid}>
-                  {REPAIR_OPTIONS[formData.category].map((issue) => {
-                    const selected = formData.issues.includes(issue);
-                    return (
-                      <div
-                        key={issue}
-                        style={{
-                          ...styles.issueChipBase,
-                          ...(selected ? styles.issueChipSelected : {}),
-                        }}
-                        onClick={() => toggleIssue(issue)}
-                      >
-                        {issue}
-                      </div>
-                    );
-                  })}
-                  {/* Show custom-added issues as selected chips with X */}
-                  {formData.issues
-                    .filter(
-                      (i) => !REPAIR_OPTIONS[formData.category!].includes(i),
-                    )
-                    .map((customItem) => (
-                      <div
-                        key={customItem}
-                        style={{
-                          ...styles.issueChipBase,
-                          ...styles.issueChipSelected,
-                        }}
-                        onClick={() => toggleIssue(customItem)}
-                      >
-                        {customItem}
-                        <span style={styles.customChipRemove}>
-                          <X style={{ width: "0.75rem", height: "0.75rem" }} />
-                        </span>
-                      </div>
-                    ))}
-                </div>
-                {/* Custom issue input */}
-                <div style={styles.customIssueRow}>
-                  <Input
-                    placeholder="Other issue not listed..."
-                    value={customIssue}
-                    onChange={(e) => setCustomIssue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addCustomIssue();
-                      }
-                    }}
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addCustomIssue}
-                    disabled={!customIssue.trim()}
-                    style={{ flexShrink: 0 }}
-                  >
-                    <Plus
-                      style={{
-                        width: "1rem",
-                        height: "1rem",
-                        marginRight: "0.25rem",
-                      }}
-                    />
-                    Add
-                  </Button>
-                </div>
-                {fieldErrors.issues && (
-                  <span style={styles.fieldError}>{fieldErrors.issues}</span>
-                )}
-              </div>
-            )}
-
-            {/* ── Technician & Cost ── */}
-            <div style={styles.formGrid}>
-              <div style={styles.fieldGroup}>
-                <Label htmlFor="technician">
-                  Technician <span style={styles.requiredStar}>*</span>
-                </Label>
-                <Typeahead
-                  id="technicianId"
-                  options={technicians}
-                  value={formData.technicianId}
-                  onValueChange={(technicianId) => {
-                    const tech = technicians.find(
-                      (t) => t.id.toString() === technicianId,
-                    );
-                    if (tech && !tech.is_active) return; // Prevent selecting inactive
-                    setFormData((prev) => ({ ...prev, technicianId }));
-                    setFieldErrors((prev) => ({ ...prev, technicianId: "" }));
-                    setSubmitError(null);
-                  }}
-                  getOptionValue={(t) => t.id.toString()}
-                  getOptionLabel={(t) =>
-                    t.is_active ? t.name : `${t.name} (Inactive)`
-                  }
-                  getOptionDescription={(t) => t.specializations.join(", ")}
-                  getOptionKeywords={(t) => [
-                    t.name,
-                    ...(t.specializations || []),
-                  ]}
-                  placeholder="Search technician..."
-                  emptyMessage="No technicians found."
-                  invalid={Boolean(fieldErrors.technicianId)}
-                  footer={
-                    <button
-                      type="button"
-                      style={styles.addTechnicianButton}
-                      onClick={() => setShowAddTechnician(true)}
-                      onMouseEnter={(e) => {
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.backgroundColor = "var(--secondary)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.backgroundColor = "var(--background)";
+                        ...styles.readOnlyBadge,
+                        opacity: 0.6,
+                        cursor: "not-allowed",
+                        backgroundColor: "var(--muted)",
                       }}
                     >
-                      <UserPlus style={{ width: "1rem", height: "1rem" }} />
-                      Add New Technician
-                    </button>
-                  }
-                />
-                {fieldErrors.technicianId && (
-                  <span style={styles.fieldError}>
-                    {fieldErrors.technicianId}
-                  </span>
-                )}
-              </div>
-              <div style={styles.fieldGroup}>
-                <Label htmlFor="cost">
-                  Cost (₹) <span style={styles.requiredStar}>*</span>
-                </Label>
-                <Input
-                  id="cost"
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={handleChange}
-                  onWheel={(e) => e.currentTarget.blur()}
-                  style={
-                    fieldErrors.cost ? { borderColor: "#ef4444" } : undefined
-                  }
-                />
-                {fieldErrors.cost && (
-                  <span style={styles.fieldError}>{fieldErrors.cost}</span>
-                )}
-              </div>
-            </div>
+                      {selectedVehicle.vehicle_number} —{" "}
+                      {selectedVehicle.company} {selectedVehicle.model}
+                    </div>
+                  ) : (
+                    <>
+                      <Typeahead
+                        id="vehicleId"
+                        options={vehicles}
+                        value={formData.vehicleId}
+                        onValueChange={(vehicleId) => {
+                          setFormData((prev) => ({ ...prev, vehicleId }));
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            vehicleId: "",
+                          }));
+                          setSubmitError(null);
+                        }}
+                        getOptionValue={(v) => v.id.toString()}
+                        getOptionLabel={(v) =>
+                          `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+                        }
+                        getOptionKeywords={(v) => [
+                          v.vehicle_number,
+                          v.company,
+                          v.model,
+                        ]}
+                        placeholder="Search vehicle..."
+                        emptyMessage="No vehicles found."
+                        invalid={Boolean(fieldErrors.vehicleId)}
+                      />
+                      {fieldErrors.vehicleId && (
+                        <span style={styles.fieldError}>
+                          {fieldErrors.vehicleId}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
 
-            {/* ── Description ── */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="description">Description / Notes</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe the work done or parts replaced..."
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
+                {/* ── Date ── */}
+                <div style={styles.fieldGroup}>
+                  <Label htmlFor="date">
+                    Date <span style={styles.requiredStar}>*</span>
+                  </Label>
+                  {isEdit ? (
+                    <div
+                      style={{
+                        ...styles.readOnlyBadge,
+                        opacity: 0.6,
+                        cursor: "not-allowed",
+                        backgroundColor: "var(--muted)",
+                      }}
+                    >
+                      {formData.date}
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={handleChange}
+                        style={
+                          fieldErrors.date
+                            ? { borderColor: "#ef4444" }
+                            : undefined
+                        }
+                      />
+                      {fieldErrors.date && (
+                        <span style={styles.fieldError}>
+                          {fieldErrors.date}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
 
-            {/* ── Status Toggle (edit only) ── */}
-            {isEdit && (
-              <div style={styles.statusSection}>
-                <div>
-                  <div style={styles.statusLabel}>Status</div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "var(--muted-foreground)",
-                    }}
-                  >
-                    {formData.status === "Open"
-                      ? "This repair is currently open"
-                      : "This repair has been closed"}
+                {/* ── Category (radio-style cards) ── */}
+                <div style={styles.fieldGroup}>
+                  <label style={styles.fieldLabel}>
+                    Category
+                    {!isEdit && <span style={styles.requiredStar}>*</span>}
+                  </label>
+
+                  {isEdit ? (
+                    <div
+                      style={{
+                        ...styles.readOnlyBadge,
+                        opacity: 0.6,
+                        cursor: "not-allowed",
+                        backgroundColor: "var(--muted)",
+                      }}
+                    >
+                      {formData.category === "electrical" ? (
+                        <Zap
+                          style={{
+                            width: "1rem",
+                            height: "1rem",
+                            color: "#eab308",
+                          }}
+                        />
+                      ) : (
+                        <Settings
+                          style={{
+                            width: "1rem",
+                            height: "1rem",
+                            color: "#64748b",
+                          }}
+                        />
+                      )}
+                      <span style={{ textTransform: "capitalize" }}>
+                        {formData.category}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={styles.categoryGrid}>
+                      {/* Electrical */}
+                      <div
+                        style={{
+                          ...styles.categoryCardBase,
+                          ...(formData.category === "electrical"
+                            ? styles.categoryCardSelected
+                            : {}),
+                        }}
+                        onClick={() => handleCategorySelect("electrical")}
+                      >
+                        <div>
+                          <div style={styles.categoryLabel}>Electrical</div>
+                          <div style={styles.categoryHint}>
+                            Battery, lights, wiring…
+                          </div>
+                        </div>
+                        <Zap
+                          style={{
+                            width: "1.25rem",
+                            height: "1.25rem",
+                            color: "#eab308",
+                          }}
+                        />
+                      </div>
+
+                      {/* Mechanical */}
+                      <div
+                        style={{
+                          ...styles.categoryCardBase,
+                          ...(formData.category === "mechanical"
+                            ? styles.categoryCardSelected
+                            : {}),
+                        }}
+                        onClick={() => handleCategorySelect("mechanical")}
+                      >
+                        <div>
+                          <div style={styles.categoryLabel}>Mechanical</div>
+                          <div style={styles.categoryHint}>
+                            Engine, brakes, clutch…
+                          </div>
+                        </div>
+                        <Settings
+                          style={{
+                            width: "1.25rem",
+                            height: "1.25rem",
+                            color: "#64748b",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {fieldErrors.category && (
+                    <span style={styles.fieldError}>
+                      {fieldErrors.category}
+                    </span>
+                  )}
+                </div>
+
+                {/* ── Sub-issues (Typeahead) ── */}
+                {formData.category && (
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.fieldLabel}>Specific Issues</label>
+                    <Typeahead
+                      placeholder={
+                        formData.category
+                          ? `Search ${formData.category.toLowerCase()} issues...`
+                          : "Select a category first"
+                      }
+                      options={
+                        formData.category && repairOptions[formData.category]
+                          ? repairOptions[formData.category].map((name) => ({
+                              id: name,
+                              name,
+                            }))
+                          : []
+                      }
+                      value="" // Empty so we can pick multiple
+                      onValueChange={(_val, option) => {
+                        if (option && !formData.issues.includes(option.name)) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            issues: [...prev.issues, option.name],
+                          }));
+                          setFieldErrors((prev) => ({ ...prev, issues: "" }));
+                        }
+                      }}
+                      getOptionLabel={(opt) => opt.name}
+                      getOptionValue={(opt) => opt.id}
+                      disabled={!formData.category}
+                      emptyMessage="No matching issues found."
+                      footer={
+                        <div style={{ padding: "0.25rem" }}>
+                          <div style={styles.customIssueRow}>
+                            <Input
+                              placeholder="Other issue not listed..."
+                              value={customIssue}
+                              onChange={(e) => {
+                                setCustomIssue(e.target.value);
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  issues: "",
+                                }));
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  addCustomIssue();
+                                }
+                              }}
+                              style={{ flex: 1 }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={addCustomIssue}
+                              disabled={!customIssue.trim() || addingIssue}
+                              style={{ flexShrink: 0 }}
+                            >
+                              {addingIssue ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <Plus
+                                  style={{
+                                    width: "1rem",
+                                    height: "1rem",
+                                    marginRight: "0.25rem",
+                                  }}
+                                />
+                              )}
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                      }
+                    />
+
+                    {/* Selected Issues Chips */}
+                    {formData.issues.length > 0 && (
+                      <div style={{ ...styles.issueGrid, marginTop: "0.5rem" }}>
+                        {formData.issues.map((issue) => (
+                          <div
+                            key={issue}
+                            style={{
+                              ...styles.issueChipBase,
+                              ...styles.issueChipSelected,
+                            }}
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                issues: prev.issues.filter((i) => i !== issue),
+                              }));
+                            }}
+                          >
+                            {issue}
+                            <span style={styles.customChipRemove}>
+                              <X
+                                style={{ width: "0.75rem", height: "0.75rem" }}
+                              />
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {fieldErrors.issues && (
+                      <span style={styles.fieldError}>
+                        {fieldErrors.issues}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Technician & Cost ── */}
+                <div style={styles.formGrid}>
+                  <div style={styles.fieldGroup}>
+                    <Label htmlFor="technician">
+                      Technician <span style={styles.requiredStar}>*</span>
+                    </Label>
+                    <Typeahead
+                      id="technicianId"
+                      options={technicians}
+                      value={formData.technicianId}
+                      onValueChange={(technicianId) => {
+                        const tech = technicians.find(
+                          (t) => t.id.toString() === technicianId,
+                        );
+                        if (tech && !tech.is_active) return; // Prevent selecting inactive
+                        setFormData((prev) => ({ ...prev, technicianId }));
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          technicianId: "",
+                        }));
+                        setSubmitError(null);
+                      }}
+                      getOptionValue={(t) => t.id.toString()}
+                      getOptionLabel={(t) =>
+                        t.is_active ? t.name : `${t.name} (Inactive)`
+                      }
+                      getOptionDescription={(t) => t.specializations.join(", ")}
+                      getOptionKeywords={(t) => [
+                        t.name,
+                        ...(t.specializations || []),
+                      ]}
+                      placeholder="Search technician..."
+                      emptyMessage="No technicians found."
+                      invalid={Boolean(fieldErrors.technicianId)}
+                      footer={
+                        <button
+                          type="button"
+                          style={styles.addTechnicianButton}
+                          onClick={() => setShowAddTechnician(true)}
+                          onMouseEnter={(e) => {
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.backgroundColor = "var(--secondary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.backgroundColor = "var(--background)";
+                          }}
+                        >
+                          <UserPlus style={{ width: "1rem", height: "1rem" }} />
+                          Add New Technician
+                        </button>
+                      }
+                    />
+                    {fieldErrors.technicianId && (
+                      <span style={styles.fieldError}>
+                        {fieldErrors.technicianId}
+                      </span>
+                    )}
+                  </div>
+                  <div style={styles.fieldGroup}>
+                    <Label htmlFor="cost">
+                      Cost (₹) <span style={styles.requiredStar}>*</span>
+                    </Label>
+                    <Input
+                      id="cost"
+                      type="number"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      value={formData.cost}
+                      onChange={handleChange}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      style={
+                        fieldErrors.cost
+                          ? { borderColor: "#ef4444" }
+                          : undefined
+                      }
+                    />
+                    {fieldErrors.cost && (
+                      <span style={styles.fieldError}>{fieldErrors.cost}</span>
+                    )}
                   </div>
                 </div>
+
+                {/* ── Description ── */}
+                <div style={styles.fieldGroup}>
+                  <Label htmlFor="description">Description / Notes</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe the work done or parts replaced..."
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={3}
+                  />
+                </div>
+
+                {/* ── Status Toggle (edit only) ── */}
+                {isEdit && (
+                  <div style={styles.statusSection}>
+                    <div>
+                      <div style={styles.statusLabel}>Status</div>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--muted-foreground)",
+                        }}
+                      >
+                        {formData.status === "Open"
+                          ? "This repair is currently open"
+                          : "This repair has been closed"}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant={
+                        formData.status === "Closed" ? "default" : "outline"
+                      }
+                      onClick={handleStatusToggle}
+                      style={{ minWidth: "6rem" }}
+                    >
+                      {formData.status === "Open" ? "Mark Closed" : "Reopen"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Error banner ── */}
+              {submitError && (
+                <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
+                  {submitError}
+                </div>
+              )}
+
+              {/* ── Footer ── */}
+              <div style={styles.footer}>
                 <Button
-                  type="button"
-                  variant={formData.status === "Closed" ? "default" : "outline"}
-                  onClick={handleStatusToggle}
-                  style={{ minWidth: "6rem" }}
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={loading}
                 >
-                  {formData.status === "Open" ? "Mark Closed" : "Reopen"}
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmit} disabled={loading}>
+                  {loading ? (
+                    <LoadingSpinner size="sm" className="mr-2" />
+                  ) : (
+                    <Save
+                      style={{
+                        width: "1rem",
+                        height: "1rem",
+                        marginRight: "0.5rem",
+                      }}
+                    />
+                  )}
+                  {loading
+                    ? "Saving..."
+                    : isEdit
+                      ? "Update Record"
+                      : "Save Record"}
                 </Button>
               </div>
-            )}
-          </div>
-
-          {/* ── Error banner ── */}
-          {submitError && (
-            <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
-              {submitError}
-            </div>
+            </>
           )}
-
-          {/* ── Footer ── */}
-          <div style={styles.footer}>
-            <Button variant="outline" onClick={handleClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <Save
-                  style={{
-                    width: "1rem",
-                    height: "1rem",
-                    marginRight: "0.5rem",
-                  }}
-                />
-              )}
-              {loading ? "Saving..." : isEdit ? "Update Record" : "Save Record"}
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -713,6 +841,7 @@ const RepairForm: React.FC<{
         isOpen={showAddTechnician}
         onClose={() => setShowAddTechnician(false)}
         onSuccess={handleTechnicianAdded}
+        onSpecializationAdded={handleSpecializationAdded}
         specializations={specializations}
         mode="nested"
       />

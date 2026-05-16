@@ -17,3 +17,6 @@ export const CM_DESC =
 
 export const CM_ACTION_WRAPPER =
   "flex gap-3 w-full [&_button]:flex-1";
+
+export const CM_ERROR =
+  "w-full bg-destructive/10 border border-destructive/20 text-destructive text-xs py-2.5 px-3 rounded-md animate-in fade-in slide-in-from-top-1";
