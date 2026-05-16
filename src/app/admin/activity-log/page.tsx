@@ -17,7 +17,6 @@ import {
   Clock,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Pagination } from "@/components/pagination";
 import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";

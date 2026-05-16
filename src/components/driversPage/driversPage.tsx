@@ -48,45 +48,78 @@ export function DriversPage() {
 
   // Debounce search
   useEffect(() => {
+    // Skip if search hasn't actually changed from what was fetched
+    if (searchQuery === debouncedSearch) return;
+
     debounceRef.current = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setPage(1);
+      fetchData({ overrideSearch: searchQuery, overridePage: 1 });
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setFetching(true);
-      setError(null);
+  const fetchData = useCallback(
+    async (opts?: { overrideSearch?: string; overridePage?: number; overridePageSize?: number }) => {
+      const search = opts?.overrideSearch ?? debouncedSearch;
+      const p = opts?.overridePage ?? page;
+      const ps = opts?.overridePageSize ?? pageSize;
 
-      const params = new URLSearchParams({
-        include_inactive: "true",
-        page: String(page),
-        pageSize: String(pageSize),
-      });
-      if (debouncedSearch) params.set("search", debouncedSearch);
+      try {
+        setFetching(true);
+        setError(null);
 
-      const res = await fetch(`/api/drivers?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch drivers");
+        const params = new URLSearchParams({
+          include_inactive: "true",
+          page: String(p),
+          pageSize: String(ps),
+        });
+        if (search) params.set("search", search);
 
-      const json = await res.json();
-      const result = json.data ?? {};
-      setDrivers(result.data ?? []);
-      setTotal(result.total ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setFetching(false);
-      setInitialLoading(false);
-    }
-  }, [page, pageSize, debouncedSearch]);
+        const res = await fetch(`/api/drivers?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch drivers");
 
+        const json = await res.json();
+        const result = json.data ?? {};
+        setDrivers(result.data ?? []);
+        setTotal(result.total ?? 0);
+
+        // Sync state on success
+        setPage(p);
+        setPageSize(ps);
+        setDebouncedSearch(search);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Network error");
+      } finally {
+        setFetching(false);
+        setInitialLoading(false);
+      }
+    },
+    [page, pageSize, debouncedSearch],
+  );
+
+  // Page change handlers — set state immediately for visual feedback
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    fetchData({ overridePage: p });
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+    fetchData({ overridePage: 1, overridePageSize: size });
+  };
+
+  // Initial fetch
+  const initialFetchDone = useRef(false);
   useEffect(() => {
-    if (!authLoading) fetchData();
-  }, [authLoading, fetchData]);
+    if (!authLoading && !initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
 
   const handleSuccess = () => {
     fetchData();
@@ -172,16 +205,16 @@ export function DriversPage() {
             <Input
               placeholder="Search by name, phone, place or DL..."
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-9 bg-background"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  fetchData({ overrideSearch: "", overridePage: 1 });
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Clear search"
               >
@@ -211,7 +244,12 @@ export function DriversPage() {
               }
               actionLabel={debouncedSearch ? "Clear Search" : "Add Driver"}
               onAction={
-                debouncedSearch ? () => setSearchQuery("") : handleAddNew
+                debouncedSearch
+                  ? () => {
+                      setSearchQuery("");
+                      fetchData({ overrideSearch: "", overridePage: 1 });
+                    }
+                  : handleAddNew
               }
               icon={Search}
             />
@@ -395,11 +433,8 @@ export function DriversPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setPage(1);
-                }}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </div>
           )}

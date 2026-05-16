@@ -29,7 +29,7 @@ const INLINE_SIZES: Record<LoadingSpinnerSize, number> = {
 
 /* ─── Style builders ─── */
 
-export function getDotsContainerStyle(size: LoadingSpinnerSize): CSSProperties {
+export function getDotsContainerStyle(): CSSProperties {
   return {
     display: "flex",
     flexDirection: "column",

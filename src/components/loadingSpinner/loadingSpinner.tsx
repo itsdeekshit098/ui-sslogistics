@@ -8,8 +8,6 @@ import {
   getDotStyle,
   DOTS_LABEL,
   getInlineSpinnerStyle,
-  INLINE_LABEL_WRAPPER,
-  INLINE_LABEL_TEXT,
 } from "./loadingSpinner.style";
 
 /**
@@ -59,7 +57,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   // ── Centered / label mode: bouncing dots ──
   return (
-    <div style={getDotsContainerStyle(size)} className={className}>
+    <div style={getDotsContainerStyle()} className={className}>
       <div style={getDotsRowStyle(size)}>
         {[0, 1, 2].map((i) => (
           <span key={i} style={getDotStyle(size, i)} />

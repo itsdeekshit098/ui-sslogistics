@@ -2,10 +2,19 @@
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SignOutButton } from "@/components/signOutButton";
+import { IdleTimeoutModal } from "@/components/idleTimeoutModal";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+
+/** 2 minutes idle → show warning */
+const IDLE_MS = 15 * 60 * 1000;
+
+/** 60 second countdown before auto-logout */
+const WARNING_MS = 30 * 1000;
 
 export default function AdminLayout({
   children,
@@ -15,12 +24,32 @@ export default function AdminLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Close mobile menu on route change
   useEffect(() => {
     const t = setTimeout(() => setIsMobileMenuOpen(false), 0);
     return () => clearTimeout(t);
   }, [pathname]);
+
+  // ── Idle Timeout ──────────────────────────────────────
+  const handleIdleTimeout = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Best-effort sign out
+    } finally {
+      router.push("/login");
+      router.refresh();
+    }
+  }, [router]);
+
+  const { showWarning, secondsLeft, stayLoggedIn } = useIdleTimeout({
+    idleMs: IDLE_MS,
+    warningMs: WARNING_MS,
+    onTimeout: handleIdleTimeout,
+  });
 
   return (
     <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
@@ -79,6 +108,14 @@ export default function AdminLayout({
           {children}
         </main>
       </div>
+
+      {/* Idle Timeout Warning */}
+      <IdleTimeoutModal
+        open={showWarning}
+        secondsLeft={secondsLeft}
+        onStay={stayLoggedIn}
+        onLogout={handleIdleTimeout}
+      />
     </div>
   );
 }

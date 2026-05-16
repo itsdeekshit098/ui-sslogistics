@@ -196,7 +196,7 @@ const RepairForm: React.FC<{
           issues: data.error || "Failed to add issue",
         }));
       }
-    } catch (err) {
+    } catch {
       setFieldErrors((prev) => ({
         ...prev,
         issues: "Network error while adding issue",

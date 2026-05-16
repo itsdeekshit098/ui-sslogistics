@@ -41,6 +41,7 @@ export async function GET(req: Request) {
     );
     const search = searchParams.get("search")?.trim() ?? "";
     const type = searchParams.get("type")?.trim() ?? "";
+    const status = searchParams.get("status")?.trim() ?? "";
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -57,6 +58,9 @@ export async function GET(req: Request) {
     if (type) {
       query = query.eq("vehicle_type", type);
     }
+    if (status) {
+      query = query.eq("status", status);
+    }
 
     query = query.range(from, to);
 
@@ -66,22 +70,27 @@ export async function GET(req: Request) {
       return apiError(error.message, 500);
     }
 
-    // Stats — always return total counts per status (unaffected by search/type/pagination)
-    const { data: statsData, error: statsError } = await supabaseAdmin
-      .from("vehicles")
-      .select("status");
+    // Stats — get aggregated counts via RPC for optimization
+    const { data: statsData, error: statsError } = await supabaseAdmin.rpc(
+      "get_vehicles_summary",
+      {
+        p_search: search || null,
+        p_type: type || null,
+        p_status: status || null,
+      }
+    );
 
-    const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
     if (statsError) {
       return apiError(statsError.message, 500);
     }
-    if (statsData) {
-      stats.total = statsData.length;
-      for (const v of statsData) {
-        if (v.status === "Active") stats.active++;
-        else if (v.status === "Maintenance") stats.maintenance++;
-        else if (v.status === "Idle") stats.idle++;
-      }
+
+    const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
+    if (statsData && statsData.length > 0) {
+      const row = statsData[0];
+      stats.total = Number(row.total_count || 0);
+      stats.active = Number(row.active_count || 0);
+      stats.maintenance = Number(row.maintenance_count || 0);
+      stats.idle = Number(row.idle_count || 0);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0, stats });

@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +23,7 @@ import {
 import { CreateDieselModal } from "@/components/createDieselModal";
 import { EditDieselModal } from "@/components/editDieselModal";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { Pagination } from "@/components/pagination";
 import { Typeahead } from "@/components/typeahead";
 import { useAuth } from "@/context/AuthContext";
@@ -58,7 +58,7 @@ export default function DieselRecordsPage() {
   const [recordsError, setRecordsError] = useState<string | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const { userRole } = useAuth();
+  const { userRole, loading: authLoading } = useAuth();
   const [deleteTarget, setDeleteTarget] =
     useState<DieselRecordWithVehicle | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -223,6 +223,17 @@ export default function DieselRecordsPage() {
     }
     return w;
   };
+
+  if (authLoading || vehiclesLoading)
+    return <PageLoadingSkeleton variant="admin" />;
+  if (vehiclesError && vehicles.length === 0)
+    return (
+      <ErrorState
+        title="Error"
+        description={vehiclesError}
+        onRetry={fetchVehicles}
+      />
+    );
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -786,7 +797,9 @@ export default function DieselRecordsPage() {
                                           }
                                         >
                                           <Trash2 className="h-3.5 w-3.5" />
-                                          <span className="sr-only">Delete</span>
+                                          <span className="sr-only">
+                                            Delete
+                                          </span>
                                         </Button>
                                       </div>
                                     </TableCell>

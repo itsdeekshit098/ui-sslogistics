@@ -24,6 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { ErrorState } from "@/components/errorState";
 import { Pagination } from "@/components/pagination";
 import { ConfirmModal } from "@/components/confirmModal";
 import { RepairModal } from "@/components/repairModal";
@@ -44,7 +46,7 @@ const fmtCurrency = (n: number) =>
   `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
 export function RepairRecordsPage() {
-  const { userRole } = useAuth();
+  const { userRole, loading: authLoading } = useAuth();
   const isAdmin = userRole === "admin";
   const canWrite = userRole === "admin" || userRole === "staff";
 
@@ -115,53 +117,89 @@ export function RepairRecordsPage() {
   }, []);
 
   // ─── Fetch records ───
-  const fetchRecords = useCallback(async () => {
-    if (!selectedVehicleId) {
-      setRecords([]);
-      setTotal(0);
-      return;
-    }
-    const includeSummary = !skipSummaryRef.current;
-    skipSummaryRef.current = false;
+  const fetchRecords = useCallback(
+    async (opts?: {
+      overrideVehicleId?: string;
+      overridePage?: number;
+      overridePageSize?: number;
+      overrideFromDate?: string;
+      overrideToDate?: string;
+      overrideCategory?: RepairCategory | "";
+      overrideStatus?: RepairStatus | "";
+      skipSummary?: boolean;
+    }) => {
+      const vid = opts?.overrideVehicleId ?? selectedVehicleId;
+      const p = opts?.overridePage ?? page;
+      const ps = opts?.overridePageSize ?? pageSize;
+      const fd = opts?.overrideFromDate ?? fromDate;
+      const td = opts?.overrideToDate ?? toDate;
+      const cat = opts?.overrideCategory ?? category;
+      const st = opts?.overrideStatus ?? status;
+      const includeSummary = !(opts?.skipSummary ?? skipSummaryRef.current);
+      skipSummaryRef.current = false;
 
-    setRecordsLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({
-        vehicle_id: selectedVehicleId,
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-      });
-      if (fromDate) params.set("from_date", fromDate);
-      if (toDate) params.set("to_date", toDate);
-      if (category) params.set("category", category);
-      if (status) params.set("status", status);
-      if (!includeSummary) params.set("include_summary", "false");
-
-      const res = await fetch(`/api/repair-records?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch repair records");
-      const json = await res.json();
-      const result = json.data ?? {};
-      setRecords(result.data ?? []);
-      setTotal(result.total ?? 0);
-      if (result.summary) {
-        setSummary(result.summary);
+      if (!vid) {
+        setRecords([]);
+        setTotal(0);
+        return;
       }
-    } catch {
-      setError("Failed to load repair records");
-      setRecords([]);
-      setTotal(0);
-    } finally {
-      setRecordsLoading(false);
-    }
-  }, [selectedVehicleId, page, pageSize, fromDate, toDate, category, status]);
 
+      setRecordsLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          vehicle_id: vid,
+          page: p.toString(),
+          pageSize: ps.toString(),
+        });
+        if (fd) params.set("from_date", fd);
+        if (td) params.set("to_date", td);
+        if (cat) params.set("category", cat);
+        if (st) params.set("status", st);
+        if (!includeSummary) params.set("include_summary", "false");
+
+        const res = await fetch(`/api/repair-records?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch repair records");
+        const json = await res.json();
+        const result = json.data ?? {};
+        setRecords(result.data ?? []);
+        setTotal(result.total ?? 0);
+        if (result.summary) {
+          setSummary(result.summary);
+        }
+
+        // Sync state on success
+        setSelectedVehicleId(vid);
+        setPage(p);
+        setPageSize(ps);
+        setFromDate(fd);
+        setToDate(td);
+        setCategory(cat);
+        setStatus(st);
+      } catch {
+        setError("Failed to load repair records");
+        setRecords([]);
+        setTotal(0);
+      } finally {
+        setRecordsLoading(false);
+      }
+    },
+    [selectedVehicleId, page, pageSize, fromDate, toDate, category, status],
+  );
+
+  // Initial fetch
+  const initialFetchDone = useRef(false);
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      if (selectedVehicleId) fetchRecords();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Vehicle select handler ───
   const handleVehicleChange = (id: string) => {
+    // Optimistic UI updates
     setSelectedVehicleId(id);
     setPage(1);
     setSearchQuery("");
@@ -170,6 +208,14 @@ export function RepairRecordsPage() {
     setCategory("");
     setStatus("");
     setDrawerFilters({ fromDate: "", toDate: "", category: "", status: "" });
+    fetchRecords({
+      overrideVehicleId: id,
+      overridePage: 1,
+      overrideFromDate: "",
+      overrideToDate: "",
+      overrideCategory: "",
+      overrideStatus: "",
+    });
   };
 
   // ─── Drawer handlers ───
@@ -179,22 +225,50 @@ export function RepairRecordsPage() {
   };
 
   const applyDrawerFilters = () => {
+    // Optimistic UI updates
     setFromDate(drawerFilters.fromDate);
     setToDate(drawerFilters.toDate);
     setCategory(drawerFilters.category);
     setStatus(drawerFilters.status);
     setPage(1);
     setDrawerOpen(false);
+    fetchRecords({
+      overridePage: 1,
+      overrideFromDate: drawerFilters.fromDate,
+      overrideToDate: drawerFilters.toDate,
+      overrideCategory: drawerFilters.category,
+      overrideStatus: drawerFilters.status,
+    });
   };
 
   const clearAllFilters = () => {
+    // Optimistic UI updates
     setFromDate("");
     setToDate("");
     setCategory("");
     setStatus("");
-    setDrawerFilters({ fromDate: "", toDate: "", category: "", status: "" });
     setPage(1);
+    setDrawerFilters({ fromDate: "", toDate: "", category: "", status: "" });
     setDrawerOpen(false);
+    fetchRecords({
+      overridePage: 1,
+      overrideFromDate: "",
+      overrideToDate: "",
+      overrideCategory: "",
+      overrideStatus: "",
+    });
+  };
+
+  // Page change handlers — set state immediately for visual feedback
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    fetchRecords({ overridePage: p, skipSummary: true });
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+    fetchRecords({ overridePageSize: size, overridePage: 1 });
   };
 
   const activeFilterCount = [fromDate, toDate, category, status].filter(
@@ -255,6 +329,11 @@ export function RepairRecordsPage() {
   const selectedVehicle = vehicles.find(
     (v) => v.id.toString() === selectedVehicleId,
   );
+
+  if (authLoading || vehiclesLoading)
+    return <PageLoadingSkeleton variant="admin" />;
+  if (error && vehicles.length === 0)
+    return <ErrorState title="Error" description={error} />;
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
@@ -599,14 +678,8 @@ export function RepairRecordsPage() {
                   page={page}
                   totalCount={total}
                   pageSize={pageSize}
-                  onPageChange={(p) => {
-                    skipSummaryRef.current = true;
-                    setPage(p);
-                  }}
-                  onPageSizeChange={(size) => {
-                    setPageSize(size);
-                    setPage(1);
-                  }}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
                 />
               </div>
             )}

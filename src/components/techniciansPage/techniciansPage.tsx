@@ -51,15 +51,18 @@ export function TechniciansPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Debounce search input
+  // Debounce search
   useEffect(() => {
+    // Skip if search hasn't actually changed from what was fetched
+    if (searchQuery === debouncedSearch) return;
+
     debounceRef.current = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setPage(1);
+      fetchTechnicians({ overrideSearch: searchQuery, overridePage: 1 });
     }, 500);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // Fetch specializations once
@@ -75,33 +78,57 @@ export function TechniciansPage() {
     }
   }, []);
 
-  // Fetch technicians (server-side paginated + search)
-  const fetchTechnicians = useCallback(async () => {
-    try {
-      setFetching(true);
-      setError(null);
+  // Fetch technicians (server-side paginated + search) — atomic, accepts overrides
+  const fetchTechnicians = useCallback(
+    async (opts?: { overrideSearch?: string; overridePage?: number; overridePageSize?: number }) => {
+      const search = opts?.overrideSearch ?? debouncedSearch;
+      const p = opts?.overridePage ?? page;
+      const ps = opts?.overridePageSize ?? pageSize;
 
-      const params = new URLSearchParams({
-        include_inactive: "true",
-        page: String(page),
-        pageSize: String(pageSize),
-      });
-      if (debouncedSearch) params.set("search", debouncedSearch);
+      try {
+        setFetching(true);
+        setError(null);
 
-      const res = await fetch(`/api/technicians?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch technicians");
+        const params = new URLSearchParams({
+          include_inactive: "true",
+          page: String(p),
+          pageSize: String(ps),
+        });
+        if (search) params.set("search", search);
 
-      const json = await res.json();
-      const result = json.data ?? {};
-      setTechnicians(result.data ?? []);
-      setTotal(result.total ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setFetching(false);
-      setInitialLoading(false);
-    }
-  }, [page, pageSize, debouncedSearch]);
+        const res = await fetch(`/api/technicians?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch technicians");
+
+        const json = await res.json();
+        const result = json.data ?? {};
+        setTechnicians(result.data ?? []);
+        setTotal(result.total ?? 0);
+
+        // Sync state on success
+        setPage(p);
+        setPageSize(ps);
+        setDebouncedSearch(search);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Network error");
+      } finally {
+        setFetching(false);
+        setInitialLoading(false);
+      }
+    },
+    [page, pageSize, debouncedSearch],
+  );
+
+  // Page change handler — set state immediately for visual feedback
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    fetchTechnicians({ overridePage: p });
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+    fetchTechnicians({ overridePage: 1, overridePageSize: size });
+  };
 
   useEffect(() => {
     if (!authLoading) {
@@ -109,9 +136,15 @@ export function TechniciansPage() {
     }
   }, [authLoading, fetchSpecializations]);
 
+  // Initial fetch
+  const initialFetchDone = useRef(false);
   useEffect(() => {
-    if (!authLoading) fetchTechnicians();
-  }, [authLoading, fetchTechnicians]);
+    if (!authLoading && !initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchTechnicians();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
 
   const handleSuccess = () => {
     fetchTechnicians();
@@ -224,7 +257,10 @@ export function TechniciansPage() {
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  fetchTechnicians({ overrideSearch: "", overridePage: 1 });
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Clear search"
               >
@@ -254,7 +290,12 @@ export function TechniciansPage() {
               }
               actionLabel={debouncedSearch ? "Clear Search" : "Add Technician"}
               onAction={
-                debouncedSearch ? () => setSearchQuery("") : handleAddNew
+                debouncedSearch
+                  ? () => {
+                      setSearchQuery("");
+                      fetchTechnicians({ overrideSearch: "", overridePage: 1 });
+                    }
+                  : handleAddNew
               }
               icon={Search}
             />
@@ -455,11 +496,8 @@ export function TechniciansPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setPage(1);
-                }}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </div>
           )}

@@ -23,10 +23,10 @@ import {
   Trash2,
   Pencil,
   ArrowLeft,
-  Filter,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -52,6 +52,7 @@ import {
   getStatusBadgeVariant,
 } from "./vehicles.utils";
 import HighlightMatch from "./highlightMatch";
+import * as styles from "./vehiclesPage.style";
 import {
   CA_VEHICLES_CONTAINER,
   CA_VEHICLES_HEADER_TITLE,
@@ -62,6 +63,7 @@ import {
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { CreateVehicleModal } from "@/components/createVehicleModal";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -69,14 +71,20 @@ import { Pagination } from "@/components/pagination";
 
 export default function VehiclesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const { userRole } = useAuth();
+  const { userRole, loading: authLoading } = useAuth();
 
-  // Server-side pagination & filtering
-  const PAGE_SIZE = 10;
-  const [page, setPage] = useState(1);
+  // ─── Consolidated filter state ───
+  const [pageSize, setPageSize] = useState(
+    Math.max(10, Number(searchParams.get("pageSize")) || 10),
+  );
+  const [page, setPage] = useState(
+    Math.max(1, Number(searchParams.get("page")) || 1),
+  );
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({
     total: 0,
@@ -84,60 +92,178 @@ export default function VehiclesPage() {
     maintenance: 0,
     idle: 0,
   });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<VehicleType | "all">("all");
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || "",
+  );
+  const [debouncedQuery, setDebouncedQuery] = useState(
+    searchParams.get("search") || "",
+  );
+  const [typeFilter, setTypeFilter] = useState<VehicleType | "all">(
+    (searchParams.get("type") as VehicleType | "all") || "all",
+  );
+  const [statusFilter, setStatusFilter] = useState<string>(
+    searchParams.get("status") || "",
+  );
+  const [drawerFilters, setDrawerFilters] = useState<{
+    type: VehicleType | "all";
+    status: string;
+  }>({
+    type: (searchParams.get("type") as VehicleType | "all") || "all",
+    status: searchParams.get("status") || "",
+  });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce search input
+  const hasActiveFilters = searchQuery !== "" || typeFilter !== "all" || statusFilter !== "";
+
+  // ─── URL sync ───
+  const syncUrl = useCallback(
+    (
+      p: number,
+      ps: number,
+      search: string,
+      type: VehicleType | "all",
+      status: string,
+    ) => {
+      const params = new URLSearchParams();
+      if (p > 1) params.set("page", String(p));
+      if (ps !== 10) params.set("pageSize", String(ps));
+      if (search) params.set("search", search);
+      if (type !== "all") params.set("type", type);
+      if (status) params.set("status", status);
+      const qs = params.toString();
+      router.replace(`/admin/vehicles${qs ? `?${qs}` : ""}`, {
+        scroll: false,
+      });
+    },
+    [router],
+  );
+
+  // ─── Atomic fetch — accepts explicit params to avoid stale-state cascades ───
+  const fetchVehicles = useCallback(
+    async (opts?: {
+      overridePage?: number;
+      overridePageSize?: number;
+      overrideSearch?: string;
+      overrideType?: VehicleType | "all";
+      overrideStatus?: string;
+    }) => {
+      const p = opts?.overridePage ?? page;
+      const ps = opts?.overridePageSize ?? pageSize;
+      const search = opts?.overrideSearch ?? debouncedQuery;
+      const type = opts?.overrideType ?? typeFilter;
+      const st = opts?.overrideStatus ?? statusFilter;
+
+      setLoading(true);
+      setFetchError(null);
+      // Optimistic URL sync
+      syncUrl(p, ps, search, type, st);
+
+      try {
+        const params = new URLSearchParams({
+          page: String(p),
+          pageSize: String(ps),
+        });
+        if (search) params.set("search", search);
+        if (type !== "all") params.set("type", type);
+        if (st) params.set("status", st);
+
+        const res = await fetch(`/api/vehicles?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch");
+
+        const json = await res.json();
+        const result = json.data ?? {};
+        setVehicles(result.data ?? []);
+        setTotal(result.total ?? 0);
+        if (result.stats) setStats(result.stats);
+
+        // Sync state on success
+        setPage(p);
+        setPageSize(ps);
+        setDebouncedQuery(search);
+        setTypeFilter(type);
+        setStatusFilter(st);
+      } catch {
+        setFetchError(
+          "We couldn\u2019t load your vehicles. Please check your connection and try again.",
+        );
+      } finally {
+        setLoading(false);
+        setInitialLoading(false);
+      }
+    },
+    [page, pageSize, debouncedQuery, typeFilter, statusFilter, syncUrl],
+  );
+
+  // Initial fetch on mount
+  const initialFetchDone = useRef(false);
   useEffect(() => {
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchVehicles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounce search — fires a single atomic fetch with page=1
+  useEffect(() => {
+    // Skip if search hasn't actually changed from what was fetched
+    if (searchQuery === debouncedQuery) return;
+
     debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-      setPage(1);
+      fetchVehicles({ overrideSearch: searchQuery, overridePage: 1 });
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
-  // Reset page when type filter changes
-  useEffect(() => {
+  // ─── Filter/page change handlers (all atomic, no cascading effects) ───
+  const openDrawer = () => {
+    setDrawerFilters({ type: typeFilter, status: statusFilter });
+    setIsDrawerOpen(true);
+  };
+
+  const applyDrawerFilters = () => {
+    setTypeFilter(drawerFilters.type);
+    setStatusFilter(drawerFilters.status);
     setPage(1);
-  }, [typeFilter]);
+    setIsDrawerOpen(false);
+    fetchVehicles({
+      overrideType: drawerFilters.type,
+      overrideStatus: drawerFilters.status,
+      overridePage: 1,
+    });
+  };
 
-  const hasActiveFilters = searchQuery !== "" || typeFilter !== "all";
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setTypeFilter("all");
+    setStatusFilter("");
+    setDrawerFilters({ type: "all", status: "" });
+    setIsDrawerOpen(false);
+    setPage(1);
+    fetchVehicles({
+      overrideSearch: "",
+      overrideType: "all",
+      overrideStatus: "",
+      overridePage: 1,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fetchVehicles = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        pageSize: String(PAGE_SIZE),
-      });
-      if (debouncedQuery) params.set("search", debouncedQuery);
-      if (typeFilter !== "all") params.set("type", typeFilter);
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    fetchVehicles({ overridePage: p });
+  };
 
-      const res = await fetch(`/api/vehicles?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-
-      const json = await res.json();
-      const result = json.data ?? {};
-      setVehicles(result.data ?? []);
-      setTotal(result.total ?? 0);
-      if (result.stats) setStats(result.stats);
-    } catch {
-      setFetchError(
-        "We couldn\u2019t load your vehicles. Please check your connection and try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [page, debouncedQuery, typeFilter]);
-
-  useEffect(() => {
-    fetchVehicles();
-  }, [fetchVehicles]);
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+    fetchVehicles({ overridePage: 1, overridePageSize: size });
+  };
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -165,14 +291,7 @@ export default function VehiclesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const resetFilters = useCallback(() => {
-    setSearchQuery("");
-    setDebouncedQuery("");
-    setTypeFilter("all");
-    setPage(1);
-  }, []);
-
-  const fetchVehiclesRefetch = async () => {
+  const fetchVehiclesRefetch = () => {
     // Re-fetch current page (used after create/edit/delete)
     fetchVehicles();
   };
@@ -302,6 +421,11 @@ export default function VehiclesPage() {
       setIsDeleting(false);
     }
   };
+
+  if (authLoading || initialLoading)
+    return <PageLoadingSkeleton variant="admin" />;
+  if (fetchError && vehicles.length === 0)
+    return <ErrorState title="Error" description={fetchError} onRetry={() => fetchVehicles()} />;
 
   return (
     <div className={CA_VEHICLES_CONTAINER}>
@@ -434,40 +558,37 @@ export default function VehiclesPage() {
                   placeholder="Search vehicle number..."
                   className="pl-8 pr-8"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                  }}
                 />
                 {searchQuery && (
                   <button
                     data-testid="vehicles-search-clear-btn"
                     type="button"
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      setSearchQuery("");
+                      fetchVehicles({ overrideSearch: "", overridePage: 1 });
+                    }}
                     className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
-              <Select
-                value={typeFilter}
-                onValueChange={(value) =>
-                  setTypeFilter(value as VehicleType | "all")
-                }
+              <Button
+                variant="outline"
+                onClick={openDrawer}
+                className="gap-2 shrink-0"
               >
-                <SelectTrigger className="w-full sm:w-40">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="All Types" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {VEHICLE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type === "Tempo" ? "Tempo Traveller" : type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+                {(typeFilter !== "all" || statusFilter !== "") && (
+                  <span style={styles.activeFilterBadge}>
+                    {(typeFilter !== "all" ? 1 : 0) + (statusFilter !== "" ? 1 : 0)}
+                  </span>
+                )}
+              </Button>
               {hasActiveFilters && (
                 <Button
                   data-testid="vehicles-filter-clear-btn"
@@ -751,14 +872,14 @@ export default function VehiclesPage() {
             </Table>
           </div>
 
-          {total > PAGE_SIZE && (
+          {total > 0 && (
             <div className="px-4 md:px-6 pb-4">
               <Pagination
                 page={page}
                 totalCount={total}
-                pageSize={PAGE_SIZE}
-                onPageChange={setPage}
-                onPageSizeChange={() => {}}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </div>
           )}
@@ -1076,6 +1197,82 @@ export default function VehiclesPage() {
         onClose={() => setIsCreateOpen(false)}
         onSuccess={fetchVehiclesRefetch}
       />
+      {/* ── Filter Drawer ── */}
+      {isDrawerOpen && (
+        <div style={styles.drawerContainer}>
+          <div style={styles.drawerHeader}>
+            <span style={styles.drawerTitle}>Filters</span>
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(false)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0.25rem",
+                color: "var(--foreground)",
+              }}
+            >
+              <X style={{ width: "1.25rem", height: "1.25rem" }} />
+            </button>
+          </div>
+
+          <div style={styles.drawerBody} className="scrollbar-custom">
+            <div style={styles.drawerFieldGroup}>
+              <label style={styles.drawerFieldLabel}>Type of Vehicle</label>
+              <select
+                value={drawerFilters.type}
+                onChange={(e) =>
+                  setDrawerFilters((p) => ({
+                    ...p,
+                    type: e.target.value as VehicleType | "all",
+                  }))
+                }
+                style={styles.drawerSelect}
+              >
+                <option value="all">All Types</option>
+                {VEHICLE_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t === "Tempo" ? "Tempo Traveller" : t}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.drawerFieldGroup}>
+              <label style={styles.drawerFieldLabel}>Status</label>
+              <select
+                value={drawerFilters.status}
+                onChange={(e) =>
+                  setDrawerFilters((p) => ({
+                    ...p,
+                    status: e.target.value,
+                  }))
+                }
+                style={styles.drawerSelect}
+              >
+                <option value="">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Idle">Idle</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={styles.drawerFooter}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDrawerOpen(false)}
+              className="flex-1"
+            >
+              Close
+            </Button>
+            <Button onClick={applyDrawerFilters} className="flex-1">
+              Apply Filters
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
