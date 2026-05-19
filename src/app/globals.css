@@ -80,7 +80,9 @@
 
 /* ─── Loading Animations ─── */
 @keyframes bounce-dot {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0.4);
     opacity: 0.3;
   }
@@ -91,8 +93,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /*
@@ -288,7 +294,57 @@
     0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
 }
 
-/* ─── Scrollbar Custom Utility ─── */
+/* ─── Global Modern Scrollbar ─── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: var(--secondary) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.3s ease;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--secondary);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--primary);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Smooth scroll everywhere */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ─── Scrollbar Custom Utility (explicit use) ─── */
 @layer utilities {
   .scrollbar-custom {
     scrollbar-width: thin;
@@ -305,8 +361,9 @@
 
   .scrollbar-custom::-webkit-scrollbar-thumb {
     background-color: var(--secondary);
-    border-radius: 20px;
+    border-radius: 999px;
     border: 2px solid transparent;
+    background-clip: content-box;
   }
 
   .scrollbar-custom:hover::-webkit-scrollbar-thumb {

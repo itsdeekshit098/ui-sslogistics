@@ -46,7 +46,7 @@ function parseDevice(ua: string | null): string {
 
 export async function GET(req: Request) {
   try {
-    const authUser = await requireStrictAdminAuth();
+    await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);

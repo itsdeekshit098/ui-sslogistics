@@ -24,9 +24,13 @@ export function Navbar() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <Link href="/" data-testid="navbar-logo-link" className="flex items-center gap-2">
-            <span className="text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight text-brand">
-              Sri Srinivasa
+          <Link
+            href="/"
+            data-testid="navbar-logo-link"
+            className="flex items-center gap-2"
+          >
+            <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#091324] dark:text-[#F8FAFC]">
+              SRI SRINIVASA
             </span>
           </Link>
         </div>

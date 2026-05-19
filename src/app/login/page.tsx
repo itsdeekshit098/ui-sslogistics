@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +47,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4 relative">
-      <Link data-testid="app-login-link-1"
+      <Link
+        data-testid="app-login-link-1"
         href="/"
         className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
       >
@@ -55,8 +58,8 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] shadow-[var(--card-shadow)] border border-border p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight text-brand mb-2">
-            Sri Srinivasa
+          <h1 className="text-3xl font-black tracking-tighter text-[#091324] dark:text-[#F8FAFC] mb-2">
+            SRI SRINIVASA
           </h1>
           <p className="text-muted-foreground text-sm">Operations Portal</p>
         </div>
@@ -93,15 +96,39 @@ export default function LoginPage() {
             >
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-input bg-background rounded-[var(--input-radius)] focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-input bg-background rounded-[var(--input-radius)] focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors pr-10"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/20 rounded-sm"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={showPassword ? "hide" : "show"}
+                    initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </button>
+            </div>
           </div>
 
           <button

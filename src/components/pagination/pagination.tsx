@@ -95,7 +95,7 @@ export default function Pagination({
           disabled={page <= 1}
           aria-label="Previous page"
         >
-          <ChevronLeft className="h-4 w-4 cursor-pointer" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
 
         {getPageNumbers().map((pageNum, idx) => {
@@ -131,7 +131,7 @@ export default function Pagination({
           disabled={page >= totalPages}
           aria-label="Next page"
         >
-          <ChevronRight className="h-4 w-4 cursor-pointer" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -72,7 +72,13 @@ export function NavigationProgress() {
         !href.startsWith("mailto:") &&
         !href.startsWith("tel:");
 
-      if (isInternal && href !== pathname) {
+      // Don't trigger for hash links on the same page
+      const isHashLink =
+        href.startsWith("#") ||
+        href.startsWith(`${pathname}#`) ||
+        (pathname === "/" && href.startsWith("/#"));
+
+      if (isInternal && !isHashLink && href !== pathname) {
         startProgress();
       }
     };

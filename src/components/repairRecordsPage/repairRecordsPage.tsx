@@ -32,6 +32,7 @@ import { RepairModal } from "@/components/repairModal";
 import { Typeahead } from "@/components/typeahead";
 import { useAuth } from "@/context/AuthContext";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
+import type { Technician, SpecializationOption } from "@/components/techniciansPage";
 import type {
   RepairRecordWithVehicle,
   RepairSummary,
@@ -52,6 +53,12 @@ export function RepairRecordsPage() {
 
   // ─── Data State ───
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [specializations, setSpecializations] = useState<SpecializationOption[]>([]);
+  const [repairOptions, setRepairOptions] = useState<Record<string, string[]>>({
+    electrical: [],
+    mechanical: [],
+  });
   const [records, setRecords] = useState<RepairRecordWithVehicle[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -99,21 +106,50 @@ export function RepairRecordsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // ─── Fetch vehicles ───
+  // ─── Fetch Reference Data ───
   useEffect(() => {
-    const fetchVehicles = async () => {
+    const fetchReferenceData = async () => {
       try {
-        const res = await fetch("/api/vehicles");
-        if (!res.ok) throw new Error("Failed to fetch vehicles");
-        const json = await res.json();
-        setVehicles(json.data?.data ?? []);
+        const [vehiclesRes, techRes, specRes, issuesRes] = await Promise.all([
+          fetch("/api/vehicles").then(r => r.json()).catch(() => ({ data: { data: [] } })),
+          fetch("/api/technicians?include_inactive=true&pageSize=1000").then(r => r.json()).catch(() => ({ data: { data: [] } })),
+          fetch("/api/specializations").then(r => r.json()).catch(() => ({ data: [] })),
+          fetch("/api/repair-issues").then(r => r.json()).catch(() => ({ data: null })),
+        ]);
+
+        setVehicles(vehiclesRes?.data?.data ?? []);
+        if (techRes?.data?.data && Array.isArray(techRes.data.data)) {
+          setTechnicians(techRes.data.data);
+        }
+        if (specRes?.data && Array.isArray(specRes.data)) {
+          setSpecializations(specRes.data);
+        }
+        if (issuesRes?.success && issuesRes.data) {
+          setRepairOptions(issuesRes.data);
+        }
       } catch {
-        setError("Failed to load vehicles");
+        setError("Failed to load page data");
       } finally {
         setVehiclesLoading(false);
       }
     };
-    fetchVehicles();
+    fetchReferenceData();
+  }, []);
+
+  // ─── Callbacks for Inline Data Creation ───
+  const handleIssueAdded = useCallback((category: string, issueName: string) => {
+    setRepairOptions((prev) => ({
+      ...prev,
+      [category]: [...(prev[category] || []), issueName],
+    }));
+  }, []);
+
+  const handleTechnicianAdded = useCallback((newTech: Technician) => {
+    setTechnicians((prev) => [...prev, newTech]);
+  }, []);
+
+  const handleSpecializationAdded = useCallback((newSpec: SpecializationOption) => {
+    setSpecializations((prev) => [...prev, newSpec]);
   }, []);
 
   // ─── Fetch records ───
@@ -799,6 +835,12 @@ export function RepairRecordsPage() {
           onClose={() => setModalOpen(false)}
           onSuccess={fetchRecords}
           vehicles={vehicles}
+          technicians={technicians}
+          specializations={specializations}
+          repairOptions={repairOptions}
+          onIssueAdded={handleIssueAdded}
+          onTechnicianAdded={handleTechnicianAdded}
+          onSpecializationAdded={handleSpecializationAdded}
           mode="create"
         />
       ) : (
@@ -808,6 +850,12 @@ export function RepairRecordsPage() {
             onClose={() => setModalOpen(false)}
             onSuccess={fetchRecords}
             vehicles={vehicles}
+            technicians={technicians}
+            specializations={specializations}
+            repairOptions={repairOptions}
+            onIssueAdded={handleIssueAdded}
+            onTechnicianAdded={handleTechnicianAdded}
+            onSpecializationAdded={handleSpecializationAdded}
             mode="edit"
             record={editRecord}
           />

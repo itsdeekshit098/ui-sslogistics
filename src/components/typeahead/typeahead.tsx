@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const Typeahead = <TOption,>({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const clearingRef = useRef(false);
+  const programmaticFocusRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -55,11 +57,35 @@ const Typeahead = <TOption,>({
 
   const selectedLabel = selectedOption ? getOptionLabel(selectedOption) : "";
 
+  const listboxRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
+
+  useEffect(() => {
+    if (open && rootRef.current) {
+      const updateRect = () => setDropdownRect(rootRef.current!.getBoundingClientRect());
+      updateRect();
+      window.addEventListener("scroll", updateRect, true);
+      window.addEventListener("resize", updateRect);
+      return () => {
+        window.removeEventListener("scroll", updateRect, true);
+        window.removeEventListener("resize", updateRect);
+      };
+    } else {
+      const handle = requestAnimationFrame(() => setDropdownRect(null));
+      return () => cancelAnimationFrame(handle);
+    }
+  }, [open]);
+
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
+      const target = event.target as Node;
+      if (
+        (rootRef.current && rootRef.current.contains(target)) ||
+        (listboxRef.current && listboxRef.current.contains(target))
+      ) {
+        return;
       }
+      setOpen(false);
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -101,7 +127,10 @@ const Typeahead = <TOption,>({
       onValueChange(getOptionValue(option), option);
       setSearchText(getOptionLabel(option));
       setOpen(false);
-      inputRef.current?.focus();
+      if (document.activeElement !== inputRef.current) {
+        programmaticFocusRef.current = true;
+        inputRef.current?.focus();
+      }
     },
     [getOptionLabel, getOptionValue, onValueChange],
   );
@@ -166,7 +195,8 @@ const Typeahead = <TOption,>({
         const nextFocusedElement = event.relatedTarget;
         if (
           nextFocusedElement instanceof Node &&
-          rootRef.current?.contains(nextFocusedElement)
+          (rootRef.current?.contains(nextFocusedElement) ||
+           listboxRef.current?.contains(nextFocusedElement))
         ) {
           return;
         }
@@ -195,6 +225,10 @@ const Typeahead = <TOption,>({
         onFocus={() => {
           if (clearingRef.current) {
             clearingRef.current = false;
+            return;
+          }
+          if (programmaticFocusRef.current) {
+            programmaticFocusRef.current = false;
             return;
           }
           setSearchText(selectedLabel);
@@ -226,11 +260,20 @@ const Typeahead = <TOption,>({
       )}
       <ChevronDown className="pointer-events-none absolute right-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
-      {open && !disabled && (
+      {open && !disabled && dropdownRect && createPortal(
         <div
+          ref={listboxRef}
           id={listboxId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-[calc(var(--input-radius)+4px)] border border-border bg-background p-1.5 text-sm text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)]"
+          style={{
+            position: "fixed",
+            left: dropdownRect.left,
+            width: dropdownRect.width,
+            ...(window.innerHeight - dropdownRect.bottom < 250 && dropdownRect.top > (window.innerHeight - dropdownRect.bottom)
+              ? { bottom: window.innerHeight - dropdownRect.top + 6 }
+              : { top: dropdownRect.bottom + 6 }),
+          }}
+          className="z-[9999] max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-background p-1 text-sm text-foreground shadow-2xl drop-shadow-sm"
         >
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option, index) => {
@@ -277,7 +320,8 @@ const Typeahead = <TOption,>({
             </div>
           )}
           {footer}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

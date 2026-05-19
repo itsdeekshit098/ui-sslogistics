@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -70,6 +72,18 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/unauthorized";
       url.searchParams.set("email", user.email || "");
+      return NextResponse.redirect(url);
+    }
+
+    // ── Page-level RBAC for /admin/* routes ──────────────────
+    // Even though the user has a valid role, they may not be
+    // allowed to view this specific page. Redirect to dashboard.
+    if (
+      isAdminRoute &&
+      !canRoleAccessPage(request.nextUrl.pathname, role as UserRole)
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
       return NextResponse.redirect(url);
     }
   }
