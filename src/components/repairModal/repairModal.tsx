@@ -29,7 +29,25 @@ const RepairForm: React.FC<{
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
   vehicles: RepairModalProps["vehicles"];
-}> = ({ mode, record, onClose, onSuccess, vehicles }) => {
+  technicians: RepairModalProps["technicians"];
+  specializations: RepairModalProps["specializations"];
+  repairOptions: RepairModalProps["repairOptions"];
+  onIssueAdded: RepairModalProps["onIssueAdded"];
+  onTechnicianAdded: RepairModalProps["onTechnicianAdded"];
+  onSpecializationAdded: RepairModalProps["onSpecializationAdded"];
+}> = ({
+  mode,
+  record,
+  onClose,
+  onSuccess,
+  vehicles,
+  technicians,
+  specializations,
+  repairOptions,
+  onIssueAdded,
+  onTechnicianAdded,
+  onSpecializationAdded,
+}) => {
   const isEdit = mode === "edit";
 
   const [formData, setFormData] = useState<RepairFormData>(() => {
@@ -53,56 +71,15 @@ const RepairForm: React.FC<{
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [customIssue, setCustomIssue] = useState("");
 
-  // ─── Technicians State ───
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
-  const [specializations, setSpecializations] = useState<
-    SpecializationOption[]
-  >([]);
   const [showAddTechnician, setShowAddTechnician] = useState(false);
-
-  // ─── Repair Options State ───
-  const [repairOptions, setRepairOptions] = useState<Record<string, string[]>>({
-    electrical: [],
-    mechanical: [],
-  });
   const [addingIssue, setAddingIssue] = useState(false);
-  const [fetchingData, setFetchingData] = useState(true);
-
-  useEffect(() => {
-    setFetchingData(true);
-    Promise.all([
-      fetch("/api/technicians?include_inactive=true&pageSize=1000")
-        .then((res) => res.json())
-        .catch(() => ({ data: { data: [] } })),
-      fetch("/api/specializations")
-        .then((res) => res.json())
-        .catch(() => ({ data: [] })),
-      fetch("/api/repair-issues")
-        .then((res) => res.json())
-        .catch(() => ({ data: null })),
-    ]).then(([techRes, specRes, issuesRes]) => {
-      // Technicians
-      if (techRes?.data?.data && Array.isArray(techRes.data.data)) {
-        setTechnicians(techRes.data.data);
-      }
-      // Specializations
-      if (specRes?.data && Array.isArray(specRes.data)) {
-        setSpecializations(specRes.data);
-      }
-      // Repair Issues
-      if (issuesRes?.success && issuesRes.data) {
-        setRepairOptions(issuesRes.data);
-      }
-      setFetchingData(false);
-    });
-  }, []);
 
   const handleSpecializationAdded = (newSpec: SpecializationOption) => {
-    setSpecializations((prev) => [...prev, newSpec]);
+    onSpecializationAdded(newSpec);
   };
 
   const handleTechnicianAdded = (newTech: Technician) => {
-    setTechnicians((prev) => [...prev, newTech]);
+    onTechnicianAdded(newTech);
     setFormData((prev) => ({ ...prev, technicianId: newTech.id.toString() }));
     setShowAddTechnician(false);
   };
@@ -175,14 +152,8 @@ const RepairForm: React.FC<{
 
       if (response.ok) {
         const newIssueName = data.data.issue.name;
-        // Update local options state so it appears as a standard chip
-        setRepairOptions((prev) => ({
-          ...prev,
-          [formData.category!]: [
-            ...(prev[formData.category!] || []),
-            newIssueName,
-          ],
-        }));
+        // Notify parent to update shared state
+        onIssueAdded(formData.category!, newIssueName);
         // Select it automatically
         setFormData((prev) => ({
           ...prev,
@@ -356,14 +327,7 @@ const RepairForm: React.FC<{
             </p>
           </div>
 
-          {fetchingData ? (
-            <LoadingSpinner
-              size="md"
-              centered
-              label="Loading repair form data..."
-            />
-          ) : (
-            <>
+          <>
               <div style={styles.formSection}>
                 {/* ── Vehicle ── */}
                 <div style={styles.fieldGroup}>
@@ -831,8 +795,7 @@ const RepairForm: React.FC<{
                       : "Save Record"}
                 </Button>
               </div>
-            </>
-          )}
+          </>
         </div>
       </div>
 
@@ -852,7 +815,19 @@ const RepairForm: React.FC<{
 // ─── Wrapper — conditionally mounts/unmounts form for state reset ───
 
 const RepairModal: React.FC<RepairModalProps> = (props) => {
-  const { isOpen, onClose, onSuccess, vehicles, mode } = props;
+  const {
+    isOpen,
+    onClose,
+    onSuccess,
+    vehicles,
+    technicians,
+    specializations,
+    repairOptions,
+    onIssueAdded,
+    onTechnicianAdded,
+    onSpecializationAdded,
+    mode,
+  } = props;
 
   if (!isOpen) return null;
 
@@ -863,6 +838,12 @@ const RepairModal: React.FC<RepairModalProps> = (props) => {
       onClose={onClose}
       onSuccess={onSuccess}
       vehicles={vehicles}
+      technicians={technicians}
+      specializations={specializations}
+      repairOptions={repairOptions}
+      onIssueAdded={onIssueAdded}
+      onTechnicianAdded={onTechnicianAdded}
+      onSpecializationAdded={onSpecializationAdded}
     />
   );
 };

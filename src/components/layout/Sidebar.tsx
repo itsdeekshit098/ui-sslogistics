@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
+import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
 const sidebarItems = [
   {
@@ -82,7 +83,6 @@ const sidebarItems = [
     href: "/admin/sessions",
     icon: Shield,
     enabled: true,
-    adminOnly: true,
   },
 ];
 
@@ -101,27 +101,11 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const isMobile = !!onClose;
-  const { userRole, loading: authLoading } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
 
   const filteredItems = sidebarItems.filter((item) => {
-    if (authLoading) return false;
-
-    // Items marked adminOnly are only visible to admin role
-    if (item.adminOnly && userRole !== "admin") return false;
-
-    if (userRole === "driver") {
-      if (
-        item.name === "Vehicles" ||
-        item.name === "Activity Log" ||
-        item.name === "Repair Records" ||
-        item.name === "Technicians" ||
-        item.name === "Drivers" ||
-        item.name === "External Trips"
-      ) {
-        return false;
-      }
-    }
-    return true;
+    if (authLoading || !userRole) return false;
+    return canRoleAccessPage(item.href, userRole as UserRole);
   });
 
   return (
@@ -147,18 +131,14 @@ export function Sidebar({
               className="flex items-center gap-3 group"
               onClick={onClose}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white shrink-0">
-                <Truck className="h-5 w-5 text-[#12203d]" />
-              </div>
-              {(!collapsed || isMobile) && (
-                <div className="flex flex-col">
-                  <span className="text-sm font-extrabold tracking-tight text-white leading-none">
-                    SRI SRINIVASA
-                  </span>
-                  <span className="text-[10px] font-medium text-slate-400 tracking-wider uppercase mt-0.5">
-                    Secure Logistics
-                  </span>
-                </div>
+              {(!collapsed || isMobile) ? (
+                <span className="text-[20px] font-black tracking-tighter text-white leading-none">
+                  SRI SRINIVASA
+                </span>
+              ) : (
+                <span className="text-[22px] font-black tracking-tighter text-white leading-none">
+                  S
+                </span>
               )}
             </Link>
           </div>
@@ -257,41 +237,28 @@ export function Sidebar({
             </nav>
           </div>
 
-          {/* Footer — Pinned to bottom */}
-          <div
-            className={cn(
-              "border-t border-[#263762]/50 space-y-2",
-              collapsed && !isMobile ? "p-2" : "p-3",
-            )}
-          >
-            {collapsed && !isMobile ? (
-              <>
-                <div className="flex justify-center py-1">
-                  <ThemeToggle />
+          {/* Footer — Pinned to bottom (Mobile only) */}
+          {isMobile && (
+            <div className="border-t border-[#263762]/50 p-3 space-y-2">
+              <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-[#263762]/50 mb-2">
+                <span className="text-xs font-medium text-slate-400">
+                  Appearance
+                </span>
+                <ThemeToggle />
+              </div>
+              <div className="flex items-center gap-3 rounded-lg p-2 bg-[#263762]/30">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-transparent text-sm font-semibold text-slate-600 dark:text-slate-400">
+                  {user?.email?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex justify-center">
-                      <SignOutButton variant="icon" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>
-                    Sign Out
-                  </TooltipContent>
-                </Tooltip>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-[#263762]/50">
-                  <span className="text-xs font-medium text-slate-400">
-                    Appearance
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <span className="truncate text-[13px] font-medium text-slate-200">
+                    {user?.email || "User"}
                   </span>
-                  <ThemeToggle />
                 </div>
-                <SignOutButton variant="mobile" />
-              </>
-            )}
-          </div>
+                <SignOutButton variant="icon" />
+              </div>
+            </div>
+          )}
 
           {/* Collapse Toggle — desktop only */}
           {!isMobile && onToggleCollapse && (

@@ -1,16 +1,18 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { PublicFooter } from "@/components/publicFooter";
+import { PublicNavbar } from "@/components/publicNavbar";
+
+import { publicLayoutMain, publicLayoutShell } from "./publicLayout.style";
 
 export default function PublicLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    return (
-        <div className="flex h-[100dvh] flex-col overflow-y-auto overflow-x-hidden scrollbar-custom">
-            <Navbar />
-            <main className="flex-1 shrink-0">{children}</main>
-            <Footer />
-        </div>
-    );
+  return (
+    <div style={publicLayoutShell}>
+      <PublicNavbar />
+      <main style={publicLayoutMain}>{children}</main>
+      <PublicFooter />
+    </div>
+  );
 }

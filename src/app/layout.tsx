@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     "trucking",
     "commercial vehicles",
     "logistics management",
-    "logistics company India"
+    "logistics company India",
   ],
 };
 
@@ -49,12 +49,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="overscroll-y-none" suppressHydrationWarning>
-      <body className={`${inter.variable} h-[100dvh] overflow-hidden overscroll-y-none bg-background font-sans antialiased`} suppressHydrationWarning>
+      <body
+        className={`${inter.variable} h-[100dvh] overflow-hidden overscroll-y-none bg-background font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
         >
           <AuthProvider>
             <NavigationProgress />

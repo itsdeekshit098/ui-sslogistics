@@ -6,9 +6,11 @@ import { IdleTimeoutModal } from "@/components/idleTimeoutModal";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { ThemeToggle } from "@/components/themeToggle";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 /** 15 minutes idle → show warning */
 const IDLE_MS = 15 * 60 * 1000;
@@ -25,7 +27,23 @@ export default function AdminLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { refreshSession } = useAuth();
+  const { user, refreshSession } = useAuth();
+  
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleUserMenuEnter = () => {
+    if (userMenuTimeoutRef.current) {
+      clearTimeout(userMenuTimeoutRef.current);
+    }
+    setIsUserMenuOpen(true);
+  };
+
+  const handleUserMenuLeave = () => {
+    userMenuTimeoutRef.current = setTimeout(() => {
+      setIsUserMenuOpen(false);
+    }, 150);
+  };
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -53,7 +71,8 @@ export default function AdminLayout({
   });
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
+    <TooltipProvider delayDuration={0}>
+      <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
       {/* Desktop Sidebar */}
       <Sidebar
         className="hidden md:block h-[100dvh] border-r border-border/50"
@@ -98,8 +117,38 @@ export default function AdminLayout({
         data-testid="admin-layout"
       >
         {/* Desktop Header */}
-        <header className="hidden md:flex h-14 shrink-0 items-center justify-end bg-white dark:bg-background px-4 lg:h-15 lg:px-6 z-30 shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">
-          <SignOutButton variant="desktop" />
+        <header className="hidden md:flex h-14 shrink-0 items-center justify-end gap-3 bg-white dark:bg-background px-6 z-30 border-b border-border shadow-sm">
+          <ThemeToggle />
+          <div className="h-6 w-px bg-border" />
+          <div
+            className="relative"
+            onMouseEnter={handleUserMenuEnter}
+            onMouseLeave={handleUserMenuLeave}
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+              {user?.email?.charAt(0).toUpperCase() || "U"}
+            </div>
+            
+            {isUserMenuOpen && (
+              <div 
+                className="absolute top-full right-0 pt-2 z-[9999] animate-in fade-in-0 zoom-in-95 duration-100"
+              >
+                {/* Custom Beak Arrow pointing to user icon */}
+                <div className="absolute top-[3px] right-[13px] w-2.5 h-2.5 bg-card border-l border-t border-border rotate-45 z-30" />
+                
+                <div className="p-2 bg-card border border-border rounded-md shadow-2xl drop-shadow-sm flex flex-col gap-1 min-w-[200px] text-card-foreground relative z-20">
+                  <div className="px-2 py-1.5">
+                    <span className="text-[11px] font-medium text-muted-foreground block mb-0.5 uppercase tracking-wider">Account</span>
+                    <span className="text-sm font-semibold truncate block">
+                      {user?.email || "User"}
+                    </span>
+                  </div>
+                  <div className="h-px w-full bg-border my-0.5"></div>
+                  <SignOutButton variant="mobile" />
+                </div>
+              </div>
+            )}
+          </div>
         </header>
 
         <main
@@ -117,6 +166,7 @@ export default function AdminLayout({
         onStay={stayLoggedIn}
         onLogout={handleIdleTimeout}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
