@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Shield,
-  ShieldOff,
-  ShieldCheck,
-  ChevronDown,
-  ChevronRight,
-  Monitor,
-  LogOut,
-} from "lucide-react";
+  ShieldIcon,
+  ShieldOffIcon,
+  ShieldCheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  MonitorIcon,
+  LogOutIcon,
+} from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
@@ -185,21 +185,21 @@ export function SessionsPage() {
           title: "Ban User",
           description: `Are you sure you want to ban ${email}? They will be unable to log in until unbanned.`,
           confirmText: "Ban User",
-          icon: <Shield className="h-6 w-6 text-red-500" />,
+          icon: <ShieldIcon size={24} className="text-red-500" />,
         };
       case "unban":
         return {
           title: "Unban User",
           description: `Are you sure you want to unban ${email}? They will regain access to the portal.`,
           confirmText: "Unban User",
-          icon: <ShieldCheck className="h-6 w-6 text-emerald-500" />,
+          icon: <ShieldCheckIcon size={24} className="text-emerald-500" />,
         };
       case "revoke":
         return {
           title: "Revoke All Sessions",
           description: `Are you sure you want to force sign out ${email} from all devices? They will need to log in again.`,
           confirmText: "Revoke Sessions",
-          icon: <LogOut className="h-6 w-6 text-amber-500" />,
+          icon: <LogOutIcon size={24} className="text-amber-500" />,
         };
     }
   };
@@ -284,9 +284,9 @@ export function SessionsPage() {
                               onClick={() => toggleExpand(user.id)}
                             >
                               {isExpanded ? (
-                                <ChevronDown className="h-3 w-3" />
+                                <ChevronDownIcon size={12} />
                               ) : (
-                                <ChevronRight className="h-3 w-3" />
+                                <ChevronRightIcon size={12} />
                               )}
                               {sessionCount} active
                             </button>
@@ -307,7 +307,7 @@ export function SessionsPage() {
                                 className="hover:opacity-80 transition-opacity"
                                 onClick={() => openAction(user, "revoke")}
                               >
-                                <LogOut className="h-3.5 w-3.5" />
+                                <LogOutIcon size={14} style={{ marginRight: "0.25rem" }} />
                                 Revoke
                               </button>
                             )}
@@ -317,7 +317,7 @@ export function SessionsPage() {
                                 className="hover:opacity-80 transition-opacity"
                                 onClick={() => openAction(user, "unban")}
                               >
-                                <ShieldCheck className="h-3.5 w-3.5" />
+                                <ShieldCheckIcon size={14} style={{ marginRight: "0.25rem" }} />
                                 Unban
                               </button>
                             ) : (
@@ -326,7 +326,7 @@ export function SessionsPage() {
                                 className="hover:opacity-80 transition-opacity"
                                 onClick={() => openAction(user, "ban")}
                               >
-                                <ShieldOff className="h-3.5 w-3.5" />
+                                <ShieldOffIcon size={14} style={{ marginRight: "0.25rem" }} />
                                 Ban
                               </button>
                             )}
@@ -344,7 +344,7 @@ export function SessionsPage() {
                             <div style={styles.sessionGrid}>
                               {user.sessions.map((s) => (
                                 <div key={s.id} style={styles.sessionChip}>
-                                  <Monitor className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                  <MonitorIcon size={14} className="shrink-0 text-muted-foreground" />
                                   <div
                                     style={{
                                       display: "flex",
@@ -412,9 +412,9 @@ export function SessionsPage() {
                         onClick={() => toggleExpand(user.id)}
                       >
                         {isExpanded ? (
-                          <ChevronDown className="h-3 w-3" />
+                          <ChevronDownIcon size={12} />
                         ) : (
-                          <ChevronRight className="h-3 w-3" />
+                          <ChevronRightIcon size={12} />
                         )}
                         {sessionCount} active
                       </button>
@@ -431,7 +431,7 @@ export function SessionsPage() {
                           key={s.id}
                           style={{ ...styles.sessionChip, width: "100%" }}
                         >
-                          <Monitor className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <MonitorIcon size={14} className="shrink-0 text-muted-foreground" />
                           <div
                             style={{
                               display: "flex",
@@ -476,7 +476,7 @@ export function SessionsPage() {
                         className="hover:opacity-80 transition-opacity"
                         onClick={() => openAction(user, "revoke")}
                       >
-                        <LogOut className="h-3.5 w-3.5" />
+                        <LogOutIcon size={14} style={{ marginRight: "0.25rem" }} />
                         Revoke
                       </button>
                     )}
@@ -490,7 +490,7 @@ export function SessionsPage() {
                         className="hover:opacity-80 transition-opacity"
                         onClick={() => openAction(user, "unban")}
                       >
-                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <ShieldCheckIcon size={14} style={{ marginRight: "0.25rem" }} />
                         Unban
                       </button>
                     ) : (
@@ -503,7 +503,7 @@ export function SessionsPage() {
                         className="hover:opacity-80 transition-opacity"
                         onClick={() => openAction(user, "ban")}
                       >
-                        <ShieldOff className="h-3.5 w-3.5" />
+                        <ShieldOffIcon size={14} style={{ marginRight: "0.25rem" }} />
                         Ban
                       </button>
                     )}

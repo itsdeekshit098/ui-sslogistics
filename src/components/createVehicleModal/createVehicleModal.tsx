@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
-import { Save } from "lucide-react";
+import { SaveIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -361,7 +361,7 @@ const CreateVehicleForm: React.FC<{
             {loading ? (
               <LoadingSpinner size="sm" className="mr-2" />
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
             )}
             {loading ? "Saving..." : "Save Vehicle"}
           </Button>

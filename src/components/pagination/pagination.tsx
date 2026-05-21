@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -95,7 +95,7 @@ export default function Pagination({
           disabled={page <= 1}
           aria-label="Previous page"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeftIcon size={16} />
         </button>
 
         {getPageNumbers().map((pageNum, idx) => {
@@ -131,7 +131,7 @@ export default function Pagination({
           disabled={page >= totalPages}
           aria-label="Next page"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRightIcon size={16} />
         </button>
       </div>
     </div>

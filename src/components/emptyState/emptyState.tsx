@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { Inbox } from "lucide-react";
+import { InboxIcon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { EmptyStateProps } from "./emptyState.types";
 
 const EmptyState: React.FC<EmptyStateProps> = ({
-  icon: Icon = Inbox,
+  icon: Icon = InboxIcon,
   title,
   description,
   actionLabel,
@@ -24,7 +24,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       )}
     >
       <div className="rounded-full bg-muted p-4 mb-4">
-        <Icon className="h-8 w-8 text-muted-foreground/50" />
+        <Icon size={32} style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
       </div>
       <h3
         data-testid="empty-state-title"

@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TypeaheadProps } from "./typeahead.types";
@@ -203,7 +203,7 @@ const Typeahead = <TOption,>({
         setOpen(false);
       }}
     >
-      <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <SearchIcon size={16} className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground" />
       <Input
         ref={inputRef}
         id={inputId}
@@ -255,10 +255,10 @@ const Typeahead = <TOption,>({
           onMouseDown={(event) => event.preventDefault()}
           onClick={clearSelection}
         >
-          <X className="h-4 w-4" />
+          <XIcon size={16} />
         </button>
       )}
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <ChevronDownIcon size={16} className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground" />
 
       {open && !disabled && dropdownRect && createPortal(
         <div
@@ -299,7 +299,7 @@ const Typeahead = <TOption,>({
                   onClick={() => selectOption(option)}
                 >
                   <span className="flex h-4 w-4 shrink-0 items-center justify-center text-primary">
-                    {isSelected && <Check className="h-4 w-4" />}
+                    {isSelected && <CheckIcon size={16} />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">

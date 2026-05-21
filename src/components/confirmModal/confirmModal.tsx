@@ -6,7 +6,7 @@ import {
     DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2Icon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import type { ConfirmModalProps } from "./confirmModal.types";
 import {
@@ -37,7 +37,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <DialogContent className="max-w-md">
                 <div className={CM_CONTAINER}>
                     <div className={CM_ICON_WRAPPER}>
-                        {icon ? icon : <Trash2 />}
+                        {icon ? icon : <Trash2Icon size={24} />}
                     </div>
                     <div className={CM_TEXT_CONTAINER}>
                         <h3 className={CM_TITLE}>{title}</h3>

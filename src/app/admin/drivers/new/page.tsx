@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Save } from "lucide-react";
+import { ChevronLeftIcon, SaveIcon } from "@/components/ui/icon";
 import { useState } from "react";
 import {
   Select,
@@ -36,7 +36,7 @@ export default function NewDriverPage() {
       <div className="flex items-center gap-3 md:gap-4">
         <Button data-testid="app-admin-drivers-new-button-1" variant="ghost" size="icon" asChild>
           <Link data-testid="app-admin-drivers-new-link-1" href="/admin/drivers">
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeftIcon size={16} />
           </Link>
         </Button>
         <div>
@@ -127,7 +127,7 @@ export default function NewDriverPage() {
                 <Link data-testid="app-admin-drivers-new-link-2" href="/admin/drivers">Cancel</Link>
               </Button>
               <Button data-testid="app-admin-drivers-new-button-3" className="w-full sm:w-auto">
-                <Save className="mr-2 h-4 w-4" /> Save Driver
+                <SaveIcon size={16} style={{ marginRight: "0.5rem" }} /> Save Driver
               </Button>
             </div>
           </CardContent>

@@ -3,15 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, AlertTriangle, ArrowLeft } from "lucide-react";
+  PlusIcon,
+  Trash2Icon,
+  PencilIcon,
+  AlertTriangleIcon,
+  ArrowLeftIcon,
+} from "@/components/ui/icon";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -28,7 +25,10 @@ import { Pagination } from "@/components/pagination";
 import { Typeahead } from "@/components/typeahead";
 import { useAuth } from "@/context/AuthContext";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
-import { RefreshCw, Fuel } from "lucide-react";
+import { RefreshCwIcon, FuelIcon } from "@/components/ui/icon";
+import { DataTable } from "@/components/ui/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { ConfirmModal } from "@/components/confirmModal";
@@ -244,7 +244,7 @@ export default function DieselRecordsPage() {
           onClick={() => router.back()}
           className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
           Back
         </Button>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -268,7 +268,7 @@ export default function DieselRecordsPage() {
               {vehiclesLoading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (
-                <Plus className="mr-2 h-4 w-4" />
+                <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
               )}
               {vehiclesLoading ? "Loading Vehicles..." : "Add Diesel Entry"}
             </Button>
@@ -307,7 +307,7 @@ export default function DieselRecordsPage() {
                   onClick={fetchVehicles}
                   className="shrink-0"
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" /> Retry
+                  <RefreshCwIcon size={16} style={{ marginRight: "0.25rem" }} /> Retry
                 </Button>
               )}
             </div>
@@ -321,7 +321,7 @@ export default function DieselRecordsPage() {
 
             {!vehiclesLoading && !vehiclesError && !selectedVehicleId && (
               <EmptyState
-                icon={Fuel}
+                icon={FuelIcon}
                 title="Select a Vehicle"
                 description="Choose a vehicle from the dropdown above to view its diesel records."
               />
@@ -359,7 +359,7 @@ export default function DieselRecordsPage() {
                         />
                       ) : records.length === 0 ? (
                         <EmptyState
-                          icon={Fuel}
+                          icon={FuelIcon}
                           title="No Diesel Records"
                           description="No diesel entries recorded for this vehicle yet."
                           actionLabel="Add Diesel Entry"
@@ -516,7 +516,10 @@ export default function DieselRecordsPage() {
                                         key={i}
                                         className="flex items-center gap-2 text-xs font-semibold text-black"
                                       >
-                                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-black" />
+                                        <AlertTriangleIcon
+                                          size={14}
+                                          className="shrink-0 text-black"
+                                        />
                                         {w}
                                       </div>
                                     ))}
@@ -532,7 +535,11 @@ export default function DieselRecordsPage() {
                                     className="text-xs h-7 px-2"
                                     onClick={() => setEditTarget(record)}
                                   >
-                                    <Pencil className="h-3 w-3 mr-1" /> Edit
+                                    <PencilIcon
+                                      size={12}
+                                      style={{ marginRight: "0.25rem" }}
+                                    />{" "}
+                                    Edit
                                   </Button>
                                   <Button
                                     data-testid={`admin-diesel-mobile-delete-${record.id}`}
@@ -541,7 +548,11 @@ export default function DieselRecordsPage() {
                                     className="text-xs h-7 px-2"
                                     onClick={() => handleDeleteClick(record)}
                                   >
-                                    <Trash2 className="h-3 w-3 mr-1" /> Delete
+                                    <Trash2Icon
+                                      size={12}
+                                      style={{ marginRight: "0.25rem" }}
+                                    />{" "}
+                                    Delete
                                   </Button>
                                 </div>
                               )}
@@ -552,264 +563,229 @@ export default function DieselRecordsPage() {
                     </div>
 
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block rounded-md border border-border overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Date & Time</TableHead>
-                            <TableHead>Driver</TableHead>
-                            <TableHead>Prev Odo</TableHead>
-                            <TableHead>Current Odo</TableHead>
-                            <TableHead>Dist (km)</TableHead>
-                            <TableHead>Fuel (L)</TableHead>
-                            <TableHead>Cycle Dist</TableHead>
-                            <TableHead>Cycle Fuel</TableHead>
-                            <TableHead className="font-bold">
-                              Mileage (Km/L)
-                            </TableHead>
-                            <TableHead>Avg Mileage</TableHead>
-                            <TableHead>Dev %</TableHead>
-                            <TableHead>Fill Type</TableHead>
-                            <TableHead>Cycle</TableHead>
-                            <TableHead>Cycle ID</TableHead>
-                            <TableHead>Price/L</TableHead>
-                            <TableHead>Amount (₹)</TableHead>
-                            <TableHead>Cost/km</TableHead>
-                            <TableHead>Station</TableHead>
-                            <TableHead>Payment</TableHead>
-                            <TableHead>Receipt</TableHead>
-                            <TableHead>Verified</TableHead>
-                            <TableHead>Alerts</TableHead>
-                            {userRole === "admin" && (
-                              <TableHead className="text-center">
-                                Actions
-                              </TableHead>
-                            )}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {loading ? (
-                            <TableRow>
-                              <TableCell
-                                colSpan={userRole === "admin" ? 23 : 22}
-                              >
-                                <LoadingSpinner
-                                  size="sm"
-                                  centered
-                                  label="Loading records..."
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ) : recordsError ? (
-                            <TableRow>
-                              <TableCell
-                                colSpan={userRole === "admin" ? 23 : 22}
-                              >
-                                <ErrorState
-                                  title="Couldn’t load records"
-                                  description={recordsError}
-                                  onRetry={fetchRecords}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ) : records.length === 0 ? (
-                            <TableRow>
-                              <TableCell
-                                colSpan={userRole === "admin" ? 23 : 22}
-                              >
-                                <EmptyState
-                                  icon={Fuel}
-                                  title="No Diesel Records"
-                                  description="No diesel entries recorded for this vehicle yet."
-                                  actionLabel="Add Diesel Entry"
-                                  onAction={() => setIsCreateOpen(true)}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            records.map((record) => {
-                              const { date, time } = formatDate(
-                                record.fill_date,
-                              );
+                    <div className="hidden lg:block">
+                      <DataTable<DieselRecordWithVehicle>
+                        columns={[
+                          {
+                            key: "fill_date",
+                            header: "Date & Time",
+                            cell: (row) => {
+                              const { date, time } = formatDate(row.fill_date);
                               return (
-                                <TableRow key={record.id}>
-                                  <TableCell>
-                                    <div className="flex flex-col">
-                                      <span className="whitespace-nowrap">
-                                        {date}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {time}
+                                <div className="flex flex-col">
+                                  <span className="whitespace-nowrap">{date}</span>
+                                  <span className="text-xs text-muted-foreground">{time}</span>
+                                </div>
+                              );
+                            },
+                          },
+                          {
+                            key: "driver_name",
+                            header: "Driver",
+                            cell: (row) => row.driver_name,
+                          },
+                          {
+                            key: "prev_odo",
+                            header: "Prev Odo",
+                            cell: (row) => displayVal(row.prev_odo),
+                          },
+                          {
+                            key: "current_odo",
+                            header: "Current Odo",
+                            cell: (row) => row.current_odo,
+                          },
+                          {
+                            key: "distance",
+                            header: "Dist (km)",
+                            cell: (row) => displayVal(row.distance),
+                          },
+                          {
+                            key: "fuel_litres",
+                            header: "Fuel (L)",
+                            cell: (row) => row.fuel_litres,
+                          },
+                          {
+                            key: "cycle_distance",
+                            header: "Cycle Dist",
+                            cell: (row) => displayVal(row.cycle_distance),
+                            className: "text-muted-foreground",
+                          },
+                          {
+                            key: "cycle_fuel",
+                            header: "Cycle Fuel",
+                            cell: (row) => displayVal(row.cycle_fuel),
+                            className: "text-muted-foreground",
+                          },
+                          {
+                            key: "kml",
+                            header: "Mileage (Km/L)",
+                            cell: (row) => (
+                              <span
+                                className={`font-bold ${
+                                  row.kml !== null && row.kml !== undefined
+                                    ? row.expected_kml
+                                      ? row.kml >= row.expected_kml
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400"
+                                      : ""
+                                    : ""
+                                }`}
+                              >
+                                {displayVal(row.kml)}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: "expected_kml",
+                            header: "Avg Mileage",
+                            cell: (row) => displayVal(row.expected_kml),
+                          },
+                          {
+                            key: "dev_pct",
+                            header: "Dev %",
+                            cell: (row) => (
+                              <span
+                                className={
+                                  row.dev_pct !== null && row.dev_pct !== undefined
+                                    ? row.dev_pct < 0
+                                      ? "text-red-600 dark:text-red-400 font-medium"
+                                      : "text-green-600 dark:text-green-400 font-medium"
+                                    : ""
+                                }
+                              >
+                                {displayVal(row.dev_pct, "%")}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: "fill_type",
+                            header: "Fill Type",
+                            cell: (row) => (
+                              <Badge
+                                variant={row.fill_type === "full" ? "info" : "secondary"}
+                                className="text-xs"
+                              >
+                                {row.fill_type === "full" ? "Full" : "Partial"}
+                              </Badge>
+                            ),
+                          },
+                          {
+                            key: "cycle_status",
+                            header: "Cycle",
+                            cell: (row) => (
+                              <Badge
+                                variant={row.cycle_status === "closed" ? "success" : "warning"}
+                                className="text-xs whitespace-nowrap"
+                              >
+                                {row.cycle_status === "closed" ? "● Closed" : "● Open"}
+                              </Badge>
+                            ),
+                          },
+                          {
+                            key: "cycle_id",
+                            header: "Cycle ID",
+                            cell: (row) => row.cycle_id,
+                          },
+                          {
+                            key: "price_per_l",
+                            header: "Price/L",
+                            cell: (row) => (row.price_per_l ? `₹${row.price_per_l}` : "—"),
+                          },
+                          {
+                            key: "amount",
+                            header: "Amount (₹)",
+                            cell: (row) => `₹${row.amount}`,
+                          },
+                          {
+                            key: "cost_per_km",
+                            header: "Cost/km",
+                            cell: (row) => (row.cost_per_km !== null && row.cost_per_km !== undefined ? `₹${row.cost_per_km}` : "—"),
+                          },
+                          {
+                            key: "station",
+                            header: "Station",
+                            cell: (row) => row.station || "—",
+                          },
+                          {
+                            key: "payment_method",
+                            header: "Payment",
+                            cell: (row) => row.payment_method || "—",
+                          },
+                          {
+                            key: "receipt_number",
+                            header: "Receipt",
+                            cell: (row) => row.receipt_number || "—",
+                          },
+                          {
+                            key: "verified_by",
+                            header: "Verified",
+                            cell: (row) => row.verified_by || "—",
+                          },
+                          {
+                            key: "alerts",
+                            header: "Alerts",
+                            cell: (row) => {
+                              const warnings = getRecordWarnings(row);
+                              if (warnings.length === 0) return "—";
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 cursor-pointer">
+                                      <AlertTriangleIcon size={16} className="text-amber-600 dark:text-amber-400" />
+                                      <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">
+                                        {warnings.length} issue
+                                        {warnings.length > 1 ? "s" : ""}
                                       </span>
                                     </div>
-                                  </TableCell>
-                                  <TableCell>{record.driver_name}</TableCell>
-                                  <TableCell>
-                                    {displayVal(record.prev_odo)}
-                                  </TableCell>
-                                  <TableCell>{record.current_odo}</TableCell>
-                                  <TableCell>
-                                    {displayVal(record.distance)}
-                                  </TableCell>
-                                  <TableCell>{record.fuel_litres}</TableCell>
-                                  <TableCell className="text-muted-foreground">
-                                    {displayVal(record.cycle_distance)}
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground">
-                                    {displayVal(record.cycle_fuel)}
-                                  </TableCell>
-                                  <TableCell
-                                    className={`font-bold ${
-                                      record.kml !== null &&
-                                      record.kml !== undefined
-                                        ? record.expected_kml
-                                          ? record.kml >= record.expected_kml
-                                            ? "text-green-600 dark:text-green-400"
-                                            : "text-red-600 dark:text-red-400"
-                                          : ""
-                                        : ""
-                                    }`}
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="left"
+                                    className="max-w-xs bg-amber-950 text-amber-100 border-amber-800"
                                   >
-                                    {displayVal(record.kml)}
-                                  </TableCell>
-                                  <TableCell>
-                                    {displayVal(record.expected_kml)}
-                                  </TableCell>
-                                  <TableCell
-                                    className={
-                                      record.dev_pct !== null &&
-                                      record.dev_pct !== undefined
-                                        ? record.dev_pct < 0
-                                          ? "text-red-600 dark:text-red-400 font-medium"
-                                          : "text-green-600 dark:text-green-400 font-medium"
-                                        : ""
-                                    }
-                                  >
-                                    {displayVal(record.dev_pct, "%")}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={
-                                        record.fill_type === "full"
-                                          ? "info"
-                                          : "secondary"
-                                      }
-                                      className="text-xs"
-                                    >
-                                      {record.fill_type === "full"
-                                        ? "Full"
-                                        : "Partial"}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={
-                                        record.cycle_status === "closed"
-                                          ? "success"
-                                          : "warning"
-                                      }
-                                      className="text-xs whitespace-nowrap"
-                                    >
-                                      {record.cycle_status === "closed"
-                                        ? "● Closed"
-                                        : "● Open"}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>{record.cycle_id}</TableCell>
-                                  <TableCell>
-                                    {record.price_per_l
-                                      ? `₹${record.price_per_l}`
-                                      : "—"}
-                                  </TableCell>
-                                  <TableCell>₹{record.amount}</TableCell>
-                                  <TableCell>
-                                    {record.cost_per_km !== null &&
-                                    record.cost_per_km !== undefined
-                                      ? `₹${record.cost_per_km}`
-                                      : "—"}
-                                  </TableCell>
-                                  <TableCell>{record.station || "—"}</TableCell>
-                                  <TableCell>
-                                    {record.payment_method || "—"}
-                                  </TableCell>
-                                  <TableCell>
-                                    {record.receipt_number || "—"}
-                                  </TableCell>
-                                  <TableCell>
-                                    {record.verified_by || "—"}
-                                  </TableCell>
-                                  <TableCell>
-                                    {(() => {
-                                      const warnings =
-                                        getRecordWarnings(record);
-                                      if (warnings.length === 0) return "—";
-                                      return (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <div className="flex items-center gap-1 cursor-pointer">
-                                              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                                              <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">
-                                                {warnings.length} issue
-                                                {warnings.length > 1 ? "s" : ""}
-                                              </span>
-                                            </div>
-                                          </TooltipTrigger>
-                                          <TooltipContent
-                                            side="left"
-                                            className="max-w-xs bg-amber-950 text-amber-100 border-amber-800"
-                                          >
-                                            <div className="space-y-1 py-1">
-                                              {warnings.map((w, i) => (
-                                                <div
-                                                  key={i}
-                                                  className="flex items-start gap-2 text-xs"
-                                                >
-                                                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
-                                                  {w}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      );
-                                    })()}
-                                  </TableCell>
-                                  {userRole === "admin" && (
-                                    <TableCell>
-                                      <div className="flex items-center gap-1">
-                                        <Button
-                                          data-testid={`admin-diesel-desktop-edit-${record.id}`}
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0"
-                                          onClick={() => setEditTarget(record)}
-                                        >
-                                          <Pencil className="h-3.5 w-3.5" />
-                                          <span className="sr-only">Edit</span>
-                                        </Button>
-                                        <Button
-                                          data-testid={`admin-diesel-desktop-delete-${record.id}`}
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                          onClick={() =>
-                                            handleDeleteClick(record)
-                                          }
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                          <span className="sr-only">
-                                            Delete
-                                          </span>
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  )}
-                                </TableRow>
+                                    <div className="space-y-1 py-1">
+                                      {warnings.map((w, i) => (
+                                        <div key={i} className="flex items-start gap-2 text-xs">
+                                          <AlertTriangleIcon size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                                          {w}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
                               );
-                            })
-                          )}
-                        </TableBody>
-                      </Table>
+                            },
+                          },
+                        ]}
+                        data={records}
+                        rowKey={(row) => row.id.toString()}
+                        loading={loading}
+                        emptyNode={
+                          <EmptyState
+                            icon={FuelIcon}
+                            title="No Diesel Records"
+                            description="No diesel entries recorded for this vehicle yet."
+                            actionLabel="Add Diesel Entry"
+                            onAction={() => setIsCreateOpen(true)}
+                          />
+                        }
+                        rowActions={[
+                          {
+                            key: "edit",
+                            label: "Edit",
+                            icon: <PencilIcon size={14} />,
+                            onClick: (row) => setEditTarget(row),
+                            hidden: () => userRole !== "admin",
+                          },
+                          {
+                            key: "delete",
+                            label: "Delete",
+                            icon: <Trash2Icon size={14} />,
+                            variant: "danger",
+                            onClick: (row) => handleDeleteClick(row),
+                            hidden: () => userRole !== "admin",
+                          },
+                        ]}
+                      />
                     </div>
 
                     {/* Pagination */}
@@ -836,6 +812,7 @@ export default function DieselRecordsPage() {
           onClose={() => setIsCreateOpen(false)}
           onSuccess={fetchRecords}
           vehicles={vehicles}
+          defaultVehicleId={selectedVehicleId || undefined}
         />
 
         <EditDieselModal

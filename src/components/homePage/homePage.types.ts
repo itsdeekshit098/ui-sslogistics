@@ -1,15 +1,15 @@
-import { LucideIcon } from "lucide-react";
+import type { ComponentIcon } from "@/components/ui/icon";
 
 export interface HomePageService {
   accent: string;
   description: string;
-  icon: LucideIcon;
+  icon: ComponentIcon;
   title: string;
 }
 
 export interface HomePageFeature {
   description: string;
-  icon: LucideIcon;
+  icon: ComponentIcon;
   label: string;
   title: string;
 }
@@ -28,7 +28,7 @@ export interface RouteStop {
 
 export interface ContactOption {
   href: string;
-  icon: LucideIcon;
+  icon: ComponentIcon;
   label: string;
   tone: "primary" | "whatsapp";
 }

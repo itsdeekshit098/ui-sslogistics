@@ -2,37 +2,10 @@ import type { CSSProperties } from "react";
 
 export const summaryStrip: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: "0.75rem",
-  padding: "1rem",
-  borderRadius: "var(--card-radius, 0.625rem)",
-  border: "1px solid var(--border)",
-  backgroundColor: "var(--card)",
+  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+  gap: "1rem",
+  width: "100%",
 };
-
-export const summaryCard: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.25rem",
-  padding: "0.75rem",
-  borderRadius: "0.5rem",
-  backgroundColor: "var(--background)",
-};
-
-export const summaryLabel: CSSProperties = {
-  fontSize: "0.75rem",
-  fontWeight: 500,
-  color: "var(--muted-foreground)",
-  textTransform: "uppercase",
-  letterSpacing: "0.04em",
-};
-
-export const summaryValue: CSSProperties = {
-  fontSize: "1.25rem",
-  fontWeight: 700,
-  letterSpacing: "-0.01em",
-};
-
 /* ─── Filter Drawer ─── */
 
 export const drawerBackdrop: CSSProperties = {
@@ -137,3 +110,56 @@ export const activeFilterBadge: CSSProperties = {
   fontWeight: 700,
   marginLeft: "0.375rem",
 };
+
+/* ─── Category Cell ─── */
+
+export const categoryCellRow: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.625rem",
+};
+
+export const categoryCellLabel: CSSProperties = {
+  textTransform: "capitalize",
+  fontWeight: 500,
+};
+
+export const categoryCellIconBadge = (category: string): CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1.75rem",
+  height: "1.75rem",
+  borderRadius: "0.5rem",
+  backgroundColor:
+    category === "electrical"
+      ? "rgba(56, 189, 248, 0.12)"
+      : "rgba(249, 115, 22, 0.12)",
+  flexShrink: 0,
+});
+
+export const categoryCellIconBadgeSm = (category: string): CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1.5rem",
+  height: "1.5rem",
+  borderRadius: "0.375rem",
+  backgroundColor:
+    category === "electrical"
+      ? "rgba(56, 189, 248, 0.12)"
+      : "rgba(249, 115, 22, 0.12)",
+  flexShrink: 0,
+});
+
+export const categoryMobileCellRow: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  fontSize: "0.75rem",
+  color: "var(--muted-foreground)",
+  textTransform: "capitalize",
+};
+
+export const electricalIconStyle: CSSProperties = { color: "#38bdf8", fill: "#38bdf8" };
+export const mechanicalIconStyle: CSSProperties = { color: "#f97316", fill: "#f97316" };

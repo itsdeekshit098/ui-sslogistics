@@ -1,8 +1,8 @@
-import type { LucideIcon } from "lucide-react";
+import type { ComponentIcon } from "@/components/ui/icon";
 
 export interface EmptyStateProps {
   /** Icon displayed above the title */
-  icon?: LucideIcon;
+  icon?: ComponentIcon;
   /** Main title — e.g. "No Vehicles Found" */
   title: string;
   /** Supporting text explaining why it's empty */

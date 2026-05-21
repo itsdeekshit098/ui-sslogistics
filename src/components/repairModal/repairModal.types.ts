@@ -14,6 +14,6 @@ export type RepairModalProps = {
   onTechnicianAdded: (newTech: Technician) => void;
   onSpecializationAdded: (newSpec: SpecializationOption) => void;
 } & (
-  | { mode: "create"; record?: never }
+  | { mode: "create"; record?: never; defaultVehicleId?: string }
   | { mode: "edit"; record: RepairRecord }
 );

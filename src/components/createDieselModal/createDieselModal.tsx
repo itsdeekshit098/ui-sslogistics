@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { CreateDieselModalProps } from "./createDieselModal.types";
-import { Save, AlertTriangle, UserPlus } from "lucide-react";
+import { SaveIcon, AlertTriangleIcon, UserPlusIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Typeahead } from "@/components/typeahead";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,12 @@ const CreateDieselForm: React.FC<{
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
   vehicles: CreateDieselModalProps["vehicles"];
-}> = ({ onClose, onSuccess, vehicles }) => {
-  const [formData, setFormData] = useState(getDefaultFormData());
+  defaultVehicleId?: string;
+}> = ({ onClose, onSuccess, vehicles, defaultVehicleId }) => {
+  const [formData, setFormData] = useState(() => ({
+    ...getDefaultFormData(),
+    vehicleId: defaultVehicleId ?? "",
+  }));
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -213,7 +217,7 @@ const CreateDieselForm: React.FC<{
                 key={i}
                 className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200"
               >
-                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <AlertTriangleIcon size={16} className="shrink-0" />
                 {w}
               </div>
             ))}
@@ -343,7 +347,7 @@ const CreateDieselForm: React.FC<{
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors"
                   onClick={() => setShowAddDriver(true)}
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
+                  <UserPlusIcon size={14} />
                   Add New Driver
                 </button>
               }
@@ -555,7 +559,7 @@ const CreateDieselForm: React.FC<{
             {loading ? (
               <LoadingSpinner size="sm" className="mr-2" />
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
             )}
             {loading ? "Saving..." : "Save Record"}
           </Button>
@@ -581,6 +585,7 @@ const CreateDieselModal: React.FC<CreateDieselModalProps> = ({
   onClose,
   onSuccess,
   vehicles,
+  defaultVehicleId,
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -590,6 +595,7 @@ const CreateDieselModal: React.FC<CreateDieselModalProps> = ({
             onClose={onClose}
             onSuccess={onSuccess}
             vehicles={vehicles}
+            defaultVehicleId={defaultVehicleId}
           />
         </div>
       </DialogContent>

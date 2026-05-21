@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, Zap, Settings, Save, Plus, UserPlus } from "lucide-react";
+import { XIcon, ZapIcon, SettingsIcon, SaveIcon, PlusIcon, UserPlusIcon } from "@/components/ui/icon";
 import type { RepairModalProps } from "./repairModal.types";
 import { getDefaultRepairFormData } from "@/components/repairRecordsPage";
 import type {
@@ -26,6 +26,7 @@ import * as styles from "./repairModal.style";
 const RepairForm: React.FC<{
   mode: "create" | "edit";
   record?: RepairModalProps extends { record?: infer R } ? R : never;
+  defaultVehicleId?: string;
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
   vehicles: RepairModalProps["vehicles"];
@@ -38,6 +39,7 @@ const RepairForm: React.FC<{
 }> = ({
   mode,
   record,
+  defaultVehicleId,
   onClose,
   onSuccess,
   vehicles,
@@ -63,7 +65,10 @@ const RepairForm: React.FC<{
         status: record.status,
       };
     }
-    return getDefaultRepairFormData();
+    return {
+      ...getDefaultRepairFormData(),
+      vehicleId: defaultVehicleId || "",
+    };
   });
 
   const [loading, setLoading] = useState(false);
@@ -310,7 +315,7 @@ const RepairForm: React.FC<{
             (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
           }}
         >
-          <X style={{ width: "1rem", height: "1rem" }} />
+          <XIcon size={16} />
         </button>
 
         {/* Scrollable content */}
@@ -438,20 +443,14 @@ const RepairForm: React.FC<{
                       }}
                     >
                       {formData.category === "electrical" ? (
-                        <Zap
-                          style={{
-                            width: "1rem",
-                            height: "1rem",
-                            color: "#eab308",
-                          }}
+                        <ZapIcon
+                          size={16}
+                          style={{ color: "#38bdf8", fill: "#38bdf8" }}
                         />
                       ) : (
-                        <Settings
-                          style={{
-                            width: "1rem",
-                            height: "1rem",
-                            color: "#64748b",
-                          }}
+                        <SettingsIcon
+                          size={16}
+                          style={{ color: "#f97316", fill: "#f97316" }}
                         />
                       )}
                       <span style={{ textTransform: "capitalize" }}>
@@ -476,12 +475,9 @@ const RepairForm: React.FC<{
                             Battery, lights, wiring…
                           </div>
                         </div>
-                        <Zap
-                          style={{
-                            width: "1.25rem",
-                            height: "1.25rem",
-                            color: "#eab308",
-                          }}
+                        <ZapIcon
+                          size={20}
+                          style={{ color: "#38bdf8", fill: "#38bdf8" }}
                         />
                       </div>
 
@@ -501,12 +497,9 @@ const RepairForm: React.FC<{
                             Engine, brakes, clutch…
                           </div>
                         </div>
-                        <Settings
-                          style={{
-                            width: "1.25rem",
-                            height: "1.25rem",
-                            color: "#64748b",
-                          }}
+                        <SettingsIcon
+                          size={20}
+                          style={{ color: "#f97316", fill: "#f97316" }}
                         />
                       </div>
                     </div>
@@ -582,12 +575,9 @@ const RepairForm: React.FC<{
                               {addingIssue ? (
                                 <LoadingSpinner size="sm" />
                               ) : (
-                                <Plus
-                                  style={{
-                                    width: "1rem",
-                                    height: "1rem",
-                                    marginRight: "0.25rem",
-                                  }}
+                                <PlusIcon
+                                  size={16}
+                                  style={{ marginRight: "0.25rem" }}
                                 />
                               )}
                               Add
@@ -616,9 +606,7 @@ const RepairForm: React.FC<{
                           >
                             {issue}
                             <span style={styles.customChipRemove}>
-                              <X
-                                style={{ width: "0.75rem", height: "0.75rem" }}
-                              />
+                              <XIcon size={12} />
                             </span>
                           </div>
                         ))}
@@ -682,7 +670,7 @@ const RepairForm: React.FC<{
                             ).style.backgroundColor = "var(--background)";
                           }}
                         >
-                          <UserPlus style={{ width: "1rem", height: "1rem" }} />
+                          <UserPlusIcon size={16} />
                           Add New Technician
                         </button>
                       }
@@ -780,12 +768,9 @@ const RepairForm: React.FC<{
                   {loading ? (
                     <LoadingSpinner size="sm" className="mr-2" />
                   ) : (
-                    <Save
-                      style={{
-                        width: "1rem",
-                        height: "1rem",
-                        marginRight: "0.5rem",
-                      }}
+                    <SaveIcon
+                      size={16}
+                      style={{ marginRight: "0.5rem" }}
                     />
                   )}
                   {loading
@@ -835,6 +820,7 @@ const RepairModal: React.FC<RepairModalProps> = (props) => {
     <RepairForm
       mode={mode}
       record={mode === "edit" ? props.record : undefined}
+      defaultVehicleId={mode === "create" ? props.defaultVehicleId : undefined}
       onClose={onClose}
       onSuccess={onSuccess}
       vehicles={vehicles}

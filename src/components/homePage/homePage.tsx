@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Check, Truck, X } from "lucide-react";
+import { ArrowRightIcon, ArrowUpRightIcon, CheckIcon, TruckIcon, XIcon } from "@/components/ui/icon";
 import { useEffect, useState } from "react";
 
 import { PartnerLogo } from "@/components/ui/partnerLogo";
@@ -98,7 +98,7 @@ export function HomePage() {
                   whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 >
                   Start Now
-                  <ArrowRight size={18} strokeWidth={2.5} />
+                  <ArrowRightIcon size={18} />
                 </motion.button>
                 <motion.button
                   type="button"
@@ -108,7 +108,7 @@ export function HomePage() {
                   whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 >
                   Contact Sales
-                  <ArrowUpRight size={18} strokeWidth={2.5} />
+                  <ArrowUpRightIcon size={18} />
                 </motion.button>
               </div>
 
@@ -229,7 +229,7 @@ export function HomePage() {
                       ease: "easeInOut",
                     }}
                   >
-                    <Truck size={18} />
+                    <TruckIcon size={18} />
                     Fleet on schedule
                   </motion.div>
 
@@ -301,7 +301,7 @@ export function HomePage() {
                 >
                   <div>
                     <div style={styles.iconFrameStyle(service.accent)}>
-                      <ServiceIcon size={26} strokeWidth={2.25} />
+                      <ServiceIcon size={26} />
                     </div>
                     <h3 style={styles.serviceTitle}>{service.title}</h3>
                     <p style={styles.serviceDescription}>
@@ -309,7 +309,7 @@ export function HomePage() {
                     </p>
                   </div>
                   <div style={styles.cardArrow} aria-hidden="true">
-                    <ArrowUpRight size={18} strokeWidth={2.4} />
+                    <ArrowUpRightIcon size={18} />
                   </div>
                 </motion.article>
               );
@@ -385,7 +385,7 @@ export function HomePage() {
                       }}
                     >
                       <div style={styles.featureIcon}>
-                        <FeatureIcon size={22} strokeWidth={2.3} />
+                        <FeatureIcon size={22} />
                       </div>
                       <div>
                         <span style={styles.featureLabel}>{feature.label}</span>
@@ -453,7 +453,7 @@ export function HomePage() {
                     return (
                       <article key={card.title} style={styles.flowCard}>
                         <span style={styles.flowIcon}>
-                          <FlowIcon size={19} strokeWidth={2.4} />
+                          <FlowIcon size={19} />
                         </span>
                         <h3 style={styles.flowTitle}>{card.title}</h3>
                         <p style={styles.flowText}>{card.text}</p>
@@ -505,7 +505,7 @@ export function HomePage() {
 
                   return (
                     <span key={highlight.text} style={styles.ctaHighlight}>
-                      <HighlightIcon size={16} strokeWidth={2.4} />
+                      <HighlightIcon size={16} />
                       {highlight.text}
                     </span>
                   );
@@ -520,7 +520,7 @@ export function HomePage() {
                 whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
               >
                 Contact Us Today
-                <ArrowRight size={18} strokeWidth={2.5} />
+                <ArrowRightIcon size={18} />
               </motion.button>
             </div>
           </motion.div>
@@ -557,7 +557,7 @@ export function HomePage() {
                   style={styles.modalClose}
                   onClick={() => setShowContactOptions(false)}
                 >
-                  <X size={19} />
+                  <XIcon size={19} />
                 </button>
               </div>
               <div style={styles.modalBody}>
@@ -580,13 +580,13 @@ export function HomePage() {
                         shouldReduceMotion ? undefined : { scale: 0.98 }
                       }
                     >
-                      <OptionIcon size={20} strokeWidth={2.5} />
+                      <OptionIcon size={20} />
                       {option.label}
                     </motion.a>
                   );
                 })}
                 <span style={styles.proofItem}>
-                  <Check size={16} strokeWidth={2.6} />
+                  <CheckIcon size={16} />
                   Quick response during operating hours
                 </span>
               </div>

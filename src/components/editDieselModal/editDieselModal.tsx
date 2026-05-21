@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { EditDieselModalProps } from "./editDieselModal.types";
-import { Save, UserPlus } from "lucide-react";
+import { SaveIcon, UserPlusIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Typeahead } from "@/components/typeahead";
 import { Button } from "@/components/ui/button";
@@ -228,7 +228,7 @@ const EditDieselForm: React.FC<{
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors"
                   onClick={() => setShowAddDriver(true)}
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
+                  <UserPlusIcon size={14} />
                   Add New Driver
                 </button>
               }
@@ -377,7 +377,7 @@ const EditDieselForm: React.FC<{
             {loading ? (
               <LoadingSpinner size="sm" className="mr-2" />
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
             )}
             {loading ? "Updating..." : "Update Record"}
           </Button>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from "@/components/ui/icon";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
@@ -52,7 +52,7 @@ export default function LoginPage() {
         href="/"
         className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
+        <ArrowLeftIcon size={16} className="mr-2" />
         Back to Home
       </Link>
 
@@ -121,9 +121,9 @@ export default function LoginPage() {
                     transition={{ duration: 0.15, ease: "easeOut" }}
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOffIcon size={16} />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <EyeIcon size={16} />
                     )}
                   </motion.div>
                 </AnimatePresence>

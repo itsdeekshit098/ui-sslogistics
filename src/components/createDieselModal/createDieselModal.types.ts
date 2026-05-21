@@ -2,6 +2,7 @@ export interface CreateDieselModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
+  defaultVehicleId?: string;
   vehicles: {
     id: number;
     vehicle_number: string;

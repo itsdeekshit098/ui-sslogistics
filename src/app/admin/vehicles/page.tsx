@@ -3,29 +3,20 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Plus,
-  Search,
-  Truck,
-  Car,
-  Bus,
-  Save,
-  Van,
-  FolderOpen,
-  Trash2,
-  Pencil,
-  ArrowLeft,
-  X,
-  SlidersHorizontal,
-} from "lucide-react";
+  PlusIcon,
+  SearchIcon,
+  TruckIcon,
+  CarIcon,
+  BusIcon,
+  SaveIcon,
+  VanIcon,
+  FolderOpenIcon,
+  Trash2Icon,
+  PencilIcon,
+  ArrowLeftIcon,
+  XIcon,
+  SlidersHorizontalIcon,
+} from "@/components/ui/icon";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +59,10 @@ import { CreateVehicleModal } from "@/components/createVehicleModal";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
+import { DataTable } from "@/components/ui/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import { Badge } from "@/components/ui/badge";
+import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -443,7 +438,7 @@ export default function VehiclesPage() {
         onClick={() => router.back()}
         className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
+        <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
         Back
       </Button>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -459,7 +454,7 @@ export default function VehiclesPage() {
             className="w-full md:w-auto"
             onClick={() => setIsCreateOpen(true)}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Vehicle
           </Button>
         )}
       </div>
@@ -470,7 +465,7 @@ export default function VehiclesPage() {
             <CardTitle className="text-xs md:text-sm font-medium">
               Total Fleet
             </CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
+            <TruckIcon size={16} className="text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
@@ -560,7 +555,7 @@ export default function VehiclesPage() {
             </CardTitle>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <SearchIcon size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
                 <Input
                   data-testid="vehicles-search-input"
                   placeholder="Search vehicle number..."
@@ -580,7 +575,7 @@ export default function VehiclesPage() {
                     }}
                     className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
                   >
-                    <X className="h-4 w-4" />
+                    <XIcon size={16} />
                   </button>
                 )}
               </div>
@@ -589,7 +584,7 @@ export default function VehiclesPage() {
                 onClick={openDrawer}
                 className="gap-2 shrink-0"
               >
-                <SlidersHorizontal className="h-4 w-4" />
+                <SlidersHorizontalIcon size={16} />
                 Filters
                 {(typeFilter !== "all" || statusFilter !== "") && (
                   <span style={styles.activeFilterBadge}>
@@ -606,7 +601,7 @@ export default function VehiclesPage() {
                   onClick={resetFilters}
                   className="text-xs"
                 >
-                  <X className="mr-1 h-3.5 w-3.5" /> Clear
+                  <XIcon size={14} style={{ marginRight: "0.25rem" }} /> Clear
                 </Button>
               )}
             </div>
@@ -626,7 +621,7 @@ export default function VehiclesPage() {
             ) : vehicles.length === 0 ? (
               hasActiveFilters ? (
                 <EmptyState
-                  icon={Search}
+                  icon={SearchIcon}
                   title="No Matches Found"
                   description="No vehicles match your current search or filter. Try adjusting your criteria."
                   actionLabel="Clear Filters"
@@ -634,7 +629,7 @@ export default function VehiclesPage() {
                 />
               ) : (
                 <EmptyState
-                  icon={Truck}
+                  icon={TruckIcon}
                   title="No Vehicles Found"
                   description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
                   actionLabel="Add Vehicle"
@@ -668,14 +663,14 @@ export default function VehiclesPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     {vehicle.vehicle_type === "Bus" ? (
-                      <Bus className="h-3.5 w-3.5" />
+                      <BusIcon size={14} />
                     ) : vehicle.vehicle_type === "Car" ? (
-                      <Car className="h-3.5 w-3.5" />
+                      <CarIcon size={14} />
                     ) : vehicle.vehicle_type === "Tempo Traveller" ||
                       vehicle.vehicle_type === "Tempo" ? (
-                      <Van className="h-3.5 w-3.5" />
+                      <VanIcon size={14} />
                     ) : (
-                      <Truck className="h-3.5 w-3.5" />
+                      <TruckIcon size={14} />
                     )}
                     <span>{vehicle.vehicle_type}</span>
                     <span className="text-muted-foreground/50">•</span>
@@ -698,7 +693,7 @@ export default function VehiclesPage() {
                         setIsDocOpen(true);
                       }}
                     >
-                      <FolderOpen className="mr-1 h-3.5 w-3.5" /> Docs
+                      <FolderOpenIcon size={14} style={{ marginRight: "0.25rem" }} /> Docs
                     </Button>
                     {canWrite && (
                       <>
@@ -722,7 +717,7 @@ export default function VehiclesPage() {
                               handleDeleteClick(vehicle);
                             }}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2Icon size={14} />
                           </Button>
                         )}
                       </>
@@ -734,155 +729,132 @@ export default function VehiclesPage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden md:block rounded-md border border-border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vehicle No.</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Service</TableHead>
-                  <TableHead>Documents</TableHead>
-                  {canWrite && (
-                    <TableHead className="text-right">Actions</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={canWrite ? 8 : 7}>
-                      <LoadingSpinner
-                        size="sm"
-                        centered
-                        label="Loading vehicles..."
+          <div className="hidden md:block">
+            <DataTable<Vehicle>
+              columns={[
+                {
+                  key: "vehicle_number",
+                  header: "Vehicle No.",
+                  cell: (row) => (
+                    <span className="font-medium">
+                      <HighlightMatch
+                        text={row.vehicle_number}
+                        query={debouncedQuery}
                       />
-                    </TableCell>
-                  </TableRow>
-                ) : fetchError ? (
-                  <TableRow>
-                    <TableCell colSpan={8}>
-                      <ErrorState
-                        title="Couldn't load vehicles"
-                        description={fetchError}
-                        onRetry={fetchVehicles}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : vehicles.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8}>
-                      {hasActiveFilters ? (
-                        <EmptyState
-                          icon={Search}
-                          title="No Matches Found"
-                          description="No vehicles match your current search or filter. Try adjusting your criteria."
-                          actionLabel="Clear Filters"
-                          onAction={resetFilters}
-                        />
-                      ) : (
-                        <EmptyState
-                          icon={Truck}
-                          title="No Vehicles Found"
-                          description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
-                          actionLabel="Add Vehicle"
-                          onAction={() => setIsCreateOpen(true)}
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
+                    </span>
+                  ),
+                },
+                {
+                  key: "vehicle_type",
+                  header: "Type",
+                  cell: (row) => (
+                    <div style={styles.cellRow}>
+                      <span style={styles.cellIconBadge}>
+                        {row.vehicle_type === "Bus" ? (
+                          <BusIcon size={14} style={{ color: styles.cellIconColor }} />
+                        ) : row.vehicle_type === "Car" ? (
+                          <CarIcon size={14} style={{ color: styles.cellIconColor }} />
+                        ) : row.vehicle_type === "Tempo Traveller" ||
+                          row.vehicle_type === "Tempo" ? (
+                          <VanIcon size={14} style={{ color: styles.cellIconColor }} />
+                        ) : (
+                          <TruckIcon size={14} style={{ color: styles.cellIconColor }} />
+                        )}
+                      </span>
+                      <span style={styles.cellLabel}>{row.vehicle_type}</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: "model",
+                  header: "Model",
+                  cell: (row) => `${row.company} ${row.model}`,
+                },
+                {
+                  key: "capacity",
+                  header: "Capacity",
+                  cell: (row) => row.capacity,
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  cell: (row) => (
+                    <Badge
+                      variant={
+                        getStatusBadgeVariant(row.status) as
+                          | "default"
+                          | "destructive"
+                          | "secondary"
+                          | "outline"
+                      }
+                    >
+                      {row.status}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: "last_service_date",
+                  header: "Last Service",
+                  cell: (row) => row.last_service_date || "N/A",
+                },
+                {
+                  key: "documents",
+                  header: "Documents",
+                  cell: (row) => (
+                    <Button
+                      data-testid={`desktop-doc-btn-${row.id}`}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setDocVehicle(row);
+                        setIsDocOpen(true);
+                      }}
+                    >
+                      <FolderOpenIcon size={16} style={{ marginRight: "0.5rem" }} /> Manage Docs
+                    </Button>
+                  ),
+                },
+              ]}
+              data={vehicles}
+              rowKey={(row) => row.id.toString()}
+              loading={loading}
+              emptyNode={
+                hasActiveFilters ? (
+                  <EmptyState
+                    icon={SearchIcon}
+                    title="No Matches Found"
+                    description="No vehicles match your current search or filter. Try adjusting your criteria."
+                    actionLabel="Clear Filters"
+                    onAction={resetFilters}
+                  />
                 ) : (
-                  vehicles.map((vehicle) => (
-                    <TableRow key={vehicle.id}>
-                      <TableCell className="font-medium">
-                        <HighlightMatch
-                          text={vehicle.vehicle_number}
-                          query={debouncedQuery}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {vehicle.vehicle_type === "Bus" ? (
-                            <Bus className="h-4 w-4 text-muted-foreground" />
-                          ) : vehicle.vehicle_type === "Car" ? (
-                            <Car className="h-4 w-4 text-muted-foreground" />
-                          ) : vehicle.vehicle_type === "Tempo Traveller" ||
-                            vehicle.vehicle_type === "Tempo" ? (
-                            <Van className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Truck className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          {vehicle.vehicle_type}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {vehicle.company} {vehicle.model}
-                      </TableCell>
-                      <TableCell>{vehicle.capacity}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            getStatusBadgeVariant(vehicle.status) as
-                              | "default"
-                              | "destructive"
-                              | "secondary"
-                              | "outline"
-                          }
-                        >
-                          {vehicle.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {vehicle.last_service_date || "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          data-testid={`desktop-doc-btn-${vehicle.id}`}
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setDocVehicle(vehicle);
-                            setIsDocOpen(true);
-                          }}
-                        >
-                          <FolderOpen className="mr-2 h-4 w-4" /> Manage Docs
-                        </Button>
-                      </TableCell>
-                      {canWrite && (
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              data-testid={`desktop-edit-btn-${vehicle.id}`}
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleEditClick(vehicle)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
-                            {isAdmin && (
-                              <Button
-                                data-testid={`desktop-delete-btn-${vehicle.id}`}
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteClick(vehicle)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  <EmptyState
+                    icon={TruckIcon}
+                    title="No Vehicles Found"
+                    description="You haven’t added any vehicles yet. Add your first vehicle to get started."
+                    actionLabel="Add Vehicle"
+                    onAction={() => setIsCreateOpen(true)}
+                  />
+                )
+              }
+              rowActions={[
+                {
+                  key: "edit",
+                  label: "Edit",
+                  icon: <PencilIcon size={14} />,
+                  onClick: (row) => handleEditClick(row),
+                  hidden: () => !canWrite,
+                },
+                {
+                  key: "delete",
+                  label: "Delete",
+                  icon: <Trash2Icon size={14} />,
+                  variant: "danger",
+                  onClick: (row) => handleDeleteClick(row),
+                  hidden: () => !isAdmin,
+                },
+              ]}
+            />
           </div>
 
           {total > 0 && (
@@ -918,7 +890,7 @@ export default function VehiclesPage() {
                   onClick={() => setEditSubmitError(null)}
                   className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 mt-0.5"
                 >
-                  <X className="h-4 w-4" />
+                  <XIcon size={16} />
                 </button>
               </div>
             )}
@@ -1115,7 +1087,7 @@ export default function VehiclesPage() {
                 {isSaving ? (
                   <LoadingSpinner size="sm" className="mr-2" />
                 ) : (
-                  <Save className="mr-2 h-4 w-4" />
+                  <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
                 )}
                 {isSaving ? "Saving..." : "Save changes"}
               </Button>
@@ -1129,7 +1101,7 @@ export default function VehiclesPage() {
         <DialogContent className="max-w-md rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-2 text-center">
             <div className="rounded-full bg-red-100 p-3">
-              <Trash2 className="h-6 w-6 text-red-600" />
+              <Trash2Icon size={24} className="text-red-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -1156,7 +1128,7 @@ export default function VehiclesPage() {
                   onClick={() => setDeleteError(null)}
                   className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 self-center cursor-pointer"
                 >
-                  <X className="h-4 w-4" />
+                  <XIcon size={16} />
                 </button>
               </div>
             )}
@@ -1211,81 +1183,59 @@ export default function VehiclesPage() {
         onSuccess={fetchVehiclesRefetch}
       />
       {/* ── Filter Drawer ── */}
-      {isDrawerOpen && (
-        <div style={styles.drawerContainer}>
-          <div style={styles.drawerHeader}>
-            <span style={styles.drawerTitle}>Filters</span>
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(false)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "0.25rem",
-                color: "var(--foreground)",
-              }}
-            >
-              <X style={{ width: "1.25rem", height: "1.25rem" }} />
-            </button>
-          </div>
-
-          <div style={styles.drawerBody} className="scrollbar-custom">
-            <div style={styles.drawerFieldGroup}>
-              <label style={styles.drawerFieldLabel}>Type of Vehicle</label>
-              <select
-                value={drawerFilters.type}
-                onChange={(e) =>
-                  setDrawerFilters((p) => ({
-                    ...p,
-                    type: e.target.value as VehicleType | "all",
-                  }))
-                }
-                style={styles.drawerSelect}
-              >
-                <option value="all">All Types</option>
-                {VEHICLE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t === "Tempo" ? "Tempo Traveller" : t}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={styles.drawerFieldGroup}>
-              <label style={styles.drawerFieldLabel}>Status</label>
-              <select
-                value={drawerFilters.status}
-                onChange={(e) =>
-                  setDrawerFilters((p) => ({
-                    ...p,
-                    status: e.target.value,
-                  }))
-                }
-                style={styles.drawerSelect}
-              >
-                <option value="">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Idle">Idle</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={styles.drawerFooter}>
-            <Button
-              variant="outline"
-              onClick={() => setIsDrawerOpen(false)}
-              className="flex-1"
-            >
-              Close
-            </Button>
-            <Button onClick={applyDrawerFilters} className="flex-1">
-              Apply Filters
-            </Button>
-          </div>
+      <FilterDrawer
+        open={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onApply={applyDrawerFilters}
+      >
+        <div style={filterFieldGroup}>
+          <label style={filterFieldLabel}>Type of Vehicle</label>
+          <Select
+            value={drawerFilters.type}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                type: v as VehicleType | "all",
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {VEHICLE_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t === "Tempo" ? "Tempo Traveller" : t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
+
+        <div style={filterFieldGroup}>
+          <label style={filterFieldLabel}>Status</label>
+          <Select
+            value={drawerFilters.status || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                status: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Maintenance">Maintenance</SelectItem>
+              <SelectItem value="Idle">Idle</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterDrawer>
     </div>
   );
 }

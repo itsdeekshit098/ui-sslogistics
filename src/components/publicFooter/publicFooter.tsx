@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { MessageCircleIcon } from "@/components/ui/icon";
 import { useEffect, useState } from "react";
 
 import { useIsDarkMode } from "@/hooks/useResolvedTheme";
@@ -74,7 +74,7 @@ export function PublicFooter() {
               style={styles.contactButton}
               target="_blank"
             >
-              <MessageCircle size={18} strokeWidth={2.4} />
+              <MessageCircleIcon size={18} />
               WhatsApp Operations
             </a>
           </div>

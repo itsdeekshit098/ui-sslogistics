@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboardIcon } from "@/components/ui/icon";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -84,7 +84,7 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
               {isNavigating ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                <LayoutDashboard size={17} strokeWidth={2.4} />
+                <LayoutDashboardIcon size={17} />
               )}
               <span style={styles.portalTextStyle(isCompactHeader)}>
                 {isNavigating ? "Loading..." : "Operations Portal"}

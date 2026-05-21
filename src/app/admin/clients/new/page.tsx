@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Save } from "lucide-react";
+import { ChevronLeftIcon, SaveIcon } from "@/components/ui/icon";
 import { useState } from "react";
 import {
   Select,
@@ -36,7 +36,7 @@ export default function NewClientPage() {
       <div className="flex items-center gap-3 md:gap-4">
         <Button data-testid="app-admin-clients-new-button-1" variant="ghost" size="icon" asChild>
           <Link data-testid="app-admin-clients-new-link-1" href="/admin/clients">
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeftIcon size={16} />
           </Link>
         </Button>
         <div>
@@ -112,7 +112,7 @@ export default function NewClientPage() {
                 <Link data-testid="app-admin-clients-new-link-2" href="/admin/clients">Cancel</Link>
               </Button>
               <Button data-testid="app-admin-clients-new-button-3" className="w-full sm:w-auto">
-                <Save className="mr-2 h-4 w-4" /> Save Client
+                <SaveIcon size={16} style={{ marginRight: "0.5rem" }} /> Save Client
               </Button>
             </div>
           </CardContent>

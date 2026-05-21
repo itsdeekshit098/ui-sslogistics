@@ -2,27 +2,30 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Plus,
-  Search,
-  Zap,
-  Settings,
-  Trash2,
-  Pencil,
-  X,
-  SlidersHorizontal,
-} from "lucide-react";
+  PlusIcon,
+  SearchIcon,
+  ZapIcon,
+  SettingsIcon,
+  Trash2Icon,
+  PencilIcon,
+  SlidersHorizontalIcon,
+  InboxIcon,
+  FolderOpenIcon,
+  CheckCircleIcon,
+} from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
@@ -30,9 +33,14 @@ import { Pagination } from "@/components/pagination";
 import { ConfirmModal } from "@/components/confirmModal";
 import { RepairModal } from "@/components/repairModal";
 import { Typeahead } from "@/components/typeahead";
+import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 import { useAuth } from "@/context/AuthContext";
+import { StatCard } from "@/components/ui/statCard";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import type { Technician, SpecializationOption } from "@/components/techniciansPage";
+import type {
+  Technician,
+  SpecializationOption,
+} from "@/components/techniciansPage";
 import type {
   RepairRecordWithVehicle,
   RepairSummary,
@@ -54,7 +62,9 @@ export function RepairRecordsPage() {
   // ─── Data State ───
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
-  const [specializations, setSpecializations] = useState<SpecializationOption[]>([]);
+  const [specializations, setSpecializations] = useState<
+    SpecializationOption[]
+  >([]);
   const [repairOptions, setRepairOptions] = useState<Record<string, string[]>>({
     electrical: [],
     mechanical: [],
@@ -64,7 +74,6 @@ export function RepairRecordsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [category, setCategory] = useState<RepairCategory | "">("");
@@ -111,10 +120,18 @@ export function RepairRecordsPage() {
     const fetchReferenceData = async () => {
       try {
         const [vehiclesRes, techRes, specRes, issuesRes] = await Promise.all([
-          fetch("/api/vehicles").then(r => r.json()).catch(() => ({ data: { data: [] } })),
-          fetch("/api/technicians?include_inactive=true&pageSize=1000").then(r => r.json()).catch(() => ({ data: { data: [] } })),
-          fetch("/api/specializations").then(r => r.json()).catch(() => ({ data: [] })),
-          fetch("/api/repair-issues").then(r => r.json()).catch(() => ({ data: null })),
+          fetch("/api/vehicles")
+            .then((r) => r.json())
+            .catch(() => ({ data: { data: [] } })),
+          fetch("/api/technicians?include_inactive=true&pageSize=1000")
+            .then((r) => r.json())
+            .catch(() => ({ data: { data: [] } })),
+          fetch("/api/specializations")
+            .then((r) => r.json())
+            .catch(() => ({ data: [] })),
+          fetch("/api/repair-issues")
+            .then((r) => r.json())
+            .catch(() => ({ data: null })),
         ]);
 
         setVehicles(vehiclesRes?.data?.data ?? []);
@@ -137,20 +154,26 @@ export function RepairRecordsPage() {
   }, []);
 
   // ─── Callbacks for Inline Data Creation ───
-  const handleIssueAdded = useCallback((category: string, issueName: string) => {
-    setRepairOptions((prev) => ({
-      ...prev,
-      [category]: [...(prev[category] || []), issueName],
-    }));
-  }, []);
+  const handleIssueAdded = useCallback(
+    (category: string, issueName: string) => {
+      setRepairOptions((prev) => ({
+        ...prev,
+        [category]: [...(prev[category] || []), issueName],
+      }));
+    },
+    [],
+  );
 
   const handleTechnicianAdded = useCallback((newTech: Technician) => {
     setTechnicians((prev) => [...prev, newTech]);
   }, []);
 
-  const handleSpecializationAdded = useCallback((newSpec: SpecializationOption) => {
-    setSpecializations((prev) => [...prev, newSpec]);
-  }, []);
+  const handleSpecializationAdded = useCallback(
+    (newSpec: SpecializationOption) => {
+      setSpecializations((prev) => [...prev, newSpec]);
+    },
+    [],
+  );
 
   // ─── Fetch records ───
   const fetchRecords = useCallback(
@@ -174,20 +197,15 @@ export function RepairRecordsPage() {
       const includeSummary = !(opts?.skipSummary ?? skipSummaryRef.current);
       skipSummaryRef.current = false;
 
-      if (!vid) {
-        setRecords([]);
-        setTotal(0);
-        return;
-      }
-
+      // We no longer return early if !vid. An empty vid means "All Vehicles".
       setRecordsLoading(true);
       setError(null);
       try {
         const params = new URLSearchParams({
-          vehicle_id: vid,
           page: p.toString(),
           pageSize: ps.toString(),
         });
+        if (vid) params.set("vehicle_id", vid);
         if (fd) params.set("from_date", fd);
         if (td) params.set("to_date", td);
         if (cat) params.set("category", cat);
@@ -228,7 +246,7 @@ export function RepairRecordsPage() {
   useEffect(() => {
     if (!initialFetchDone.current) {
       initialFetchDone.current = true;
-      if (selectedVehicleId) fetchRecords();
+      fetchRecords();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -238,7 +256,6 @@ export function RepairRecordsPage() {
     // Optimistic UI updates
     setSelectedVehicleId(id);
     setPage(1);
-    setSearchQuery("");
     setFromDate("");
     setToDate("");
     setCategory("");
@@ -348,19 +365,7 @@ export function RepairRecordsPage() {
     }
   };
 
-  // ─── Client-side search filter ───
-  const filteredRecords = searchQuery
-    ? records.filter((r) => {
-        const q = searchQuery.toLowerCase();
-        return (
-          r.issues.some((i) => i.toLowerCase().includes(q)) ||
-          r.category.toLowerCase().includes(q) ||
-          (r.technicians?.name &&
-            r.technicians.name.toLowerCase().includes(q)) ||
-          (r.description && r.description.toLowerCase().includes(q))
-        );
-      })
-    : records;
+  const filteredRecords = records;
 
   const selectedVehicle = vehicles.find(
     (v) => v.id.toString() === selectedVehicleId,
@@ -392,30 +397,14 @@ export function RepairRecordsPage() {
             {vehiclesLoading ? (
               <LoadingSpinner size="sm" className="mr-2" />
             ) : (
-              <Plus className="mr-2 h-4 w-4" />
+              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
             )}
             {vehiclesLoading ? "Loading Vehicles..." : "Add Repair Record"}
           </Button>
         )}
       </div>
 
-      {/* Vehicle Selector */}
-      <div className="w-full sm:w-80">
-        <Typeahead
-          id="repairVehicleFilter"
-          options={vehicles}
-          value={selectedVehicleId}
-          onValueChange={handleVehicleChange}
-          getOptionValue={(v) => v.id.toString()}
-          getOptionLabel={(v) =>
-            `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
-          }
-          getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
-          placeholder={vehiclesLoading ? "Loading vehicles..." : "Select a vehicle..."}
-          emptyMessage="No vehicles found."
-          disabled={vehiclesLoading}
-        />
-      </div>
+
 
       {/* Error */}
       {error && (
@@ -424,64 +413,106 @@ export function RepairRecordsPage() {
         </div>
       )}
 
-      {/* Summary Strip */}
-      {selectedVehicleId && summary.totalCount > 0 && (
+      {/* Summary KPI Cards Grid */}
+      {summary.totalCount > 0 && (
         <div
           style={{
             ...styles.summaryStrip,
-            opacity: recordsLoading ? 0.5 : 1,
-            transition: "opacity 0.2s ease",
+            opacity: recordsLoading ? 0.6 : 1,
+            transition: "opacity 0.25s ease",
           }}
         >
-          <div style={styles.summaryCard}>
-            <span style={styles.summaryLabel}>Total Repairs</span>
-            <span style={styles.summaryValue}>{summary.totalCount}</span>
-          </div>
-          <div style={styles.summaryCard}>
-            <span style={styles.summaryLabel}>Total Cost</span>
-            <span style={styles.summaryValue}>
-              {fmtCurrency(summary.totalCost)}
-            </span>
-          </div>
-          <div style={styles.summaryCard}>
-            <span style={styles.summaryLabel}>Electrical</span>
-            <span style={styles.summaryValue}>
-              {fmtCurrency(summary.electricalCost)}
-            </span>
-          </div>
-          <div style={styles.summaryCard}>
-            <span style={styles.summaryLabel}>Mechanical</span>
-            <span style={styles.summaryValue}>
-              {fmtCurrency(summary.mechanicalCost)}
-            </span>
-          </div>
-          <div style={styles.summaryCard}>
-            <span style={styles.summaryLabel}>Open</span>
-            <span style={styles.summaryValue}>{summary.openCount}</span>
-          </div>
-          <div style={styles.summaryCard}>
-            <span style={styles.summaryLabel}>Closed</span>
-            <span style={styles.summaryValue}>{summary.closedCount}</span>
-          </div>
+          {/* Card 1: Total Cost */}
+          <StatCard
+            title="Total Cost"
+            value={fmtCurrency(summary.totalCost)}
+            icon={<span style={{ fontSize: "1rem", fontWeight: 700 }}>₹</span>}
+            iconBgColor="rgba(59, 130, 246, 0.12)"
+            iconColor="#3b82f6"
+            highlightColor="#3b82f6"
+          />
+
+          {/* Card 2: Total Repairs */}
+          <StatCard
+            title="Total Repairs"
+            value={summary.totalCount}
+            icon={<InboxIcon size={14} />}
+            iconBgColor="rgba(6, 182, 212, 0.12)"
+            iconColor="#06b6d4"
+            highlightColor="#06b6d4"
+          />
+
+          {/* Card 3: Open Repairs */}
+          <StatCard
+            title="Open Repairs"
+            value={summary.openCount}
+            icon={<FolderOpenIcon size={14} />}
+            iconBgColor="rgba(245, 158, 11, 0.12)"
+            iconColor="#f59e0b"
+            highlightColor="#f59e0b"
+          />
+
+          {/* Card 4: Closed Repairs */}
+          <StatCard
+            title="Closed Repairs"
+            value={summary.closedCount}
+            icon={<CheckCircleIcon size={14} />}
+            iconBgColor="rgba(16, 185, 129, 0.12)"
+            iconColor="#10b981"
+            highlightColor="#10b981"
+          />
+
+          {/* Card 5: Electrical */}
+          <StatCard
+            title="Electrical"
+            value={fmtCurrency(summary.electricalCost)}
+            icon={<ZapIcon size={14} style={{ color: "#38bdf8", fill: "#38bdf8" }} />}
+            iconBgColor="rgba(56, 189, 248, 0.12)"
+            iconColor="#38bdf8"
+            highlightColor="#38bdf8"
+          />
+
+          {/* Card 6: Mechanical */}
+          <StatCard
+            title="Mechanical"
+            value={fmtCurrency(summary.mechanicalCost)}
+            icon={<SettingsIcon size={14} style={{ color: "#f97316", fill: "#f97316" }} />}
+            iconBgColor="rgba(249, 115, 22, 0.12)"
+            iconColor="#f97316"
+            highlightColor="#f97316"
+          />
         </div>
       )}
 
       {/* Records Card */}
-      {selectedVehicleId && (
+      {true && (
         <Card>
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-xl">
-                Repair History for {selectedVehicle?.vehicle_number}
+                Repair History for {selectedVehicle ? (
+                  <span style={{ color: "#3b82f6", fontWeight: 700 }}>{selectedVehicle.vehicle_number}</span>
+                ) : (
+                  "All Vehicles"
+                )}
               </CardTitle>
               <div className="flex items-center gap-2">
-                <div className="relative w-full sm:w-52">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search records..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                <div className="w-full sm:w-72">
+                  <Typeahead
+                    id="repairVehicleFilter"
+                    options={vehicles}
+                    value={selectedVehicleId}
+                    onValueChange={handleVehicleChange}
+                    getOptionValue={(v) => v.id.toString()}
+                    getOptionLabel={(v) =>
+                      `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+                    }
+                    getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
+                    placeholder={
+                      vehiclesLoading ? "Loading vehicles..." : "Search vehicle..."
+                    }
+                    emptyMessage="No vehicles found."
+                    disabled={vehiclesLoading}
                   />
                 </div>
                 <Button
@@ -489,7 +520,7 @@ export function RepairRecordsPage() {
                   onClick={openDrawer}
                   className="gap-2"
                 >
-                  <SlidersHorizontal className="h-4 w-4" />
+                  <SlidersHorizontalIcon size={16} />
                   Filters
                   {activeFilterCount > 0 && (
                     <span style={styles.activeFilterBadge}>
@@ -527,9 +558,16 @@ export function RepairRecordsPage() {
                     onClick={() => canWrite && openEdit(record)}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm">
-                        {record.repair_date.split("T")[0]}
-                      </span>
+                      <div>
+                        <span className="font-semibold text-sm">
+                          {record.repair_date.split("T")[0]}
+                        </span>
+                        {!selectedVehicleId && record.vehicles?.vehicle_number && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            • {record.vehicles.vehicle_number}
+                          </span>
+                        )}
+                      </div>
                       <Badge
                         variant={
                           record.status === "Closed" ? "success" : "warning"
@@ -538,18 +576,20 @@ export function RepairRecordsPage() {
                         {record.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground capitalize">
-                      {record.category === "electrical" ? (
-                        <Zap className="h-3.5 w-3.5 text-yellow-500" />
-                      ) : (
-                        <Settings className="h-3.5 w-3.5 text-slate-500" />
-                      )}
+                    <div style={styles.categoryMobileCellRow}>
+                      <span style={styles.categoryCellIconBadgeSm(record.category)}>
+                        {record.category === "electrical" ? (
+                          <ZapIcon size={12} style={styles.electricalIconStyle} />
+                        ) : (
+                          <SettingsIcon size={12} style={styles.mechanicalIconStyle} />
+                        )}
+                      </span>
                       {record.category}
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {record.issues.map((issue) => (
                         <Badge
-                          key={issue}
+                           key={issue}
                           variant="secondary"
                           className="text-xs"
                         >
@@ -573,7 +613,7 @@ export function RepairRecordsPage() {
                             setDeleteTarget(record);
                           }}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2Icon size={14} />
                         </Button>
                       </div>
                     )}
@@ -583,128 +623,139 @@ export function RepairRecordsPage() {
             </div>
 
             {/* ─── Desktop Table View ─── */}
-            <div className="hidden md:block rounded-md border border-border overflow-x-auto overflow-y-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Issues</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead>Status</TableHead>
-                    {canWrite && <TableHead>Actions</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recordsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={canWrite ? 8 : 7}>
-                        <LoadingSpinner
-                          size="sm"
-                          centered
-                          label="Loading records..."
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredRecords.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={canWrite ? 8 : 7}
-                        className="text-center"
-                      >
-                        No records found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredRecords.map((record) => (
-                      <TableRow
-                        key={record.id}
-                        className={
-                          isAdmin
-                            ? "cursor-pointer hover:bg-muted/50 transition-colors"
-                            : ""
-                        }
-                        onClick={() => isAdmin && openEdit(record)}
-                      >
-                        <TableCell>
-                          {record.repair_date.split("T")[0]}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 capitalize">
-                            {record.category === "electrical" ? (
-                              <Zap className="h-4 w-4 text-yellow-500" />
-                            ) : (
-                              <Settings className="h-4 w-4 text-slate-500" />
-                            )}
-                            {record.category}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {record.issues.map((issue) => (
-                              <Badge
-                                key={issue}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {issue}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell
-                          className="max-w-xs truncate"
-                          title={record.description || ""}
-                        >
-                          {record.description || "—"}
-                        </TableCell>
-                        <TableCell>
-                          ₹{Number(record.cost).toLocaleString()}
-                        </TableCell>
-                        <TableCell>{record.technicians?.name || "—"}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              record.status === "Closed" ? "success" : "warning"
-                            }
-                          >
-                            {record.status}
-                          </Badge>
-                        </TableCell>
-                        {canWrite && (
-                          <TableCell>
-                            <div
-                              className="flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
+            <div className="hidden md:block">
+              <DataTable<RepairRecordWithVehicle>
+                columns={[
+                  {
+                    key: "repair_date",
+                    header: "Date",
+                    cell: (row) => {
+                      const [datePart, timePart] = row.repair_date.split("T");
+                      const timeStr = timePart
+                        ? new Date(row.repair_date).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })
+                        : "";
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          <span style={{ whiteSpace: "nowrap", fontWeight: 500 }}>
+                            {datePart}
+                          </span>
+                          {timeStr && (
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--muted-foreground)",
+                              }}
                             >
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => openEdit(record)}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              {isAdmin && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                  onClick={() => setDeleteTarget(record)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                              {timeStr}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    },
+                  },
+                  // Show Vehicle column only when viewing all vehicles
+                  ...(!selectedVehicleId
+                    ? [
+                        {
+                          key: "vehicle" as const,
+                          header: "Vehicle",
+                          cell: (row: RepairRecordWithVehicle) => (
+                            <span className="font-medium text-foreground whitespace-nowrap">
+                              {row.vehicles?.vehicle_number || "—"}
+                            </span>
+                          ),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: "category",
+                    header: "Category",
+                    cell: (row) => (
+                      <div style={styles.categoryCellRow}>
+                        <span style={styles.categoryCellIconBadge(row.category)}>
+                          {row.category === "electrical" ? (
+                            <ZapIcon
+                              size={14}
+                              style={styles.electricalIconStyle}
+                            />
+                          ) : (
+                            <SettingsIcon
+                              size={14}
+                              style={styles.mechanicalIconStyle}
+                            />
+                          )}
+                        </span>
+                        <span style={styles.categoryCellLabel}>
+                          {row.category}
+                        </span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "issues",
+                    header: "Issues",
+                    cell: (row) => (
+                      <div className="flex flex-wrap gap-1">
+                        {row.issues.map((issue) => (
+                          <Badge key={issue} variant="secondary" className="text-xs">
+                            {issue}
+                          </Badge>
+                        ))}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "description",
+                    header: "Description",
+                    cell: (row) => row.description || "—",
+                  },
+                  {
+                    key: "cost",
+                    header: "Cost",
+                    cell: (row) => `₹${Number(row.cost).toLocaleString()}`,
+                  },
+                  {
+                    key: "technician",
+                    header: "Technician",
+                    cell: (row) => row.technicians?.name || "—",
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    cell: (row) => (
+                      <Badge variant={row.status === "Closed" ? "success" : "warning"}>
+                        {row.status}
+                      </Badge>
+                    ),
+                  },
+                ]}
+                data={filteredRecords}
+                rowKey={(row) => row.id.toString()}
+                loading={recordsLoading}
+                rowClickable={canWrite}
+                onRowClick={(row) => canWrite && openEdit(row)}
+                rowActions={[
+                  {
+                    key: "edit",
+                    label: "Edit",
+                    icon: <PencilIcon size={14} />,
+                    onClick: (row) => openEdit(row),
+                    hidden: () => !canWrite,
+                  },
+                  {
+                    key: "delete",
+                    label: "Delete",
+                    icon: <Trash2Icon size={14} />,
+                    variant: "danger",
+                    onClick: (row) => setDeleteTarget(row),
+                    hidden: () => !isAdmin,
+                  },
+                ]}
+              />
             </div>
 
             {/* Pagination */}
@@ -724,109 +775,85 @@ export function RepairRecordsPage() {
       )}
 
       {/* ── Filter Drawer ── */}
-      {drawerOpen && (
-        <>
-          <div style={styles.drawerContainer}>
-            <div style={styles.drawerHeader}>
-              <span style={styles.drawerTitle}>Filters</span>
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "0.25rem",
-                  color: "var(--foreground)",
-                }}
-              >
-                <X style={{ width: "1.25rem", height: "1.25rem" }} />
-              </button>
-            </div>
-
-            <div style={styles.drawerBody} className="scrollbar-custom">
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>Category</label>
-                <select
-                  value={drawerFilters.category}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      category: e.target.value as RepairCategory | "",
-                    }))
-                  }
-                  style={styles.drawerSelect}
-                >
-                  <option value="">All Categories</option>
-                  <option value="electrical">Electrical</option>
-                  <option value="mechanical">Mechanical</option>
-                </select>
-              </div>
-
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>Status</label>
-                <select
-                  value={drawerFilters.status}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      status: e.target.value as RepairStatus | "",
-                    }))
-                  }
-                  style={styles.drawerSelect}
-                >
-                  <option value="">All Statuses</option>
-                  <option value="Open">Open</option>
-                  <option value="Closed">Closed</option>
-                </select>
-              </div>
-
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>From Date</label>
-                <Input
-                  type="date"
-                  value={drawerFilters.fromDate}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      fromDate: e.target.value,
-                    }))
-                  }
-                  className="bg-background"
-                />
-              </div>
-
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>To Date</label>
-                <Input
-                  type="date"
-                  value={drawerFilters.toDate}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      toDate: e.target.value,
-                    }))
-                  }
-                  className="bg-background"
-                />
-              </div>
-            </div>
-
-            <div style={styles.drawerFooter}>
-              <Button
-                variant="outline"
-                onClick={() => setDrawerOpen(false)}
-                className="flex-1"
-              >
-                Close
-              </Button>
-              <Button onClick={applyDrawerFilters} className="flex-1">
-                Apply Filters
-              </Button>
-            </div>
+        <FilterDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onApply={applyDrawerFilters}
+        >
+          <div style={filterFieldGroup}>
+            <label style={filterFieldLabel}>Category</label>
+            <Select
+              value={drawerFilters.category || "all"}
+              onValueChange={(v) =>
+                setDrawerFilters((p) => ({
+                  ...p,
+                  category: (v === "all" ? "" : v) as RepairCategory | "",
+                }))
+              }
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="electrical">Electrical</SelectItem>
+                <SelectItem value="mechanical">Mechanical</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </>
-      )}
+
+          <div style={filterFieldGroup}>
+            <label style={filterFieldLabel}>Status</label>
+            <Select
+              value={drawerFilters.status || "all"}
+              onValueChange={(v) =>
+                setDrawerFilters((p) => ({
+                  ...p,
+                  status: (v === "all" ? "" : v) as RepairStatus | "",
+                }))
+              }
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Open">Open</SelectItem>
+                <SelectItem value="Closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div style={filterFieldGroup}>
+            <label style={filterFieldLabel}>From Date</label>
+            <Input
+              type="date"
+              value={drawerFilters.fromDate}
+              onChange={(e) =>
+                setDrawerFilters((p) => ({
+                  ...p,
+                  fromDate: e.target.value,
+                }))
+              }
+              className="bg-background"
+            />
+          </div>
+
+          <div style={filterFieldGroup}>
+            <label style={filterFieldLabel}>To Date</label>
+            <Input
+              type="date"
+              value={drawerFilters.toDate}
+              onChange={(e) =>
+                setDrawerFilters((p) => ({
+                  ...p,
+                  toDate: e.target.value,
+                }))
+              }
+              className="bg-background"
+            />
+          </div>
+        </FilterDrawer>
 
       {/* ─── Create / Edit Modal ─── */}
       {modalMode === "create" ? (
@@ -842,6 +869,7 @@ export function RepairRecordsPage() {
           onTechnicianAdded={handleTechnicianAdded}
           onSpecializationAdded={handleSpecializationAdded}
           mode="create"
+          defaultVehicleId={selectedVehicleId}
         />
       ) : (
         editRecord && (
