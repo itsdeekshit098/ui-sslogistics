@@ -1,13 +1,21 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { XIcon, SaveIcon, PlusIcon } from "@/components/ui/icon";
 import type { AddTechnicianModalProps } from "./addTechnicianModal.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import {
+  Modal,
+  ModalContent,
+  ModalBody,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal";
 import * as styles from "./addTechnicianModal.style";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -51,14 +59,6 @@ const AddTechnicianForm: React.FC<{
   const handleClose = useCallback(() => {
     if (!loading) onClose();
   }, [loading, onClose]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
 
   const toggleSpecialization = (specName: string) => {
     setFormData((prev) => ({
@@ -174,173 +174,155 @@ const AddTechnicianForm: React.FC<{
   };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-        <button
-          style={styles.closeButton}
-          onClick={handleClose}
-          disabled={loading}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
-          }}
-        >
-          <XIcon size={16} />
-        </button>
+    <>
+      <ModalHeader>
+        <ModalTitle>{isEdit ? "Edit Technician" : "Add New Technician"}</ModalTitle>
+        <ModalDescription>
+          {isEdit
+            ? "Update technician details and specializations."
+            : "Create a new technician profile."}
+        </ModalDescription>
+      </ModalHeader>
 
-        <div style={styles.scrollArea} className="scrollbar-custom">
-          <div>
-            <h2 style={styles.headerTitle}>
-              {isEdit ? "Edit Technician" : "Add New Technician"}
-            </h2>
-            <p style={styles.headerDescription}>
-              {isEdit
-                ? "Update technician details and specializations."
-                : "Create a new technician profile."}
-            </p>
-          </div>
-
-          <div style={styles.formSection}>
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="name">
-                Name <span style={styles.requiredStar}>*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="Technician name"
-                value={formData.name}
-                onChange={handleChange}
-                style={
-                  fieldErrors.name ? { borderColor: "#ef4444" } : undefined
-                }
-              />
-              {fieldErrors.name && (
-                <span style={styles.fieldError}>{fieldErrors.name}</span>
-              )}
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                placeholder="10-digit mobile number"
-                value={formData.phone}
-                onChange={handleChange}
-                style={
-                  fieldErrors.phone ? { borderColor: "#ef4444" } : undefined
-                }
-              />
-              {fieldErrors.phone && (
-                <span style={styles.fieldError}>{fieldErrors.phone}</span>
-              )}
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="location">Location / Address</Label>
-              <Input
-                id="location"
-                placeholder="Workshop location"
-                value={formData.location}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>Specializations</label>
-              <div style={styles.issueGrid}>
-                {localSpecializations.map((spec) => {
-                  const selected = formData.specializations.includes(spec.name);
-                  return (
-                    <div
-                      key={spec.id}
-                      style={{
-                        ...styles.issueChipBase,
-                        ...(selected ? styles.issueChipSelected : {}),
-                      }}
-                      onClick={() => toggleSpecialization(spec.name)}
-                    >
-                      {spec.name}
-                    </div>
-                  );
-                })}
-                {/* Custom specializations not in the db options yet */}
-                {formData.specializations
-                  .filter(
-                    (s) => !localSpecializations.find((opt) => opt.name === s),
-                  )
-                  .map((custom) => (
-                    <div
-                      key={custom}
-                      style={{
-                        ...styles.issueChipBase,
-                        ...styles.issueChipSelected,
-                      }}
-                      onClick={() => toggleSpecialization(custom)}
-                    >
-                      {custom}
-                      <span style={styles.customChipRemove}>
-                        <XIcon size={12} />
-                      </span>
-                    </div>
-                  ))}
-              </div>
-              <div style={styles.customIssueRow}>
-                <Input
-                  placeholder="Custom specialization..."
-                  value={customSpec}
-                  onChange={(e) => setCustomSpec(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCustomSpecialization();
-                    }
-                  }}
-                  style={{ flex: 1 }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addCustomSpecialization}
-                  disabled={!customSpec.trim()}
-                  style={{ flexShrink: 0 }}
-                >
-                  <PlusIcon
-                    size={16}
-                    style={{ marginRight: "0.25rem" }}
-                  />
-                  Add
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {submitError && (
-            <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
-              {submitError}
-            </div>
+      <ModalBody style={{ padding: "1.5rem" }}>
+        <div style={styles.formSection}>
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="name">
+            Name <span style={styles.requiredStar}>*</span>
+          </Label>
+          <Input
+            id="name"
+            placeholder="Technician name"
+            value={formData.name}
+            onChange={handleChange}
+            style={
+              fieldErrors.name ? { borderColor: "#ef4444" } : undefined
+            }
+          />
+          {fieldErrors.name && (
+            <span style={styles.fieldError}>{fieldErrors.name}</span>
           )}
+        </div>
 
-          <div style={styles.footer}>
-            <Button variant="outline" onClick={handleClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <SaveIcon
-                  size={16}
-                  style={{ marginRight: "0.5rem" }}
-                />
-              )}
-              {isEdit ? "Update Technician" : "Save Technician"}
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            placeholder="10-digit mobile number"
+            value={formData.phone}
+            onChange={handleChange}
+            style={
+              fieldErrors.phone ? { borderColor: "#ef4444" } : undefined
+            }
+          />
+          {fieldErrors.phone && (
+            <span style={styles.fieldError}>{fieldErrors.phone}</span>
+          )}
+        </div>
+
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="location">Location / Address</Label>
+          <Input
+            id="location"
+            placeholder="Workshop location"
+            value={formData.location}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div style={styles.fieldGroup}>
+          <label style={styles.fieldLabel}>Specializations</label>
+          <div style={styles.issueGrid}>
+            {localSpecializations.map((spec) => {
+              const selected = formData.specializations.includes(spec.name);
+              return (
+                <div
+                  key={spec.id}
+                  style={{
+                    ...styles.issueChipBase,
+                    ...(selected ? styles.issueChipSelected : {}),
+                  }}
+                  onClick={() => toggleSpecialization(spec.name)}
+                >
+                  {spec.name}
+                </div>
+              );
+            })}
+            {/* Custom specializations not in the db options yet */}
+            {formData.specializations
+              .filter(
+                (s) => !localSpecializations.find((opt) => opt.name === s),
+              )
+              .map((custom) => (
+                <div
+                  key={custom}
+                  style={{
+                    ...styles.issueChipBase,
+                    ...styles.issueChipSelected,
+                  }}
+                  onClick={() => toggleSpecialization(custom)}
+                >
+                  {custom}
+                  <span style={styles.customChipRemove}>
+                    <XIcon size={12} />
+                  </span>
+                </div>
+              ))}
+          </div>
+          <div style={styles.customIssueRow}>
+            <Input
+              placeholder="Custom specialization..."
+              value={customSpec}
+              onChange={(e) => setCustomSpec(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomSpecialization();
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addCustomSpecialization}
+              disabled={!customSpec.trim()}
+              style={{ flexShrink: 0 }}
+            >
+              <PlusIcon
+                size={16}
+                style={{ marginRight: "0.25rem" }}
+              />
+              Add
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+
+        {submitError && (
+          <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
+            {submitError}
+          </div>
+        )}
+        </div>
+      </ModalBody>
+
+      <ModalFooter>
+        <Button variant="outline" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? (
+            <LoadingSpinner size="sm" className="mr-2" />
+          ) : (
+            <SaveIcon
+              size={16}
+              style={{ marginRight: "0.5rem" }}
+            />
+          )}
+          {isEdit ? "Update Technician" : "Save Technician"}
+        </Button>
+      </ModalFooter>
+    </>
   );
 };
 
@@ -355,22 +337,21 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = (props) => {
     technicianToEdit,
   } = props;
 
-  if (!isOpen) return null;
-
-  const content = (
-    <div style={{ position: "relative", zIndex: mode === "nested" ? 10000 : 50 }}>
-      <AddTechnicianForm
-        onClose={onClose}
-        onSuccess={onSuccess}
-        specializations={specializations}
-        onSpecializationAdded={onSpecializationAdded}
-        technicianToEdit={technicianToEdit}
-      />
-    </div>
+  return (
+    <Modal open={isOpen} onOpenChange={(open) => !open && onClose()} nested={mode === "nested"}>
+      <ModalContent style={{ maxWidth: "32rem", padding: 0 }}>
+        {isOpen && (
+          <AddTechnicianForm
+            onClose={onClose}
+            onSuccess={onSuccess}
+            specializations={specializations}
+            onSpecializationAdded={onSpecializationAdded}
+            technicianToEdit={technicianToEdit}
+          />
+        )}
+      </ModalContent>
+    </Modal>
   );
-
-  if (typeof document === "undefined") return null;
-  return mode === "nested" ? createPortal(content, document.body) : content;
 };
 
 export default AddTechnicianModal;

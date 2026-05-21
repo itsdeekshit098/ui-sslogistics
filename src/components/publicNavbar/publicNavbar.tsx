@@ -9,6 +9,7 @@ import {
   GridIcon,
 } from "@/components/ui/icon";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 
@@ -163,7 +164,14 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
       <div style={styles.container}>
         {/* Brand */}
         <Link href="/" style={styles.brandLink} aria-label="Sri Srinivasa home">
-          <span style={styles.brandMark}>S</span>
+          <Image
+            src="/logo/logo.png"
+            alt="Sri Srinivasa Logo"
+            width={36}
+            height={36}
+            style={styles.brandLogo}
+            priority
+          />
           <span style={styles.brandTitle}>SRI SRINIVASA</span>
         </Link>
 

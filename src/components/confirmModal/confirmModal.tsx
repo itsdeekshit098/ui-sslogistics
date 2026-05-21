@@ -2,22 +2,14 @@
 
 import React from "react";
 import {
-    Dialog,
-    DialogContent,
-} from "@/components/ui/dialog";
+    Modal,
+    ModalContent,
+} from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Trash2Icon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import type { ConfirmModalProps } from "./confirmModal.types";
-import {
-    CM_CONTAINER,
-    CM_ICON_WRAPPER,
-    CM_TEXT_CONTAINER,
-    CM_TITLE,
-    CM_DESC,
-    CM_ACTION_WRAPPER,
-    CM_ERROR
-} from "./confirmModal.style";
+import * as styles from "./confirmModal.style";
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
     isOpen,
@@ -33,30 +25,31 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     children
 }) => {
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-md">
-                <div className={CM_CONTAINER}>
-                    <div className={CM_ICON_WRAPPER}>
-                        {icon ? icon : <Trash2Icon size={24} />}
+        <Modal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <ModalContent style={styles.modalContent}>
+                <div style={styles.container}>
+                    <div style={styles.iconWrapper}>
+                        {icon ? icon : <Trash2Icon size={24} style={{ color: "#dc2626" }} />}
                     </div>
-                    <div className={CM_TEXT_CONTAINER}>
-                        <h3 className={CM_TITLE}>{title}</h3>
-                        <p className={CM_DESC}>{description}</p>
+                    <div style={styles.textContainer}>
+                        <h3 style={styles.title}>{title}</h3>
+                        <p style={styles.description}>{description}</p>
                     </div>
 
                     {error && (
-                        <div className={CM_ERROR} role="alert">
+                        <div style={styles.errorBanner} role="alert">
                             {error}
                         </div>
                     )}
                     
                     {children}
 
-                    <div className={CM_ACTION_WRAPPER}>
+                    <div style={styles.actionWrapper}>
                         <Button data-testid="components-confirmModal-confirmModal-button-1"
                             variant="outline"
                             onClick={onClose}
                             disabled={isLoading}
+                            style={styles.actionButton}
                         >
                             {cancelText}
                         </Button>
@@ -64,14 +57,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                             variant="destructive"
                             onClick={onConfirm}
                             disabled={isLoading}
+                            style={styles.actionButton}
                         >
                             {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
                             {confirmText}
                         </Button>
                     </div>
                 </div>
-            </DialogContent>
-        </Dialog>
+            </ModalContent>
+        </Modal>
     );
 };
 

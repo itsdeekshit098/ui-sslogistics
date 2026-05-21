@@ -70,19 +70,12 @@ export const brandLink: CSSProperties = {
   flexShrink: 0,
 };
 
-export const brandMark: CSSProperties = {
-  width: "2.15rem",
-  height: "2.15rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "0.7rem",
-  color: "#ffffff",
-  background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-  boxShadow: "0 8px 20px rgba(99, 102, 241, 0.3)",
-  fontSize: "0.78rem",
-  fontWeight: 900,
-  letterSpacing: "-0.05em",
+export const brandLogo: CSSProperties = {
+  width: "2.25rem",
+  height: "2.25rem",
+  borderRadius: "0.5rem",
+  objectFit: "contain",
+  flexShrink: 0,
 };
 
 export const brandTitle: CSSProperties = {

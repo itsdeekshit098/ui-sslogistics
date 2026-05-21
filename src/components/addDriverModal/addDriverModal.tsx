@@ -1,12 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { XIcon, SaveIcon } from "@/components/ui/icon";
+import React, { useState, useCallback } from "react";
+import { SaveIcon } from "@/components/ui/icon";
 import type { AddDriverModalProps } from "./addDriverModal.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import {
+  Modal,
+  ModalContent,
+  ModalBody,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal";
 import * as styles from "./addDriverModal.style";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -33,14 +42,6 @@ const AddDriverForm: React.FC<{
   const handleClose = useCallback(() => {
     if (!loading) onClose();
   }, [loading, onClose]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -114,134 +115,105 @@ const AddDriverForm: React.FC<{
   };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-        <button
-          style={styles.closeButton}
-          onClick={handleClose}
-          disabled={loading}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
-          }}
-        >
-          <XIcon size={16} />
-        </button>
+    <>
+      <ModalHeader>
+        <ModalTitle>{isEdit ? "Edit Driver" : "Add New Driver"}</ModalTitle>
+        <ModalDescription>
+          {isEdit ? "Update driver details." : "Create a new driver profile."}
+        </ModalDescription>
+      </ModalHeader>
 
-        <div style={styles.scrollArea} className="scrollbar-custom">
-          <div>
-            <h2 style={styles.headerTitle}>
-              {isEdit ? "Edit Driver" : "Add New Driver"}
-            </h2>
-            <p style={styles.headerDescription}>
-              {isEdit
-                ? "Update driver details."
-                : "Create a new driver profile."}
-            </p>
-          </div>
-
-          <div style={styles.formSection}>
-            {/* Name */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="name">
-                Name <span style={styles.requiredStar}>*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="Driver name"
-                value={formData.name}
-                onChange={handleChange}
-                style={
-                  fieldErrors.name ? { borderColor: "#ef4444" } : undefined
-                }
-              />
-              {fieldErrors.name && (
-                <span style={styles.fieldError}>{fieldErrors.name}</span>
-              )}
-            </div>
-
-            {/* Phone */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                placeholder="10-digit mobile number"
-                value={formData.phone}
-                onChange={handleChange}
-                style={
-                  fieldErrors.phone ? { borderColor: "#ef4444" } : undefined
-                }
-              />
-              {fieldErrors.phone && (
-                <span style={styles.fieldError}>{fieldErrors.phone}</span>
-              )}
-            </div>
-
-            {/* Place */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="place">Place / Address</Label>
-              <Input
-                id="place"
-                placeholder="City or area"
-                value={formData.place}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* DL Number */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="dl_number">DL Number</Label>
-              <Input
-                id="dl_number"
-                placeholder="Driving licence number"
-                value={formData.dl_number}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Photo URL */}
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="photo_url">Photo URL</Label>
-              <Input
-                id="photo_url"
-                placeholder="Paste a photo link"
-                value={formData.photo_url}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {submitError && (
-            <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
-              {submitError}
-            </div>
+      <ModalBody style={{ padding: "1.5rem" }}>
+        <div style={styles.formSection}>
+        {/* Name */}
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="name">
+            Name <span style={styles.requiredStar}>*</span>
+          </Label>
+          <Input
+            id="name"
+            placeholder="Driver name"
+            value={formData.name}
+            onChange={handleChange}
+            style={fieldErrors.name ? { borderColor: "#ef4444" } : undefined}
+          />
+          {fieldErrors.name && (
+            <span style={styles.fieldError}>{fieldErrors.name}</span>
           )}
-
-          <div style={styles.footer}>
-            <Button variant="outline" onClick={handleClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <SaveIcon
-                  size={16}
-                  style={{ marginRight: "0.5rem" }}
-                />
-              )}
-              {isEdit ? "Update Driver" : "Save Driver"}
-            </Button>
-          </div>
         </div>
-      </div>
-    </div>
+
+        {/* Phone */}
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            placeholder="10-digit mobile number"
+            value={formData.phone}
+            onChange={handleChange}
+            style={fieldErrors.phone ? { borderColor: "#ef4444" } : undefined}
+          />
+          {fieldErrors.phone && (
+            <span style={styles.fieldError}>{fieldErrors.phone}</span>
+          )}
+        </div>
+
+        {/* Place */}
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="place">Place / Address</Label>
+          <Input
+            id="place"
+            placeholder="City or area"
+            value={formData.place}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* DL Number */}
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="dl_number">DL Number</Label>
+          <Input
+            id="dl_number"
+            placeholder="Driving licence number"
+            value={formData.dl_number}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* Photo URL */}
+        <div style={styles.fieldGroup}>
+          <Label htmlFor="photo_url">Photo URL</Label>
+          <Input
+            id="photo_url"
+            placeholder="Paste a photo link"
+            value={formData.photo_url}
+            onChange={handleChange}
+          />
+        </div>
+
+        {submitError && (
+          <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
+            {submitError}
+          </div>
+        )}
+        </div>
+      </ModalBody>
+
+      <ModalFooter>
+        <Button variant="outline" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? (
+            <LoadingSpinner size="sm" className="mr-2" />
+          ) : (
+            <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
+          )}
+          {isEdit ? "Update Driver" : "Save Driver"}
+        </Button>
+      </ModalFooter>
+    </>
   );
 };
-
-// ─── Wrapper — conditionally mounts/unmounts form for state reset ───
 
 const AddDriverModal: React.FC<AddDriverModalProps> = (props) => {
   const {
@@ -252,16 +224,18 @@ const AddDriverModal: React.FC<AddDriverModalProps> = (props) => {
     driverToEdit,
   } = props;
 
-  if (!isOpen) return null;
-
   return (
-    <div style={{ position: "relative", zIndex: mode === "nested" ? 60 : 50 }}>
-      <AddDriverForm
-        onClose={onClose}
-        onSuccess={onSuccess}
-        driverToEdit={driverToEdit}
-      />
-    </div>
+    <Modal open={isOpen} onOpenChange={(open) => !open && onClose()} nested={mode === "nested"}>
+      <ModalContent style={{ maxWidth: "32rem", padding: 0 }}>
+        {isOpen && (
+          <AddDriverForm
+            onClose={onClose}
+            onSuccess={onSuccess}
+            driverToEdit={driverToEdit}
+          />
+        )}
+      </ModalContent>
+    </Modal>
   );
 };
 

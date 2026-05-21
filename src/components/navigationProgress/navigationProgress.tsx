@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import type { NavigationProgressState } from "./navigationProgress.types";
 
 /**
@@ -88,24 +87,49 @@ export function NavigationProgress() {
   }, [pathname, startProgress]);
 
   return (
-    // Outer rail: fixed to top edge, full width, 3px tall, above everything
+    // Outer rail: fixed to top edge, full width, 2px tall, above everything
     <div
       aria-hidden="true"
-      className={cn(
-        "fixed top-0 left-0 right-0 h-[3px] z-[9999] pointer-events-none transition-opacity duration-300",
-        state.visible ? "opacity-100" : "opacity-0"
-      )}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "2px",
+        zIndex: 9999,
+        pointerEvents: "none",
+        opacity: state.visible ? 1 : 0,
+        transition: "opacity 0.35s ease",
+      }}
     >
-      {/* Inner bar: only width is truly dynamic and must stay as inline style */}
+      {/* Inner bar: sleek gradient with leading-edge glow */}
       <div
-        className={cn(
-          "h-full bg-gradient-to-r from-indigo-600 to-violet-600 rounded-r-sm shadow-[0_0_10px_rgba(79,70,229,0.6)]",
-          state.progress === 100
-            ? "transition-[width] duration-150 ease-out"
-            : "transition-[width] duration-[120ms] ease-in-out"
-        )}
-        style={{ width: `${state.progress}%` }}
-      />
+        style={{
+          height: "100%",
+          width: `${state.progress}%`,
+          borderRadius: "0 1px 1px 0",
+          background: "linear-gradient(90deg, #6366f1 0%, #818cf8 40%, #a78bfa 70%, #c084fc 100%)",
+          boxShadow: "0 0 8px rgba(99, 102, 241, 0.5), 0 0 3px rgba(99, 102, 241, 0.3)",
+          transition: state.progress === 100
+            ? "width 0.15s ease-out"
+            : "width 120ms ease-in-out",
+        }}
+      >
+        {/* Leading bright dot — visible shimmer at the bar's tip */}
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "-1px",
+            width: "80px",
+            height: "4px",
+            borderRadius: "0 2px 2px 0",
+            background: "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6))",
+            opacity: state.progress < 100 ? 1 : 0,
+            transition: "opacity 0.2s ease",
+          }}
+        />
+      </div>
     </div>
   );
 }

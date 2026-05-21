@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { EyeIcon, Trash2Icon, UploadCloudIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
@@ -215,16 +215,16 @@ export function DocumentModal({
   if (!localVehicle) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={DM_DIALOG_CONTENT}>
+    <Modal open={isOpen} onOpenChange={onClose}>
+      <ModalContent className={DM_DIALOG_CONTENT}>
         <div className="max-h-[85vh] overflow-y-auto p-4 md:p-6 scrollbar-custom">
-          <DialogHeader>
-            <DialogTitle>Document Management</DialogTitle>
-            <DialogDescription>
+          <ModalHeader>
+            <ModalTitle>Document Management</ModalTitle>
+            <ModalDescription>
               Documents for {localVehicle.vehicle_number} |{" "}
               {localVehicle.company} {localVehicle.model}
-            </DialogDescription>
-          </DialogHeader>
+            </ModalDescription>
+          </ModalHeader>
 
           {errorMsg && (
             <div className={DM_ERROR_WRAPPER}>
@@ -308,7 +308,7 @@ export function DocumentModal({
             })}
           </div>
         </div>
-      </DialogContent>
+      </ModalContent>
 
       <ConfirmModal
         isOpen={!!deleteDocTarget}
@@ -324,6 +324,6 @@ export function DocumentModal({
           !!deleteDocTarget && loadingFields.includes(deleteDocTarget.key)
         }
       />
-    </Dialog>
+    </Modal>
   );
 }

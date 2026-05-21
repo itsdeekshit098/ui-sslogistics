@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -134,13 +135,17 @@ export function Sidebar({
               className="flex items-center gap-3 group"
               onClick={onClose}
             >
-              {(!collapsed || isMobile) ? (
+              <Image
+                src="/logo/logo.png"
+                alt="Sri Srinivasa Logo"
+                width={collapsed && !isMobile ? 32 : 36}
+                height={collapsed && !isMobile ? 32 : 36}
+                style={{ borderRadius: "0.5rem", objectFit: "contain", flexShrink: 0 }}
+                priority
+              />
+              {(!collapsed || isMobile) && (
                 <span className="text-[20px] font-black tracking-tighter text-white leading-none">
                   SRI SRINIVASA
-                </span>
-              ) : (
-                <span className="text-[22px] font-black tracking-tighter text-white leading-none">
-                  S
                 </span>
               )}
             </Link>

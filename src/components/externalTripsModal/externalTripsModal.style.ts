@@ -1,71 +1,6 @@
 import { CSSProperties } from "react";
 
-/* ─── Layout ─── */
-
-export const overlay: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 50,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "rgba(0, 0, 0, 0.6)",
-  backdropFilter: "blur(4px)",
-};
-
-export const modalContainer: CSSProperties = {
-  position: "relative",
-  zIndex: 50,
-  width: "95vw",
-  maxWidth: "42rem",
-  maxHeight: "85vh",
-  display: "flex",
-  flexDirection: "column",
-  borderRadius: "var(--modal-radius, 0.75rem)",
-  border: "1px solid var(--border)",
-  backgroundColor: "var(--card)",
-  color: "var(--card-foreground)",
-  boxShadow: "var(--modal-shadow)",
-  overflow: "hidden",
-};
-
-export const scrollArea: CSSProperties = {
-  flex: 1,
-  overflowY: "auto",
-  padding: "1.5rem",
-};
-
-export const closeButton: CSSProperties = {
-  position: "absolute",
-  right: "1rem",
-  top: "1rem",
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  opacity: 0.7,
-  padding: "0.25rem",
-  borderRadius: "0.25rem",
-  color: "var(--foreground)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  transition: "opacity 0.15s",
-};
-
-/* ─── Header ─── */
-
-export const headerTitle: CSSProperties = {
-  fontSize: "1.25rem",
-  fontWeight: 700,
-  letterSpacing: "-0.01em",
-  paddingRight: "2rem",
-};
-
-export const headerDescription: CSSProperties = {
-  fontSize: "0.875rem",
-  color: "var(--muted-foreground)",
-  marginTop: "0.25rem",
-};
+/* ─── Form ─── */
 
 /* ─── Form ─── */
 
@@ -266,16 +201,7 @@ export const readOnlyBadge: CSSProperties = {
   color: "var(--foreground)",
 };
 
-/* ─── Footer ─── */
-
-export const footer: CSSProperties = {
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "0.75rem",
-  paddingTop: "1rem",
-  marginTop: "1rem",
-  borderTop: "1px solid var(--border)",
-};
+/* ─── Read-only ─── */
 
 /* ─── Error Banner ─── */
 

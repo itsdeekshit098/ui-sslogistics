@@ -23,6 +23,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { AddDriverModal } from "@/components/addDriverModal";
+import {
+  Modal,
+  ModalContent,
+  ModalBody,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal";
 import * as styles from "./externalTripsModal.style";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -92,14 +101,6 @@ const ExternalTripsForm: React.FC<{
   const handleClose = useCallback(() => {
     if (!loading) onClose();
   }, [loading, onClose]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !showAddDriver) handleClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose, showAddDriver]);
 
   // ─── Driver add callback ───
   const handleDriverAdded = (newDriver: Driver) => {
@@ -304,36 +305,18 @@ const ExternalTripsForm: React.FC<{
   };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-        {/* Close button */}
-        <button
-          style={styles.closeButton}
-          onClick={handleClose}
-          disabled={loading}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
-          }}
-        >
-          <XIcon size={16} />
-        </button>
+    <>
+      <ModalHeader>
+        <ModalTitle>
+          {isEdit ? "Edit Trip" : "New External Trip"}
+        </ModalTitle>
+        <ModalDescription>
+          {isEdit ? "Update trip details." : "Record a new external trip."}
+        </ModalDescription>
+      </ModalHeader>
 
-        {/* Scrollable content */}
-        <div style={styles.scrollArea} className="scrollbar-custom">
-          {/* Header */}
-          <div>
-            <h2 style={styles.headerTitle}>
-              {isEdit ? "Edit Trip" : "New External Trip"}
-            </h2>
-            <p style={styles.headerDescription}>
-              {isEdit ? "Update trip details." : "Record a new external trip."}
-            </p>
-          </div>
-
-          <div style={styles.formSection}>
+      <ModalBody style={{ padding: "1.5rem" }}>
+        <div style={styles.formSection}>
             {/* ── Vehicle ── */}
             <div style={styles.fieldGroup}>
               <label style={styles.fieldLabel}>
@@ -751,57 +734,61 @@ const ExternalTripsForm: React.FC<{
                 <span>₹{runningTotal.toLocaleString("en-IN")}</span>
               </div>
             </div>
-          </div>
-
-          {/* ── Error Banner ── */}
-          {submitError && (
-            <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
-              {submitError}
-            </div>
-          )}
-
-          {/* ── Footer ── */}
-          <div style={styles.footer}>
-            <Button variant="outline" onClick={handleClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <SaveIcon
-                  size={16}
-                  style={{ marginRight: "0.5rem" }}
-                />
-              )}
-              {isEdit ? "Update Trip" : "Save Trip"}
-            </Button>
-          </div>
         </div>
-      </div>
+
+        {/* ── Error Banner ── */}
+        {submitError && (
+          <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
+            {submitError}
+          </div>
+        )}
+      </ModalBody>
+
+      {/* ── Footer ── */}
+      <ModalFooter>
+        <Button variant="outline" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? (
+            <LoadingSpinner size="sm" className="mr-2" />
+          ) : (
+            <SaveIcon
+              size={16}
+              style={{ marginRight: "0.5rem" }}
+            />
+          )}
+          {isEdit ? "Update Trip" : "Save Trip"}
+        </Button>
+      </ModalFooter>
 
       {/* ── Stacked Add Driver Modal ── */}
       <AddDriverModal
         isOpen={showAddDriver}
         onClose={() => setShowAddDriver(false)}
         onSuccess={handleDriverAdded}
+        mode="nested"
       />
-    </div>
+    </>
   );
 };
 
 export const ExternalTripsModal: React.FC<ExternalTripsModalProps> = (
   props,
 ) => {
-  if (!props.isOpen) return null;
-
   return (
-    <ExternalTripsForm
-      mode={props.mode}
-      record={props.record}
-      onClose={props.onClose}
-      onSuccess={props.onSuccess}
-      vehicles={props.vehicles}
-    />
+    <Modal open={props.isOpen} onOpenChange={(open) => !open && props.onClose()}>
+      <ModalContent style={{ maxWidth: "48rem", padding: 0 }}>
+        {props.isOpen && (
+          <ExternalTripsForm
+            mode={props.mode}
+            record={props.record}
+            onClose={props.onClose}
+            onSuccess={props.onSuccess}
+            vehicles={props.vehicles}
+          />
+        )}
+      </ModalContent>
+    </Modal>
   );
 };

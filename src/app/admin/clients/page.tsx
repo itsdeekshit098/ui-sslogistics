@@ -9,13 +9,13 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/ui/modal";
 import {
   Select,
   SelectContent,
@@ -300,15 +300,15 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[95vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Client</DialogTitle>
-            <DialogDescription>
+      <Modal open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <ModalContent className="w-[95vw] max-w-md">
+          <ModalHeader>
+            <ModalTitle>Edit Client</ModalTitle>
+            <ModalDescription>
               Make changes to the client&apos;s profile here. Click save when
               you&apos;re done.
-            </DialogDescription>
-          </DialogHeader>
+            </ModalDescription>
+          </ModalHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -385,7 +385,7 @@ export default function ClientsPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <ModalFooter>
             <Button
               data-testid="app-admin-clients-button-4"
               type="submit"
@@ -394,9 +394,9 @@ export default function ClientsPage() {
               <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
               Save changes
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
