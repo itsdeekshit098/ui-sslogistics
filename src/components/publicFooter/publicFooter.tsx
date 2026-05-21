@@ -64,13 +64,12 @@ export function PublicFooter() {
           <div style={styles.brandPanel}>
             <div style={styles.brandRow}>
               <Image
-                src="/logo/logo.png"
+                src="/logo/sslogo.png"
                 alt="Sri Srinivasa Logo"
-                width={44}
-                height={44}
+                width={220}
+                height={40}
                 style={styles.brandLogo}
               />
-              <span style={styles.brandTitle}>SRI SRINIVASA</span>
             </div>
             <p style={styles.brandText}>
               Premium enterprise transport, employee mobility, and auto-parts

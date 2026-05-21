@@ -150,7 +150,7 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
 
     // Listen to hashchange events (covers clicking links on the same page)
     window.addEventListener("hashchange", handleScrollToHash);
-    
+
     return () => {
       if (activeTimeout) clearTimeout(activeTimeout);
       window.removeEventListener("hashchange", handleScrollToHash);
@@ -165,14 +165,13 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
         {/* Brand */}
         <Link href="/" style={styles.brandLink} aria-label="Sri Srinivasa home">
           <Image
-            src="/logo/logo.png"
+            src="/logo/sslogo.png"
             alt="Sri Srinivasa Logo"
-            width={36}
+            width={200}
             height={36}
             style={styles.brandLogo}
             priority
           />
-          <span style={styles.brandTitle}>SRI SRINIVASA</span>
         </Link>
 
         {/* Divider */}

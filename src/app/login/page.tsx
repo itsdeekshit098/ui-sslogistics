@@ -60,16 +60,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] shadow-[var(--card-shadow)] border border-border p-8">
         <div className="text-center mb-8">
           <Image
-            src="/logo/logo.png"
+            src="/logo/sslogo.png"
             alt="Sri Srinivasa Logo"
-            width={64}
-            height={64}
-            style={{ margin: "0 auto 1rem", borderRadius: "0.75rem", objectFit: "contain" }}
+            width={280}
+            height={50}
+            style={{ margin: "0 auto 1rem", objectFit: "contain" }}
             priority
           />
-          <h1 className="text-3xl font-black tracking-tighter text-[#091324] dark:text-[#F8FAFC] mb-2">
-            SRI SRINIVASA
-          </h1>
           <p className="text-muted-foreground text-sm">Operations Portal</p>
         </div>
 

@@ -79,9 +79,8 @@ export const brandRow: CSSProperties = {
 };
 
 export const brandLogo: CSSProperties = {
-  width: "2.75rem",
-  height: "2.75rem",
-  borderRadius: "0.75rem",
+  width: "220px",
+  height: "auto",
   objectFit: "contain",
   flexShrink: 0,
 };

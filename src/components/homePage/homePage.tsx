@@ -452,12 +452,12 @@ export function HomePage() {
                     shouldReduceMotion
                       ? undefined
                       : {
-                          boxShadow: [
-                            "0 24px 60px rgba(37, 99, 235, 0.34)",
-                            "0 24px 80px rgba(37, 99, 235, 0.52)",
-                            "0 24px 60px rgba(37, 99, 235, 0.34)",
-                          ],
-                        }
+                        boxShadow: [
+                          "0 24px 60px rgba(37, 99, 235, 0.34)",
+                          "0 24px 80px rgba(37, 99, 235, 0.52)",
+                          "0 24px 60px rgba(37, 99, 235, 0.34)",
+                        ],
+                      }
                   }
                   transition={{
                     duration: 3,

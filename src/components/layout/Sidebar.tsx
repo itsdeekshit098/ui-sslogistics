@@ -122,10 +122,10 @@ export function Sidebar({
         }}
       >
         <div className="flex w-full h-full max-h-screen flex-col">
-          {/* Brand Header */}
+           {/* Brand Header */}
           <div
             className={cn(
-              "flex h-16 items-center",
+              "flex py-3 items-center",
               collapsed && !isMobile ? "px-3 justify-center" : "px-5",
             )}
           >
@@ -136,23 +136,24 @@ export function Sidebar({
               onClick={onClose}
             >
               <Image
-                src="/logo/logo.png"
+                src="/logo/sslogo.png"
                 alt="Sri Srinivasa Logo"
-                width={collapsed && !isMobile ? 32 : 36}
-                height={collapsed && !isMobile ? 32 : 36}
-                style={{ borderRadius: "0.5rem", objectFit: "contain", flexShrink: 0 }}
+                width={collapsed && !isMobile ? 32 : 180}
+                height={collapsed && !isMobile ? 32 : 33}
+                style={{
+                  display: "block",
+                  width: collapsed && !isMobile ? "32px" : "180px",
+                  height: "auto",
+                  objectFit: "contain",
+                  flexShrink: 0,
+                }}
                 priority
               />
-              {(!collapsed || isMobile) && (
-                <span className="text-[20px] font-black tracking-tighter text-white leading-none">
-                  SRI SRINIVASA
-                </span>
-              )}
             </Link>
           </div>
 
           {/* Navigation */}
-          <div className="flex-1 overflow-y-auto pb-3 pt-6 w-full scrollbar-custom">
+          <div className="flex-1 overflow-y-auto pb-3 pt-2 w-full scrollbar-custom">
             <nav
               className={cn(
                 "flex flex-col gap-0.5 w-full",
@@ -161,100 +162,100 @@ export function Sidebar({
             >
               {authLoading
                 ? Array.from({ length: 7 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "rounded-lg animate-pulse bg-white/10",
-                        collapsed && !isMobile
-                          ? "h-9 w-9 mx-auto"
-                          : "h-9 w-full",
-                      )}
-                    />
-                  ))
-                : filteredItems.map((item) => {
-                const isActive = pathname === item.href;
-                const isEnabled = item.enabled;
-
-                const iconEl = (
-                  <item.icon
-                    size={18}
-                    className="shrink-0 text-white"
+                  <div
+                    key={i}
+                    className={cn(
+                      "rounded-lg animate-pulse bg-white/10",
+                      collapsed && !isMobile
+                        ? "h-9 w-9 mx-auto"
+                        : "h-9 w-full",
+                    )}
                   />
-                );
+                ))
+                : filteredItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  const isEnabled = item.enabled;
 
-                if (isEnabled) {
-                  const link = (
-                    <Link
-                      data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                  const iconEl = (
+                    <item.icon
+                      size={18}
+                      className="shrink-0 text-white"
+                    />
+                  );
+
+                  if (isEnabled) {
+                    const link = (
+                      <Link
+                        data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        key={item.href}
+                        href={item.href}
+                        onClick={onClose}
+                        className={cn(
+                          "flex items-center rounded-lg text-sm font-semibold text-white transition-all w-full",
+                          collapsed && !isMobile
+                            ? "justify-center px-2 py-2.5"
+                            : "gap-3 px-3 py-2.5",
+                          isActive
+                            ? "bg-[#2563EB] shadow-md"
+                            : "hover:bg-[#263762]",
+                        )}
+                      >
+                        {iconEl}
+                        {(!collapsed || isMobile) && (
+                          <span className="truncate">{item.name}</span>
+                        )}
+                      </Link>
+                    );
+
+                    if (collapsed && !isMobile) {
+                      return (
+                        <Tooltip key={item.href}>
+                          <TooltipTrigger asChild>{link}</TooltipTrigger>
+                          <TooltipContent side="right" sideOffset={8}>
+                            {item.name}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return link;
+                  }
+
+                  const disabledItem = (
+                    <div
                       key={item.href}
-                      href={item.href}
-                      onClick={onClose}
                       className={cn(
-                        "flex items-center rounded-lg text-sm font-semibold text-white transition-all w-full",
+                        "flex items-center rounded-lg text-sm font-semibold text-white/40 cursor-not-allowed w-full",
                         collapsed && !isMobile
                           ? "justify-center px-2 py-2.5"
                           : "gap-3 px-3 py-2.5",
-                        isActive
-                          ? "bg-[#2563EB] shadow-md"
-                          : "hover:bg-[#263762]",
                       )}
                     >
                       {iconEl}
                       {(!collapsed || isMobile) && (
-                        <span className="truncate">{item.name}</span>
+                        <>
+                          <span className="truncate">{item.name}</span>
+                          <LockIcon size={12} className="ml-auto shrink-0 opacity-50" />
+                        </>
                       )}
-                    </Link>
+                    </div>
                   );
 
                   if (collapsed && !isMobile) {
                     return (
                       <Tooltip key={item.href}>
-                        <TooltipTrigger asChild>{link}</TooltipTrigger>
+                        <TooltipTrigger asChild>{disabledItem}</TooltipTrigger>
                         <TooltipContent side="right" sideOffset={8}>
-                          {item.name}
+                          <span className="text-muted-foreground">
+                            {item.name} (coming soon)
+                          </span>
                         </TooltipContent>
                       </Tooltip>
                     );
                   }
 
-                  return link;
-                }
-
-                const disabledItem = (
-                  <div
-                    key={item.href}
-                    className={cn(
-                      "flex items-center rounded-lg text-sm font-semibold text-white/40 cursor-not-allowed w-full",
-                      collapsed && !isMobile
-                        ? "justify-center px-2 py-2.5"
-                        : "gap-3 px-3 py-2.5",
-                    )}
-                  >
-                    {iconEl}
-                    {(!collapsed || isMobile) && (
-                      <>
-                        <span className="truncate">{item.name}</span>
-                        <LockIcon size={12} className="ml-auto shrink-0 opacity-50" />
-                      </>
-                    )}
-                  </div>
-                );
-
-                if (collapsed && !isMobile) {
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>{disabledItem}</TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8}>
-                        <span className="text-muted-foreground">
-                          {item.name} (coming soon)
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                }
-
-                return disabledItem;
-              })}
+                  return disabledItem;
+                })}
             </nav>
           </div>
 

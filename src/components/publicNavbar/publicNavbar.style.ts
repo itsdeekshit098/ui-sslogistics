@@ -49,7 +49,7 @@ export const container: CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: "1rem",
-  minHeight: "3.75rem",
+  minHeight: "3.25rem",
   padding: "0 0.75rem",
   borderRadius: "0.5rem",
   background: "var(--public-nav-bg)",
@@ -71,9 +71,8 @@ export const brandLink: CSSProperties = {
 };
 
 export const brandLogo: CSSProperties = {
-  width: "2.25rem",
-  height: "2.25rem",
-  borderRadius: "0.5rem",
+  width: "200px",
+  height: "auto",
   objectFit: "contain",
   flexShrink: 0,
 };
