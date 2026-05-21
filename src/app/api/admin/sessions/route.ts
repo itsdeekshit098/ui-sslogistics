@@ -304,9 +304,11 @@ export async function PATCH(req: Request) {
     }
 
     // Revoke all sessions for the user (force re-login with new password)
+    let sessionsRevoked = true;
     try {
       await supabaseAdmin.auth.admin.signOut(userId, "global");
     } catch (revokeError) {
+      sessionsRevoked = false;
       console.error("Password changed but failed to revoke sessions", {
         userId,
         error: revokeError,
@@ -324,10 +326,16 @@ export async function PATCH(req: Request) {
         targetUserId: userId,
         targetEmail: targetUser.user.email,
         targetRole: targetUser.user.app_metadata?.role,
+        sessionsRevoked,
       },
     });
 
-    return apiSuccess(null, "Password reset and all sessions revoked");
+    return apiSuccess(
+      { sessionsRevoked },
+      sessionsRevoked
+        ? "Password reset and all sessions revoked"
+        : "Password reset successfully, but existing sessions could not be revoked",
+    );
   } catch (err: unknown) {
     return handleApiError(err);
   }

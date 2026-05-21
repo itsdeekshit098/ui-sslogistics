@@ -146,7 +146,7 @@ export function SessionsPage() {
   };
 
   const handleConfirmAction = async () => {
-    if (!actionTarget) return;
+    if (!actionTarget || actionLoading) return;
     setActionLoading(true);
     setActionError(null);
 
@@ -609,9 +609,10 @@ export function SessionsPage() {
         >
           {actionType === "resetPassword" && (
             <div style={styles.passwordInputWrapper}>
-              <label style={styles.passwordInputLabel}>New Password</label>
+              <label htmlFor="reset-password-input" style={styles.passwordInputLabel}>New Password</label>
               <div style={{ position: "relative" }}>
                 <input
+                  id="reset-password-input"
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -619,9 +620,10 @@ export function SessionsPage() {
                   autoComplete="new-password"
                   style={styles.passwordInput}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && newPassword.length >= 6) {
-                      handleConfirmAction();
-                    }
+                    if (e.key !== "Enter") return;
+                    if (e.repeat || actionLoading || newPassword.length < 6) return;
+                    e.preventDefault();
+                    handleConfirmAction();
                   }}
                 />
                 <button
