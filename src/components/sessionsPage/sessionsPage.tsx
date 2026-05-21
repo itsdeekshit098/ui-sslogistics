@@ -9,6 +9,9 @@ import {
   ChevronRightIcon,
   MonitorIcon,
   LogOutIcon,
+  KeyRoundIcon,
+  EyeIcon,
+  EyeOffIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmModal from "@/components/confirmModal/confirmModal";
@@ -47,7 +50,7 @@ function getRoleBadgeStyle(role: string | null): React.CSSProperties {
   }
 }
 
-type ActionType = "ban" | "unban" | "revoke";
+type ActionType = "ban" | "unban" | "revoke" | "resetPassword";
 
 export function SessionsPage() {
   const { userRole, loading: authLoading } = useAuth();
@@ -69,6 +72,10 @@ export function SessionsPage() {
   const [actionTarget, setActionTarget] = useState<SessionUser | null>(null);
   const [actionType, setActionType] = useState<ActionType>("ban");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Password reset state
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
@@ -134,6 +141,8 @@ export function SessionsPage() {
   const closeAction = () => {
     setActionTarget(null);
     setActionError(null);
+    setNewPassword("");
+    setShowPassword(false);
   };
 
   const handleConfirmAction = async () => {
@@ -144,7 +153,22 @@ export function SessionsPage() {
     try {
       let res: Response;
 
-      if (actionType === "revoke") {
+      if (actionType === "resetPassword") {
+        if (!newPassword || newPassword.length < 6) {
+          setActionError("Password must be at least 6 characters");
+          setActionLoading(false);
+          return;
+        }
+
+        res = await fetch("/api/admin/sessions", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: actionTarget.id,
+            newPassword,
+          }),
+        });
+      } else if (actionType === "revoke") {
         res = await fetch(
           `/api/admin/sessions?userId=${actionTarget.id}`,
           { method: "DELETE" },
@@ -201,6 +225,13 @@ export function SessionsPage() {
           confirmText: "Revoke Sessions",
           icon: <LogOutIcon size={24} className="text-amber-500" />,
         };
+      case "resetPassword":
+        return {
+          title: "Reset Password",
+          description: `Set a new password for ${email}. They will be signed out from all devices and must log in with the new password.`,
+          confirmText: "Reset Password",
+          icon: <KeyRoundIcon size={24} className="text-indigo-500" />,
+        };
     }
   };
 
@@ -237,140 +268,150 @@ export function SessionsPage() {
         <>
           {/* ── Desktop Table ── */}
           <div className="hidden md:block" style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Email</th>
-                  <th style={styles.th}>Role</th>
-                  <th style={styles.th}>Status</th>
-                  <th style={styles.th}>Sessions</th>
-                  <th style={styles.th}>Last Sign In</th>
-                  <th style={{ ...styles.th, textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => {
-                  const isExpanded = expandedUsers.has(user.id);
-                  const sessionCount = user.sessions?.length || 0;
+            <div style={{ width: "100%", overflowX: "auto" }}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Role</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Sessions</th>
+                    <th style={styles.th}>Last Sign In</th>
+                    <th style={{ ...styles.th, textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => {
+                    const isExpanded = expandedUsers.has(user.id);
+                    const sessionCount = user.sessions?.length || 0;
 
-                  return (
-                    <React.Fragment key={user.id}>
-                      {/* User row */}
-                      <tr>
-                        <td style={{ ...styles.td, ...styles.emailCell }}>
-                          {user.email}
-                        </td>
-                        <td style={styles.td}>
-                          <span style={getRoleBadgeStyle(user.role)}>
-                            {user.role || "none"}
-                          </span>
-                        </td>
-                        <td style={styles.td}>
-                          <span
-                            style={
-                              user.isBanned
-                                ? styles.statusBanned
-                                : styles.statusActive
-                            }
-                          >
-                            {user.isBanned ? "Banned" : "Active"}
-                          </span>
-                        </td>
-                        <td style={styles.td}>
-                          {sessionCount > 0 ? (
-                            <button
-                              style={styles.expandBtn}
-                              className="hover:bg-muted transition-colors"
-                              onClick={() => toggleExpand(user.id)}
-                            >
-                              {isExpanded ? (
-                                <ChevronDownIcon size={12} />
-                              ) : (
-                                <ChevronRightIcon size={12} />
-                              )}
-                              {sessionCount} active
-                            </button>
-                          ) : (
-                            <span style={styles.sessionChipMeta}>
-                              No sessions
+                    return (
+                      <React.Fragment key={user.id}>
+                        {/* User row */}
+                        <tr>
+                          <td style={{ ...styles.td, ...styles.emailCell }}>
+                            {user.email}
+                          </td>
+                          <td style={styles.td}>
+                            <span style={getRoleBadgeStyle(user.role)}>
+                              {user.role || "none"}
                             </span>
-                          )}
-                        </td>
-                        <td style={{ ...styles.td, ...styles.timeCell }}>
-                          {formatDate(user.lastSignInAt)}
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.actionsCell}>
-                            {sessionCount > 0 && (
+                          </td>
+                          <td style={styles.td}>
+                            <span
+                              style={
+                                user.isBanned
+                                  ? styles.statusBanned
+                                  : styles.statusActive
+                              }
+                            >
+                              {user.isBanned ? "Banned" : "Active"}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            {sessionCount > 0 ? (
                               <button
-                                style={styles.revokeBtn}
-                                className="hover:opacity-80 transition-opacity"
-                                onClick={() => openAction(user, "revoke")}
+                                style={styles.expandBtn}
+                                className="hover:bg-muted transition-colors"
+                                onClick={() => toggleExpand(user.id)}
                               >
-                                <LogOutIcon size={14} style={{ marginRight: "0.25rem" }} />
-                                Revoke
-                              </button>
-                            )}
-                            {user.isBanned ? (
-                              <button
-                                style={styles.unbanBtn}
-                                className="hover:opacity-80 transition-opacity"
-                                onClick={() => openAction(user, "unban")}
-                              >
-                                <ShieldCheckIcon size={14} style={{ marginRight: "0.25rem" }} />
-                                Unban
+                                {isExpanded ? (
+                                  <ChevronDownIcon size={12} />
+                                ) : (
+                                  <ChevronRightIcon size={12} />
+                                )}
+                                {sessionCount} active
                               </button>
                             ) : (
-                              <button
-                                style={styles.banBtn}
-                                className="hover:opacity-80 transition-opacity"
-                                onClick={() => openAction(user, "ban")}
-                              >
-                                <ShieldOffIcon size={14} style={{ marginRight: "0.25rem" }} />
-                                Ban
-                              </button>
+                              <span style={styles.sessionChipMeta}>
+                                No sessions
+                              </span>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Expanded sessions row */}
-                      {isExpanded && sessionCount > 0 && (
-                        <tr style={styles.sessionRow}>
-                          <td
-                            colSpan={6}
-                            style={styles.sessionCell}
-                          >
-                            <div style={styles.sessionGrid}>
-                              {user.sessions.map((s) => (
-                                <div key={s.id} style={styles.sessionChip}>
-                                  <MonitorIcon size={14} className="shrink-0 text-muted-foreground" />
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: "0.125rem",
-                                    }}
-                                  >
-                                    <span style={styles.sessionChipLabel}>
-                                      {s.device}
-                                    </span>
-                                    <span style={styles.sessionChipMeta}>
-                                      IP: {s.ip} · Active:{" "}
-                                      {formatDate(s.lastActiveAt)}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
+                          </td>
+                          <td style={{ ...styles.td, ...styles.timeCell }}>
+                            {formatDate(user.lastSignInAt)}
+                          </td>
+                          <td style={styles.td}>
+                            <div style={styles.actionsCell}>
+                              <button
+                                style={styles.resetPasswordBtn}
+                                className="hover:opacity-80 transition-opacity"
+                                onClick={() => openAction(user, "resetPassword")}
+                              >
+                                <KeyRoundIcon size={14} style={{ marginRight: "0.25rem" }} />
+                                Password
+                              </button>
+                              {sessionCount > 0 && (
+                                <button
+                                  style={styles.revokeBtn}
+                                  className="hover:opacity-80 transition-opacity"
+                                  onClick={() => openAction(user, "revoke")}
+                                >
+                                  <LogOutIcon size={14} style={{ marginRight: "0.25rem" }} />
+                                  Revoke
+                                </button>
+                              )}
+                              {user.isBanned ? (
+                                <button
+                                  style={styles.unbanBtn}
+                                  className="hover:opacity-80 transition-opacity"
+                                  onClick={() => openAction(user, "unban")}
+                                >
+                                  <ShieldCheckIcon size={14} style={{ marginRight: "0.25rem" }} />
+                                  Unban
+                                </button>
+                              ) : (
+                                <button
+                                  style={styles.banBtn}
+                                  className="hover:opacity-80 transition-opacity"
+                                  onClick={() => openAction(user, "ban")}
+                                >
+                                  <ShieldOffIcon size={14} style={{ marginRight: "0.25rem" }} />
+                                  Ban
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+
+                        {/* Expanded sessions row */}
+                        {isExpanded && sessionCount > 0 && (
+                          <tr style={styles.sessionRow}>
+                            <td
+                              colSpan={6}
+                              style={styles.sessionCell}
+                            >
+                              <div style={styles.sessionGrid}>
+                                {user.sessions.map((s) => (
+                                  <div key={s.id} style={styles.sessionChip}>
+                                    <MonitorIcon size={14} className="shrink-0 text-muted-foreground" />
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "0.125rem",
+                                      }}
+                                    >
+                                      <span style={styles.sessionChipLabel}>
+                                        {s.device}
+                                      </span>
+                                      <span style={styles.sessionChipMeta}>
+                                        IP: {s.ip} · Active:{" "}
+                                        {formatDate(s.lastActiveAt)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* ── Mobile Cards ── */}
@@ -462,10 +503,23 @@ export function SessionsPage() {
                   <div
                     style={{
                       display: "flex",
+                      flexWrap: "wrap",
                       gap: "0.5rem",
                       marginTop: "0.25rem",
                     }}
                   >
+                    <button
+                      style={{
+                        ...styles.resetPasswordBtn,
+                        flex: 1,
+                        justifyContent: "center",
+                      }}
+                      className="hover:opacity-80 transition-opacity"
+                      onClick={() => openAction(user, "resetPassword")}
+                    >
+                      <KeyRoundIcon size={14} style={{ marginRight: "0.25rem" }} />
+                      Password
+                    </button>
                     {sessionCount > 0 && (
                       <button
                         style={{
@@ -552,7 +606,49 @@ export function SessionsPage() {
           isLoading={actionLoading}
           error={actionError}
           icon={modalConfig.icon}
-        />
+        >
+          {actionType === "resetPassword" && (
+            <div style={styles.passwordInputWrapper}>
+              <label style={styles.passwordInputLabel}>New Password</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                  style={styles.passwordInput}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newPassword.length >= 6) {
+                      handleConfirmAction();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  style={{
+                    position: "absolute",
+                    right: "0.5rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--muted-foreground)",
+                    padding: "0.25rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+                </button>
+              </div>
+              <span style={styles.passwordHint}>Minimum 6 characters</span>
+            </div>
+          )}
+        </ConfirmModal>
       )}
     </div>
   );

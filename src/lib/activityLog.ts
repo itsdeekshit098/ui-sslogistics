@@ -27,7 +27,8 @@ export type AuditAction =
   // Session Management
   | "BAN_USER"
   | "UNBAN_USER"
-  | "REVOKE_SESSIONS";
+  | "REVOKE_SESSIONS"
+  | "RESET_PASSWORD";
 
 interface LogActivityParams {
   action: AuditAction;
