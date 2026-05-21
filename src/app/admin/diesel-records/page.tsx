@@ -27,7 +27,6 @@ import { useAuth } from "@/context/AuthContext";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
 import { RefreshCwIcon, FuelIcon } from "@/components/ui/icon";
 import { DataTable } from "@/components/ui/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";

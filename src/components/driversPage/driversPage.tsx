@@ -22,10 +22,6 @@ import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DataTable } from "@/components/ui/dataTable";
-import type {
-  ColumnDef,
-  RowAction,
-} from "@/components/ui/dataTable/dataTable.types";
 
 const DEFAULT_PAGE_SIZE = 10;
 

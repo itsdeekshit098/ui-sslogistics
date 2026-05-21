@@ -54,7 +54,6 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
       router.push("/");
       router.refresh();
     } catch (err) {
-      console.error("Sign out error:", err);
       const message =
         err instanceof Error ? err.message : "Failed to sign out. Please try again.";
       setError(message);

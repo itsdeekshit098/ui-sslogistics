@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   PlusIcon,
-  SearchIcon,
   ZapIcon,
   SettingsIcon,
   Trash2Icon,
@@ -16,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {

@@ -124,7 +124,6 @@ export function DataTable<TData>({
   data,
   rowKey,
   loading = false,
-  loadingLabel = "Loading...",
   emptyMessage = "No records found.",
   emptyNode,
   sortState,

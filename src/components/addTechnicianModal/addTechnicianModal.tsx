@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { XIcon, SaveIcon, PlusIcon } from "@/components/ui/icon";
 import type { AddTechnicianModalProps } from "./addTechnicianModal.types";
 import { Button } from "@/components/ui/button";
@@ -356,8 +357,8 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = (props) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div style={{ position: "relative", zIndex: mode === "nested" ? 60 : 50 }}>
+  const content = (
+    <div style={{ position: "relative", zIndex: mode === "nested" ? 10000 : 50 }}>
       <AddTechnicianForm
         onClose={onClose}
         onSuccess={onSuccess}
@@ -367,6 +368,9 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = (props) => {
       />
     </div>
   );
+
+  if (typeof document === "undefined") return null;
+  return mode === "nested" ? createPortal(content, document.body) : content;
 };
 
 export default AddTechnicianModal;
