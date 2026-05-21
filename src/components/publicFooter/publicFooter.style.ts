@@ -85,13 +85,6 @@ export const brandLogo: CSSProperties = {
   flexShrink: 0,
 };
 
-export const brandTitle: CSSProperties = {
-  color: "var(--public-footer-title)",
-  fontSize: "1.6rem",
-  fontWeight: 900,
-  letterSpacing: "-0.06em",
-};
-
 export const brandText: CSSProperties = {
   maxWidth: "25rem",
   margin: 0,

@@ -21,6 +21,8 @@ import * as styles from "./publicNavbar.style";
 import type { PublicNavItem } from "./publicNavbar.types";
 import type { PublicNavbarProps } from "./publicNavbar.types";
 
+const MotionLink = motion(Link);
+
 const publicNavItems: PublicNavItem[] = [
   { href: "/#services", label: "Services", icon: HomeIcon },
   { href: "/#partners", label: "Partners", icon: Building2Icon },
@@ -187,28 +189,28 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
             const isActive = activeHash === hashOnly;
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href} passHref legacyBehavior>
-                <motion.a
-                  style={isActive ? styles.navLinkActive : styles.navLink}
-                  whileHover={{
-                    background: "var(--public-nav-link-hover-bg)",
-                    color: isActive
-                      ? "var(--public-nav-active-accent)"
-                      : "var(--public-nav-link-hover)",
-                  }}
-                  onClick={() => setActiveHashWithLock(hashOnly)}
-                >
-                  <Icon size={16} />
-                  {item.label}
-                  {isActive && (
-                    <motion.span
-                      layoutId="activeUnderline"
-                      style={styles.activeUnderline}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </motion.a>
-              </Link>
+              <MotionLink
+                key={item.href}
+                href={item.href}
+                style={isActive ? styles.navLinkActive : styles.navLink}
+                whileHover={{
+                  background: "var(--public-nav-link-hover-bg)",
+                  color: isActive
+                    ? "var(--public-nav-active-accent)"
+                    : "var(--public-nav-link-hover)",
+                }}
+                onClick={() => setActiveHashWithLock(hashOnly)}
+              >
+                <Icon size={16} />
+                {item.label}
+                {isActive && (
+                  <motion.span
+                    layoutId="activeUnderline"
+                    style={styles.activeUnderline}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </MotionLink>
             );
           })}
         </nav>

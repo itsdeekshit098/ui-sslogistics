@@ -77,14 +77,6 @@ export const brandLogo: CSSProperties = {
   flexShrink: 0,
 };
 
-export const brandTitle: CSSProperties = {
-  color: "var(--public-nav-brand)",
-  fontSize: "clamp(1.1rem, 2vw, 1.35rem)",
-  fontWeight: 900,
-  letterSpacing: "-0.04em",
-  whiteSpace: "nowrap",
-};
-
 // ─── Vertical divider ────────────────────────────────────────────────────
 
 export const divider: CSSProperties = {
