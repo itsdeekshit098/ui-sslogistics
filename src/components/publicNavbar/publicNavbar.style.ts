@@ -49,7 +49,7 @@ export const container: CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: "1rem",
-  minHeight: "3.75rem",
+  minHeight: "3.25rem",
   padding: "0 0.75rem",
   borderRadius: "0.5rem",
   background: "var(--public-nav-bg)",
@@ -70,27 +70,11 @@ export const brandLink: CSSProperties = {
   flexShrink: 0,
 };
 
-export const brandMark: CSSProperties = {
-  width: "2.15rem",
-  height: "2.15rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "0.7rem",
-  color: "#ffffff",
-  background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-  boxShadow: "0 8px 20px rgba(99, 102, 241, 0.3)",
-  fontSize: "0.78rem",
-  fontWeight: 900,
-  letterSpacing: "-0.05em",
-};
-
-export const brandTitle: CSSProperties = {
-  color: "var(--public-nav-brand)",
-  fontSize: "clamp(1.1rem, 2vw, 1.35rem)",
-  fontWeight: 900,
-  letterSpacing: "-0.04em",
-  whiteSpace: "nowrap",
+export const brandLogo: CSSProperties = {
+  width: "200px",
+  height: "auto",
+  objectFit: "contain",
+  flexShrink: 0,
 };
 
 // ─── Vertical divider ────────────────────────────────────────────────────

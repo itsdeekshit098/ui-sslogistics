@@ -9,6 +9,7 @@ import {
   GridIcon,
 } from "@/components/ui/icon";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 
@@ -19,6 +20,8 @@ import { useIsDarkMode } from "@/hooks/useResolvedTheme";
 import * as styles from "./publicNavbar.style";
 import type { PublicNavItem } from "./publicNavbar.types";
 import type { PublicNavbarProps } from "./publicNavbar.types";
+
+const MotionLink = motion(Link);
 
 const publicNavItems: PublicNavItem[] = [
   { href: "/#services", label: "Services", icon: HomeIcon },
@@ -149,7 +152,7 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
 
     // Listen to hashchange events (covers clicking links on the same page)
     window.addEventListener("hashchange", handleScrollToHash);
-    
+
     return () => {
       if (activeTimeout) clearTimeout(activeTimeout);
       window.removeEventListener("hashchange", handleScrollToHash);
@@ -163,8 +166,14 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
       <div style={styles.container}>
         {/* Brand */}
         <Link href="/" style={styles.brandLink} aria-label="Sri Srinivasa home">
-          <span style={styles.brandMark}>S</span>
-          <span style={styles.brandTitle}>SRI SRINIVASA</span>
+          <Image
+            src="/logo/sslogo.png"
+            alt="Sri Srinivasa Logo"
+            width={200}
+            height={36}
+            style={styles.brandLogo}
+            priority
+          />
         </Link>
 
         {/* Divider */}
@@ -180,28 +189,28 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
             const isActive = activeHash === hashOnly;
             const Icon = item.icon;
             return (
-              <Link key={item.href} href={item.href} passHref legacyBehavior>
-                <motion.a
-                  style={isActive ? styles.navLinkActive : styles.navLink}
-                  whileHover={{
-                    background: "var(--public-nav-link-hover-bg)",
-                    color: isActive
-                      ? "var(--public-nav-active-accent)"
-                      : "var(--public-nav-link-hover)",
-                  }}
-                  onClick={() => setActiveHashWithLock(hashOnly)}
-                >
-                  <Icon size={16} />
-                  {item.label}
-                  {isActive && (
-                    <motion.span
-                      layoutId="activeUnderline"
-                      style={styles.activeUnderline}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </motion.a>
-              </Link>
+              <MotionLink
+                key={item.href}
+                href={item.href}
+                style={isActive ? styles.navLinkActive : styles.navLink}
+                whileHover={{
+                  background: "var(--public-nav-link-hover-bg)",
+                  color: isActive
+                    ? "var(--public-nav-active-accent)"
+                    : "var(--public-nav-link-hover)",
+                }}
+                onClick={() => setActiveHashWithLock(hashOnly)}
+              >
+                <Icon size={16} />
+                {item.label}
+                {isActive && (
+                  <motion.span
+                    layoutId="activeUnderline"
+                    style={styles.activeUnderline}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </MotionLink>
             );
           })}
         </nav>

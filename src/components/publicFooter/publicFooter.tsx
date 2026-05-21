@@ -2,6 +2,7 @@
 
 import { MessageCircleIcon } from "@/components/ui/icon";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 import { useIsDarkMode } from "@/hooks/useResolvedTheme";
 
@@ -62,7 +63,13 @@ export function PublicFooter() {
         <div style={styles.responsiveTopGrid(isCompactFooter)}>
           <div style={styles.brandPanel}>
             <div style={styles.brandRow}>
-              <span style={styles.brandTitle}>SRI SRINIVASA</span>
+              <Image
+                src="/logo/sslogo.png"
+                alt="Sri Srinivasa Logo"
+                width={220}
+                height={40}
+                style={styles.brandLogo}
+              />
             </div>
             <p style={styles.brandText}>
               Premium enterprise transport, employee mobility, and auto-parts

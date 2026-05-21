@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
 import { SaveIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getDefaultVehicleFormData } from "@/app/admin/vehicles/vehicles.utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Modal, ModalContent } from "@/components/ui/modal";
 import {
   CA_MODAL_GRID,
   CA_MODAL_LABEL_SPACE,
@@ -41,18 +41,7 @@ const CreateVehicleForm: React.FC<{
     if (!loading) onClose();
   }, [loading, onClose]);
 
-  // Handle escape key (disabled while submitting)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
-
-  // Body lock handled automatically by Dialog
+  // Escape key handling is delegated to Modal. Body scroll lock is not implemented.
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -381,13 +370,13 @@ const CreateVehicleModal: React.FC<CreateVehicleModalProps> = ({
   onSuccess,
 }) => {
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+    <Modal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ModalContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
         <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
           <CreateVehicleForm onClose={onClose} onSuccess={onSuccess} />
         </div>
-      </DialogContent>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 };
 

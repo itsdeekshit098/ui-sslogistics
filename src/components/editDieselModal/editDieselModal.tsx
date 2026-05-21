@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Modal, ModalContent } from "@/components/ui/modal";
 import { AddDriverModal } from "@/components/addDriverModal";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { PaymentMethod } from "@/app/admin/diesel-records/dieselRecords.types";
@@ -401,8 +401,8 @@ const EditDieselModal: React.FC<EditDieselModalProps> = ({
   onSuccess,
 }) => {
   return (
-    <Dialog open={!!record} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+    <Modal open={!!record} onOpenChange={(open) => !open && onClose()}>
+      <ModalContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
         <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
           {record && (
             <EditDieselForm
@@ -412,8 +412,8 @@ const EditDieselModal: React.FC<EditDieselModalProps> = ({
             />
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 };
 

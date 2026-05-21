@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
+import { logger } from "@/lib/logger";
 
 // ─── Helpers ───
 
@@ -60,7 +61,7 @@ export async function GET(req: Request) {
       });
 
     if (usersError) {
-      console.error("Failed to list users", usersError);
+      logger.error("Failed to list users", { message: usersError.message, code: usersError.code });
       return apiError("Failed to load users", 500);
     }
 
@@ -152,7 +153,7 @@ export async function PUT(req: Request) {
         });
 
       if (banError) {
-        console.error("Failed to ban user", banError);
+        logger.error("Failed to ban user", { userId, message: banError.message, code: banError.code });
         return apiError("Failed to ban user", 500);
       }
 
@@ -179,7 +180,7 @@ export async function PUT(req: Request) {
       });
 
     if (unbanError) {
-      console.error("Failed to unban user", unbanError);
+      logger.error("Failed to unban user", { userId, message: unbanError.message, code: unbanError.code });
       return apiError("Failed to unban user", 500);
     }
 
@@ -235,7 +236,7 @@ export async function DELETE(req: Request) {
     );
 
     if (revokeError) {
-      console.error("Failed to revoke user sessions", revokeError);
+      logger.error("Failed to revoke user sessions", { userId, message: revokeError.message, code: revokeError.code });
       return apiError("Failed to revoke sessions", 500);
     }
 
@@ -299,7 +300,7 @@ export async function PATCH(req: Request) {
       });
 
     if (updateError) {
-      console.error("Failed to reset user password", updateError);
+      logger.error("Failed to reset user password", { userId, message: updateError.message, code: updateError.code });
       return apiError("Failed to reset password", 500);
     }
 
@@ -307,12 +308,9 @@ export async function PATCH(req: Request) {
     let sessionsRevoked = true;
     try {
       await supabaseAdmin.auth.admin.signOut(userId, "global");
-    } catch (revokeError) {
+    } catch {
       sessionsRevoked = false;
-      console.error("Password changed but failed to revoke sessions", {
-        userId,
-        error: revokeError,
-      });
+      logger.error("Password changed but failed to revoke sessions", { userId });
       // Don't fail the whole request — password was already changed
     }
 

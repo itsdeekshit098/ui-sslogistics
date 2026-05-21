@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/auth/login
@@ -43,11 +44,8 @@ export async function POST(req: Request) {
     if (userId) {
       try {
         await supabaseAdmin.auth.admin.signOut(userId, "others");
-      } catch (revokeError) {
-        console.error("Failed to revoke other sessions during login", {
-          userId,
-          error: revokeError,
-        });
+      } catch {
+        logger.error("Failed to revoke other sessions during login", { userId });
       }
     }
 

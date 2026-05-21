@@ -1,22 +1,58 @@
-// Migrated from styled-components to Tailwind string constants
-// for design system consistency and dark mode support.
+import { CSSProperties } from "react";
 
-export const CM_CONTAINER =
-  "flex flex-col items-center gap-4 text-center";
+export const container: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "16px", // 1rem = 16px
+  textAlign: "center",
+};
 
-export const CM_ICON_WRAPPER =
-  "rounded-full bg-destructive/10 p-3 flex items-center justify-center [&_svg]:h-6 [&_svg]:w-6 [&_svg]:text-destructive";
+export const iconWrapper: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "12px", // 0.75rem = 12px
+  borderRadius: "9999px",
+  backgroundColor: "rgba(239, 68, 68, 0.1)",
+};
 
-export const CM_TEXT_CONTAINER = "";
+export const textContainer: CSSProperties = {};
 
-export const CM_TITLE =
-  "text-lg font-semibold text-foreground";
+export const title: CSSProperties = {
+  fontSize: "18px", // 1.125rem = 18px
+  fontWeight: 600,
+  color: "var(--foreground)",
+  margin: 0,
+};
 
-export const CM_DESC =
-  "text-sm text-muted-foreground mt-1";
+export const description: CSSProperties = {
+  fontSize: "14px", // 0.875rem = 14px
+  color: "var(--muted-foreground)",
+  marginTop: "4px", // 0.25rem = 4px
+};
 
-export const CM_ACTION_WRAPPER =
-  "flex gap-3 w-full [&_button]:flex-1";
+export const actionWrapper: CSSProperties = {
+  display: "flex",
+  gap: "12px", // 0.75rem = 12px
+  width: "100%",
+};
 
-export const CM_ERROR =
-  "w-full bg-destructive/10 border border-destructive/20 text-destructive text-xs py-2.5 px-3 rounded-md animate-in fade-in slide-in-from-top-1";
+export const actionButton: CSSProperties = {
+  flex: 1,
+};
+
+export const errorBanner: CSSProperties = {
+  width: "100%",
+  backgroundColor: "rgba(239, 68, 68, 0.1)",
+  border: "1px solid rgba(239, 68, 68, 0.2)",
+  color: "#dc2626",
+  fontSize: "12px", // 0.75rem = 12px
+  padding: "10px 12px", // 0.625rem = 10px, 0.75rem = 12px
+  borderRadius: "6px", // 0.375rem = 6px
+};
+
+export const modalContent: CSSProperties = {
+  maxWidth: "448px", // 28rem = 448px
+  padding: "24px", // 1.5rem = 24px
+};

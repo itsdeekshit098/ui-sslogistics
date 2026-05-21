@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LogOutIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
@@ -9,13 +8,13 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal";
 
 import type { SignOutButtonProps } from "./signOutButton.types";
 import * as styles from "./signOutButton.style";
@@ -27,14 +26,9 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
   const { refreshSession } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Clear error when modal closes/opens
+  // Clear error when modal closes
   useEffect(() => {
     if (!isOpen) {
       setError(null);
@@ -54,7 +48,6 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
       router.push("/");
       router.refresh();
     } catch (err) {
-      console.error("Sign out error:", err);
       const message =
         err instanceof Error ? err.message : "Failed to sign out. Please try again.";
       setError(message);
@@ -65,50 +58,6 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
 
   const isDesktop = variant === "desktop";
   const isIcon = variant === "icon";
-
-  const dialogHtml = (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-md p-6">
-        <DialogHeader>
-          <DialogTitle>Sign Out</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to sign out? You will need to log back in to
-            access the Operations Portal.
-          </DialogDescription>
-        </DialogHeader>
-
-        {error && <div style={styles.errorBanner}>{error}</div>}
-
-        <DialogFooter className="mt-4 gap-2 sm:gap-0">
-          <button
-            data-testid="sign-out-cancel-btn"
-            onClick={() => setIsOpen(false)}
-            disabled={isSigningOut}
-            style={styles.cancelBtn}
-            className="hover:bg-slate-200 transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            data-testid="sign-out-confirm-btn"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            style={styles.confirmBtn}
-            className="hover:bg-red-700 transition-colors disabled:opacity-70"
-          >
-            {isSigningOut ? (
-              <>
-                <LoadingSpinner size="sm" />
-                <span className="ml-2">Signing out</span>
-              </>
-            ) : (
-              "Sign Out"
-            )}
-          </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
   return (
     <>
@@ -139,10 +88,53 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
         )}
       </button>
 
-      {mounted && createPortal(dialogHtml, document.body)}
+      <Modal open={isOpen} onOpenChange={setIsOpen} nested disableBackdropClose disableEscapeClose>
+        <ModalContent style={{ maxWidth: "28rem" }}>
+          <ModalHeader>
+            <ModalTitle>Sign Out</ModalTitle>
+            <ModalDescription>
+              Are you sure you want to sign out? You will need to log back in to
+              access the Operations Portal.
+            </ModalDescription>
+          </ModalHeader>
+
+          {error && <div style={styles.errorBanner}>{error}</div>}
+
+          <ModalFooter>
+            <button
+              data-testid="sign-out-cancel-btn"
+              onClick={() => setIsOpen(false)}
+              disabled={isSigningOut}
+              style={{
+                ...styles.cancelBtn,
+                opacity: isSigningOut ? 0.5 : 1,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              data-testid="sign-out-confirm-btn"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              style={{
+                ...styles.confirmBtn,
+                opacity: isSigningOut ? 0.7 : 1,
+              }}
+            >
+              {isSigningOut ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span>Signing out</span>
+                </>
+              ) : (
+                "Sign Out"
+              )}
+            </button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };
 
 export default SignOutButton;
-

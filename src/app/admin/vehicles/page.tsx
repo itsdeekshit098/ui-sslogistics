@@ -23,13 +23,13 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/ui/modal";
 import {
   Select,
   SelectContent,
@@ -60,7 +60,6 @@ import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Badge } from "@/components/ui/badge";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 
@@ -872,16 +871,16 @@ export default function VehiclesPage() {
       </Card>
 
       {/* Edit Vehicle Modal */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[95vw] max-w-175 p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+      <Modal open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <ModalContent className="w-[95vw] max-w-175 p-0 overflow-hidden rounded-xl sm:rounded-2xl">
           <div className="max-h-[85vh] overflow-y-auto p-4 md:p-6 scrollbar-custom">
-            <DialogHeader>
-              <DialogTitle>Edit Vehicle</DialogTitle>
-              <DialogDescription>
+            <ModalHeader>
+              <ModalTitle>Edit Vehicle</ModalTitle>
+              <ModalDescription>
                 Make changes to the vehicle details here. Click save when
                 you&apos;re done.
-              </DialogDescription>
-            </DialogHeader>
+              </ModalDescription>
+            </ModalHeader>
             {editSubmitError && (
               <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
                 <span>{editSubmitError}</span>
@@ -1078,7 +1077,7 @@ export default function VehiclesPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <ModalFooter>
               <Button
                 type="submit"
                 onClick={handleUpdateVehicle}
@@ -1091,14 +1090,14 @@ export default function VehiclesPage() {
                 )}
                 {isSaving ? "Saving..." : "Save changes"}
               </Button>
-            </DialogFooter>
+            </ModalFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ModalContent>
+      </Modal>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="max-w-md rounded-xl sm:rounded-2xl">
+      {/* Delete Confirmation Modal */}
+      <Modal open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <ModalContent className="max-w-md rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-2 text-center">
             <div className="rounded-full bg-red-100 p-3">
               <Trash2Icon size={24} className="text-red-600" />
@@ -1151,8 +1150,8 @@ export default function VehiclesPage() {
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </ModalContent>
+      </Modal>
 
       {/* Document Management Modal */}
       <DocumentModal

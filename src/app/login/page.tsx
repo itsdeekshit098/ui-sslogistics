@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from "@/components/ui/icon";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -58,9 +59,14 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] shadow-[var(--card-shadow)] border border-border p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black tracking-tighter text-[#091324] dark:text-[#F8FAFC] mb-2">
-            SRI SRINIVASA
-          </h1>
+          <Image
+            src="/logo/sslogo.png"
+            alt="Sri Srinivasa Logo"
+            width={280}
+            height={50}
+            style={{ margin: "0 auto 1rem", objectFit: "contain" }}
+            priority
+          />
           <p className="text-muted-foreground text-sm">Operations Portal</p>
         </div>
 

@@ -78,26 +78,11 @@ export const brandRow: CSSProperties = {
   gap: "0.75rem",
 };
 
-export const brandMark: CSSProperties = {
-  width: "2.75rem",
-  height: "2.75rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "1rem",
-  color: "#ffffff",
-  background: "linear-gradient(135deg, #dc2626, #2563eb)",
-  boxShadow: "0 18px 40px rgba(37, 99, 235, 0.22)",
-  fontSize: "0.9rem",
-  fontWeight: 900,
-  letterSpacing: "-0.05em",
-};
-
-export const brandTitle: CSSProperties = {
-  color: "var(--public-footer-title)",
-  fontSize: "1.6rem",
-  fontWeight: 900,
-  letterSpacing: "-0.06em",
+export const brandLogo: CSSProperties = {
+  width: "220px",
+  height: "auto",
+  objectFit: "contain",
+  flexShrink: 0,
 };
 
 export const brandText: CSSProperties = {

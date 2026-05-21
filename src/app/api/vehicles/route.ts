@@ -52,8 +52,9 @@ export async function GET(req: Request) {
       .order("id", { ascending: false });
 
     if (search) {
-      // Remove spaces for vehicle number matching (e.g. "AP01" matches "AP 01 AB 1234")
-      query = query.ilike("vehicle_number", `%${search}%`);
+      // Escape Postgres LIKE wildcards to prevent pattern injection
+      const escaped = search.replace(/[%_]/g, "\\$&");
+      query = query.ilike("vehicle_number", `%${escaped}%`);
     }
     if (type) {
       query = query.eq("vehicle_type", type);

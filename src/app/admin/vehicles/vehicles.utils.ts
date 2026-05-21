@@ -1,44 +1,8 @@
-import { Vehicle, VehicleType, VEHICLE_TYPES } from "./vehicles.types";
+import { Vehicle } from "./vehicles.types";
 
-/**
- * Normalizes a vehicle number by removing spaces and converting to lowercase.
- * Used for search matching against partial user inputs.
- */
-export const normalizeVehicleNumber = (value: string): string =>
+/** Strips spaces and lowercases for case-insensitive matching. */
+const normalizeVehicleNumber = (value: string): string =>
   value.replace(/\s+/g, "").toLowerCase();
-
-/**
- * Filters vehicles by search query and vehicle type.
- * - Search is case-insensitive and ignores spaces in vehicle numbers.
- * - Supports partial substring matching (e.g. "3465", "KJ", "AP39").
- * - Filter and search work together (combined filtering).
- */
-export const filterVehicles = (
-  vehicles: Vehicle[],
-  searchQuery: string,
-  typeFilter: VehicleType | "all",
-): Vehicle[] => {
-  const normalizedQuery = normalizeVehicleNumber(searchQuery);
-
-  return vehicles.filter((vehicle) => {
-    const matchesType =
-      typeFilter === "all" || vehicle.vehicle_type === typeFilter;
-
-    const matchesSearch =
-      normalizedQuery === "" ||
-      normalizeVehicleNumber(vehicle.vehicle_number).includes(normalizedQuery);
-
-    return matchesType && matchesSearch;
-  });
-};
-
-/**
- * Extracts unique vehicle types from the dataset.
- */
-export const getUniqueVehicleTypes = (vehicles: Vehicle[]): string[] => {
-  const types = new Set(vehicles.map((v) => v.vehicle_type));
-  return VEHICLE_TYPES.filter((t) => types.has(t));
-};
 
 /**
  * Returns highlight segments for a vehicle number based on the search query.

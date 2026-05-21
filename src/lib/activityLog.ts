@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export type AuditAction =
   | "CREATE_VEHICLE"
@@ -62,8 +63,10 @@ export async function logActivity({
         details,
       },
     ]);
-  } catch (err) {
-    // Log to server console but never fail the parent request
-    console.error("Failed to write activity log:", err);
+  } catch (err: unknown) {
+    // Log to server console but never fail the parent request.
+    // Sanitize: capture message only, never stack traces.
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger.error("Failed to write activity log", { action, error: errorMessage });
   }
 }

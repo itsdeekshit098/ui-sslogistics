@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { XIcon, ZapIcon, SettingsIcon, SaveIcon, PlusIcon, UserPlusIcon } from "@/components/ui/icon";
 import type { RepairModalProps } from "./repairModal.types";
 import { getDefaultRepairFormData } from "@/components/repairRecordsPage";
@@ -19,6 +19,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { AddTechnicianModal } from "@/components/addTechnicianModal";
+import {
+  Modal,
+  ModalContent,
+  ModalBody,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal";
 import * as styles from "./repairModal.style";
 
 // ─── Inner form (mounts/unmounts with modal so state resets) ───
@@ -92,15 +101,6 @@ const RepairForm: React.FC<{
   const handleClose = useCallback(() => {
     if (!loading) onClose();
   }, [loading, onClose]);
-
-  // Escape key handler
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
 
   // ─── Category selection ───
 
@@ -301,39 +301,20 @@ const RepairForm: React.FC<{
   );
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
-        {/* Close button */}
-        <button
-          style={styles.closeButton}
-          onClick={handleClose}
-          disabled={loading}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
-          }}
-        >
-          <XIcon size={16} />
-        </button>
+    <>
+      <ModalHeader>
+        <ModalTitle>
+          {isEdit ? "Edit Repair Record" : "New Repair Record"}
+        </ModalTitle>
+        <ModalDescription>
+          {isEdit
+            ? "Update repair details or close this record."
+            : "Record a new repair entry for a vehicle."}
+        </ModalDescription>
+      </ModalHeader>
 
-        {/* Scrollable content */}
-        <div style={styles.scrollArea} className="scrollbar-custom">
-          {/* Header */}
-          <div>
-            <h2 style={styles.headerTitle}>
-              {isEdit ? "Edit Repair Record" : "New Repair Record"}
-            </h2>
-            <p style={styles.headerDescription}>
-              {isEdit
-                ? "Update repair details or close this record."
-                : "Record a new repair entry for a vehicle."}
-            </p>
-          </div>
-
-          <>
-              <div style={styles.formSection}>
+      <ModalBody style={{ padding: "1.5rem" }}>
+        <div style={styles.formSection}>
                 {/* ── Vehicle ── */}
                 <div style={styles.fieldGroup}>
                   <label style={styles.fieldLabel}>
@@ -746,43 +727,41 @@ const RepairForm: React.FC<{
                     </Button>
                   </div>
                 )}
-              </div>
-
-              {/* ── Error banner ── */}
-              {submitError && (
-                <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
-                  {submitError}
-                </div>
-              )}
-
-              {/* ── Footer ── */}
-              <div style={styles.footer}>
-                <Button
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSubmit} disabled={loading}>
-                  {loading ? (
-                    <LoadingSpinner size="sm" className="mr-2" />
-                  ) : (
-                    <SaveIcon
-                      size={16}
-                      style={{ marginRight: "0.5rem" }}
-                    />
-                  )}
-                  {loading
-                    ? "Saving..."
-                    : isEdit
-                      ? "Update Record"
-                      : "Save Record"}
-                </Button>
-              </div>
-          </>
         </div>
-      </div>
+
+        {/* ── Error banner ── */}
+        {submitError && (
+          <div style={{ ...styles.errorBanner, marginTop: "1rem" }}>
+            {submitError}
+          </div>
+        )}
+      </ModalBody>
+
+      {/* ── Footer ── */}
+      <ModalFooter>
+        <Button
+          variant="outline"
+          onClick={handleClose}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? (
+            <LoadingSpinner size="sm" className="mr-2" />
+          ) : (
+            <SaveIcon
+              size={16}
+              style={{ marginRight: "0.5rem" }}
+            />
+          )}
+          {loading
+            ? "Saving..."
+            : isEdit
+              ? "Update Record"
+              : "Save Record"}
+        </Button>
+      </ModalFooter>
 
       {/* ── Stacked Add Technician Modal ── */}
       <AddTechnicianModal
@@ -793,7 +772,7 @@ const RepairForm: React.FC<{
         specializations={specializations}
         mode="nested"
       />
-    </div>
+    </>
   );
 };
 
@@ -814,23 +793,27 @@ const RepairModal: React.FC<RepairModalProps> = (props) => {
     mode,
   } = props;
 
-  if (!isOpen) return null;
-
   return (
-    <RepairForm
-      mode={mode}
-      record={mode === "edit" ? props.record : undefined}
-      defaultVehicleId={mode === "create" ? props.defaultVehicleId : undefined}
-      onClose={onClose}
-      onSuccess={onSuccess}
-      vehicles={vehicles}
-      technicians={technicians}
-      specializations={specializations}
-      repairOptions={repairOptions}
-      onIssueAdded={onIssueAdded}
-      onTechnicianAdded={onTechnicianAdded}
-      onSpecializationAdded={onSpecializationAdded}
-    />
+    <Modal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ModalContent style={{ maxWidth: "48rem", padding: 0 }}>
+        {isOpen && (
+          <RepairForm
+            mode={mode}
+            record={mode === "edit" ? props.record : undefined}
+            defaultVehicleId={mode === "create" ? props.defaultVehicleId : undefined}
+            onClose={onClose}
+            onSuccess={onSuccess}
+            vehicles={vehicles}
+            technicians={technicians}
+            specializations={specializations}
+            repairOptions={repairOptions}
+            onIssueAdded={onIssueAdded}
+            onTechnicianAdded={onTechnicianAdded}
+            onSpecializationAdded={onSpecializationAdded}
+          />
+        )}
+      </ModalContent>
+    </Modal>
   );
 };
 
