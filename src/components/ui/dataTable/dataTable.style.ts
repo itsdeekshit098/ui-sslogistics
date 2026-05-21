@@ -147,6 +147,7 @@ export const loadingWrapper: CSSProperties = {
 export const actionsCell: CSSProperties = {
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-end",
   gap: "0.5rem",
 };
 

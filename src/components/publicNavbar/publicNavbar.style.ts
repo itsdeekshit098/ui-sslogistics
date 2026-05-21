@@ -44,8 +44,8 @@ export const header: CSSProperties = {
 };
 
 export const container: CSSProperties = {
-  width: "calc(100% - 2rem)",
-  maxWidth: "1250px",
+  width: "calc(100% - clamp(2rem, 5vw, 8rem))",
+  maxWidth: "1600px",
   minHeight: "4.05rem",
   margin: "0 auto",
   display: "flex",

@@ -121,8 +121,8 @@ export const heroSection: CSSProperties = {
 };
 
 export const container: CSSProperties = {
-  width: "calc(100% - 2rem)",
-  maxWidth: "1180px",
+  width: "calc(100% - clamp(2rem, 5vw, 8rem))",
+  maxWidth: "1600px",
   margin: "0 auto",
 };
 
