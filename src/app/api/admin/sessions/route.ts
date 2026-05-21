@@ -257,3 +257,86 @@ export async function DELETE(req: Request) {
     return handleApiError(err);
   }
 }
+
+// ─── PATCH — Reset a user's password ───
+
+export async function PATCH(req: Request) {
+  try {
+    const authUser = await requireStrictAdminAuth();
+
+    const body = await req.json();
+    const { userId, newPassword } = body;
+
+    if (!userId || typeof userId !== "string") {
+      return apiError("Missing or invalid userId", 400);
+    }
+
+    if (!newPassword || typeof newPassword !== "string") {
+      return apiError("New password is required", 400);
+    }
+
+    if (newPassword.length < 6) {
+      return apiError("Password must be at least 6 characters", 400);
+    }
+
+    // Prevent admin from resetting their own password through this endpoint
+    if (userId === authUser.id) {
+      return apiError("You cannot reset your own password here", 400);
+    }
+
+    // Verify target user exists
+    const { data: targetUser, error: fetchError } =
+      await supabaseAdmin.auth.admin.getUserById(userId);
+
+    if (fetchError || !targetUser?.user) {
+      return apiError("User not found", 404);
+    }
+
+    // Update the user's password
+    const { error: updateError } =
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: newPassword,
+      });
+
+    if (updateError) {
+      console.error("Failed to reset user password", updateError);
+      return apiError("Failed to reset password", 500);
+    }
+
+    // Revoke all sessions for the user (force re-login with new password)
+    let sessionsRevoked = true;
+    try {
+      await supabaseAdmin.auth.admin.signOut(userId, "global");
+    } catch (revokeError) {
+      sessionsRevoked = false;
+      console.error("Password changed but failed to revoke sessions", {
+        userId,
+        error: revokeError,
+      });
+      // Don't fail the whole request — password was already changed
+    }
+
+    await logActivity({
+      action: "RESET_PASSWORD",
+      userId: authUser.id,
+      userEmail: authUser.email,
+      tableName: "auth.users",
+      recordId: null,
+      details: {
+        targetUserId: userId,
+        targetEmail: targetUser.user.email,
+        targetRole: targetUser.user.app_metadata?.role,
+        sessionsRevoked,
+      },
+    });
+
+    return apiSuccess(
+      { sessionsRevoked },
+      sessionsRevoked
+        ? "Password reset and all sessions revoked"
+        : "Password reset successfully, but existing sessions could not be revoked",
+    );
+  } catch (err: unknown) {
+    return handleApiError(err);
+  }
+}

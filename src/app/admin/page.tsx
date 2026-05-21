@@ -19,6 +19,7 @@ import {
   ShieldIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
+import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
 const menuItems = [
   {
@@ -126,22 +127,8 @@ export default function DashboardPage() {
   const { userRole, loading: authLoading } = useAuth();
 
   const visibleMenuItems = menuItems.filter((item) => {
-    if (authLoading) return false;
-
-    if (userRole === "driver") {
-      if (
-        item.title === "Vehicles" ||
-        item.title === "Activity Log" ||
-        item.title === "Repair Records" ||
-        item.title === "Technicians" ||
-        item.title === "Drivers" ||
-        item.title === "External Trips" ||
-        item.title === "Sessions"
-      ) {
-        return false;
-      }
-    }
-    return true;
+    if (authLoading || !userRole) return false;
+    return canRoleAccessPage(item.href, userRole as UserRole);
   });
 
   return (

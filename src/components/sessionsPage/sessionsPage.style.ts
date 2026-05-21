@@ -272,3 +272,41 @@ export const paginationInfo: CSSProperties = {
   color: "var(--muted-foreground)",
 };
 
+/* ─── Reset Password ─── */
+
+export const resetPasswordBtn: CSSProperties = {
+  ...actionBtn,
+  borderColor: "rgba(99, 102, 241, 0.3)",
+  color: "rgb(99, 102, 241)",
+};
+
+export const passwordInputWrapper: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.375rem",
+  width: "100%",
+};
+
+export const passwordInputLabel: CSSProperties = {
+  fontSize: "0.8125rem",
+  fontWeight: 600,
+  color: "var(--foreground)",
+};
+
+export const passwordInput: CSSProperties = {
+  width: "100%",
+  padding: "0.625rem 0.75rem",
+  fontSize: "0.875rem",
+  borderRadius: "var(--input-radius, 0.375rem)",
+  border: "1px solid var(--border)",
+  backgroundColor: "var(--background)",
+  color: "var(--foreground)",
+  outline: "none",
+  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+};
+
+export const passwordHint: CSSProperties = {
+  fontSize: "0.75rem",
+  color: "var(--muted-foreground)",
+  marginTop: "0.125rem",
+};

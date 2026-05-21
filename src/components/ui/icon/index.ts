@@ -80,6 +80,7 @@ export {
   CheckCircleIcon,
   XCircleIcon,
   LockIcon,
+  KeyRoundIcon,
 
   // Loader
   LoaderIcon,
