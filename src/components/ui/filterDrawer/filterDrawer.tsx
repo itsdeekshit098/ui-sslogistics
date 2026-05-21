@@ -35,6 +35,7 @@ export function FilterDrawer({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close filters"
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <XIcon size={20} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, CSSProperties } from "react";
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -75,7 +75,7 @@ function ActionButton<TData>({
   const isDisabled = action.disabled?.(row) ?? false;
 
   const baseStyle = styles.actionBtn(action.variant);
-  const hoveredStyle: React.CSSProperties =
+  const hoveredStyle: CSSProperties =
     hovered && !isDisabled
       ? {
           backgroundColor:

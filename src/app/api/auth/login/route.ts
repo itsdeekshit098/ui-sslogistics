@@ -41,7 +41,14 @@ export async function POST(req: Request) {
     // This uses the service-role admin client (server-side only).
     const userId = data.user?.id;
     if (userId) {
-      await supabaseAdmin.auth.admin.signOut(userId, "others");
+      try {
+        await supabaseAdmin.auth.admin.signOut(userId, "others");
+      } catch (revokeError) {
+        console.error("Failed to revoke other sessions during login", {
+          userId,
+          error: revokeError,
+        });
+      }
     }
 
     return apiSuccess(null, "Login successful");

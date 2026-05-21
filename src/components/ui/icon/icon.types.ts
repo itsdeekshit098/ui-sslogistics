@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, FC } from "react";
 
 export interface IconProps {
   size?: number;
@@ -7,4 +7,4 @@ export interface IconProps {
 }
 
 /** Replaces LucideIcon — any functional component that accepts IconProps */
-export type ComponentIcon = React.FC<IconProps>;
+export type ComponentIcon = FC<IconProps>;
