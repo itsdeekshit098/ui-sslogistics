@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@/components/ui/icon";
 import * as styles from "./modal.style";
@@ -90,9 +90,21 @@ export const ModalContent: React.FC<ModalContentProps> = ({
   className,
 }) => {
   const { onOpenChange } = useContext(ModalContext);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog on mount so screen readers and keyboard users
+  // are immediately placed inside the modal.
+  useEffect(() => {
+    contentRef.current?.focus();
+  }, []);
 
   return (
     <div
+      ref={contentRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      tabIndex={-1} // Makes the container programmatically focusable
       style={{ ...styles.modalContainer, ...style }}
       className={className}
       onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
@@ -110,10 +122,6 @@ export const ModalContent: React.FC<ModalContentProps> = ({
       >
         <XIcon size={16} />
       </button>
-      {/* We wrap children in the content scroll area by default unless they use Header/Footer which expect flex layout, 
-          but actually, ModalContent usually contains Header, Body, Footer. 
-          So ModalContent just provides the card. The consumer should use a scrollable div inside if needed, or we can assume children is everything.
-          To match shadcn's DialogContent behavior, we just render children here. */}
       {children}
     </div>
   );
@@ -128,7 +136,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({ children, style, class
 );
 
 export const ModalTitle: React.FC<ModalTitleProps> = ({ children, style, className }) => (
-  <h2 style={{ ...styles.title, ...style }} className={className}>{children}</h2>
+  <h2 id="modal-title" style={{ ...styles.title, ...style }} className={className}>{children}</h2>
 );
 
 export const ModalDescription: React.FC<ModalDescriptionProps> = ({

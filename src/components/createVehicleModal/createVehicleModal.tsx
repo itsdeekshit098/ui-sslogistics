@@ -41,7 +41,7 @@ const CreateVehicleForm: React.FC<{
     if (!loading) onClose();
   }, [loading, onClose]);
 
-  // Body lock and Escape key handled automatically by Modal
+  // Escape key handling is delegated to Modal. Body scroll lock is not implemented.
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,

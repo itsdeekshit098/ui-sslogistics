@@ -61,7 +61,7 @@ export async function GET(req: Request) {
       });
 
     if (usersError) {
-      logger.error("Failed to list users", { code: usersError.message });
+      logger.error("Failed to list users", { message: usersError.message, code: usersError.code });
       return apiError("Failed to load users", 500);
     }
 
@@ -153,7 +153,7 @@ export async function PUT(req: Request) {
         });
 
       if (banError) {
-        logger.error("Failed to ban user", { userId, code: banError.message });
+        logger.error("Failed to ban user", { userId, message: banError.message, code: banError.code });
         return apiError("Failed to ban user", 500);
       }
 
@@ -180,7 +180,7 @@ export async function PUT(req: Request) {
       });
 
     if (unbanError) {
-      logger.error("Failed to unban user", { userId, code: unbanError.message });
+      logger.error("Failed to unban user", { userId, message: unbanError.message, code: unbanError.code });
       return apiError("Failed to unban user", 500);
     }
 
@@ -236,7 +236,7 @@ export async function DELETE(req: Request) {
     );
 
     if (revokeError) {
-      logger.error("Failed to revoke user sessions", { userId, code: revokeError.message });
+      logger.error("Failed to revoke user sessions", { userId, message: revokeError.message, code: revokeError.code });
       return apiError("Failed to revoke sessions", 500);
     }
 
@@ -300,7 +300,7 @@ export async function PATCH(req: Request) {
       });
 
     if (updateError) {
-      logger.error("Failed to reset user password", { userId, code: updateError.message });
+      logger.error("Failed to reset user password", { userId, message: updateError.message, code: updateError.code });
       return apiError("Failed to reset password", 500);
     }
 

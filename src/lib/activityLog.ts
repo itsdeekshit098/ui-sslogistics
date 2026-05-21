@@ -63,8 +63,10 @@ export async function logActivity({
         details,
       },
     ]);
-  } catch {
-    // Log to server console but never fail the parent request
-    logger.error("Failed to write activity log", { action });
+  } catch (err: unknown) {
+    // Log to server console but never fail the parent request.
+    // Sanitize: capture message only, never stack traces.
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger.error("Failed to write activity log", { action, error: errorMessage });
   }
 }

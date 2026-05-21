@@ -105,6 +105,7 @@ export function NavigationProgress() {
       {/* Inner bar: sleek gradient with leading-edge glow */}
       <div
         style={{
+          position: "relative", // Required so shimmer (position: absolute) anchors to this bar's right edge
           height: "100%",
           width: `${state.progress}%`,
           borderRadius: "0 1px 1px 0",
