@@ -83,5 +83,10 @@ export {
 
   // Loader
   LoaderIcon,
+
+  // Public Navbar
+  HomeIcon,
+  MailIcon,
+  GridIcon,
 } from "./icon";
 export type { IconProps, ComponentIcon } from "./icon.types";

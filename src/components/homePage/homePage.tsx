@@ -28,7 +28,7 @@ function useCompactViewport() {
   const [isCompactViewport, setIsCompactViewport] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
     const updateViewport = () => setIsCompactViewport(mediaQuery.matches);
 
     updateViewport();
@@ -151,7 +151,9 @@ export function HomePage() {
               transition={{ duration: 0.85, delay: 0.1, ease: "easeOut" }}
             >
               <motion.div
-                style={styles.commandCenter}
+                style={
+                  isCompactViewport ? styles.commandCenterCompact : styles.commandCenter
+                }
                 animate={floatAnimation}
                 transition={{
                   duration: 8,
@@ -173,7 +175,9 @@ export function HomePage() {
                   </span>
                 </div>
 
-                <div style={styles.mapCanvas}>
+                <div style={
+                  isCompactViewport ? styles.mapCanvasCompact : styles.mapCanvas
+                }>
                   <div style={styles.mapGrid} />
                   <svg
                     aria-hidden="true"
@@ -221,7 +225,9 @@ export function HomePage() {
                   </svg>
 
                   <motion.div
-                    style={styles.vehiclePill}
+                    style={
+                      isCompactViewport ? styles.vehiclePillCompact : styles.vehiclePill
+                    }
                     animate={shouldReduceMotion ? undefined : { x: [0, 12, 0] }}
                     transition={{
                       duration: 4.2,
@@ -236,23 +242,37 @@ export function HomePage() {
                   {routeStops.map((stop, index) => (
                     <motion.div
                       key={stop.label}
-                      style={styles.routeStopStyle(stop)}
+                      style={
+                        isCompactViewport ? styles.routeStopStyleCompact(stop) : styles.routeStopStyle(stop)
+                      }
                       initial={false}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ delay: 0.35 + index * 0.16, duration: 0.5 }}
                     >
                       <span style={styles.stopPin} />
-                      <span style={styles.stopLabel}>{stop.label}</span>
-                      <span style={styles.stopStatus}>{stop.status}</span>
+                      <span style={
+                        isCompactViewport ? styles.stopLabelCompact : styles.stopLabel
+                      }>{stop.label}</span>
+                      <span style={
+                        isCompactViewport ? styles.stopStatusCompact : styles.stopStatus
+                      }>{stop.status}</span>
                     </motion.div>
                   ))}
                 </div>
 
-                <div style={styles.commandFooter}>
+                <div style={
+                  isCompactViewport ? styles.commandFooterCompact : styles.commandFooter
+                }>
                   {commandStats.map((stat) => (
-                    <div key={stat.label} style={styles.commandStat}>
-                      <span style={styles.commandStatValue}>{stat.value}</span>
-                      <span style={styles.commandStatLabel}>{stat.label}</span>
+                    <div key={stat.label} style={
+                      isCompactViewport ? styles.commandStatCompact : styles.commandStat
+                    }>
+                      <span style={
+                        isCompactViewport ? styles.commandStatValueCompact : styles.commandStatValue
+                      }>{stat.value}</span>
+                      <span style={
+                        isCompactViewport ? styles.commandStatLabelCompact : styles.commandStatLabel
+                      }>{stat.label}</span>
                     </div>
                   ))}
                 </div>
@@ -401,13 +421,17 @@ export function HomePage() {
             </motion.div>
 
             <motion.div
-              style={styles.operationsPanel}
+              style={
+                isCompactViewport ? styles.operationsPanelCompact : styles.operationsPanel
+              }
               initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
               whileInView={revealAnimate}
               viewport={revealViewport}
               transition={{ duration: 0.65, ease: "easeOut" }}
             >
-              <div style={styles.operationsMap}>
+              <div style={
+                isCompactViewport ? styles.operationsMapCompact : styles.operationsMap
+              }>
                 <div style={styles.operationsMapGrid} />
                 <motion.div
                   style={styles.operationsRoad}
@@ -421,7 +445,9 @@ export function HomePage() {
                   }}
                 />
                 <motion.div
-                  style={styles.operationsHub}
+                  style={
+                    isCompactViewport ? styles.operationsHubCompact : styles.operationsHub
+                  }
                   animate={
                     shouldReduceMotion
                       ? undefined
@@ -439,24 +465,34 @@ export function HomePage() {
                     ease: "easeInOut",
                   }}
                 >
-                  <span style={styles.operationsHubText}>
+                  <span style={
+                    isCompactViewport ? styles.operationsHubTextCompact : styles.operationsHubText
+                  }>
                     Live
                     <br />
                     Operations
                   </span>
                 </motion.div>
 
-                <div style={styles.flowStack}>
+                <div style={
+                  isCompactViewport ? styles.flowStackCompact : styles.flowStack
+                }>
                   {flowCards.map((card) => {
                     const FlowIcon = card.icon;
 
                     return (
-                      <article key={card.title} style={styles.flowCard}>
+                      <article key={card.title} style={
+                        isCompactViewport ? styles.flowCardCompact : styles.flowCard
+                      }>
                         <span style={styles.flowIcon}>
                           <FlowIcon size={19} />
                         </span>
-                        <h3 style={styles.flowTitle}>{card.title}</h3>
-                        <p style={styles.flowText}>{card.text}</p>
+                        <h3 style={
+                          isCompactViewport ? styles.flowTitleCompact : styles.flowTitle
+                        }>{card.title}</h3>
+                        <p style={
+                          isCompactViewport ? styles.flowTextCompact : styles.flowText
+                        }>{card.text}</p>
                       </article>
                     );
                   })}
