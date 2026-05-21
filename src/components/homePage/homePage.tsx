@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Check, Truck, X } from "lucide-react";
+import { ArrowRightIcon, ArrowUpRightIcon, CheckIcon, TruckIcon, XIcon } from "@/components/ui/icon";
 import { useEffect, useState } from "react";
 
 import { PartnerLogo } from "@/components/ui/partnerLogo";
@@ -28,7 +28,7 @@ function useCompactViewport() {
   const [isCompactViewport, setIsCompactViewport] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
     const updateViewport = () => setIsCompactViewport(mediaQuery.matches);
 
     updateViewport();
@@ -98,7 +98,7 @@ export function HomePage() {
                   whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 >
                   Start Now
-                  <ArrowRight size={18} strokeWidth={2.5} />
+                  <ArrowRightIcon size={18} />
                 </motion.button>
                 <motion.button
                   type="button"
@@ -108,7 +108,7 @@ export function HomePage() {
                   whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 >
                   Contact Sales
-                  <ArrowUpRight size={18} strokeWidth={2.5} />
+                  <ArrowUpRightIcon size={18} />
                 </motion.button>
               </div>
 
@@ -151,7 +151,9 @@ export function HomePage() {
               transition={{ duration: 0.85, delay: 0.1, ease: "easeOut" }}
             >
               <motion.div
-                style={styles.commandCenter}
+                style={
+                  isCompactViewport ? styles.commandCenterCompact : styles.commandCenter
+                }
                 animate={floatAnimation}
                 transition={{
                   duration: 8,
@@ -173,7 +175,9 @@ export function HomePage() {
                   </span>
                 </div>
 
-                <div style={styles.mapCanvas}>
+                <div style={
+                  isCompactViewport ? styles.mapCanvasCompact : styles.mapCanvas
+                }>
                   <div style={styles.mapGrid} />
                   <svg
                     aria-hidden="true"
@@ -221,7 +225,9 @@ export function HomePage() {
                   </svg>
 
                   <motion.div
-                    style={styles.vehiclePill}
+                    style={
+                      isCompactViewport ? styles.vehiclePillCompact : styles.vehiclePill
+                    }
                     animate={shouldReduceMotion ? undefined : { x: [0, 12, 0] }}
                     transition={{
                       duration: 4.2,
@@ -229,30 +235,44 @@ export function HomePage() {
                       ease: "easeInOut",
                     }}
                   >
-                    <Truck size={18} />
+                    <TruckIcon size={18} />
                     Fleet on schedule
                   </motion.div>
 
                   {routeStops.map((stop, index) => (
                     <motion.div
                       key={stop.label}
-                      style={styles.routeStopStyle(stop)}
+                      style={
+                        isCompactViewport ? styles.routeStopStyleCompact(stop) : styles.routeStopStyle(stop)
+                      }
                       initial={false}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ delay: 0.35 + index * 0.16, duration: 0.5 }}
                     >
                       <span style={styles.stopPin} />
-                      <span style={styles.stopLabel}>{stop.label}</span>
-                      <span style={styles.stopStatus}>{stop.status}</span>
+                      <span style={
+                        isCompactViewport ? styles.stopLabelCompact : styles.stopLabel
+                      }>{stop.label}</span>
+                      <span style={
+                        isCompactViewport ? styles.stopStatusCompact : styles.stopStatus
+                      }>{stop.status}</span>
                     </motion.div>
                   ))}
                 </div>
 
-                <div style={styles.commandFooter}>
+                <div style={
+                  isCompactViewport ? styles.commandFooterCompact : styles.commandFooter
+                }>
                   {commandStats.map((stat) => (
-                    <div key={stat.label} style={styles.commandStat}>
-                      <span style={styles.commandStatValue}>{stat.value}</span>
-                      <span style={styles.commandStatLabel}>{stat.label}</span>
+                    <div key={stat.label} style={
+                      isCompactViewport ? styles.commandStatCompact : styles.commandStat
+                    }>
+                      <span style={
+                        isCompactViewport ? styles.commandStatValueCompact : styles.commandStatValue
+                      }>{stat.value}</span>
+                      <span style={
+                        isCompactViewport ? styles.commandStatLabelCompact : styles.commandStatLabel
+                      }>{stat.label}</span>
                     </div>
                   ))}
                 </div>
@@ -301,7 +321,7 @@ export function HomePage() {
                 >
                   <div>
                     <div style={styles.iconFrameStyle(service.accent)}>
-                      <ServiceIcon size={26} strokeWidth={2.25} />
+                      <ServiceIcon size={26} />
                     </div>
                     <h3 style={styles.serviceTitle}>{service.title}</h3>
                     <p style={styles.serviceDescription}>
@@ -309,7 +329,7 @@ export function HomePage() {
                     </p>
                   </div>
                   <div style={styles.cardArrow} aria-hidden="true">
-                    <ArrowUpRight size={18} strokeWidth={2.4} />
+                    <ArrowUpRightIcon size={18} />
                   </div>
                 </motion.article>
               );
@@ -385,7 +405,7 @@ export function HomePage() {
                       }}
                     >
                       <div style={styles.featureIcon}>
-                        <FeatureIcon size={22} strokeWidth={2.3} />
+                        <FeatureIcon size={22} />
                       </div>
                       <div>
                         <span style={styles.featureLabel}>{feature.label}</span>
@@ -401,13 +421,17 @@ export function HomePage() {
             </motion.div>
 
             <motion.div
-              style={styles.operationsPanel}
+              style={
+                isCompactViewport ? styles.operationsPanelCompact : styles.operationsPanel
+              }
               initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
               whileInView={revealAnimate}
               viewport={revealViewport}
               transition={{ duration: 0.65, ease: "easeOut" }}
             >
-              <div style={styles.operationsMap}>
+              <div style={
+                isCompactViewport ? styles.operationsMapCompact : styles.operationsMap
+              }>
                 <div style={styles.operationsMapGrid} />
                 <motion.div
                   style={styles.operationsRoad}
@@ -421,7 +445,9 @@ export function HomePage() {
                   }}
                 />
                 <motion.div
-                  style={styles.operationsHub}
+                  style={
+                    isCompactViewport ? styles.operationsHubCompact : styles.operationsHub
+                  }
                   animate={
                     shouldReduceMotion
                       ? undefined
@@ -439,24 +465,34 @@ export function HomePage() {
                     ease: "easeInOut",
                   }}
                 >
-                  <span style={styles.operationsHubText}>
+                  <span style={
+                    isCompactViewport ? styles.operationsHubTextCompact : styles.operationsHubText
+                  }>
                     Live
                     <br />
                     Operations
                   </span>
                 </motion.div>
 
-                <div style={styles.flowStack}>
+                <div style={
+                  isCompactViewport ? styles.flowStackCompact : styles.flowStack
+                }>
                   {flowCards.map((card) => {
                     const FlowIcon = card.icon;
 
                     return (
-                      <article key={card.title} style={styles.flowCard}>
+                      <article key={card.title} style={
+                        isCompactViewport ? styles.flowCardCompact : styles.flowCard
+                      }>
                         <span style={styles.flowIcon}>
-                          <FlowIcon size={19} strokeWidth={2.4} />
+                          <FlowIcon size={19} />
                         </span>
-                        <h3 style={styles.flowTitle}>{card.title}</h3>
-                        <p style={styles.flowText}>{card.text}</p>
+                        <h3 style={
+                          isCompactViewport ? styles.flowTitleCompact : styles.flowTitle
+                        }>{card.title}</h3>
+                        <p style={
+                          isCompactViewport ? styles.flowTextCompact : styles.flowText
+                        }>{card.text}</p>
                       </article>
                     );
                   })}
@@ -505,7 +541,7 @@ export function HomePage() {
 
                   return (
                     <span key={highlight.text} style={styles.ctaHighlight}>
-                      <HighlightIcon size={16} strokeWidth={2.4} />
+                      <HighlightIcon size={16} />
                       {highlight.text}
                     </span>
                   );
@@ -520,7 +556,7 @@ export function HomePage() {
                 whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
               >
                 Contact Us Today
-                <ArrowRight size={18} strokeWidth={2.5} />
+                <ArrowRightIcon size={18} />
               </motion.button>
             </div>
           </motion.div>
@@ -557,7 +593,7 @@ export function HomePage() {
                   style={styles.modalClose}
                   onClick={() => setShowContactOptions(false)}
                 >
-                  <X size={19} />
+                  <XIcon size={19} />
                 </button>
               </div>
               <div style={styles.modalBody}>
@@ -580,13 +616,13 @@ export function HomePage() {
                         shouldReduceMotion ? undefined : { scale: 0.98 }
                       }
                     >
-                      <OptionIcon size={20} strokeWidth={2.5} />
+                      <OptionIcon size={20} />
                       {option.label}
                     </motion.a>
                   );
                 })}
                 <span style={styles.proofItem}>
-                  <Check size={16} strokeWidth={2.6} />
+                  <CheckIcon size={16} />
                   Quick response during operating hours
                 </span>
               </div>

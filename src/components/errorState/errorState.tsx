@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircleIcon, RefreshCwIcon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ErrorStateProps } from "./errorState.types";
@@ -23,7 +23,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
       )}
     >
       <div className="rounded-full bg-red-50 dark:bg-red-900/20 p-4 mb-4">
-        <AlertCircle className="h-8 w-8 text-red-500 dark:text-red-400" />
+        <AlertCircleIcon size={32} style={{ color: "#ef4444" }} />
       </div>
       <h3
         data-testid="error-state-title"
@@ -46,8 +46,10 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           onClick={onRetry}
           disabled={retrying}
         >
-          <RefreshCw
-            className={cn("h-4 w-4 mr-2", retrying && "animate-spin")}
+          <RefreshCwIcon
+            size={16}
+            className={cn(retrying && "animate-spin")}
+            style={{ marginRight: "0.5rem" }}
           />
           {retrying ? "Retrying..." : retryLabel}
         </Button>

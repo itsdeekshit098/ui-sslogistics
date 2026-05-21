@@ -120,7 +120,6 @@ export interface ExternalTripFilters {
   toDate: string;
   vehicleId: string;
   tripType: TripType | "all";
-  search: string;
   page: number;
   pageSize: number;
 }
@@ -130,7 +129,6 @@ export const getDefaultExternalTripFilters = (): ExternalTripFilters => ({
   toDate: "",
   vehicleId: "",
   tripType: "all",
-  search: "",
   page: 1,
   pageSize: 10,
 });

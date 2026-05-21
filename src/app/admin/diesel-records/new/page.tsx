@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Save, AlertTriangle } from "lucide-react";
+import { ChevronLeftIcon, SaveIcon, AlertTriangleIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -174,7 +174,7 @@ export default function NewDieselRecordPage() {
       <div className="flex items-center gap-3 md:gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/admin/diesel-records">
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeftIcon size={16} />
           </Link>
         </Button>
         <div>
@@ -203,7 +203,7 @@ export default function NewDieselRecordPage() {
                 key={i}
                 className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200"
               >
-                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <AlertTriangleIcon size={16} className="shrink-0" />
                 {w}
               </div>
             ))}
@@ -436,7 +436,7 @@ export default function NewDieselRecordPage() {
                 {loading ? (
                   <LoadingSpinner size="sm" className="mr-2" />
                 ) : (
-                  <Save className="mr-2 h-4 w-4" />
+                  <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
                 )}
                 {loading ? "Saving..." : "Save Record"}
               </Button>

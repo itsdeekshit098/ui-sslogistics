@@ -4,22 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Truck,
-  FileText,
-  Fuel,
-  Users,
-  BarChart3,
-  LayoutDashboard,
-  Building2,
-  Wrench,
-  Activity,
-  Lock,
-  ChevronsLeft,
-  ChevronsRight,
-  UserCog,
-  Route,
-  Shield,
-} from "lucide-react";
+  TruckIcon,
+  FileTextIcon,
+  FuelIcon,
+  UsersIcon,
+  BarChart3Icon,
+  LayoutDashboardIcon,
+  Building2Icon,
+  WrenchIcon,
+  ActivityIcon,
+  LockIcon,
+  ChevronsLeftIcon,
+  ChevronsRightIcon,
+  UserCogIcon,
+  RouteIcon,
+  ShieldIcon,
+} from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
 import {
@@ -35,53 +35,53 @@ const sidebarItems = [
   {
     name: "Dashboard",
     href: "/admin",
-    icon: LayoutDashboard,
+    icon: LayoutDashboardIcon,
     enabled: true,
   },
-  { name: "Vehicles", href: "/admin/vehicles", icon: Truck, enabled: true },
+  { name: "Vehicles", href: "/admin/vehicles", icon: TruckIcon, enabled: true },
   {
     name: "Trip Sheets",
     href: "/admin/trip-sheets",
-    icon: FileText,
+    icon: FileTextIcon,
     enabled: false,
   },
   {
     name: "Diesel Records",
     href: "/admin/diesel-records",
-    icon: Fuel,
+    icon: FuelIcon,
     enabled: true,
   },
   {
     name: "Repair Records",
     href: "/admin/repair-records",
-    icon: Wrench,
+    icon: WrenchIcon,
     enabled: true,
   },
   {
     name: "Technicians",
     href: "/admin/technicians",
-    icon: UserCog,
+    icon: UserCogIcon,
     enabled: true,
   },
-  { name: "Drivers", href: "/admin/drivers", icon: Users, enabled: true },
+  { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
   {
     name: "External Trips",
     href: "/admin/external-trips",
-    icon: Route,
+    icon: RouteIcon,
     enabled: true,
   },
-  { name: "Clients", href: "/admin/clients", icon: Building2, enabled: false },
-  { name: "Reports", href: "/admin/reports", icon: BarChart3, enabled: false },
+  { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: false },
+  { name: "Reports", href: "/admin/reports", icon: BarChart3Icon, enabled: false },
   {
     name: "Activity Log",
     href: "/admin/activity-log",
-    icon: Activity,
+    icon: ActivityIcon,
     enabled: true,
   },
   {
     name: "Sessions",
     href: "/admin/sessions",
-    icon: Shield,
+    icon: ShieldIcon,
     enabled: true,
   },
 ];
@@ -112,10 +112,13 @@ export function Sidebar({
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
-          "bg-[#12203d] text-slate-300 shrink-0 transition-all duration-300 relative border-r border-[#263762]/50",
+          "bg-[#12203d] text-slate-300 shrink-0 relative border-r border-[#263762]/50",
           collapsed && !isMobile ? "w-[68px]" : "w-72 md:w-64",
           className,
         )}
+        style={{
+          transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
       >
         <div className="flex w-full h-full max-h-screen flex-col">
           {/* Brand Header */}
@@ -151,13 +154,26 @@ export function Sidebar({
                 collapsed && !isMobile ? "px-2" : "px-3",
               )}
             >
-              {filteredItems.map((item) => {
+              {authLoading
+                ? Array.from({ length: 7 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "rounded-lg animate-pulse bg-white/10",
+                        collapsed && !isMobile
+                          ? "h-9 w-9 mx-auto"
+                          : "h-9 w-full",
+                      )}
+                    />
+                  ))
+                : filteredItems.map((item) => {
                 const isActive = pathname === item.href;
                 const isEnabled = item.enabled;
 
                 const iconEl = (
                   <item.icon
-                    className={cn("h-[18px] w-[18px] shrink-0 text-white")}
+                    size={18}
+                    className="shrink-0 text-white"
                   />
                 );
 
@@ -213,7 +229,7 @@ export function Sidebar({
                     {(!collapsed || isMobile) && (
                       <>
                         <span className="truncate">{item.name}</span>
-                        <Lock className="h-3 w-3 ml-auto shrink-0 opacity-50" />
+                        <LockIcon size={12} className="ml-auto shrink-0 opacity-50" />
                       </>
                     )}
                   </div>
@@ -269,9 +285,9 @@ export function Sidebar({
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (
-                <ChevronsRight className="h-4 w-4" />
+                <ChevronsRightIcon size={16} />
               ) : (
-                <ChevronsLeft className="h-4 w-4" />
+                <ChevronsLeftIcon size={16} />
               )}
             </button>
           )}

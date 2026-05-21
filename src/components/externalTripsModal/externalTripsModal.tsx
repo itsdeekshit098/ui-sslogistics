@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, Save, Plus, UserPlus, Building2, User } from "lucide-react";
+import { XIcon, SaveIcon, PlusIcon, UserPlusIcon, Building2Icon, UserIcon } from "@/components/ui/icon";
 import type { ExternalTripsModalProps } from "./externalTripsModal.types";
 import {
   getDefaultExternalTripFormData,
@@ -318,7 +318,7 @@ const ExternalTripsForm: React.FC<{
             (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
           }}
         >
-          <X style={{ width: "1rem", height: "1rem" }} />
+          <XIcon size={16} />
         </button>
 
         {/* Scrollable content */}
@@ -391,7 +391,7 @@ const ExternalTripsForm: React.FC<{
                     Object.entries(TRIP_TYPE_LABELS) as [TripType, string][]
                   ).map(([key, label]) => {
                     const selected = formData.tripType === key;
-                    const Icon = key === "company_oncall" ? Building2 : User;
+                    const Icon = key === "company_oncall" ? Building2Icon : UserIcon;
                     return (
                       <div
                         key={key}
@@ -412,9 +412,8 @@ const ExternalTripsForm: React.FC<{
                       >
                         <div>
                           <Icon
+                            size={20}
                             style={{
-                              width: "1.25rem",
-                              height: "1.25rem",
                               marginBottom: "0.25rem",
                               margin: "0 auto 0.25rem",
                             }}
@@ -586,9 +585,7 @@ const ExternalTripsForm: React.FC<{
                       ).style.backgroundColor = "var(--background)";
                     }}
                   >
-                    <UserPlus
-                      style={{ width: "0.875rem", height: "0.875rem" }}
-                    />
+                    <UserPlusIcon size={14} />
                     Add New Driver
                   </button>
                 }
@@ -715,7 +712,7 @@ const ExternalTripsForm: React.FC<{
                           "var(--muted-foreground)";
                       }}
                     >
-                      <X style={{ width: "1rem", height: "1rem" }} />
+                      <XIcon size={16} />
                     </button>
                   )}
                   {fieldErrors[`costItem_${index}`] && (
@@ -745,7 +742,7 @@ const ExternalTripsForm: React.FC<{
                     "var(--border)";
                 }}
               >
-                <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
+                <PlusIcon size={14} />
                 Add Cost Item
               </button>
 
@@ -772,12 +769,9 @@ const ExternalTripsForm: React.FC<{
               {loading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (
-                <Save
-                  style={{
-                    width: "1rem",
-                    height: "1rem",
-                    marginRight: "0.5rem",
-                  }}
+                <SaveIcon
+                  size={16}
+                  style={{ marginRight: "0.5rem" }}
                 />
               )}
               {isEdit ? "Update Trip" : "Save Trip"}

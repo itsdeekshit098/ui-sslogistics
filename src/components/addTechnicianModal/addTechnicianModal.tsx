@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, Save, Plus } from "lucide-react";
+import { XIcon, SaveIcon, PlusIcon } from "@/components/ui/icon";
 import type { AddTechnicianModalProps } from "./addTechnicianModal.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,7 +186,7 @@ const AddTechnicianForm: React.FC<{
             (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
           }}
         >
-          <X style={{ width: "1rem", height: "1rem" }} />
+          <XIcon size={16} />
         </button>
 
         <div style={styles.scrollArea} className="scrollbar-custom">
@@ -280,7 +280,7 @@ const AddTechnicianForm: React.FC<{
                     >
                       {custom}
                       <span style={styles.customChipRemove}>
-                        <X style={{ width: "0.75rem", height: "0.75rem" }} />
+                        <XIcon size={12} />
                       </span>
                     </div>
                   ))}
@@ -305,12 +305,9 @@ const AddTechnicianForm: React.FC<{
                   disabled={!customSpec.trim()}
                   style={{ flexShrink: 0 }}
                 >
-                  <Plus
-                    style={{
-                      width: "1rem",
-                      height: "1rem",
-                      marginRight: "0.25rem",
-                    }}
+                  <PlusIcon
+                    size={16}
+                    style={{ marginRight: "0.25rem" }}
                   />
                   Add
                 </Button>
@@ -332,12 +329,9 @@ const AddTechnicianForm: React.FC<{
               {loading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (
-                <Save
-                  style={{
-                    width: "1rem",
-                    height: "1rem",
-                    marginRight: "0.5rem",
-                  }}
+                <SaveIcon
+                  size={16}
+                  style={{ marginRight: "0.5rem" }}
                 />
               )}
               {isEdit ? "Update Technician" : "Save Technician"}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOutIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -128,15 +128,9 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
           isIcon && "hover:bg-red-50",
         )}
       >
-        <LogOut
-          className={cn(
-            "shrink-0",
-            isIcon
-              ? "h-[18px] w-[18px]"
-              : isDesktop
-                ? "w-4 h-4"
-                : "h-5 w-5 md:h-4 md:w-4",
-          )}
+        <LogOutIcon
+          size={isIcon ? 18 : 16}
+          className="shrink-0"
         />
         {!isIcon && (
           <span className={cn("ml-2", isDesktop && "hidden sm:inline-block")}>

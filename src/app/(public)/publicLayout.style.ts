@@ -7,6 +7,7 @@ export const publicLayoutShell: CSSProperties = {
   flexDirection: "column",
   overflowX: "hidden",
   overflowY: "auto",
+  scrollBehavior: "smooth",
   background: "var(--background)",
 };
 

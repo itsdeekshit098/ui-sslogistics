@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, Save } from "lucide-react";
+import { XIcon, SaveIcon } from "@/components/ui/icon";
 import type { AddDriverModalProps } from "./addDriverModal.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,7 +127,7 @@ const AddDriverForm: React.FC<{
             (e.currentTarget as HTMLButtonElement).style.opacity = "0.7";
           }}
         >
-          <X style={{ width: "1rem", height: "1rem" }} />
+          <XIcon size={16} />
         </button>
 
         <div style={styles.scrollArea} className="scrollbar-custom">
@@ -227,12 +227,9 @@ const AddDriverForm: React.FC<{
               {loading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (
-                <Save
-                  style={{
-                    width: "1rem",
-                    height: "1rem",
-                    marginRight: "0.5rem",
-                  }}
+                <SaveIcon
+                  size={16}
+                  style={{ marginRight: "0.5rem" }}
                 />
               )}
               {isEdit ? "Update Driver" : "Save Driver"}

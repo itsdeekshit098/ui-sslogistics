@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, UploadCloud } from "lucide-react";
+import { EyeIcon, Trash2Icon, UploadCloudIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
@@ -269,7 +269,7 @@ export function DocumentModal({
                         {isViewing ? (
                           <LoadingSpinner size="sm" className="mr-2" />
                         ) : (
-                          <Eye className="h-4 w-4 mr-2" />
+                          <EyeIcon size={16} style={{ marginRight: "0.5rem" }} />
                         )}
                         {isViewing ? "Opening..." : "View"}
                       </Button>
@@ -283,7 +283,7 @@ export function DocumentModal({
                         }
                         disabled={isLoading}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2Icon size={16} />
                       </Button>
                     </div>
                   ) : (
@@ -296,7 +296,7 @@ export function DocumentModal({
                           onChange={(e) => handleUpload(e, doc.key)}
                           disabled={isLoading}
                         />
-                        <UploadCloud className={DM_UPLOAD_ICON_CONTAINER} />
+                        <UploadCloudIcon size={20} className={DM_UPLOAD_ICON_CONTAINER} />
                         <span className={DM_UPLOAD_SUBTITLE}>
                           Upload Document
                         </span>

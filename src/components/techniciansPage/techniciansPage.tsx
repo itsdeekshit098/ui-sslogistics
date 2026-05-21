@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Plus,
-  Search,
-  Pencil,
-  CheckCircle2,
-  XCircle,
-  Trash2,
-  X,
-} from "lucide-react";
+  PlusIcon,
+  SearchIcon,
+  PencilIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  Trash2Icon,
+  XIcon,
+} from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { AddTechnicianModal } from "@/components/addTechnicianModal";
 import type { Technician, SpecializationOption } from "./techniciansPage.types";
@@ -21,6 +21,8 @@ import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { DataTable } from "@/components/ui/dataTable/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -55,7 +57,6 @@ export function TechniciansPage() {
 
   // Debounce search
   useEffect(() => {
-    // Skip if search hasn't actually changed from what was fetched
     if (searchQuery === debouncedSearch) return;
 
     debounceRef.current = setTimeout(() => {
@@ -76,11 +77,11 @@ export function TechniciansPage() {
         setSpecializations(json.data ?? []);
       }
     } catch {
-      // non-critical — specializations are only needed for the modal
+      // non-critical
     }
   }, []);
 
-  // Fetch technicians (server-side paginated + search) — atomic, accepts overrides
+  // Fetch technicians
   const fetchTechnicians = useCallback(
     async (opts?: { overrideSearch?: string; overridePage?: number; overridePageSize?: number }) => {
       const search = opts?.overrideSearch ?? debouncedSearch;
@@ -106,7 +107,6 @@ export function TechniciansPage() {
         setTechnicians(result.data ?? []);
         setTotal(result.total ?? 0);
 
-        // Sync state on success
         setPage(p);
         setPageSize(ps);
         setDebouncedSearch(search);
@@ -120,7 +120,7 @@ export function TechniciansPage() {
     [page, pageSize, debouncedSearch],
   );
 
-  // Page change handler — set state immediately for visual feedback
+  // Page change handler
   const handlePageChange = (p: number) => {
     setPage(p);
     fetchTechnicians({ overridePage: p });
@@ -187,7 +187,7 @@ export function TechniciansPage() {
         fetchTechnicians();
       }
     } catch {
-      // toggle failed silently
+      // silent fail
     }
   };
 
@@ -213,11 +213,104 @@ export function TechniciansPage() {
     }
   };
 
-  // Initial full-page skeleton (only on first mount)
+  // DataTable column definitions
+  const columns: ColumnDef<Technician>[] = [
+    {
+      key: "name",
+      header: "Name",
+      cell: (tech) => <span className="font-medium text-foreground">{tech.name}</span>,
+    },
+    {
+      key: "phone",
+      header: "Phone",
+      cell: (tech) => <span className="text-muted-foreground">{tech.phone || "—"}</span>,
+    },
+    {
+      key: "location",
+      header: "Location",
+      cell: (tech) => <span className="text-muted-foreground">{tech.location || "—"}</span>,
+    },
+    {
+      key: "specializations",
+      header: "Specializations",
+      cell: (tech) => (
+        <div className="flex flex-wrap gap-1">
+          {tech.specializations.map((spec) => (
+            <span
+              key={spec}
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-background text-foreground"
+            >
+              {spec}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "is_active",
+      header: "Status",
+      cell: (tech) => (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            tech.is_active
+              ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
+              : "bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20"
+          }`}
+        >
+          {tech.is_active ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+  ];
+
+  // DataTable actions
+  const rowActions: RowAction<Technician>[] = [
+    {
+      key: "status",
+      label: "Toggle Status",
+      icon: null, // Computed inside cell or we render dynamic icon
+      hidden: () => !canWrite,
+      onClick: toggleStatus,
+    },
+    {
+      key: "edit",
+      label: "Edit",
+      icon: <PencilIcon size={14} />,
+      hidden: () => !canWrite,
+      onClick: handleEdit,
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon: <Trash2Icon size={14} />,
+      variant: "danger",
+      hidden: () => !isAdmin,
+      onClick: (tech) => setDeleteTarget(tech),
+    },
+  ];
+
+  // Custom row actions with dynamic icon/label logic
+  const formattedRowActions = rowActions.map((action) => {
+    if (action.key === "status") {
+      return {
+        ...action,
+        label: (tech: Technician) => (tech.is_active ? "Deactivate" : "Activate"),
+        icon: (tech: Technician) =>
+          tech.is_active ? (
+            <XCircleIcon size={14} className="text-muted-foreground hover:text-amber-600" />
+          ) : (
+            <CheckCircleIcon size={14} className="text-muted-foreground hover:text-emerald-600" />
+          ),
+      };
+    }
+    return action;
+  }) as RowAction<Technician>[];
+
+  // Initial full-page skeleton
   if (authLoading || initialLoading)
     return <PageLoadingSkeleton variant="admin" />;
 
-  // Fatal error with no data at all
+  // Fatal error with no data
   if (error && technicians.length === 0) {
     return (
       <ErrorState
@@ -229,7 +322,7 @@ export function TechniciansPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 md:space-y-8">
+    <div className="container mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -242,7 +335,7 @@ export function TechniciansPage() {
         </div>
         {canWrite && (
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" /> Add Technician
+            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Technician
           </Button>
         )}
       </div>
@@ -251,7 +344,7 @@ export function TechniciansPage() {
         {/* Search */}
         <div className="p-4 sm:p-6 border-b border-border space-y-4">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
               placeholder="Search by name, phone or location..."
               value={searchQuery}
@@ -268,7 +361,7 @@ export function TechniciansPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Clear search"
               >
-                <X className="h-4 w-4" />
+                <XIcon size={16} />
               </button>
             )}
           </div>
@@ -276,7 +369,7 @@ export function TechniciansPage() {
 
         {/* Content */}
         <div className="p-4 pb-2 sm:p-6 sm:pb-4">
-          {fetching ? (
+          {fetching && technicians.length === 0 ? (
             <LoadingSpinner size="md" centered label="Loading technicians..." />
           ) : error ? (
             <ErrorState
@@ -284,7 +377,7 @@ export function TechniciansPage() {
               description={error}
               onRetry={fetchTechnicians}
             />
-          ) : technicians.length === 0 ? (
+          ) : !fetching && technicians.length === 0 ? (
             <EmptyState
               title="No technicians found"
               description={
@@ -301,197 +394,102 @@ export function TechniciansPage() {
                     }
                   : handleAddNew
               }
-              icon={Search}
+              icon={SearchIcon}
             />
           ) : (
             <>
-              {/* Desktop Table */}
-              <div className="hidden md:block rounded-md border border-border overflow-x-auto overflow-y-hidden">
-                <table className="w-full min-w-[700px] text-sm">
-                  <thead className="bg-muted/50 text-muted-foreground">
-                    <tr>
-                      <th className="h-12 px-4 text-left font-medium">Name</th>
-                      <th className="h-12 px-4 text-left font-medium">Phone</th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Location
-                      </th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Specializations
-                      </th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Status
-                      </th>
-                      {canWrite && (
-                        <th className="h-12 px-4 text-left font-medium">
-                          Actions
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border bg-card">
-                    {technicians.map((tech) => (
-                      <tr
-                        key={tech.id}
-                        className={`transition-colors hover:bg-muted/30 ${
-                          !tech.is_active ? "opacity-60 bg-muted/10" : ""
-                        }`}
-                      >
-                        <td className="px-4 py-3 font-medium text-foreground">
-                          {tech.name}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {tech.phone || "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {tech.location || "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {tech.specializations.map((spec) => (
-                              <span
-                                key={spec}
-                                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-background"
-                              >
-                                {spec}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              tech.is_active
-                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
-                                : "bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20"
-                            }`}
-                          >
-                            {tech.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        {canWrite && (
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => toggleStatus(tech)}
-                                  title={tech.is_active ? "Deactivate" : "Activate"}
-                                >
-                                  {tech.is_active ? (
-                                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-amber-600" />
-                                  ) : (
-                                    <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-emerald-600" />
-                                  )}
-                                  <span className="sr-only">Toggle Status</span>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  onClick={() => handleEdit(tech)}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                  <span className="sr-only">Edit</span>
-                                </Button>
-                              </>
-                              {isAdmin && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                  onClick={() => setDeleteTarget(tech)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Desktop Table - standard UI component is DataTable */}
+              <div className="hidden md:block">
+                <DataTable
+                  columns={columns}
+                  data={technicians}
+                  rowKey={(t) => String(t.id)}
+                  loading={fetching}
+                  rowActions={formattedRowActions}
+                  rowClassName={(tech) => (!tech.is_active ? "opacity-60 bg-muted/10" : "")}
+                />
               </div>
 
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
-                {technicians.map((tech) => (
-                  <div
-                    key={tech.id}
-                    className={`rounded-lg border bg-card p-4 shadow-sm ${
-                      !tech.is_active ? "opacity-75 bg-muted/10" : ""
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="font-semibold text-foreground text-lg">
-                          {tech.name}
+                {fetching ? (
+                  <LoadingSpinner size="md" centered label="Loading technicians..." />
+                ) : (
+                  technicians.map((tech) => (
+                    <div
+                      key={tech.id}
+                      className={`rounded-lg border bg-card p-4 shadow-sm ${
+                        !tech.is_active ? "opacity-75 bg-muted/10" : ""
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="font-semibold text-foreground text-lg">
+                            {tech.name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {tech.phone || "No phone"}
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {tech.phone || "No phone"}
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          tech.is_active
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                            : "bg-zinc-50 text-zinc-600 dark:bg-zinc-500/10 dark:text-zinc-400"
-                        }`}
-                      >
-                        {tech.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground mb-3">
-                      {tech.location || "No location"}
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {tech.specializations.map((spec) => (
                         <span
-                          key={spec}
-                          className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-background"
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            tech.is_active
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                              : "bg-zinc-50 text-zinc-600 dark:bg-zinc-500/10 dark:text-zinc-400"
+                          }`}
                         >
-                          {spec}
+                          {tech.is_active ? "Active" : "Inactive"}
                         </span>
-                      ))}
-                    </div>
+                      </div>
 
-                    <div className="flex items-center justify-end gap-2 border-t pt-3">
-                      {canWrite && (
-                        <>
+                      <div className="text-sm text-muted-foreground mb-3">
+                        {tech.location || "No location"}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {tech.specializations.map((spec) => (
+                          <span
+                            key={spec}
+                            className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-background"
+                          >
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 border-t pt-3">
+                        {canWrite && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleStatus(tech)}
+                            >
+                              {tech.is_active ? "Deactivate" : "Activate"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(tech)}
+                            >
+                              Edit
+                            </Button>
+                          </>
+                        )}
+                        {isAdmin && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => toggleStatus(tech)}
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteTarget(tech)}
                           >
-                            {tech.is_active ? "Deactivate" : "Activate"}
+                            Delete
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(tech)}
-                          >
-                            Edit
-                          </Button>
-                        </>
-                      )}
-                      {isAdmin && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteTarget(tech)}
-                        >
-                          Delete
-                        </Button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </>
           )}

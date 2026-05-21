@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 
 /**
@@ -7,6 +8,10 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
  * Accepts { email, password } and authenticates the user
  * via the server-side Supabase client. This keeps the Supabase
  * URL and anon key off the browser entirely.
+ *
+ * After a successful login, all **other** sessions for this user
+ * are revoked so only one active session exists at a time
+ * (single-session enforcement).
  */
 export async function POST(req: Request) {
   try {
@@ -22,13 +27,28 @@ export async function POST(req: Request) {
     }
 
     const supabase = await createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
     if (authError) {
       return apiError("Invalid email or password", 401);
+    }
+
+    // ── Single-session enforcement ──
+    // Revoke all OTHER sessions so only the current login survives.
+    // This uses the service-role admin client (server-side only).
+    const userId = data.user?.id;
+    if (userId) {
+      try {
+        await supabaseAdmin.auth.admin.signOut(userId, "others");
+      } catch (revokeError) {
+        console.error("Failed to revoke other sessions during login", {
+          userId,
+          error: revokeError,
+        });
+      }
     }
 
     return apiSuccess(null, "Login successful");

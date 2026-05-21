@@ -5,17 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft,
-  RefreshCw,
-  Truck,
-  Pencil,
-  Trash2,
-  UploadCloud,
-  FileX,
-  Activity,
-  User,
-  Clock,
-} from "lucide-react";
+  ArrowLeftIcon,
+  RefreshCwIcon,
+  TruckIcon,
+  PencilIcon,
+  Trash2Icon,
+  UploadCloudIcon,
+  FileXIcon,
+  ActivityIcon,
+  UserIcon,
+  ClockIcon,
+} from "@/components/ui/icon";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Pagination } from "@/components/pagination";
@@ -31,11 +31,11 @@ import {
 } from "./activityLog.styles";
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
-  CREATE_VEHICLE: Truck,
-  UPDATE_VEHICLE: Pencil,
-  DELETE_VEHICLE: Trash2,
-  UPLOAD_DOCUMENT: UploadCloud,
-  DELETE_DOCUMENT: FileX,
+  CREATE_VEHICLE: TruckIcon,
+  UPDATE_VEHICLE: PencilIcon,
+  DELETE_VEHICLE: Trash2Icon,
+  UPLOAD_DOCUMENT: UploadCloudIcon,
+  DELETE_DOCUMENT: FileXIcon,
 };
 
 /**
@@ -133,7 +133,7 @@ export default function ActivityLogPage() {
         onClick={() => router.back()}
         className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
+        <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
         Back
       </Button>
 
@@ -146,7 +146,7 @@ export default function ActivityLogPage() {
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="secondary" className="text-sm font-medium px-3 py-1">
-            <Activity className="h-3.5 w-3.5 mr-1.5" />
+            <ActivityIcon size={14} className="mr-1.5" />
             {loading ? "..." : `${total} entries`}
           </Badge>
           <Button
@@ -156,8 +156,9 @@ export default function ActivityLogPage() {
             onClick={handleRefresh}
             disabled={refreshing}
           >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            <RefreshCwIcon
+              size={16}
+              className={`mr-2 ${refreshing ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
@@ -173,7 +174,7 @@ export default function ActivityLogPage() {
           <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col p-0">
-          <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0">
+          <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0 animate-in fade-in duration-200">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24">
                 <LoadingSpinner size="lg" centered label="Loading activity logs..." />
@@ -186,7 +187,7 @@ export default function ActivityLogPage() {
               />
             ) : entries.length === 0 ? (
               <EmptyState
-                icon={Activity}
+                icon={ActivityIcon}
                 title="No Activity Recorded Yet"
                 description="Actions will appear here as you use the system. Try adding a vehicle or creating a diesel record."
               />
@@ -199,7 +200,7 @@ export default function ActivityLogPage() {
                     icon: "text-slate-500",
                   };
                   const label = ACTION_LABELS[entry.action] || entry.action;
-                  const Icon = ACTION_ICONS[entry.action] || Activity;
+                  const Icon = ACTION_ICONS[entry.action] || ActivityIcon;
                   const details = entry.details || {};
                   const vehicleNumber =
                     (details.vehicle_number as string) ||
@@ -216,7 +217,7 @@ export default function ActivityLogPage() {
                       <div
                         className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-xl ${style.bg}`}
                       >
-                        <Icon className={`h-4.5 w-4.5 ${style.icon}`} />
+                        <Icon size={18} className={style.icon} />
                       </div>
 
                       {/* Content */}
@@ -279,11 +280,11 @@ export default function ActivityLogPage() {
                         {/* User + Time */}
                         <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground/70">
                           <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
+                            <UserIcon size={12} />
                             {entry.user_email || "System"}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                            <ClockIcon size={12} />
                             {formatRelativeTime(entry.created_at)}
                           </span>
                         </div>

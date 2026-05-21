@@ -3,16 +3,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Building2, MapPin, Save, Pencil } from "lucide-react";
+import { PlusIcon, SearchIcon, Building2Icon, MapPinIcon, SaveIcon, PencilIcon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -31,6 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DataTable } from "@/components/ui/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import * as cellStyles from "./clientsPage.style";
 
 interface Client {
   id: string;
@@ -125,9 +120,16 @@ export default function ClientsPage() {
             Manage KIA plants and vendor companies.
           </p>
         </div>
-        <Button data-testid="app-admin-clients-button-1" className="w-full md:w-auto" asChild>
-          <Link data-testid="app-admin-clients-link-1" href="/admin/clients/new">
-            <Plus className="mr-2 h-4 w-4" /> Add Client
+        <Button
+          data-testid="app-admin-clients-button-1"
+          className="w-full md:w-auto"
+          asChild
+        >
+          <Link
+            data-testid="app-admin-clients-link-1"
+            href="/admin/clients/new"
+          >
+            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Client
           </Link>
         </Button>
       </div>
@@ -138,7 +140,7 @@ export default function ClientsPage() {
             <CardTitle className="text-xs md:text-sm font-medium">
               Total Clients
             </CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Building2Icon size={16} className="text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
@@ -163,7 +165,10 @@ export default function ClientsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card data-testid="app-admin-clients-card-3" className="col-span-2 md:col-span-1">
+        <Card
+          data-testid="app-admin-clients-card-3"
+          className="col-span-2 md:col-span-1"
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">
               Vendors
@@ -184,8 +189,12 @@ export default function ClientsPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg md:text-xl">Client List</CardTitle>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input data-testid="app-admin-clients-input-1" placeholder="Search clients..." className="pl-8" />
+              <SearchIcon size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
+              <Input
+                data-testid="app-admin-clients-input-1"
+                placeholder="Search clients..."
+                className="pl-8"
+              />
             </div>
           </div>
         </CardHeader>
@@ -205,14 +214,15 @@ export default function ClientsPage() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
+                  <MapPinIcon size={12} />
                   <span>{client.location}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <Badge variant="outline" className="text-xs">
                     {client.type}
                   </Badge>
-                  <Button data-testid="app-admin-clients-button-2"
+                  <Button
+                    data-testid="app-admin-clients-button-2"
                     variant="ghost"
                     size="sm"
                     className="text-xs h-7"
@@ -227,56 +237,66 @@ export default function ClientsPage() {
 
           {/* Desktop Table View */}
           <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow data-testid="app-admin-clients-tablerow-1">
-                  <TableHead>Company Name</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Active Contracts</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clients.map((client) => (
-                  <TableRow data-testid="app-admin-clients-tablerow-2" key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {client.location}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{client.type}</Badge>
-                    </TableCell>
-                    <TableCell>{client.activeContracts}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          client.status === "Active" ? "default" : "secondary"
-                        }
-                      >
-                        {client.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        data-testid="app-admin-clients-button-3"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleEditClick(client)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable<Client>
+              columns={[
+                {
+                  key: "name",
+                  header: "Company Name",
+                  cell: (row) => <span className="font-medium">{row.name}</span>,
+                },
+                {
+                  key: "location",
+                  header: "Location",
+                  cell: (row) => (
+                    <div style={cellStyles.cellRow}>
+                      <span style={cellStyles.cellIconBadge}>
+                        <MapPinIcon size={12} style={{ color: cellStyles.cellIconColor }} />
+                      </span>
+                      {row.location}
+                    </div>
+                  ),
+                },
+                {
+                  key: "type",
+                  header: "Type",
+                  cell: (row) => <Badge variant="outline">{row.type}</Badge>,
+                },
+                {
+                  key: "activeContracts",
+                  header: "Active Contracts",
+                  cell: (row) => row.activeContracts,
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  cell: (row) => (
+                    <Badge
+                      variant={
+                        row.status === "Active" ? "default" : "secondary"
+                      }
+                    >
+                      {row.status}
+                    </Badge>
+                  ),
+                },
+              ]}
+              data={clients}
+              rowKey={(row) => row.id}
+              loading={false}
+              emptyNode={
+                <p className="text-center text-muted-foreground py-8">
+                  No clients found.
+                </p>
+              }
+              rowActions={[
+                {
+                  key: "edit",
+                  label: "Edit",
+                  icon: <PencilIcon size={14} />,
+                  onClick: (row) => handleEditClick(row),
+                },
+              ]}
+            />
           </div>
         </CardContent>
       </Card>
@@ -295,7 +315,8 @@ export default function ClientsPage() {
               <Label htmlFor="name" className="text-right">
                 Company
               </Label>
-              <Input data-testid="app-admin-clients-input-2"
+              <Input
+                data-testid="app-admin-clients-input-2"
                 id="name"
                 value={editFormData.name}
                 onChange={handleEditChange}
@@ -306,7 +327,8 @@ export default function ClientsPage() {
               <Label htmlFor="location" className="text-right">
                 Location
               </Label>
-              <Input data-testid="app-admin-clients-input-3"
+              <Input
+                data-testid="app-admin-clients-input-3"
                 id="location"
                 value={editFormData.location}
                 onChange={handleEditChange}
@@ -317,7 +339,8 @@ export default function ClientsPage() {
               <Label htmlFor="type" className="text-right">
                 Type
               </Label>
-              <Select data-testid="app-admin-clients-select-1"
+              <Select
+                data-testid="app-admin-clients-select-1"
                 value={editFormData.type}
                 onValueChange={(value) => handleEditSelectChange("type", value)}
               >
@@ -334,7 +357,8 @@ export default function ClientsPage() {
               <Label htmlFor="activeContracts" className="text-right">
                 Contracts
               </Label>
-              <Input data-testid="app-admin-clients-input-4"
+              <Input
+                data-testid="app-admin-clients-input-4"
                 id="activeContracts"
                 value={editFormData.activeContracts}
                 onChange={handleEditChange}
@@ -345,7 +369,8 @@ export default function ClientsPage() {
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select data-testid="app-admin-clients-select-2"
+              <Select
+                data-testid="app-admin-clients-select-2"
                 value={editFormData.status}
                 onValueChange={(value) =>
                   handleEditSelectChange("status", value)
@@ -362,8 +387,12 @@ export default function ClientsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button data-testid="app-admin-clients-button-4" type="submit" onClick={handleUpdateClient}>
-              <Save className="mr-2 h-4 w-4" />
+            <Button
+              data-testid="app-admin-clients-button-4"
+              type="submit"
+              onClick={handleUpdateClient}
+            >
+              <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
               Save changes
             </Button>
           </DialogFooter>

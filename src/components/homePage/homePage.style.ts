@@ -121,8 +121,8 @@ export const heroSection: CSSProperties = {
 };
 
 export const container: CSSProperties = {
-  width: "calc(100% - 2rem)",
-  maxWidth: "1180px",
+  width: "calc(100% - clamp(1rem, 2vw, 2.5rem))",
+  maxWidth: "1600px",
   margin: "0 auto",
 };
 
@@ -144,8 +144,8 @@ export const heroCopy: CSSProperties = {
 
 export const heroCopyCompact: CSSProperties = {
   ...heroCopy,
-  maxWidth: "22.375rem",
-  margin: 0,
+  maxWidth: "38rem",
+  margin: "0 auto",
 };
 
 export const heroTitle: CSSProperties = {
@@ -259,13 +259,6 @@ export const heroVisual: CSSProperties = {
   width: "min(100%, calc(100vw - 2rem))",
   minHeight: "clamp(31rem, 54vw, 42rem)",
   minWidth: 0,
-};
-
-export const heroVisualCompact: CSSProperties = {
-  ...heroVisual,
-  width: "100%",
-  maxWidth: "22.375rem",
-  margin: 0,
 };
 
 export const commandCenter: CSSProperties = {
@@ -967,3 +960,133 @@ export const contactOptionStyle = (
       ? "linear-gradient(135deg, #22c55e, #16a34a)"
       : "linear-gradient(135deg, #0f4dd8, #2563eb)",
 });
+
+// ─── Compact / Mobile Layout Style Overrides ──────────────────────────────
+
+export const heroVisualCompact: CSSProperties = {
+  ...heroVisual,
+  width: "100%",
+  maxWidth: "min(100%, 38rem)",
+  minHeight: "clamp(20rem, 48vw, 26rem)",
+  margin: "0 auto",
+};
+
+export const commandCenterCompact: CSSProperties = {
+  ...commandCenter,
+  minHeight: "clamp(20rem, 48vw, 26rem)",
+  borderRadius: "1.5rem",
+};
+
+export const mapCanvasCompact: CSSProperties = {
+  ...mapCanvas,
+  inset: "3.2rem 0.75rem 6rem",
+  borderRadius: "1.1rem",
+};
+
+export const commandFooterCompact: CSSProperties = {
+  ...commandFooter,
+  left: "0.75rem",
+  right: "0.75rem",
+  bottom: "0.75rem",
+  gap: "0.5rem",
+};
+
+export const commandStatCompact: CSSProperties = {
+  ...commandStat,
+  padding: "0.5rem 0.35rem",
+  borderRadius: "0.75rem",
+};
+
+export const commandStatValueCompact: CSSProperties = {
+  ...commandStatValue,
+  fontSize: "0.85rem",
+};
+
+export const commandStatLabelCompact: CSSProperties = {
+  ...commandStatLabel,
+  fontSize: "0.55rem",
+  letterSpacing: "0.04em",
+};
+
+export const stopCardBaseCompact: CSSProperties = {
+  ...stopCardBase,
+  minWidth: "7.5rem",
+  padding: "0.5rem 0.6rem",
+  borderRadius: "0.8rem",
+};
+
+export const routeStopStyleCompact = (stop: RouteStop): CSSProperties => ({
+  ...stopCardBaseCompact,
+  left: `clamp(0.5rem, ${stop.left}, calc(100% - 8.25rem))`,
+  top: stop.top,
+});
+
+export const stopLabelCompact: CSSProperties = {
+  ...stopLabel,
+  fontSize: "0.78rem",
+};
+
+export const stopStatusCompact: CSSProperties = {
+  ...stopStatus,
+  fontSize: "0.62rem",
+};
+
+export const vehiclePillCompact: CSSProperties = {
+  ...vehiclePill,
+  padding: "0.45rem 0.65rem",
+  fontSize: "0.68rem",
+  top: "10%",
+  right: "4%",
+};
+
+export const operationsPanelCompact: CSSProperties = {
+  ...operationsPanel,
+  minHeight: "clamp(20rem, 45vw, 26rem)",
+  borderRadius: "1.5rem",
+};
+
+export const operationsMapCompact: CSSProperties = {
+  ...operationsMap,
+  inset: "0.6rem",
+  borderRadius: "1rem",
+};
+
+export const operationsHubCompact: CSSProperties = {
+  ...operationsHub,
+  width: "6.5rem",
+  height: "6.5rem",
+  marginLeft: "-3.25rem",
+  marginTop: "-3.25rem",
+};
+
+export const operationsHubTextCompact: CSSProperties = {
+  ...operationsHubText,
+  fontSize: "0.65rem",
+};
+
+export const flowStackCompact: CSSProperties = {
+  ...flowStack,
+  left: "0.6rem",
+  right: "0.6rem",
+  bottom: "0.6rem",
+  gap: "0.4rem",
+};
+
+export const flowCardCompact: CSSProperties = {
+  ...flowCard,
+  padding: "0.6rem 0.5rem",
+  borderRadius: "0.8rem",
+};
+
+export const flowTitleCompact: CSSProperties = {
+  ...flowTitle,
+  fontSize: "0.75rem",
+  marginTop: "0.3rem",
+};
+
+export const flowTextCompact: CSSProperties = {
+  ...flowText,
+  fontSize: "0.62rem",
+  marginTop: "0.15rem",
+};
+

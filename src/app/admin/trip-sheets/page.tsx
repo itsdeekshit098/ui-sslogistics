@@ -3,16 +3,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye } from "lucide-react";
+import { PlusIcon, SearchIcon, EyeIcon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import {
@@ -22,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DataTable } from "@/components/ui/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 
 interface MockVehicle {
   id: number;
@@ -137,7 +131,7 @@ export default function TripSheetsPage() {
             data-testid="app-admin-trip-sheets-link-1"
             href="/admin/trip-sheets/new"
           >
-            <Plus className="mr-2 h-4 w-4" /> Create Trip Sheet
+            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Create Trip Sheet
           </Link>
         </Button>
       </div>
@@ -173,7 +167,7 @@ export default function TripSheetsPage() {
                 }
               </CardTitle>
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <SearchIcon size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
                 <Input
                   data-testid="app-admin-trip-sheets-input-1"
                   placeholder="Search trips..."
@@ -235,69 +229,63 @@ export default function TripSheetsPage() {
 
             {/* Desktop Table View */}
             <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow data-testid="app-admin-trip-sheets-tablerow-1">
-                    <TableHead>Trip ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow data-testid="app-admin-trip-sheets-tablerow-2">
-                      <TableCell colSpan={6} className="text-center">
-                        Loading...
-                      </TableCell>
-                    </TableRow>
-                  ) : records.length === 0 ? (
-                    <TableRow data-testid="app-admin-trip-sheets-tablerow-3">
-                      <TableCell colSpan={6} className="text-center">
-                        No trips found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    records.map((trip) => (
-                      <TableRow
-                        data-testid="app-admin-trip-sheets-tablerow-4"
-                        key={trip.id}
+              <DataTable<TripSheet>
+                columns={[
+                  {
+                    key: "id",
+                    header: "Trip ID",
+                    cell: (row) => <span className="font-medium">{row.id}</span>,
+                  },
+                  {
+                    key: "date",
+                    header: "Date",
+                    cell: (row) => row.date,
+                  },
+                  {
+                    key: "driver",
+                    header: "Driver",
+                    cell: (row) => row.driver,
+                  },
+                  {
+                    key: "client",
+                    header: "Client",
+                    cell: (row) => row.client,
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    cell: (row) => (
+                      <Badge
+                        variant={
+                          row.status === "Completed"
+                            ? "default"
+                            : row.status === "In Progress"
+                              ? "secondary"
+                              : "outline"
+                        }
                       >
-                        <TableCell className="font-medium">{trip.id}</TableCell>
-                        <TableCell>{trip.date}</TableCell>
-                        <TableCell>{trip.driver}</TableCell>
-                        <TableCell>{trip.client}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              trip.status === "Completed"
-                                ? "default"
-                                : trip.status === "In Progress"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {trip.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            data-testid="app-admin-trip-sheets-button-3"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            <span className="sr-only">View</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                        {row.status}
+                      </Badge>
+                    ),
+                  },
+                ]}
+                data={records}
+                rowKey={(row) => row.id}
+                loading={loading}
+                emptyNode={
+                  <p className="text-center text-muted-foreground py-8">
+                    No trips found.
+                  </p>
+                }
+                rowActions={[
+                  {
+                    key: "view",
+                    label: "View",
+                    icon: <EyeIcon size={14} />,
+                    onClick: () => {},
+                  },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>
@@ -305,3 +293,4 @@ export default function TripSheetsPage() {
     </div>
   );
 }
+

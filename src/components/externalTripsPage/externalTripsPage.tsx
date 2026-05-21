@@ -2,14 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Truck,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+  PlusIcon,
+  PencilIcon,
+  Trash2Icon,
+  TruckIcon,
+  SlidersHorizontalIcon,
+} from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import {
   TRIP_TYPE_LABELS,
@@ -25,12 +23,23 @@ import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { ExternalTripsModal } from "../externalTripsModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Typeahead } from "@/components/typeahead";
+import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { DataTable } from "@/components/ui/dataTable/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./externalTripsPage.style";
 
 export function ExternalTripsPage() {
@@ -83,14 +92,14 @@ export function ExternalTripsPage() {
       if (!includeSummary) p.set("include_summary", "false");
       return `/api/external-trips?${p.toString()}`;
     },
-    [],
+    []
   );
 
   // ─── Fetch trips ───
   const fetchTrips = useCallback(
     async (
       f: ExternalTripFilters,
-      opts: { isInitial?: boolean; includeSummary?: boolean } = {},
+      opts: { isInitial?: boolean; includeSummary?: boolean } = {}
     ) => {
       const { isInitial = false, includeSummary = true } = opts;
       try {
@@ -106,7 +115,6 @@ export function ExternalTripsPage() {
         if (result.summary) {
           setSummary(result.summary);
         }
-        // Sync filters only on success
         setFilters(f);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Network error");
@@ -117,7 +125,7 @@ export function ExternalTripsPage() {
         setFetching(false);
       }
     },
-    [buildApiUrl],
+    [buildApiUrl]
   );
 
   const fetchVehicles = useCallback(async () => {
@@ -150,7 +158,6 @@ export function ExternalTripsPage() {
     const next: ExternalTripFilters = {
       ...drawerFilters,
       page: 1,
-      search: filters.search,
     };
     fetchTrips(next);
     setDrawerOpen(false);
@@ -159,7 +166,7 @@ export function ExternalTripsPage() {
   const clearAllFilters = () => {
     const defaults = getDefaultExternalTripFilters();
     setDrawerFilters(defaults);
-    fetchTrips({ ...defaults, search: filters.search });
+    fetchTrips(defaults);
     setDrawerOpen(false);
   };
 
@@ -207,17 +214,7 @@ export function ExternalTripsPage() {
     }
   };
 
-  // ─── Client-side search ───
-  const displayData = filters.search
-    ? trips.filter((d) => {
-        const q = filters.search.toLowerCase();
-        return (
-          (d.vehicles?.vehicle_number?.toLowerCase() || "").includes(q) ||
-          (d.customer_name?.toLowerCase() || "").includes(q) ||
-          (d.drivers?.name?.toLowerCase() || "").includes(q)
-        );
-      })
-    : trips;
+  const displayData = trips;
 
   const activeFilterCount = [
     filters.fromDate,
@@ -236,6 +233,118 @@ export function ExternalTripsPage() {
         ? styles.profitNegative
         : styles.profitNeutral;
 
+  // DataTable columns definition
+  const columns: ColumnDef<ExternalTripWithDetails>[] = [
+    {
+      key: "vehicle",
+      header: "Vehicle",
+      cell: (trip) => (
+        <span className="font-medium text-foreground whitespace-nowrap">
+          {trip.vehicles?.vehicle_number || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "trip_type",
+      header: "Trip Type",
+      cell: (trip) => (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
+            trip.trip_type === "company_oncall"
+              ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
+              : "bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20"
+          }`}
+        >
+          {TRIP_TYPE_LABELS[trip.trip_type]}
+        </span>
+      ),
+    },
+    {
+      key: "route",
+      header: "Route",
+      cell: (trip) => {
+        const route = [trip.from_location, trip.to_location]
+          .filter(Boolean)
+          .join(" → ");
+        return (
+          <span className="text-muted-foreground max-w-[180px] truncate block" title={route}>
+            {route || "—"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "driver",
+      header: "Driver",
+      cell: (trip) => (
+        <span className="text-muted-foreground whitespace-nowrap">
+          {trip.drivers?.name || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "start_date",
+      header: "Start Date",
+      cell: (trip) => (
+        <span className="text-muted-foreground whitespace-nowrap">
+          {trip.start_date || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "total_cost",
+      header: "Cost",
+      align: "right",
+      cell: (trip) => (
+        <span className="font-medium text-foreground whitespace-nowrap">
+          {fmtCurrency(trip.total_cost)}
+        </span>
+      ),
+    },
+    {
+      key: "amount_received",
+      header: "Received",
+      align: "right",
+      cell: (trip) => (
+        <span className="font-medium text-foreground whitespace-nowrap">
+          {fmtCurrency(trip.amount_received || 0)}
+        </span>
+      ),
+    },
+    {
+      key: "profit",
+      header: "Profit",
+      align: "right",
+      cell: (trip) => {
+        const profit = (trip.amount_received || 0) - (trip.total_cost || 0);
+        return (
+          <span className="font-semibold whitespace-nowrap" style={profitStyle(profit)}>
+            {profit >= 0 ? "+" : ""}
+            {fmtCurrency(profit)}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const rowActions: RowAction<ExternalTripWithDetails>[] = [
+    {
+      key: "edit",
+      label: "Edit",
+      icon: <PencilIcon size={14} />,
+      hidden: () => !canWrite,
+      onClick: handleEdit,
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon: <Trash2Icon size={14} />,
+      variant: "danger",
+      hidden: () => !isAdmin,
+      onClick: (trip) => setDeleteTarget(trip),
+    },
+  ];
+
   if (authLoading || initialLoading)
     return <PageLoadingSkeleton variant="admin" />;
   if (error && trips.length === 0)
@@ -248,7 +357,7 @@ export function ExternalTripsPage() {
     );
 
   return (
-    <div className="container mx-auto space-y-6 md:space-y-8">
+    <div className="container mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -261,59 +370,12 @@ export function ExternalTripsPage() {
         </div>
         {canWrite && (
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" /> New Trip
+            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Trip
           </Button>
         )}
       </div>
 
-      <div className="bg-card rounded-xl border shadow-sm flex flex-col min-h-[500px] overflow-hidden">
-        {/* ── Top Bar: Search + Filter Button ── */}
-        <div className="p-4 sm:p-6 border-b border-border">
-          <div style={styles.topBar}>
-            <div className="relative w-full sm:max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search vehicle, customer, driver..."
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, search: e.target.value }))
-                }
-                className="pl-9 pr-9 bg-background"
-              />
-              {filters.search && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFilters((prev) => ({ ...prev, search: "" }))
-                  }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <Button variant="outline" onClick={openDrawer} className="gap-2">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span style={styles.activeFilterBadge}>
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                className="text-primary"
-              >
-                Clear all
-              </Button>
-            )}
-          </div>
-        </div>
+      <div className="bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col min-h-[500px]">
 
         {/* ── Summary Strip ── */}
         {summary.count > 0 && (
@@ -359,247 +421,178 @@ export function ExternalTripsPage() {
 
         {/* ── Content ── */}
         <div className="flex-1 p-4 sm:p-6">
-          {fetching ? (
-            <LoadingSpinner size="md" centered label="Loading trips..." />
-          ) : error ? (
+          {/* Filter Button — right-aligned above table */}
+          <div className="flex items-center justify-end gap-2 mb-4">
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="text-primary"
+              >
+                Clear all
+              </Button>
+            )}
+            <Button variant="outline" onClick={openDrawer} className="gap-2">
+              <SlidersHorizontalIcon size={16} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span style={styles.activeFilterBadge}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </div>
+
+          {error ? (
             <ErrorState
               title="Couldn't load trips"
               description={error}
               onRetry={() => fetchTrips(filters)}
             />
-          ) : displayData.length === 0 ? (
+          ) : !fetching && displayData.length === 0 ? (
             <EmptyState
               title="No trips found"
               description={
-                hasActiveFilters || filters.search
+                hasActiveFilters
                   ? "Try adjusting your filters."
                   : "Get started by recording your first trip."
               }
               actionLabel={
-                hasActiveFilters || filters.search
+                hasActiveFilters
                   ? "Clear Filters"
                   : "New Trip"
               }
               onAction={
-                hasActiveFilters || filters.search
+                hasActiveFilters
                   ? clearAllFilters
                   : handleAddNew
               }
-              icon={Truck}
+              icon={TruckIcon}
             />
           ) : (
             <>
               {/* Desktop Table */}
-              <div className="hidden md:block rounded-md border border-border overflow-x-auto overflow-y-hidden">
-                <table className="w-full min-w-[900px] text-sm">
-                  <thead className="bg-muted/50 text-muted-foreground">
-                    <tr>
-                      <th className="h-12 px-4 text-left font-medium whitespace-nowrap">
-                        Vehicle
-                      </th>
-                      <th className="h-12 px-4 text-left font-medium whitespace-nowrap">
-                        Trip Type
-                      </th>
-                      <th className="h-12 px-4 text-left font-medium">Route</th>
-                      <th className="h-12 px-4 text-left font-medium">
-                        Driver
-                      </th>
-                      <th className="h-12 px-4 text-left font-medium whitespace-nowrap">
-                        Start Date
-                      </th>
-                      <th className="h-12 px-4 text-right font-medium">Cost</th>
-                      <th className="h-12 px-4 text-right font-medium">
-                        Received
-                      </th>
-                      <th className="h-12 px-4 text-right font-medium">
-                        Profit
-                      </th>
-                      {canWrite && (
-                        <th className="h-12 px-4 text-left font-medium">
-                          Actions
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border bg-card">
-                    {displayData.map((trip) => {
-                      const route = [trip.from_location, trip.to_location]
-                        .filter(Boolean)
-                        .join(" → ");
-                      const profit =
-                        (trip.amount_received || 0) - (trip.total_cost || 0);
-                      return (
-                        <tr
-                          key={trip.id}
-                          className="transition-colors hover:bg-muted/30"
-                        >
-                          <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
-                            {trip.vehicles?.vehicle_number || "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${trip.trip_type === "company_oncall" ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20" : "bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20"}`}
-                            >
-                              {TRIP_TYPE_LABELS[trip.trip_type]}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground max-w-[180px] truncate">
-                            {route || "—"}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                            {trip.drivers?.name || "—"}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                            {trip.start_date || "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-foreground whitespace-nowrap">
-                            {fmtCurrency(trip.total_cost)}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-foreground whitespace-nowrap">
-                            {fmtCurrency(trip.amount_received || 0)}
-                          </td>
-                          <td
-                            className="px-4 py-3 text-right font-semibold whitespace-nowrap"
-                            style={profitStyle(profit)}
-                          >
-                            {profit >= 0 ? "+" : ""}
-                            {fmtCurrency(profit)}
-                          </td>
-                          {canWrite && (
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleEdit(trip)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                  {isAdmin && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                      onClick={() => setDeleteTarget(trip)}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                      <span className="sr-only">Delete</span>
-                                    </Button>
-                                  )}
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="hidden md:block">
+                <DataTable
+                  columns={columns}
+                  data={displayData}
+                  rowKey={(t) => String(t.id)}
+                  loading={fetching}
+                  rowActions={rowActions}
+                />
               </div>
 
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
-                {displayData.map((trip) => {
-                  const route = [trip.from_location, trip.to_location]
-                    .filter(Boolean)
-                    .join(" → ");
-                  const profit =
-                    (trip.amount_received || 0) - (trip.total_cost || 0);
-                  return (
-                    <div
-                      key={trip.id}
-                      className="rounded-lg border bg-card p-4 shadow-sm"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="font-semibold text-foreground text-lg">
-                            {trip.vehicles?.vehicle_number || "—"}
+                {fetching ? (
+                  <LoadingSpinner size="md" centered label="Loading trips..." />
+                ) : (
+                  displayData.map((trip) => {
+                    const route = [trip.from_location, trip.to_location]
+                      .filter(Boolean)
+                      .join(" → ");
+                    const profit =
+                      (trip.amount_received || 0) - (trip.total_cost || 0);
+                    return (
+                      <div
+                        key={trip.id}
+                        className="rounded-lg border bg-card p-4 shadow-sm"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="font-semibold text-foreground text-lg">
+                              {trip.vehicles?.vehicle_number || "—"}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {trip.customer_name || "No customer"}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {trip.customer_name || "No customer"}
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${trip.trip_type === "company_oncall" ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" : "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"}`}
-                        >
-                          {TRIP_TYPE_LABELS[trip.trip_type]}
-                        </span>
-                      </div>
-                      {route && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          📍 {route}
-                        </div>
-                      )}
-                      {trip.drivers?.name && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          🚗 {trip.drivers.name}
-                        </div>
-                      )}
-                      {trip.customer_phone && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          📞 {trip.customer_phone}
-                        </div>
-                      )}
-                      {trip.start_date && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          📅 {trip.start_date}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between mt-2 mb-3 gap-4">
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Cost
-                          </div>
-                          <div className="text-base font-semibold text-foreground">
-                            {fmtCurrency(trip.total_cost)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Received
-                          </div>
-                          <div className="text-base font-semibold text-foreground">
-                            {fmtCurrency(trip.amount_received || 0)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Profit
-                          </div>
-                          <div
-                            className="text-base font-bold"
-                            style={profitStyle(profit)}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                              trip.trip_type === "company_oncall"
+                                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                                : "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
+                            }`}
                           >
-                            {profit >= 0 ? "+" : ""}
-                            {fmtCurrency(profit)}
-                          </div>
+                            {TRIP_TYPE_LABELS[trip.trip_type]}
+                          </span>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {canWrite && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(trip)}
-                          >
-                            Edit
-                          </Button>
+                        {route && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            📍 {route}
+                          </div>
                         )}
-                        {isAdmin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(trip)}
-                          >
-                            Delete
-                          </Button>
+                        {trip.drivers?.name && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            🚗 {trip.drivers.name}
+                          </div>
                         )}
+                        {trip.customer_phone && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            📞 {trip.customer_phone}
+                          </div>
+                        )}
+                        {trip.start_date && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            📅 {trip.start_date}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-2 mb-3 gap-4">
+                          <div>
+                            <div className="text-xs text-muted-foreground">
+                              Cost
+                            </div>
+                            <div className="text-base font-semibold text-foreground">
+                              {fmtCurrency(trip.total_cost)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">
+                              Received
+                            </div>
+                            <div className="text-base font-semibold text-foreground">
+                              {fmtCurrency(trip.amount_received || 0)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">
+                              Profit
+                            </div>
+                            <div
+                              className="text-base font-bold"
+                              style={profitStyle(profit)}
+                            >
+                              {profit >= 0 ? "+" : ""}
+                              {fmtCurrency(profit)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 border-t pt-3">
+                          {canWrite && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(trip)}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteTarget(trip)}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </>
           )}
@@ -619,117 +612,97 @@ export function ExternalTripsPage() {
       </div>
 
       {/* ── Filter Drawer ── */}
-      {drawerOpen && (
-        <>
-          <div style={styles.drawerContainer}>
-            <div style={styles.drawerHeader}>
-              <span style={styles.drawerTitle}>Filters</span>
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "0.25rem",
-                  color: "var(--foreground)",
-                }}
-              >
-                <X style={{ width: "1.25rem", height: "1.25rem" }} />
-              </button>
-            </div>
+      <FilterDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onApply={applyDrawerFilters}
+      >
+        {/* Trip Type — Radix Select */}
+        <div style={filterFieldGroup}>
+          <label style={filterFieldLabel}>Trip Type</label>
+          <Select
+            value={drawerFilters.tripType}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                tripType: v as TripType | "all",
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Trip Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Trip Types</SelectItem>
+              {(
+                Object.entries(TRIP_TYPE_LABELS) as [TripType, string][]
+              ).map(([k, l]) => (
+                <SelectItem key={k} value={k}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div style={styles.drawerBody} className="scrollbar-custom">
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>Trip Type</label>
-                <select
-                  value={drawerFilters.tripType}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      tripType: e.target.value as TripType | "all",
-                    }))
-                  }
-                  style={styles.drawerSelect}
-                >
-                  <option value="all">All Trip Types</option>
-                  {(
-                    Object.entries(TRIP_TYPE_LABELS) as [TripType, string][]
-                  ).map(([k, l]) => (
-                    <option key={k} value={k}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* Vehicle — Typeahead */}
+        <div style={filterFieldGroup}>
+          <label style={filterFieldLabel}>Vehicle</label>
+          <Typeahead
+            options={vehicles}
+            value={drawerFilters.vehicleId}
+            onValueChange={(vehicleId) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                vehicleId,
+              }))
+            }
+            getOptionValue={(v) => v.id.toString()}
+            getOptionLabel={(v) =>
+              `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+            }
+            getOptionKeywords={(v) => [
+              v.vehicle_number,
+              v.company,
+              v.model,
+            ]}
+            placeholder="Search vehicle..."
+            emptyMessage="No vehicles found."
+          />
+        </div>
 
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>Vehicle</label>
-                <select
-                  value={drawerFilters.vehicleId}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      vehicleId: e.target.value,
-                    }))
-                  }
-                  style={styles.drawerSelect}
-                >
-                  <option value="">All Vehicles</option>
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.id.toString()}>
-                      {v.vehicle_number} — {v.company} {v.model}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* From Date */}
+        <div style={filterFieldGroup}>
+          <label style={filterFieldLabel}>From Date</label>
+          <Input
+            type="date"
+            value={drawerFilters.fromDate}
+            onChange={(e) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                fromDate: e.target.value,
+              }))
+            }
+            className="bg-background"
+          />
+        </div>
 
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>From Date</label>
-                <Input
-                  type="date"
-                  value={drawerFilters.fromDate}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      fromDate: e.target.value,
-                    }))
-                  }
-                  className="bg-background"
-                />
-              </div>
-
-              <div style={styles.drawerFieldGroup}>
-                <label style={styles.drawerFieldLabel}>To Date</label>
-                <Input
-                  type="date"
-                  value={drawerFilters.toDate}
-                  onChange={(e) =>
-                    setDrawerFilters((p) => ({
-                      ...p,
-                      toDate: e.target.value,
-                    }))
-                  }
-                  className="bg-background"
-                />
-              </div>
-            </div>
-
-            <div style={styles.drawerFooter}>
-              <Button
-                variant="outline"
-                onClick={() => setDrawerOpen(false)}
-                className="flex-1"
-              >
-                Close
-              </Button>
-              <Button onClick={applyDrawerFilters} className="flex-1">
-                Apply Filters
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+        {/* To Date */}
+        <div style={filterFieldGroup}>
+          <label style={filterFieldLabel}>To Date</label>
+          <Input
+            type="date"
+            value={drawerFilters.toDate}
+            onChange={(e) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                toDate: e.target.value,
+              }))
+            }
+            className="bg-background"
+          />
+        </div>
+      </FilterDrawer>
 
       {/* ── Modals ── */}
       {showModal && !editRecord && (

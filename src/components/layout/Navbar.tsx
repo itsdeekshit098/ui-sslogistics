@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboardIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { ThemeToggle } from "@/components/themeToggle";
 
@@ -49,7 +49,7 @@ export function Navbar() {
               {isNavigating ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                <LayoutDashboard className="h-4 w-4" />
+                <LayoutDashboardIcon size={16} />
               )}
               <span className="hidden sm:inline">
                 {isNavigating ? "Loading..." : "Operations Portal"}

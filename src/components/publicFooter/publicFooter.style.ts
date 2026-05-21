@@ -52,8 +52,8 @@ export const gridOverlay: CSSProperties = {
 
 export const container: CSSProperties = {
   position: "relative",
-  width: "calc(100% - 2rem)",
-  maxWidth: "1180px",
+  width: "calc(100% - clamp(2rem, 5vw, 8rem))",
+  maxWidth: "1600px",
   margin: "0 auto",
   padding: "clamp(3rem, 6vw, 5rem) 0 2rem",
 };

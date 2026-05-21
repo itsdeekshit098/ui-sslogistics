@@ -4,19 +4,20 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Truck,
-  Users,
-  Building2,
-  Fuel,
-  Wrench,
-  FileText,
-  BarChart3,
-  ArrowRight,
-  ArrowLeft,
-  Activity,
-  UserCog,
-  Route,
-} from "lucide-react";
+  TruckIcon,
+  UsersIcon,
+  Building2Icon,
+  FuelIcon,
+  WrenchIcon,
+  FileTextIcon,
+  BarChart3Icon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  ActivityIcon,
+  UserCogIcon,
+  RouteIcon,
+  ShieldIcon,
+} from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 
 const menuItems = [
@@ -24,7 +25,7 @@ const menuItems = [
     title: "Vehicles",
     description: "Manage fleet vehicles",
     href: "/admin/vehicles",
-    icon: Truck,
+    icon: TruckIcon,
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-500/10",
     enabled: true,
@@ -33,7 +34,7 @@ const menuItems = [
     title: "Drivers",
     description: "Manage driver profiles",
     href: "/admin/drivers",
-    icon: Users,
+    icon: UsersIcon,
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-500/10",
     enabled: true,
@@ -42,7 +43,7 @@ const menuItems = [
     title: "Clients",
     description: "Manage clients & vendors",
     href: "/admin/clients",
-    icon: Building2,
+    icon: Building2Icon,
     color: "text-purple-600 dark:text-purple-400",
     bgColor: "bg-purple-50 dark:bg-purple-500/10",
     enabled: false,
@@ -51,7 +52,7 @@ const menuItems = [
     title: "Diesel Records",
     description: "Track fuel consumption",
     href: "/admin/diesel-records",
-    icon: Fuel,
+    icon: FuelIcon,
     color: "text-orange-600 dark:text-orange-400",
     bgColor: "bg-orange-50 dark:bg-orange-500/10",
     enabled: true,
@@ -60,7 +61,7 @@ const menuItems = [
     title: "Repair Records",
     description: "Maintenance logs",
     href: "/admin/repair-records",
-    icon: Wrench,
+    icon: WrenchIcon,
     color: "text-red-600 dark:text-red-400",
     bgColor: "bg-red-50 dark:bg-red-500/10",
     enabled: true,
@@ -69,7 +70,7 @@ const menuItems = [
     title: "Technicians",
     description: "Manage technician profiles",
     href: "/admin/technicians",
-    icon: UserCog,
+    icon: UserCogIcon,
     color: "text-emerald-600 dark:text-emerald-400",
     bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
     enabled: true,
@@ -78,7 +79,7 @@ const menuItems = [
     title: "External Trips",
     description: "Track vehicle trips & costs",
     href: "/admin/external-trips",
-    icon: Route,
+    icon: RouteIcon,
     color: "text-sky-600 dark:text-sky-400",
     bgColor: "bg-sky-50 dark:bg-sky-500/10",
     enabled: true,
@@ -87,7 +88,7 @@ const menuItems = [
     title: "Trip Sheets",
     description: "Daily trip entries",
     href: "/admin/trip-sheets",
-    icon: FileText,
+    icon: FileTextIcon,
     color: "text-indigo-600 dark:text-indigo-400",
     bgColor: "bg-indigo-50 dark:bg-indigo-500/10",
     enabled: false,
@@ -96,7 +97,7 @@ const menuItems = [
     title: "Reports",
     description: "View analytics",
     href: "/admin/reports",
-    icon: BarChart3,
+    icon: BarChart3Icon,
     color: "text-cyan-600 dark:text-cyan-400",
     bgColor: "bg-cyan-50 dark:bg-cyan-500/10",
     enabled: false,
@@ -105,7 +106,16 @@ const menuItems = [
     title: "Activity Log",
     description: "Track all actions",
     href: "/admin/activity-log",
-    icon: Activity,
+    icon: ActivityIcon,
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-50 dark:bg-teal-500/10",
+    enabled: true,
+  },
+  {
+    title: "Sessions",
+    description: "Track all users sessions",
+    href: "/admin/sessions",
+    icon: ShieldIcon,
     color: "text-teal-600 dark:text-teal-400",
     bgColor: "bg-teal-50 dark:bg-teal-500/10",
     enabled: true,
@@ -125,7 +135,8 @@ export default function DashboardPage() {
         item.title === "Repair Records" ||
         item.title === "Technicians" ||
         item.title === "Drivers" ||
-        item.title === "External Trips"
+        item.title === "External Trips" ||
+        item.title === "Sessions"
       ) {
         return false;
       }
@@ -143,7 +154,7 @@ export default function DashboardPage() {
           asChild
         >
           <Link href="/" data-testid="admin-dashboard-back-link">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
             Back to Home
           </Link>
         </Button>
@@ -157,71 +168,85 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-        {visibleMenuItems.map((item) => {
-          const isEnabled = item.enabled;
+      {authLoading ? (
+        /* ── Skeleton grid shown while auth resolves ── */
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-28 md:h-36 rounded-xl bg-slate-200/70 dark:bg-muted animate-pulse"
+            />
+          ))}
+        </div>
+      ) : (
+        /* ── Real module card grid ── */
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+          {visibleMenuItems.map((item) => {
+            const isEnabled = item.enabled;
 
-          if (isEnabled) {
-            return (
-              <Link
-                data-testid={`admin-dashboard-card-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                key={item.href}
-                href={item.href}
-                className="group block h-full"
-              >
-                <Card
-                  data-testid="app-admin-card-1"
-                  className="h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/50 dark:hover:border-primary/50 active:scale-[0.98]"
+            if (isEnabled) {
+              return (
+                <Link
+                  data-testid={`admin-dashboard-card-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                  key={item.href}
+                  href={item.href}
+                  className="group block h-full"
                 >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
-                    <div
-                      className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${item.bgColor}`}
-                    >
-                      <item.icon
-                        className={`h-5 w-5 md:h-6 md:w-6 ${item.color}`}
+                  <Card
+                    data-testid="app-admin-card-1"
+                    className="h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/50 dark:hover:border-primary/50 active:scale-[0.98]"
+                  >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                      <div
+                        className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${item.bgColor}`}
+                      >
+                        <item.icon size={24} className={item.color} />
+                      </div>
+                      <ArrowRightIcon
+                        size={20}
+                        className="text-muted-foreground/50 group-hover:text-foreground transition-colors"
                       />
-                    </div>
-                    <ArrowRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                  </CardHeader>
-                  <CardContent className="pt-2 p-3 md:p-6 md:pt-4">
-                    <CardTitle className="text-base md:text-xl font-bold text-foreground mb-1 md:mb-2 group-hover:text-primary transition-colors">
-                      {item.title}
-                    </CardTitle>
-                    <p className="text-xs md:text-sm text-muted-foreground font-medium hidden sm:block">
-                      {item.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          }
+                    </CardHeader>
+                    <CardContent className="pt-2 p-3 md:p-6 md:pt-4">
+                      <CardTitle className="text-base md:text-xl font-bold text-foreground mb-1 md:mb-2 group-hover:text-primary transition-colors">
+                        {item.title}
+                      </CardTitle>
+                      <p className="text-xs md:text-sm text-muted-foreground font-medium hidden sm:block">
+                        {item.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            }
 
-          return (
-            <Card
-              data-testid="app-admin-card-2"
-              key={item.href}
-              className="h-full opacity-50 cursor-not-allowed border-dashed border-border/40"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
-                <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-muted">
-                  <item.icon className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground/50" />
-                </div>
-                <div className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground font-medium">
-                  Coming Soon
-                </div>
-              </CardHeader>
-              <CardContent className="pt-2 p-3 md:p-6 md:pt-4">
-                <CardTitle className="text-base md:text-xl font-bold text-muted-foreground/70 mb-1 md:mb-2">
-                  {item.title}
-                </CardTitle>
-                <p className="text-xs md:text-sm text-muted-foreground/50 font-medium hidden sm:block">
-                  {item.description}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+            return (
+              <Card
+                data-testid="app-admin-card-2"
+                key={item.href}
+                className="h-full opacity-50 cursor-not-allowed border-dashed border-border/40"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                  <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-muted">
+                    <item.icon size={24} className="text-muted-foreground/50" />
+                  </div>
+                  <div className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground font-medium">
+                    Coming Soon
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-2 p-3 md:p-6 md:pt-4">
+                  <CardTitle className="text-base md:text-xl font-bold text-muted-foreground/70 mb-1 md:mb-2">
+                    {item.title}
+                  </CardTitle>
+                  <p className="text-xs md:text-sm text-muted-foreground/50 font-medium hidden sm:block">
+                    {item.description}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
