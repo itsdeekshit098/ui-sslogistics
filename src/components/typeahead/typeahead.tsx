@@ -288,7 +288,10 @@ const Typeahead = <TOption,>({
               const spaceAbove = dropdownRect.top;
               if (spaceBelow < 200 && spaceAbove > spaceBelow) {
                 // Open upward — anchor bottom to the top of the trigger
-                return { bottom: window.innerHeight - dropdownRect.top + 6 };
+                return {
+                  bottom: window.innerHeight - dropdownRect.top + 6,
+                  maxHeight: Math.max(spaceAbove - 16, 120),
+                };
               }
               // Open downward — constrain maxHeight so it doesn't go below visible viewport
               return {

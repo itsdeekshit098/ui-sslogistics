@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
+import { handleApiError } from "@/lib/apiResponse";
 import { logger } from "@/lib/logger";
 
 const BUCKET_NAME = "vehicle-documents";
@@ -26,6 +27,18 @@ function getMimeType(filePath: string): string {
     default:
       return "application/octet-stream";
   }
+}
+
+/**
+ * Sanitize a filename for use in Content-Disposition headers.
+ * Strips control characters, quotes, backslashes, and non-ASCII to prevent
+ * header injection vulnerabilities.
+ */
+function sanitizeFileName(raw: string): string {
+  // Remove control chars (0x00-0x1F, 0x7F), quotes, backslashes
+  const cleaned = raw.replace(/[\x00-\x1f\x7f"\\]/g, "");
+  // Fallback if the result is empty or only whitespace
+  return cleaned.trim() || "document";
 }
 
 /**
@@ -77,7 +90,7 @@ export async function GET(req: NextRequest) {
     }
 
     const mimeType = getMimeType(filePath);
-    const fileName = filePath.split("/").pop() || "document";
+    const fileName = sanitizeFileName(filePath.split("/").pop() || "document");
     const fileSize = data.size;
 
     // For very large files, force download instead of inline preview
@@ -98,10 +111,10 @@ export async function GET(req: NextRequest) {
         "X-Content-Type-Options": "nosniff",
       },
     });
-  } catch {
-    return new Response(
-      JSON.stringify({ success: false, error: "Unauthorized" }),
-      { status: 401, headers: { "Content-Type": "application/json" } },
-    );
+  } catch (err) {
+    logger.error("Document view route error", {
+      message: err instanceof Error ? err.message : "Unknown error",
+    });
+    return handleApiError(err);
   }
 }
