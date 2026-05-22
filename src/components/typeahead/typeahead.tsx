@@ -66,9 +66,21 @@ const Typeahead = <TOption,>({
       updateRect();
       window.addEventListener("scroll", updateRect, true);
       window.addEventListener("resize", updateRect);
+
+      // On mobile, listen to visualViewport changes (keyboard open/close)
+      const vv = window.visualViewport;
+      if (vv) {
+        vv.addEventListener("resize", updateRect);
+        vv.addEventListener("scroll", updateRect);
+      }
+
       return () => {
         window.removeEventListener("scroll", updateRect, true);
         window.removeEventListener("resize", updateRect);
+        if (vv) {
+          vv.removeEventListener("resize", updateRect);
+          vv.removeEventListener("scroll", updateRect);
+        }
       };
     } else {
       const handle = requestAnimationFrame(() => setDropdownRect(null));
@@ -269,11 +281,26 @@ const Typeahead = <TOption,>({
             position: "fixed",
             left: dropdownRect.left,
             width: dropdownRect.width,
-            ...(window.innerHeight - dropdownRect.bottom < 250 && dropdownRect.top > (window.innerHeight - dropdownRect.bottom)
-              ? { bottom: window.innerHeight - dropdownRect.top + 6 }
-              : { top: dropdownRect.bottom + 6 }),
+            // Use visualViewport height on mobile to account for virtual keyboard
+            ...(() => {
+              const vh = window.visualViewport?.height ?? window.innerHeight;
+              const spaceBelow = vh - dropdownRect.bottom;
+              const spaceAbove = dropdownRect.top;
+              if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+                // Open upward — anchor bottom to the top of the trigger
+                return {
+                  bottom: window.innerHeight - dropdownRect.top + 6,
+                  maxHeight: Math.max(spaceAbove - 16, 120),
+                };
+              }
+              // Open downward — constrain maxHeight so it doesn't go below visible viewport
+              return {
+                top: dropdownRect.bottom + 6,
+                maxHeight: Math.max(spaceBelow - 16, 120),
+              };
+            })(),
           }}
-          className="z-[9999] max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-background p-1 text-sm text-foreground shadow-2xl drop-shadow-sm"
+          className="z-[9999] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-background p-1 text-sm text-foreground shadow-2xl drop-shadow-sm"
         >
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option, index) => {

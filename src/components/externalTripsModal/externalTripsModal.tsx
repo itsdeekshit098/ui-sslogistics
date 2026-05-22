@@ -556,6 +556,9 @@ const ExternalTripsForm: React.FC<{
                   <button
                     type="button"
                     style={styles.addDriverButton}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
                     onClick={() => setShowAddDriver(true)}
                     onMouseEnter={(e) => {
                       (

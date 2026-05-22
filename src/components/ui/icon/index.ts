@@ -89,5 +89,8 @@ export {
   HomeIcon,
   MailIcon,
   GridIcon,
+
+  // File actions
+  DownloadIcon,
 } from "./icon";
 export type { IconProps, ComponentIcon } from "./icon.types";

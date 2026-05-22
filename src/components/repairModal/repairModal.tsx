@@ -526,7 +526,12 @@ const RepairForm: React.FC<{
                       disabled={!formData.category}
                       emptyMessage="No matching issues found."
                       footer={
-                        <div style={{ padding: "0.25rem" }}>
+                        <div
+                          style={{ padding: "0.25rem" }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
                           <div style={styles.customIssueRow}>
                             <Input
                               placeholder="Other issue not listed..."
@@ -639,6 +644,11 @@ const RepairForm: React.FC<{
                         <button
                           type="button"
                           style={styles.addTechnicianButton}
+                          onPointerDown={(e) => {
+                            // Prevent the Typeahead's outside-click handler from
+                            // closing the dropdown before this click fires on mobile
+                            e.stopPropagation();
+                          }}
                           onClick={() => setShowAddTechnician(true)}
                           onMouseEnter={(e) => {
                             (
