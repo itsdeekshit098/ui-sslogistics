@@ -99,9 +99,7 @@ export async function GET(req: NextRequest) {
         ? `attachment; filename="${fileName}"`
         : `inline; filename="${fileName}"`;
 
-    const arrayBuffer = await data.arrayBuffer();
-
-    return new Response(arrayBuffer, {
+    return new Response(data.stream(), {
       status: 200,
       headers: {
         "Content-Type": mimeType,
