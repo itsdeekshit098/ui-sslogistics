@@ -8,11 +8,11 @@ import {
 } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { EyeIcon, Trash2Icon, UploadCloudIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Skeleton } from "@/components/skeletonLoader";
 import { ConfirmModal } from "@/components/confirmModal";
+import { DocumentPreviewModal } from "@/components/documentPreviewModal";
 import {
   DM_DIALOG_CONTENT,
   DM_GRID_CONTAINER,
@@ -35,22 +35,6 @@ interface DocumentApiResponse {
   filePath?: string;
 }
 
-/**
- * Fetches a time-limited signed URL from the backend for a private storage file path.
- */
-async function fetchSignedUrl(filePath: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `/api/vehicles/documents?filePath=${encodeURIComponent(filePath)}`,
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.data?.signedUrl || null;
-  } catch {
-    return null;
-  }
-}
-
 export function DocumentModal({
   isOpen,
   onClose,
@@ -58,13 +42,18 @@ export function DocumentModal({
   onUpdate,
 }: DocumentModalProps) {
   const [loadingFields, setLoadingFields] = useState<string[]>([]);
-  const [viewingFields, setViewingFields] = useState<string[]>([]);
   const [localVehicle, setLocalVehicle] = useState<Vehicle | null>(null);
   const [deleteDocTarget, setDeleteDocTarget] = useState<{
     key: string;
     filePath: string;
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  /** State for the in-app document preview modal. */
+  const [previewFile, setPreviewFile] = useState<{
+    path: string;
+    label: string;
+  } | null>(null);
 
   // Sync prop to local state so we can mutate cleanly without parent waterfall
   useEffect(() => {
@@ -81,41 +70,11 @@ export function DocumentModal({
   ];
 
   /**
-   * View a document by fetching a signed URL from the backend,
-   * then opening it in a new tab.
+   * View a document in an in-app preview modal.
+   * The preview modal uses a server-side proxy — Supabase URLs are never exposed.
    */
-  const handleView = async (filePath: string, docKey: string) => {
-    setViewingFields((prev) =>
-      prev.includes(docKey) ? prev : [...prev, docKey],
-    );
-
-    // Open a blank window immediately to bypass Safari popup blocker
-    let newWindow: Window | null = null;
-    try {
-      newWindow = window.open("", "_blank");
-    } catch {
-      // popup blocked
-    }
-
-    try {
-      const signedUrl = await fetchSignedUrl(filePath);
-      if (signedUrl) {
-        if (newWindow) {
-          newWindow.location.href = signedUrl;
-        } else {
-          // Fallback if window creation failed
-          window.open(signedUrl, "_blank", "noreferrer");
-        }
-      } else {
-        if (newWindow) newWindow.close();
-        setErrorMsg("Failed to generate secure document link. Please retry.");
-      }
-    } catch {
-      if (newWindow) newWindow.close();
-      setErrorMsg("Failed to open document.");
-    } finally {
-      setViewingFields((prev) => prev.filter((key) => key !== docKey));
-    }
+  const handleView = (filePath: string, label: string) => {
+    setPreviewFile({ path: filePath, label });
   };
 
   const handleUpload = async (
@@ -244,7 +203,6 @@ export function DocumentModal({
                 | string
                 | undefined;
               const isLoading = loadingFields.includes(doc.key);
-              const isViewing = viewingFields.includes(doc.key);
 
               return (
                 <div key={doc.key} className={DM_CARD_CONTAINER}>
@@ -263,15 +221,10 @@ export function DocumentModal({
                         variant="outline"
                         size="sm"
                         className={DM_BUTTON_VIEW}
-                        onClick={() => handleView(filePath, doc.key)}
-                        disabled={isViewing}
+                        onClick={() => handleView(filePath, doc.label)}
                       >
-                        {isViewing ? (
-                          <LoadingSpinner size="sm" className="mr-2" />
-                        ) : (
-                          <EyeIcon size={16} style={{ marginRight: "0.5rem" }} />
-                        )}
-                        {isViewing ? "Opening..." : "View"}
+                        <EyeIcon size={16} style={{ marginRight: "0.5rem" }} />
+                        View
                       </Button>
                       <Button
                         data-testid="components-documentModal-documentModal-button-2"
@@ -324,6 +277,16 @@ export function DocumentModal({
           !!deleteDocTarget && loadingFields.includes(deleteDocTarget.key)
         }
       />
+
+      {/* In-app document preview — renders via server-side proxy, never exposes Supabase URLs */}
+      {previewFile && (
+        <DocumentPreviewModal
+          isOpen={!!previewFile}
+          onClose={() => setPreviewFile(null)}
+          filePath={previewFile.path}
+          label={previewFile.label}
+        />
+      )}
     </Modal>
   );
 }

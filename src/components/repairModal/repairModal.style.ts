@@ -11,7 +11,7 @@ export const formSection: CSSProperties = {
 
 export const formGrid: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
   gap: "1rem",
 };
 
@@ -41,7 +41,7 @@ export const fieldError: CSSProperties = {
 
 export const categoryGrid: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
   gap: "0.75rem",
 };
 

@@ -1,11 +1,10 @@
-import { after, NextRequest } from "next/server";
+import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 
 const BUCKET_NAME = "vehicle-documents";
-const SIGNED_URL_EXPIRY = 3600;
 
 /** Only these DB columns can be written via documentType */
 const VALID_DOCUMENT_TYPES = [
@@ -39,32 +38,6 @@ function isValidDocumentType(
 
 function isAllowedMimeType(mime: string): boolean {
   return (ALLOWED_MIME_TYPES as readonly string[]).includes(mime);
-}
-
-/**
- * GET — Generate a signed URL for viewing a private document.
- */
-export async function GET(req: NextRequest) {
-  try {
-    await requireAdminAuth();
-    const filePath = req.nextUrl.searchParams.get("filePath");
-
-    if (!filePath) {
-      return apiError("Missing filePath query parameter", 400);
-    }
-
-    const { data, error } = await supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .createSignedUrl(filePath, SIGNED_URL_EXPIRY);
-
-    if (error || !data?.signedUrl) {
-      return apiError(error?.message || "Failed to generate document URL", 500);
-    }
-
-    return apiSuccess({ signedUrl: data.signedUrl });
-  } catch (err: unknown) {
-    return handleApiError(err);
-  }
 }
 
 /**

@@ -64,6 +64,15 @@ export function NavigationProgress() {
       const href = target.getAttribute("href");
       if (!href) return;
 
+      // Don't trigger for download links, external targets, or explicitly opted-out links
+      if (
+        target.hasAttribute("download") ||
+        target.getAttribute("target") === "_blank" ||
+        target.hasAttribute("data-no-progress")
+      ) {
+        return;
+      }
+
       // Only trigger for internal same-origin navigations
       const isInternal =
         !href.startsWith("http") &&

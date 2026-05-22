@@ -345,6 +345,9 @@ const CreateDieselForm: React.FC<{
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
                   onClick={() => setShowAddDriver(true)}
                 >
                   <UserPlusIcon size={14} />

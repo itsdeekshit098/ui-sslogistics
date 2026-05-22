@@ -13,7 +13,7 @@ export const formSection: CSSProperties = {
 
 export const formGrid: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
   gap: "1rem",
 };
 
@@ -50,7 +50,7 @@ export const charCounter: CSSProperties = {
 
 export const categoryGrid: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
   gap: "0.75rem",
 };
 
@@ -100,7 +100,7 @@ export const costSectionTitle: CSSProperties = {
 
 export const costRow: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr auto",
+  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
   gap: "0.5rem",
   alignItems: "center",
   marginBottom: "0.5rem",
