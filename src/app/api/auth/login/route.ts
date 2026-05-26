@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       return apiError("Password is required", 400);
     }
 
+    // ── Step 1: Authenticate and create new session ──
     const supabase = await createClient();
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -37,16 +38,33 @@ export async function POST(req: Request) {
       return apiError("Invalid email or password", 401);
     }
 
-    // ── Single-session enforcement ──
-    // Revoke all OTHER sessions so only the current login survives.
-    // This uses the service-role admin client (server-side only).
     const userId = data.user?.id;
-    if (userId) {
-      try {
-        await supabaseAdmin.auth.admin.signOut(userId, "others");
-      } catch {
-        logger.error("Failed to revoke other sessions during login", { userId });
+    if (!userId) {
+      return apiError("Authentication failed", 500);
+    }
+
+    // ── Step 2: Single-session enforcement ──
+    // Revoke all OLD sessions by deleting from auth.sessions table
+    // Keep only the most recent session (the one we just created)
+    try {
+      const { error: revokeError } = await supabaseAdmin.rpc(
+        "revoke_old_user_sessions",
+        { target_user_id: userId },
+      );
+
+      if (revokeError) {
+        logger.error("Failed to revoke old sessions", {
+          userId,
+          error: revokeError.message,
+        });
+      } else {
+        logger.info("Revoked old sessions for user", { userId });
       }
+    } catch (err) {
+      logger.error("Exception while revoking old sessions", {
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
 
     return apiSuccess(null, "Login successful");
