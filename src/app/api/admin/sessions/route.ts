@@ -59,9 +59,12 @@ export async function GET(req: Request) {
         page,
         perPage,
       });
-
+    console.log("hio");
     if (usersError) {
-      logger.error("Failed to list users", { message: usersError.message, code: usersError.code });
+      logger.error("Failed to list users", {
+        message: usersError.message,
+        code: usersError.code,
+      });
       return apiError("Failed to load users", 500);
     }
 
@@ -147,13 +150,19 @@ export async function PUT(req: Request) {
     }
 
     if (action === "ban") {
-      const { error: banError } =
-        await supabaseAdmin.auth.admin.updateUserById(userId, {
+      const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(
+        userId,
+        {
           ban_duration: "876600h", // ~100 years = permanent ban
-        });
+        },
+      );
 
       if (banError) {
-        logger.error("Failed to ban user", { userId, message: banError.message, code: banError.code });
+        logger.error("Failed to ban user", {
+          userId,
+          message: banError.message,
+          code: banError.code,
+        });
         return apiError("Failed to ban user", 500);
       }
 
@@ -174,13 +183,19 @@ export async function PUT(req: Request) {
     }
 
     // action === "unban"
-    const { error: unbanError } =
-      await supabaseAdmin.auth.admin.updateUserById(userId, {
+    const { error: unbanError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      {
         ban_duration: "none",
-      });
+      },
+    );
 
     if (unbanError) {
-      logger.error("Failed to unban user", { userId, message: unbanError.message, code: unbanError.code });
+      logger.error("Failed to unban user", {
+        userId,
+        message: unbanError.message,
+        code: unbanError.code,
+      });
       return apiError("Failed to unban user", 500);
     }
 
@@ -236,7 +251,11 @@ export async function DELETE(req: Request) {
     );
 
     if (revokeError) {
-      logger.error("Failed to revoke user sessions", { userId, message: revokeError.message, code: revokeError.code });
+      logger.error("Failed to revoke user sessions", {
+        userId,
+        message: revokeError.message,
+        code: revokeError.code,
+      });
       return apiError("Failed to revoke sessions", 500);
     }
 
@@ -300,7 +319,11 @@ export async function PATCH(req: Request) {
       });
 
     if (updateError) {
-      logger.error("Failed to reset user password", { userId, message: updateError.message, code: updateError.code });
+      logger.error("Failed to reset user password", {
+        userId,
+        message: updateError.message,
+        code: updateError.code,
+      });
       return apiError("Failed to reset password", 500);
     }
 
@@ -310,7 +333,9 @@ export async function PATCH(req: Request) {
       await supabaseAdmin.auth.admin.signOut(userId, "global");
     } catch {
       sessionsRevoked = false;
-      logger.error("Password changed but failed to revoke sessions", { userId });
+      logger.error("Password changed but failed to revoke sessions", {
+        userId,
+      });
       // Don't fail the whole request — password was already changed
     }
 
