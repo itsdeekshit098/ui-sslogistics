@@ -88,7 +88,7 @@ const SelectContent = React.forwardRef<
             <SelectScrollUpButton />
             <SelectPrimitive.Viewport
                 className={cn(
-                    "p-1.5 [&>*+*]:mt-1",
+                    "p-1 [&>*+*]:mt-1",
                     position === "popper" &&
                     "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
                 )}
@@ -120,18 +120,17 @@ const SelectItem = React.forwardRef<
     <SelectPrimitive.Item
         ref={ref}
         className={cn(
-            "relative flex min-h-11 w-full cursor-default select-none items-center rounded-[calc(var(--input-radius)-1px)] px-4 py-2 pl-10 text-sm text-foreground outline-none transition-colors focus:bg-secondary focus:text-foreground data-[highlighted]:bg-secondary data-[highlighted]:text-foreground data-[state=checked]:bg-secondary data-[state=checked]:font-semibold data-[state=checked]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+            "relative flex min-h-11 w-full cursor-default select-none items-center rounded-[calc(var(--input-radius)-1px)] py-2 pl-3 pr-9 text-sm text-foreground outline-none transition-colors focus:bg-secondary focus:text-foreground data-[highlighted]:bg-secondary data-[highlighted]:text-foreground data-[state=checked]:bg-secondary data-[state=checked]:font-semibold data-[state=checked]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
             className
         )}
         {...props}
     >
-        <span className="absolute left-4 flex h-4 w-4 items-center justify-center text-primary">
+        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+        <span className="absolute right-3 flex h-4 w-4 items-center justify-center text-primary">
             <SelectPrimitive.ItemIndicator>
                 <CheckIcon size={16} />
             </SelectPrimitive.ItemIndicator>
         </span>
-
-        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName

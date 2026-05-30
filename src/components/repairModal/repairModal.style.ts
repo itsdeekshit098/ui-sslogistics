@@ -1,41 +1,31 @@
 import { CSSProperties } from "react";
 
-/* ─── Form Grid ─── */
-
-export const formSection: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "1rem",
-  marginTop: "1.5rem",
-};
-
-export const formGrid: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-  gap: "1rem",
-};
-
-export const fieldGroup: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.5rem",
-};
-
-export const fieldLabel: CSSProperties = {
-  fontSize: "0.875rem",
-  fontWeight: 500,
-};
-
-export const requiredStar: CSSProperties = {
-  color: "#ef4444",
-  marginLeft: "0.125rem",
-};
-
-export const fieldError: CSSProperties = {
-  fontSize: "0.75rem",
-  color: "#ef4444",
-  marginTop: "0.125rem",
-};
+/**
+ * repairModal.style.ts
+ * Re-exports shared form tokens and defines repairModal-specific tokens.
+ */
+export {
+  formSection,
+  formGrid,
+  formRow,
+  fieldGroup,
+  fieldLabel,
+  requiredStar,
+  fieldError,
+  inputError,
+  errorBanner,
+  errorBannerWithMargin,
+  addVendorFooterBtn as addVendorFooterButton,
+  addVendorFooterBtn,
+  modalBodyPadding,
+  readOnlyBadge,
+  readOnlyInput,
+  saveIconStyle,
+  warrantyInputRow,
+  warrantyInputFlex,
+  selectTriggerStyle,
+  textareaStyle,
+} from "@/styles/formTokens.style";
 
 /* ─── Category Cards ─── */
 
@@ -124,7 +114,16 @@ export const customChipRemove: CSSProperties = {
   alignItems: "center",
 };
 
-/* ─── Typeahead Footer & Badges ─── */
+/* ─── Typeahead Badges ─── */
+
+export const inactiveBadge: CSSProperties = {
+  fontSize: "0.7rem",
+  backgroundColor: "var(--muted)",
+  color: "var(--muted-foreground)",
+  padding: "0.125rem 0.375rem",
+  borderRadius: "0.25rem",
+  marginLeft: "0.5rem",
+};
 
 export const addTechnicianButton: CSSProperties = {
   width: "100%",
@@ -141,30 +140,7 @@ export const addTechnicianButton: CSSProperties = {
   cursor: "pointer",
   transition: "background-color 0.2s",
   border: "none",
-  textAlign: "center",
-};
-
-export const inactiveBadge: CSSProperties = {
-  fontSize: "0.7rem",
-  backgroundColor: "var(--muted)",
-  color: "var(--muted-foreground)",
-  padding: "0.125rem 0.375rem",
-  borderRadius: "0.25rem",
-  marginLeft: "0.5rem",
-};
-
-/* ─── Read-only Info ─── */
-
-export const readOnlyBadge: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "0.375rem",
-  padding: "0.5rem 0.75rem",
-  borderRadius: "var(--input-radius, 0.5rem)",
-  backgroundColor: "var(--muted)",
-  fontSize: "0.875rem",
-  fontWeight: 500,
-  color: "var(--foreground)",
+  textAlign: "center" as const,
 };
 
 /* ─── Status Toggle ─── */
@@ -184,13 +160,107 @@ export const statusLabel: CSSProperties = {
   fontWeight: 500,
 };
 
-/* ─── Error Banner ─── */
+/* ─── Parts Toggle Section ─── */
 
-export const errorBanner: CSSProperties = {
-  padding: "0.75rem",
+export const partsToggle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "0.75rem 1rem",
   borderRadius: "var(--input-radius, 0.5rem)",
-  border: "1px solid rgba(239, 68, 68, 0.2)",
-  backgroundColor: "rgba(239, 68, 68, 0.05)",
+  border: "1px solid var(--border)",
+  backgroundColor: "var(--muted)",
+  cursor: "pointer",
+  userSelect: "none",
+  transition: "all 0.2s",
+};
+
+export const partsToggleActive: CSSProperties = {
+  borderColor: "var(--primary)",
+  borderBottomLeftRadius: 0,
+  borderBottomRightRadius: 0,
+  borderBottom: "none",
+};
+
+export const partsToggleLabel: CSSProperties = {
   fontSize: "0.875rem",
-  color: "#dc2626",
+  fontWeight: 500,
+};
+
+export const partsToggleHint: CSSProperties = {
+  fontSize: "0.75rem",
+  color: "var(--muted-foreground)",
+  marginTop: "0.125rem",
+};
+
+export const partsSection: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "1rem",
+  marginTop: 0,
+  padding: "1rem",
+  border: "1px solid var(--primary)",
+  borderTop: "none",
+  borderBottomLeftRadius: "var(--input-radius, 0.5rem)",
+  borderBottomRightRadius: "var(--input-radius, 0.5rem)",
+  backgroundColor: "var(--card)",
+};
+
+export const partCard: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.75rem",
+  padding: "0.75rem",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--input-radius, 0.5rem)",
+  backgroundColor: "var(--background)",
+  position: "relative",
+};
+
+export const partCardHeader: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+};
+
+export const partCardTitle: CSSProperties = {
+  fontSize: "0.8125rem",
+  fontWeight: 600,
+  color: "var(--muted-foreground)",
+};
+
+export const partRemoveButton: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1.5rem",
+  height: "1.5rem",
+  borderRadius: "50%",
+  border: "none",
+  backgroundColor: "transparent",
+  color: "var(--muted-foreground)",
+  cursor: "pointer",
+  transition: "all 0.15s",
+};
+
+export const partFormGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: "0.75rem",
+};
+
+export const addPartButton: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "0.375rem",
+  padding: "0.5rem",
+  border: "1px dashed var(--border)",
+  borderRadius: "var(--input-radius, 0.5rem)",
+  backgroundColor: "transparent",
+  color: "var(--primary)",
+  fontSize: "0.8125rem",
+  fontWeight: 500,
+  cursor: "pointer",
+  transition: "background-color 0.2s",
 };

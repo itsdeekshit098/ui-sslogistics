@@ -1,5 +1,42 @@
 export type RepairCategory = "electrical" | "mechanical";
 export type RepairStatus = "Open" | "Closed";
+export type WarrantyDurationUnit = "months" | "years";
+
+export interface Vendor {
+  id: number;
+  name: string;
+  phone: string | null;
+  location: string | null;
+}
+
+export interface RepairPart {
+  id: number;
+  repair_record_id: number | null;
+  vehicle_id: number;
+  part_name: string;
+  vendor_id: number;
+  cost: number;
+  purchase_date: string;
+  warranty_duration: number;
+  warranty_duration_unit: WarrantyDurationUnit;
+  warranty_expiry: string;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  vendors?: Vendor | Vendor[];
+}
+
+export interface RepairPartInput {
+  id?: number;
+  part_name: string;
+  vendor_id: number;
+  cost: number;
+  purchase_date: string;
+  warranty_duration: number;
+  warranty_duration_unit: WarrantyDurationUnit;
+  warranty_expiry?: string;
+  notes?: string;
+}
 
 export interface RepairRecord {
   id: number;
@@ -29,6 +66,7 @@ export interface RepairRecordWithVehicle extends RepairRecord {
     phone: string | null;
     specializations: string[];
   };
+  parts?: RepairPart[];
 }
 
 export interface CreateRepairPayload {
@@ -39,6 +77,7 @@ export interface CreateRepairPayload {
   description?: string;
   cost: number;
   technician_id: number;
+  parts?: RepairPartInput[];
 }
 
 export interface UpdateRepairPayload {
@@ -48,6 +87,7 @@ export interface UpdateRepairPayload {
   technician_id?: number;
   status?: RepairStatus;
   issues?: string[];
+  parts?: RepairPartInput[];
 }
 
 export interface RepairFormData {

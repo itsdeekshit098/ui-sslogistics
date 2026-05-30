@@ -14,9 +14,10 @@ import {
   ArrowRightIcon,
   ArrowLeftIcon,
   ActivityIcon,
-  UserCogIcon,
   RouteIcon,
   ShieldIcon,
+  ShieldCheckIcon,
+  UserCogIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
@@ -110,6 +111,15 @@ const menuItems = [
     icon: ActivityIcon,
     color: "text-teal-600 dark:text-teal-400",
     bgColor: "bg-teal-50 dark:bg-teal-500/10",
+    enabled: true,
+  },
+  {
+    title: "Warranty Tracking",
+    description: "Manage parts & warranties",
+    href: "/admin/warranty",
+    icon: ShieldCheckIcon,
+    color: "text-rose-600 dark:text-rose-400",
+    bgColor: "bg-rose-50 dark:bg-rose-500/10",
     enabled: true,
   },
   {

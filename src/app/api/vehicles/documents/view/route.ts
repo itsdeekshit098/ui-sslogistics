@@ -1,8 +1,8 @@
+import { logger } from "@/lib/logger";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
 import { handleApiError } from "@/lib/apiResponse";
-import { logger } from "@/lib/logger";
 
 const BUCKET_NAME = "vehicle-documents";
 

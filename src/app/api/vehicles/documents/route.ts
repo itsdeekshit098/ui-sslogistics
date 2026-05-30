@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
@@ -90,7 +91,12 @@ export async function POST(req: Request) {
       });
 
     if (uploadError) {
-      return apiError(uploadError.message, 500);
+      logger.error("Database error", { 
+        error: uploadError.message, 
+        code: (uploadError as unknown as Record<string, unknown>)?.code, 
+        hint: (uploadError as unknown as Record<string, unknown>)?.hint 
+      });
+      return apiError("Internal server error", 500);
     }
 
     const updatePayload: Record<string, unknown> = { [documentType]: filePath };
@@ -102,7 +108,8 @@ export async function POST(req: Request) {
       .eq("id", vehicleId);
 
     if (dbError) {
-      return apiError(dbError.message, 500);
+      logger.error("Database error", { error: dbError.message, code: dbError?.code, hint: dbError?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(() =>
@@ -148,9 +155,13 @@ export async function DELETE(req: Request) {
     const { error: deleteError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
       .remove([filePath]);
-
     if (deleteError) {
-      return apiError(deleteError.message, 500);
+      logger.error("Database error", { 
+        error: deleteError.message, 
+        code: (deleteError as unknown as Record<string, unknown>)?.code, 
+        hint: (deleteError as unknown as Record<string, unknown>)?.hint 
+      });
+      return apiError("Internal server error", 500);
     }
 
     const updatePayload: Record<string, unknown> = { [documentType]: null };
@@ -162,7 +173,8 @@ export async function DELETE(req: Request) {
       .eq("id", vehicleId);
 
     if (dbError) {
-      return apiError(dbError.message, 500);
+      logger.error("Database error", { error: dbError.message, code: dbError?.code, hint: dbError?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(() =>

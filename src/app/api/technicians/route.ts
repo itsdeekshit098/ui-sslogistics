@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
@@ -34,7 +35,7 @@ export async function GET(req: Request) {
 
     if (search) {
       // Escape characters that have special meaning in PostgREST filter syntax
-      const safe = search.replace(/[,.*()]/g, "");
+      const safe = search.replace(/[,.*()%_]/g, "");
       query = query.or(
         `name.ilike.%${safe}%,phone.ilike.%${safe}%,location.ilike.%${safe}%`,
       );
@@ -45,7 +46,8 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0 });
@@ -92,7 +94,8 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("A technician with this name already exists", 409);
       }
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(async () => {
@@ -164,7 +167,8 @@ export async function PUT(req: Request) {
       .single();
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(async () => {
@@ -207,7 +211,8 @@ export async function DELETE(req: Request) {
       .eq("technician_id", Number(id));
 
     if (countErr) {
-      return apiError(countErr.message, 500);
+      logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint });
+      return apiError("Internal server error", 500);
     }
 
     if ((count ?? 0) > 0) {
@@ -223,7 +228,8 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(async () => {

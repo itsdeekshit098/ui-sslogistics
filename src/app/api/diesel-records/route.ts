@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
@@ -50,7 +51,8 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0 });
@@ -145,7 +147,8 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (lastEntryErr) {
-      return apiError(lastEntryErr.message, 500);
+      logger.error("Database error", { error: lastEntryErr.message, code: lastEntryErr?.code, hint: lastEntryErr?.hint });
+      return apiError("Internal server error", 500);
     }
 
     // ── 5. Validate odometer is increasing (also catches duplicates) ──
@@ -201,7 +204,8 @@ export async function POST(req: Request) {
           .maybeSingle();
 
         if (lastFullErr) {
-          return apiError(lastFullErr.message, 500);
+          logger.error("Database error", { error: lastFullErr.message, code: lastFullErr?.code, hint: lastFullErr?.hint });
+      return apiError("Internal server error", 500);
         }
 
         if (lastFullFill) {
@@ -218,7 +222,8 @@ export async function POST(req: Request) {
               .order("id", { ascending: true });
 
           if (cycleEntriesErr) {
-            return apiError(cycleEntriesErr.message, 500);
+            logger.error("Database error", { error: cycleEntriesErr.message, code: cycleEntriesErr?.code, hint: cycleEntriesErr?.hint });
+      return apiError("Internal server error", 500);
           }
 
           const intermediateLitres = cycleEntries
@@ -287,7 +292,8 @@ export async function POST(req: Request) {
       .single();
 
     if (insertErr) {
-      return apiError(insertErr.message, 500);
+      logger.error("Database error", { error: insertErr.message, code: insertErr?.code, hint: insertErr?.hint });
+      return apiError("Internal server error", 500);
     }
 
     // ── 9. Audit log ──
@@ -404,7 +410,8 @@ export async function PUT(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     // ── 3. Recalculate cycle if fuel or price changed ──
@@ -437,7 +444,8 @@ export async function PUT(req: Request) {
           .maybeSingle();
 
         if (nextClosedErr) {
-          return apiError(nextClosedErr.message, 500);
+          logger.error("Database error", { error: nextClosedErr.message, code: nextClosedErr?.code, hint: nextClosedErr?.hint });
+      return apiError("Internal server error", 500);
         }
 
         if (nextClosed) {
@@ -462,7 +470,8 @@ export async function PUT(req: Request) {
           .maybeSingle();
 
         if (openingErr) {
-          return apiError(openingErr.message, 500);
+          logger.error("Database error", { error: openingErr.message, code: openingErr?.code, hint: openingErr?.hint });
+      return apiError("Internal server error", 500);
         }
 
         if (openingFull) {
@@ -479,7 +488,8 @@ export async function PUT(req: Request) {
               .order("id", { ascending: true });
 
           if (intermediatesErr) {
-            return apiError(intermediatesErr.message, 500);
+            logger.error("Database error", { error: intermediatesErr.message, code: intermediatesErr?.code, hint: intermediatesErr?.hint });
+      return apiError("Internal server error", 500);
           }
 
           const intermediateLitres = intermediates
@@ -500,7 +510,8 @@ export async function PUT(req: Request) {
             .single();
 
           if (vehicleErr) {
-            return apiError(vehicleErr.message, 500);
+            logger.error("Database error", { error: vehicleErr.message, code: vehicleErr?.code, hint: vehicleErr?.hint });
+      return apiError("Internal server error", 500);
           }
 
           const expectedKml = vehicle?.expected_kml ?? null;
@@ -531,7 +542,8 @@ export async function PUT(req: Request) {
             .eq("id", closingRecordId);
 
           if (updateMetricsErr) {
-            return apiError(updateMetricsErr.message, 500);
+            logger.error("Database error", { error: updateMetricsErr.message, code: updateMetricsErr?.code, hint: updateMetricsErr?.hint });
+      return apiError("Internal server error", 500);
           }
         }
       }
@@ -599,7 +611,8 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(() =>

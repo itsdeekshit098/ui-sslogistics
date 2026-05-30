@@ -127,24 +127,56 @@ export const ModalContent: React.FC<ModalContentProps> = ({
   );
 };
 
-export const ModalBody: React.FC<ModalBodyProps> = ({ children, style, className }) => (
-  <div style={{ ...styles.body, ...style }} className={className}>{children}</div>
+export const ModalBody: React.FC<ModalBodyProps> = ({
+  children,
+  style,
+  className,
+}) => (
+  <div style={{ ...styles.body, ...style }} className={className}>
+    {children}
+  </div>
 );
 
-export const ModalHeader: React.FC<ModalHeaderProps> = ({ children, style, className }) => (
-  <div style={{ ...styles.header, ...style }} className={className}>{children}</div>
+export const ModalHeader: React.FC<ModalHeaderProps> = ({
+  children,
+  style,
+  className,
+}) => (
+  <div style={{ ...styles.header, ...style }} className={className}>
+    {children}
+  </div>
 );
 
-export const ModalTitle: React.FC<ModalTitleProps> = ({ children, style, className }) => (
-  <h2 id="modal-title" style={{ ...styles.title, ...style }} className={className}>{children}</h2>
+export const ModalTitle: React.FC<ModalTitleProps> = ({
+  children,
+  style,
+  className,
+}) => (
+  <h2
+    id="modal-title"
+    style={{ ...styles.title, ...style }}
+    className={className}
+  >
+    {children}
+  </h2>
 );
 
 export const ModalDescription: React.FC<ModalDescriptionProps> = ({
   children,
   style,
   className,
-}) => <p style={{ ...styles.description, ...style }} className={className}>{children}</p>;
+}) => (
+  <p style={{ ...styles.description, ...style }} className={className}>
+    {children}
+  </p>
+);
 
-export const ModalFooter: React.FC<ModalFooterProps> = ({ children, style, className }) => (
-  <div style={{ ...styles.footer, ...style }} className={className}>{children}</div>
+export const ModalFooter: React.FC<ModalFooterProps> = ({
+  children,
+  style,
+  className,
+}) => (
+  <div style={{ ...styles.footer, ...style }} className={className}>
+    {children}
+  </div>
 );

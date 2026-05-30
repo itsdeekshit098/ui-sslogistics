@@ -9,7 +9,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/themeToggle";
-import { TooltipProvider } from "@/components/ui/tooltip";
 
 /** 15 minutes idle → silent auto-logout */
 const IDLE_MS = 15 * 60 * 1000;
@@ -78,7 +77,7 @@ export default function AdminLayout({
   });
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <>
       <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
         {/* Desktop Sidebar */}
         <Sidebar
@@ -173,6 +172,6 @@ export default function AdminLayout({
           </main>
         </div>
       </div>
-    </TooltipProvider>
+    </>
   );
 }
