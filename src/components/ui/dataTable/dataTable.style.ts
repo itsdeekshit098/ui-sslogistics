@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 
 export const tableWrapper = (
   maxHeight?: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _stickyHeader?: boolean,
 ): CSSProperties => ({
   width: "100%",
@@ -73,6 +74,7 @@ export const thInner: CSSProperties = {
   gap: "0.375rem",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const sortIconWrapper = (active: boolean, _dir?: "asc" | "desc"): CSSProperties => ({
   display: "inline-flex",
   flexDirection: "column",

@@ -61,7 +61,11 @@ import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
-import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
+import {
+  FilterDrawer,
+  fieldGroup as filterFieldGroup,
+  fieldLabel as filterFieldLabel,
+} from "@/components/ui/filterDrawer";
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -545,7 +549,7 @@ export default function VehiclesPage() {
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg md:text-xl">
-              Vehicle List
+              Vehicle Lists
               {!loading && hasActiveFilters && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
                   ({total} of {stats.total})
@@ -554,7 +558,10 @@ export default function VehiclesPage() {
             </CardTitle>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
-              <SearchIcon size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
+                <SearchIcon
+                  size={16}
+                  className="absolute left-2 top-2.5 text-muted-foreground"
+                />
                 <Input
                   data-testid="vehicles-search-input"
                   placeholder="Search vehicle number..."
@@ -692,7 +699,11 @@ export default function VehiclesPage() {
                         setIsDocOpen(true);
                       }}
                     >
-                      <FolderOpenIcon size={14} style={{ marginRight: "0.25rem" }} /> Docs
+                      <FolderOpenIcon
+                        size={14}
+                        style={{ marginRight: "0.25rem" }}
+                      />{" "}
+                      Docs
                     </Button>
                     {canWrite && (
                       <>
@@ -750,14 +761,26 @@ export default function VehiclesPage() {
                     <div style={styles.cellRow}>
                       <span style={styles.cellIconBadge}>
                         {row.vehicle_type === "Bus" ? (
-                          <BusIcon size={14} style={{ color: styles.cellIconColor }} />
+                          <BusIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
                         ) : row.vehicle_type === "Car" ? (
-                          <CarIcon size={14} style={{ color: styles.cellIconColor }} />
+                          <CarIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
                         ) : row.vehicle_type === "Tempo Traveller" ||
                           row.vehicle_type === "Tempo" ? (
-                          <VanIcon size={14} style={{ color: styles.cellIconColor }} />
+                          <VanIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
                         ) : (
-                          <TruckIcon size={14} style={{ color: styles.cellIconColor }} />
+                          <TruckIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
                         )}
                       </span>
                       <span style={styles.cellLabel}>{row.vehicle_type}</span>
@@ -809,7 +832,11 @@ export default function VehiclesPage() {
                         setIsDocOpen(true);
                       }}
                     >
-                      <FolderOpenIcon size={16} style={{ marginRight: "0.5rem" }} /> Manage Docs
+                      <FolderOpenIcon
+                        size={16}
+                        style={{ marginRight: "0.5rem" }}
+                      />{" "}
+                      Manage Docs
                     </Button>
                   ),
                 },
