@@ -8,6 +8,7 @@ import {
   ChevronsUpDownIcon,
   InboxIcon,
 } from "@/components/ui/icon";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { DataTableProps, RowAction } from "./dataTable.types";
 import * as styles from "./dataTable.style";
 
@@ -92,8 +93,9 @@ function ActionButton<TData>({
 
   const label = typeof action.label === "function" ? action.label(row) : action.label;
   const icon = typeof action.icon === "function" ? action.icon(row) : action.icon;
+  const disabledTooltip = typeof action.disabledTooltip === "function" ? action.disabledTooltip(row) : action.disabledTooltip;
 
-  return (
+  const buttonNode = (
     <button
       type="button"
       title={label}
@@ -115,6 +117,20 @@ function ActionButton<TData>({
       {icon}
     </button>
   );
+
+  if (isDisabled && disabledTooltip) {
+    return (
+      <Tooltip content={disabledTooltip} position="left">
+        <span style={{ cursor: "not-allowed", display: "inline-block" }}>
+          <span style={{ pointerEvents: "none", display: "inline-flex" }}>
+            {buttonNode}
+          </span>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  return buttonNode;
 }
 
 // ─── Main DataTable ───────────────────────────────────────────────────────────
