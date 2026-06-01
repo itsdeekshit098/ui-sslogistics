@@ -240,9 +240,18 @@ export function WarrantyPage() {
             .then((r) => r.json())
             .catch(() => null),
         ]);
+        
+        const hadError = !vehRes?.success || !venRes?.success || !partRes?.success;
+        
         if (vehRes?.success) setVehicles(vehRes.data.data ?? vehRes.data ?? []);
         if (venRes?.success) setVendors(venRes.data.data ?? []);
         if (partRes?.success) setPartOptions(partRes.data.data ?? []);
+        
+        if (hadError) {
+          setRefDataError(
+            "Failed to load form reference data. Some features may be unavailable.",
+          );
+        }
       } catch {
         setRefDataError(
           "Failed to load form reference data. Some features may be unavailable.",
