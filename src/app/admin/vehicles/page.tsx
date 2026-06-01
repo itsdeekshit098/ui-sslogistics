@@ -565,17 +565,19 @@ export default function VehiclesPage() {
                   }}
                 />
                 {searchQuery && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     data-testid="vehicles-search-clear-btn"
                     type="button"
                     onClick={() => {
                       setSearchQuery("");
                       fetchVehicles({ overrideSearch: "", overridePage: 1 });
                     }}
-                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1.5 text-muted-foreground hover:text-foreground h-auto w-auto p-1"
                   >
                     <XIcon size={16} />
-                  </button>
+                  </Button>
                 )}
               </div>
               <Button
@@ -884,13 +886,15 @@ export default function VehiclesPage() {
             {editSubmitError && (
               <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
                 <span>{editSubmitError}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   type="button"
                   onClick={() => setEditSubmitError(null)}
-                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 mt-0.5"
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 mt-0.5 h-auto w-auto p-1"
                 >
                   <XIcon size={16} />
-                </button>
+                </Button>
               </div>
             )}
             <div className="grid gap-4 py-4">
@@ -899,7 +903,7 @@ export default function VehiclesPage() {
                   <Label htmlFor="vehicle_number">
                     Vehicle Number <span className="text-red-500">*</span>
                   </Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="vehicle_number"
                     value={editFormData.vehicle_number}
                     onChange={(e) => {
@@ -926,7 +930,7 @@ export default function VehiclesPage() {
                   <Label htmlFor="vehicle_type">
                     Vehicle Type <span className="text-red-500">*</span>
                   </Label>
-                  <Select
+                  <Select disabled={isSaving}
                     value={editFormData.vehicle_type}
                     onValueChange={(value) => {
                       handleEditSelectChange("vehicle_type", value);
@@ -959,7 +963,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="company">Company</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="company"
                     value={editFormData.company}
                     onChange={handleEditChange}
@@ -967,7 +971,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="model">Model</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="model"
                     value={editFormData.model}
                     onChange={handleEditChange}
@@ -978,7 +982,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="capacity">Capacity</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="capacity"
                     value={editFormData.capacity}
                     onChange={handleEditChange}
@@ -986,7 +990,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="last_service_date">Last Service Date</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="last_service_date"
                     type="date"
                     value={editFormData.last_service_date || ""}
@@ -998,7 +1002,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="status">Status</Label>
-                  <Select
+                  <Select disabled={isSaving}
                     value={editFormData.status}
                     onValueChange={(value) =>
                       handleEditSelectChange("status", value)
@@ -1016,7 +1020,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="fuel_type">Fuel Type</Label>
-                  <Select
+                  <Select disabled={isSaving}
                     value={editFormData.fuel_type || "Diesel"}
                     onValueChange={(value) =>
                       handleEditSelectChange("fuel_type", value)
@@ -1037,7 +1041,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="expected_kml">Expected Km/L</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="expected_kml"
                     type="number"
                     placeholder="e.g. 4.5"
@@ -1057,7 +1061,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="tank_capacity"
                     type="number"
                     placeholder="e.g. 200"
@@ -1122,13 +1126,15 @@ export default function VehiclesPage() {
             {deleteError && (
               <div className="bg-red-50 text-red-600 p-2 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
                 <span className="flex-1">{deleteError}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   type="button"
                   onClick={() => setDeleteError(null)}
-                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 self-center cursor-pointer"
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 self-center cursor-pointer h-auto w-auto p-1"
                 >
                   <XIcon size={16} />
-                </button>
+                </Button>
               </div>
             )}
             <div className="flex gap-3 w-full">
@@ -1188,7 +1194,7 @@ export default function VehiclesPage() {
         onApply={applyDrawerFilters}
       >
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Type of Vehicle</label>
+          <Label style={filterFieldLabel}>Type of Vehicle</Label>
           <Select
             value={drawerFilters.type}
             onValueChange={(v) =>
@@ -1213,7 +1219,7 @@ export default function VehiclesPage() {
         </div>
 
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Status</label>
+          <Label style={filterFieldLabel}>Status</Label>
           <Select
             value={drawerFilters.status || "all"}
             onValueChange={(v) =>

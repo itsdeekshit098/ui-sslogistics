@@ -319,17 +319,17 @@ const ExternalTripsForm: React.FC<{
         <div style={styles.formSection}>
             {/* ── Vehicle ── */}
             <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>
+              <Label style={styles.fieldLabel}>
                 Vehicle
                 <span style={styles.requiredStar}>*</span>
-              </label>
+              </Label>
               {isEdit && selectedVehicle ? (
                 <div style={styles.readOnlyBadge}>
                   {selectedVehicle.vehicle_number} — {selectedVehicle.company}{" "}
                   {selectedVehicle.model}
                 </div>
               ) : (
-                <Typeahead
+                <Typeahead disabled={loading}
                   id="vehicleId"
                   options={vehicles}
                   value={formData.vehicleId}
@@ -358,10 +358,10 @@ const ExternalTripsForm: React.FC<{
 
             {/* ── Trip Type ── */}
             <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>
+              <Label style={styles.fieldLabel}>
                 Trip Type
                 <span style={styles.requiredStar}>*</span>
-              </label>
+              </Label>
               {isEdit ? (
                 <div style={styles.readOnlyBadge}>
                   {formData.tripType
@@ -417,7 +417,7 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="customerName">Customer Name</Label>
-                <Input
+                <Input disabled={loading}
                   id="customerName"
                   placeholder="Company or person name"
                   value={formData.customerName}
@@ -431,7 +431,7 @@ const ExternalTripsForm: React.FC<{
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="customerPhone">Customer Phone</Label>
-                <Input
+                <Input disabled={loading}
                   id="customerPhone"
                   placeholder="10-digit mobile"
                   value={formData.customerPhone}
@@ -459,7 +459,7 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="fromLocation">From Location</Label>
-                <Input
+                <Input disabled={loading}
                   id="fromLocation"
                   placeholder="Origin"
                   value={formData.fromLocation}
@@ -473,7 +473,7 @@ const ExternalTripsForm: React.FC<{
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="toLocation">To Location</Label>
-                <Input
+                <Input disabled={loading}
                   id="toLocation"
                   placeholder="Destination"
                   value={formData.toLocation}
@@ -491,7 +491,7 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="startDate">Start Date</Label>
-                <Input
+                <Input disabled={loading}
                   id="startDate"
                   type="date"
                   value={formData.startDate}
@@ -505,7 +505,7 @@ const ExternalTripsForm: React.FC<{
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="endDate">End Date</Label>
-                <Input
+                <Input disabled={loading}
                   id="endDate"
                   type="date"
                   value={formData.endDate}
@@ -526,8 +526,8 @@ const ExternalTripsForm: React.FC<{
 
             {/* ── Driver ── */}
             <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>Driver</label>
-              <Typeahead
+              <Label style={styles.fieldLabel}>Driver</Label>
+              <Typeahead disabled={loading}
                 id="driverId"
                 options={driversList}
                 value={formData.driverId}
@@ -553,27 +553,17 @@ const ExternalTripsForm: React.FC<{
                 placeholder="Search drivers..."
                 emptyMessage="No drivers found."
                 footer={
-                  <button
+                  <Button
                     type="button"
-                    style={styles.addDriverButton}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-muted-foreground mt-1"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => setShowAddDriver(true)}
-                    onMouseEnter={(e) => {
-                      (
-                        e.currentTarget as HTMLButtonElement
-                      ).style.backgroundColor = "var(--muted)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (
-                        e.currentTarget as HTMLButtonElement
-                      ).style.backgroundColor = "var(--background)";
-                    }}
                   >
-                    <UserPlusIcon size={14} />
+                    <UserPlusIcon size={14} className="mr-2" />
                     Add New Driver
-                  </button>
+                  </Button>
                 }
               />
             </div>
@@ -581,7 +571,7 @@ const ExternalTripsForm: React.FC<{
             {/* ── Notes ── */}
             <div style={styles.fieldGroup}>
               <Label htmlFor="notes">Notes</Label>
-              <Textarea
+              <Textarea disabled={loading}
                 id="notes"
                 placeholder="Any additional details..."
                 value={formData.notes}
@@ -618,11 +608,11 @@ const ExternalTripsForm: React.FC<{
 
             {/* ── Amount Received ── */}
             <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>
+              <Label style={styles.fieldLabel}>
                 Amount Received (₹)
                 <span style={styles.requiredStar}>*</span>
-              </label>
-              <Input
+              </Label>
+              <Input disabled={loading}
                 id="amountReceived"
                 placeholder="Amount received from customer"
                 type="number"
@@ -659,7 +649,7 @@ const ExternalTripsForm: React.FC<{
                       <span style={styles.requiredStar}>*</span>
                     </div>
                   ) : (
-                    <Input
+                    <Input disabled={loading}
                       placeholder="Label (e.g. Toll)"
                       value={item.label}
                       onChange={(e) =>
@@ -668,7 +658,7 @@ const ExternalTripsForm: React.FC<{
                       style={getErrorStyle(`costItem_${index}`)}
                     />
                   )}
-                  <Input
+                  <Input disabled={loading}
                     placeholder="₹ Amount"
                     type="number"
                     min="0"
@@ -681,25 +671,15 @@ const ExternalTripsForm: React.FC<{
                   {item.isPreset ? (
                     <div style={{ width: "2rem" }} />
                   ) : (
-                    <button
+                    <Button
                       type="button"
-                      style={styles.removeCostButton}
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive w-8 h-8 shrink-0"
                       onClick={() => removeCostItem(index)}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.opacity =
-                          "1";
-                        (e.currentTarget as HTMLButtonElement).style.color =
-                          "#ef4444";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.opacity =
-                          "0.7";
-                        (e.currentTarget as HTMLButtonElement).style.color =
-                          "var(--muted-foreground)";
-                      }}
                     >
                       <XIcon size={16} />
-                    </button>
+                    </Button>
                   )}
                   {fieldErrors[`costItem_${index}`] && (
                     <div
@@ -715,22 +695,15 @@ const ExternalTripsForm: React.FC<{
                 </div>
               ))}
 
-              <button
+              <Button
                 type="button"
-                style={styles.addCostButton}
+                variant="outline"
+                className="w-full justify-center border-dashed text-muted-foreground hover:text-foreground hover:border-primary mt-2"
                 onClick={addCostItem}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "var(--primary)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor =
-                    "var(--border)";
-                }}
               >
-                <PlusIcon size={14} />
+                <PlusIcon size={14} className="mr-2" />
                 Add Cost Item
-              </button>
+              </Button>
 
               <div style={styles.costTotalRow}>
                 <span>Total</span>

@@ -30,7 +30,7 @@ function SortIcon({
     );
   }
   return (
-    <span style={styles.sortIconWrapper(true, direction)}>
+    <span style={styles.sortIconWrapper(true)}>
       {direction === "asc" ? (
         <ChevronUpIcon size={14} />
       ) : (
@@ -188,7 +188,7 @@ export function DataTable<TData>({
 
   return (
     <div
-      style={styles.tableWrapper(maxHeight, stickyHeader)}
+      style={styles.tableWrapper(maxHeight)}
       className={className}
     >
       <div style={styles.tableScrollContainer}>

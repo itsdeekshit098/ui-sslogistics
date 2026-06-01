@@ -232,7 +232,7 @@ const CreateDieselForm: React.FC<{
               <Label htmlFor="date">
                 Date <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-1"
                 id="date"
                 type="date"
@@ -252,7 +252,7 @@ const CreateDieselForm: React.FC<{
               <Label htmlFor="time">
                 Time <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-2"
                 id="time"
                 type="time"
@@ -275,7 +275,7 @@ const CreateDieselForm: React.FC<{
             <Label htmlFor="vehicleId">
               Vehicle <span className="text-red-500">*</span>
             </Label>
-            <Typeahead
+            <Typeahead disabled={loading}
               id="vehicleId"
               data-testid="components-createDieselModal-createDieselModal-select-1"
               options={vehicles}
@@ -314,7 +314,7 @@ const CreateDieselForm: React.FC<{
             <Label htmlFor="driverName">
               Driver Name <span className="text-red-500">*</span>
             </Label>
-            <Typeahead
+            <Typeahead disabled={loading}
               id="driverName"
               data-testid="components-createDieselModal-createDieselModal-driver-typeahead"
               options={driversList.filter((d) => d.is_active)}
@@ -342,9 +342,10 @@ const CreateDieselForm: React.FC<{
               emptyMessage="No drivers found."
               invalid={Boolean(fieldErrors.driverName)}
               footer={
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors"
+                  className="flex items-center justify-start gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors rounded-none h-auto"
                   onPointerDown={(e) => {
                     e.stopPropagation();
                   }}
@@ -352,7 +353,7 @@ const CreateDieselForm: React.FC<{
                 >
                   <UserPlusIcon size={14} />
                   Add New Driver
-                </button>
+                </Button>
               }
             />
             {fieldErrors.driverName && (
@@ -370,6 +371,7 @@ const CreateDieselForm: React.FC<{
                 <Button
                   data-testid="components-createDieselModal-createDieselModal-button-1"
                   type="button"
+                  disabled={loading}
                   variant={formData.fillType === "full" ? "default" : "outline"}
                   className="flex-1"
                   onClick={() =>
@@ -381,6 +383,7 @@ const CreateDieselForm: React.FC<{
                 <Button
                   data-testid="components-createDieselModal-createDieselModal-button-2"
                   type="button"
+                  disabled={loading}
                   variant={
                     formData.fillType === "partial" ? "default" : "outline"
                   }
@@ -397,7 +400,7 @@ const CreateDieselForm: React.FC<{
               <Label htmlFor="currentOdo">
                 Current Odometer (km) <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-4"
                 id="currentOdo"
                 type="number"
@@ -424,7 +427,7 @@ const CreateDieselForm: React.FC<{
               <Label htmlFor="fuelLitres">
                 Fuel Added (Litres) <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-5"
                 id="fuelLitres"
                 type="number"
@@ -446,7 +449,7 @@ const CreateDieselForm: React.FC<{
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="pricePerL">Price per L (₹)</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-6"
                 id="pricePerL"
                 type="number"
@@ -478,7 +481,7 @@ const CreateDieselForm: React.FC<{
           {/* Station */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="station">Fuel Station</Label>
-            <Input
+            <Input disabled={loading}
               data-testid="components-createDieselModal-createDieselModal-input-7"
               id="station"
               placeholder="Station Name / Location"
@@ -491,7 +494,7 @@ const CreateDieselForm: React.FC<{
           <div className={MODAL_GRID}>
             <div className={MODAL_LABEL_SPACE}>
               <Label>Payment Method</Label>
-              <Select
+              <Select disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-select-2"
                 value={formData.paymentMethod}
                 onValueChange={(v) =>
@@ -514,7 +517,7 @@ const CreateDieselForm: React.FC<{
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="receiptNumber">Receipt Number</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-8"
                 id="receiptNumber"
                 placeholder="Receipt / Bill No."
@@ -527,7 +530,7 @@ const CreateDieselForm: React.FC<{
           {/* Notes */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="notes">Notes</Label>
-            <Textarea
+            <Textarea disabled={loading}
               id="notes"
               placeholder="Any additional notes..."
               value={formData.notes}

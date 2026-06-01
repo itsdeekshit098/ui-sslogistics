@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { Button } from "@/components/ui/button";
 
 function UnauthorizedContent() {
   const searchParams = useSearchParams();
@@ -59,20 +60,21 @@ function UnauthorizedContent() {
       </p>
 
       <div className="space-y-3">
-        <button
+        <Button
           onClick={handleSignOut}
           disabled={isSigningOut}
-          className="w-full py-2.5 px-4 bg-[#DC2626] hover:bg-red-700 text-white rounded-full font-medium transition-colors disabled:opacity-70"
+          className="w-full py-2.5 px-4 bg-[#DC2626] hover:bg-red-700 text-white rounded-full font-medium transition-colors disabled:opacity-70 h-auto"
         >
           {isSigningOut ? "Signing out..." : "Sign out"}
-        </button>
+        </Button>
         
-        <button
+        <Button
+          variant="outline"
           onClick={handleGoHome}
-          className="w-full py-2.5 px-4 bg-transparent border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-full font-medium transition-colors"
+          className="w-full py-2.5 px-4 bg-transparent border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-full font-medium transition-colors h-auto"
         >
           Return to Home
-        </button>
+        </Button>
       </div>
     </div>
   );

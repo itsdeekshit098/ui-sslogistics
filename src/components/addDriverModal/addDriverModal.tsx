@@ -130,7 +130,7 @@ const AddDriverForm: React.FC<{
           <Label htmlFor="name">
             Name <span style={styles.requiredStar}>*</span>
           </Label>
-          <Input
+          <Input disabled={loading}
             id="name"
             placeholder="Driver name"
             value={formData.name}
@@ -145,7 +145,7 @@ const AddDriverForm: React.FC<{
         {/* Phone */}
         <div style={styles.fieldGroup}>
           <Label htmlFor="phone">Phone Number</Label>
-          <Input
+          <Input disabled={loading}
             id="phone"
             placeholder="10-digit mobile number"
             value={formData.phone}
@@ -160,7 +160,7 @@ const AddDriverForm: React.FC<{
         {/* Place */}
         <div style={styles.fieldGroup}>
           <Label htmlFor="place">Place / Address</Label>
-          <Input
+          <Input disabled={loading}
             id="place"
             placeholder="City or area"
             value={formData.place}
@@ -171,7 +171,7 @@ const AddDriverForm: React.FC<{
         {/* DL Number */}
         <div style={styles.fieldGroup}>
           <Label htmlFor="dl_number">DL Number</Label>
-          <Input
+          <Input disabled={loading}
             id="dl_number"
             placeholder="Driving licence number"
             value={formData.dl_number}
@@ -182,7 +182,7 @@ const AddDriverForm: React.FC<{
         {/* Photo URL */}
         <div style={styles.fieldGroup}>
           <Label htmlFor="photo_url">Photo URL</Label>
-          <Input
+          <Input disabled={loading}
             id="photo_url"
             placeholder="Paste a photo link"
             value={formData.photo_url}

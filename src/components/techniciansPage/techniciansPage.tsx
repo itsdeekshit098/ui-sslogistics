@@ -352,17 +352,18 @@ export function TechniciansPage() {
               className="pl-9 pr-9 bg-background"
             />
             {searchQuery && (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => {
                   setSearchQuery("");
                   fetchTechnicians({ overrideSearch: "", overridePage: 1 });
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0 h-auto text-muted-foreground hover:bg-transparent hover:text-foreground transition-colors"
                 aria-label="Clear search"
               >
                 <XIcon size={16} />
-              </button>
+              </Button>
             )}
           </div>
         </div>

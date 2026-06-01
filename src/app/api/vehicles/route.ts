@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
@@ -68,7 +69,8 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     // Stats — get aggregated counts via RPC for optimization
@@ -82,7 +84,8 @@ export async function GET(req: Request) {
     );
 
     if (statsError) {
-      return apiError(statsError.message, 500);
+      logger.error("Database error", { error: statsError.message, code: statsError?.code, hint: statsError?.hint });
+      return apiError("Internal server error", 500);
     }
 
     const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
@@ -118,7 +121,8 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(() =>
@@ -162,7 +166,8 @@ export async function PUT(req: Request) {
       .eq("id", id);
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(() =>
@@ -215,7 +220,8 @@ export async function DELETE(req: Request) {
       .eq("id", id);
 
     if (error) {
-      return apiError(error.message, 500);
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
     }
 
     after(() =>

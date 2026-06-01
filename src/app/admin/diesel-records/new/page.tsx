@@ -220,7 +220,7 @@ export default function NewDieselRecordPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date">Date *</Label>
-                <Input
+                <Input disabled={loading}
                   id="date"
                   type="date"
                   value={formData.date}
@@ -229,7 +229,7 @@ export default function NewDieselRecordPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="time">Time *</Label>
-                <Input
+                <Input disabled={loading}
                   id="time"
                   type="time"
                   value={formData.time}
@@ -241,7 +241,7 @@ export default function NewDieselRecordPage() {
             {/* Vehicle */}
             <div className="space-y-2">
               <Label htmlFor="vehicleId">Vehicle *</Label>
-              <Select
+              <Select disabled={loading || loadingVehicles}
                 value={formData.vehicleId}
                 onValueChange={(v) => {
                   setFormData((prev) => ({ ...prev, vehicleId: v }));
@@ -274,7 +274,7 @@ export default function NewDieselRecordPage() {
             {/* Driver */}
             <div className="space-y-2">
               <Label htmlFor="driverName">Driver Name *</Label>
-              <Input
+              <Input disabled={loading}
                 id="driverName"
                 placeholder="Driver Name"
                 value={formData.driverName}
@@ -288,6 +288,7 @@ export default function NewDieselRecordPage() {
               <div className="flex gap-2">
                 <Button
                   type="button"
+                  disabled={loading}
                   variant={formData.fillType === "full" ? "default" : "outline"}
                   className="flex-1"
                   onClick={() =>
@@ -298,6 +299,7 @@ export default function NewDieselRecordPage() {
                 </Button>
                 <Button
                   type="button"
+                  disabled={loading}
                   variant={
                     formData.fillType === "partial" ? "default" : "outline"
                   }
@@ -315,7 +317,7 @@ export default function NewDieselRecordPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fuelLitres">Fuel Added (Litres) *</Label>
-                <Input
+                <Input disabled={loading}
                   id="fuelLitres"
                   type="number"
                   placeholder="0.00"
@@ -327,7 +329,7 @@ export default function NewDieselRecordPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pricePerL">Price per L (₹) *</Label>
-                <Input
+                <Input disabled={loading}
                   id="pricePerL"
                   type="number"
                   placeholder="0.00"
@@ -357,7 +359,7 @@ export default function NewDieselRecordPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="currentOdo">Current Odometer (km) *</Label>
-                <Input
+                <Input disabled={loading}
                   id="currentOdo"
                   type="number"
                   placeholder="0"
@@ -368,7 +370,7 @@ export default function NewDieselRecordPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="station">Fuel Station</Label>
-                <Input
+                <Input disabled={loading}
                   id="station"
                   placeholder="Station Name / Location"
                   value={formData.station}
@@ -381,7 +383,7 @@ export default function NewDieselRecordPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Payment Method</Label>
-                <Select
+                <Select disabled={loading}
                   value={formData.paymentMethod}
                   onValueChange={(v) =>
                     setFormData((prev) => ({
@@ -403,7 +405,7 @@ export default function NewDieselRecordPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="receiptNumber">Receipt Number</Label>
-                <Input
+                <Input disabled={loading}
                   id="receiptNumber"
                   placeholder="Receipt / Bill No."
                   value={formData.receiptNumber}
@@ -415,7 +417,7 @@ export default function NewDieselRecordPage() {
             {/* Notes */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
-              <Textarea
+              <Textarea disabled={loading}
                 id="notes"
                 placeholder="Any additional notes..."
                 value={formData.notes}

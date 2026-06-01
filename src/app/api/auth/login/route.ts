@@ -1,7 +1,7 @@
+import { logger } from "@/lib/logger";
 import { createClient } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
-import { logger } from "@/lib/logger";
 
 /**
  * POST /api/auth/login

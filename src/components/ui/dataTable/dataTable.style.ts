@@ -4,7 +4,6 @@ import type { CSSProperties } from "react";
 
 export const tableWrapper = (
   maxHeight?: string,
-  _stickyHeader?: boolean,
 ): CSSProperties => ({
   width: "100%",
   borderRadius: "0.75rem",
@@ -73,7 +72,7 @@ export const thInner: CSSProperties = {
   gap: "0.375rem",
 };
 
-export const sortIconWrapper = (active: boolean, _dir?: "asc" | "desc"): CSSProperties => ({
+export const sortIconWrapper = (active: boolean): CSSProperties => ({
   display: "inline-flex",
   flexDirection: "column",
   gap: "1px",

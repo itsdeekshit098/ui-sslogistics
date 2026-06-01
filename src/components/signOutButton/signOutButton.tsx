@@ -6,6 +6,7 @@ import { LogOutIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 
 import {
   Modal,
@@ -61,7 +62,8 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
 
   return (
     <>
-      <button
+      <Button
+        variant="ghost"
         data-testid="sign-out-trigger-btn"
         onClick={() => setIsOpen(true)}
         style={{
@@ -86,7 +88,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
             Sign Out
           </span>
         )}
-      </button>
+      </Button>
 
       <Modal open={isOpen} onOpenChange={setIsOpen} nested disableBackdropClose disableEscapeClose>
         <ModalContent style={{ maxWidth: "28rem" }}>
@@ -101,7 +103,8 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
           {error && <div style={styles.errorBanner}>{error}</div>}
 
           <ModalFooter>
-            <button
+            <Button
+              variant="outline"
               data-testid="sign-out-cancel-btn"
               onClick={() => setIsOpen(false)}
               disabled={isSigningOut}
@@ -111,8 +114,9 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
               }}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="destructive"
               data-testid="sign-out-confirm-btn"
               onClick={handleSignOut}
               disabled={isSigningOut}
@@ -129,7 +133,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
               ) : (
                 "Sign Out"
               )}
-            </button>
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

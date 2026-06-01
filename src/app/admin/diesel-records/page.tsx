@@ -11,12 +11,7 @@ import {
 } from "@/components/ui/icon";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import { CreateDieselModal } from "@/components/createDieselModal";
 import { EditDieselModal } from "@/components/editDieselModal";
 import { LoadingSpinner } from "@/components/loadingSpinner";
@@ -235,7 +230,7 @@ export default function DieselRecordsPage() {
     );
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <>
       <div className="container mx-auto px-3 py-3 md:p-6 space-y-4 md:space-y-8">
         <Button
           data-testid="diesel-back-btn"
@@ -727,29 +722,26 @@ export default function DieselRecordsPage() {
                               const warnings = getRecordWarnings(row);
                               if (warnings.length === 0) return "—";
                               return (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1 cursor-pointer">
-                                      <AlertTriangleIcon size={16} className="text-amber-600 dark:text-amber-400" />
-                                      <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">
-                                        {warnings.length} issue
-                                        {warnings.length > 1 ? "s" : ""}
-                                      </span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    side="left"
-                                    className="max-w-xs bg-amber-950 text-amber-100 border-amber-800"
-                                  >
-                                    <div className="space-y-1 py-1">
+                                <Tooltip
+                                  content={
+                                    <div className="space-y-1 py-1 max-w-xs">
                                       {warnings.map((w, i) => (
-                                        <div key={i} className="flex items-start gap-2 text-xs">
+                                        <div key={i} className="flex items-start gap-2 text-xs text-amber-100">
                                           <AlertTriangleIcon size={14} className="shrink-0 mt-0.5 text-amber-400" />
                                           {w}
                                         </div>
                                       ))}
                                     </div>
-                                  </TooltipContent>
+                                  }
+                                  position="left"
+                                >
+                                  <div className="flex items-center gap-1 cursor-pointer">
+                                    <AlertTriangleIcon size={16} className="text-amber-600 dark:text-amber-400" />
+                                    <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">
+                                      {warnings.length} issue
+                                      {warnings.length > 1 ? "s" : ""}
+                                    </span>
+                                  </div>
                                 </Tooltip>
                               );
                             },
@@ -853,6 +845,6 @@ export default function DieselRecordsPage() {
           )}
         </ConfirmModal>
       </div>
-    </TooltipProvider>
+    </>
   );
 }

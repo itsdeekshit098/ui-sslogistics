@@ -20,15 +20,12 @@ import {
   UserCogIcon,
   RouteIcon,
   ShieldIcon,
+  PackageIcon,
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
@@ -59,6 +56,12 @@ const sidebarItems = [
     enabled: true,
   },
   {
+    name: "Warranty",
+    href: "/admin/warranty",
+    icon: PackageIcon,
+    enabled: true,
+  },
+  {
     name: "Technicians",
     href: "/admin/technicians",
     icon: UserCogIcon,
@@ -71,8 +74,18 @@ const sidebarItems = [
     icon: RouteIcon,
     enabled: true,
   },
-  { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: false },
-  { name: "Reports", href: "/admin/reports", icon: BarChart3Icon, enabled: false },
+  {
+    name: "Clients",
+    href: "/admin/clients",
+    icon: Building2Icon,
+    enabled: false,
+  },
+  {
+    name: "Reports",
+    href: "/admin/reports",
+    icon: BarChart3Icon,
+    enabled: false,
+  },
   {
     name: "Activity Log",
     href: "/admin/activity-log",
@@ -110,7 +123,7 @@ export function Sidebar({
   });
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <>
       <div
         className={cn(
           "bg-[#12203d] text-slate-300 shrink-0 relative border-r border-[#263762]/50",
@@ -122,28 +135,28 @@ export function Sidebar({
         }}
       >
         <div className="flex w-full h-full max-h-screen flex-col">
-           {/* Brand Header */}
+          {/* Brand Header */}
           <div
             className={cn(
               "flex py-3 items-center",
-              collapsed && !isMobile ? "px-3 justify-center" : "px-5",
+              collapsed && !isMobile ? "px-0 justify-center" : "px-5",
             )}
           >
             <Link
               data-testid="sidebar-logo-link"
               href="/"
-              className="flex items-center gap-3 group"
+              className="flex items-center justify-center gap-3 group w-full"
               onClick={onClose}
             >
               <Image
-                src="/logo/sslogo.png"
+                src={collapsed && !isMobile ? "/favicon.png" : "/logo/sslogo.png"}
                 alt="Sri Srinivasa Logo"
-                width={collapsed && !isMobile ? 32 : 180}
-                height={collapsed && !isMobile ? 32 : 33}
+                width={collapsed && !isMobile ? 44 : 180}
+                height={collapsed && !isMobile ? 44 : 33}
                 style={{
                   display: "block",
-                  width: collapsed && !isMobile ? "32px" : "180px",
-                  height: "auto",
+                  width: collapsed && !isMobile ? "44px" : "180px",
+                  height: collapsed && !isMobile ? "44px" : "33px",
                   objectFit: "contain",
                   flexShrink: 0,
                 }}
@@ -156,106 +169,106 @@ export function Sidebar({
           <div className="flex-1 overflow-y-auto pb-3 pt-2 w-full scrollbar-custom">
             <nav
               className={cn(
-                "flex flex-col gap-0.5 w-full",
+                "flex flex-col gap-1 w-full",
                 collapsed && !isMobile ? "px-2" : "px-3",
               )}
             >
               {authLoading
                 ? Array.from({ length: 7 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "rounded-lg animate-pulse bg-white/10",
-                      collapsed && !isMobile
-                        ? "h-9 w-9 mx-auto"
-                        : "h-9 w-full",
-                    )}
-                  />
-                ))
-                : filteredItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  const isEnabled = item.enabled;
-
-                  const iconEl = (
-                    <item.icon
-                      size={18}
-                      className="shrink-0 text-white"
+                    <div
+                      key={i}
+                      className={cn(
+                        "rounded-lg animate-pulse bg-white/10",
+                        collapsed && !isMobile
+                          ? "h-9 w-9 mx-auto"
+                          : "h-9 w-full",
+                      )}
                     />
-                  );
+                  ))
+                : filteredItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    const isEnabled = item.enabled;
 
-                  if (isEnabled) {
-                    const link = (
-                      <Link
-                        data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                    const iconEl = (
+                      <item.icon size={18} className="shrink-0 text-white" />
+                    );
+
+                    if (isEnabled) {
+                      const link = (
+                        <Link
+                          data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                          key={item.href}
+                          href={item.href}
+                          onClick={onClose}
+                          className={cn(
+                            "flex items-center rounded-lg text-sm font-semibold text-white transition-all w-full",
+                            collapsed && !isMobile
+                              ? "justify-center px-2 py-2"
+                              : "gap-3 px-3 py-2",
+                            isActive
+                              ? "bg-[#2563EB] shadow-md"
+                              : "hover:bg-[#263762]",
+                          )}
+                        >
+                          {iconEl}
+                          {(!collapsed || isMobile) && (
+                            <span className="truncate">{item.name}</span>
+                          )}
+                        </Link>
+                      );
+
+                      if (collapsed && !isMobile) {
+                        return (
+                          <Tooltip key={item.href} content={item.name} position="right">
+                            {link}
+                          </Tooltip>
+                        );
+                      }
+
+                      return link;
+                    }
+
+                    const disabledItem = (
+                      <div
                         key={item.href}
-                        href={item.href}
-                        onClick={onClose}
                         className={cn(
-                          "flex items-center rounded-lg text-sm font-semibold text-white transition-all w-full",
+                          "flex items-center rounded-lg text-sm font-semibold text-white/40 cursor-not-allowed w-full",
                           collapsed && !isMobile
-                            ? "justify-center px-2 py-2.5"
-                            : "gap-3 px-3 py-2.5",
-                          isActive
-                            ? "bg-[#2563EB] shadow-md"
-                            : "hover:bg-[#263762]",
+                            ? "justify-center px-2 py-2"
+                            : "gap-3 px-3 py-2",
                         )}
                       >
                         {iconEl}
                         {(!collapsed || isMobile) && (
-                          <span className="truncate">{item.name}</span>
+                          <>
+                            <span className="truncate">{item.name}</span>
+                            <LockIcon
+                              size={12}
+                              className="ml-auto shrink-0 opacity-50"
+                            />
+                          </>
                         )}
-                      </Link>
+                      </div>
                     );
 
                     if (collapsed && !isMobile) {
                       return (
-                        <Tooltip key={item.href}>
-                          <TooltipTrigger asChild>{link}</TooltipTrigger>
-                          <TooltipContent side="right" sideOffset={8}>
-                            {item.name}
-                          </TooltipContent>
+                        <Tooltip
+                          key={item.href}
+                          content={
+                            <span className="text-muted-foreground">
+                              {item.name} (coming soon)
+                            </span>
+                          }
+                          position="right"
+                        >
+                          {disabledItem}
                         </Tooltip>
                       );
                     }
 
-                    return link;
-                  }
-
-                  const disabledItem = (
-                    <div
-                      key={item.href}
-                      className={cn(
-                        "flex items-center rounded-lg text-sm font-semibold text-white/40 cursor-not-allowed w-full",
-                        collapsed && !isMobile
-                          ? "justify-center px-2 py-2.5"
-                          : "gap-3 px-3 py-2.5",
-                      )}
-                    >
-                      {iconEl}
-                      {(!collapsed || isMobile) && (
-                        <>
-                          <span className="truncate">{item.name}</span>
-                          <LockIcon size={12} className="ml-auto shrink-0 opacity-50" />
-                        </>
-                      )}
-                    </div>
-                  );
-
-                  if (collapsed && !isMobile) {
-                    return (
-                      <Tooltip key={item.href}>
-                        <TooltipTrigger asChild>{disabledItem}</TooltipTrigger>
-                        <TooltipContent side="right" sideOffset={8}>
-                          <span className="text-muted-foreground">
-                            {item.name} (coming soon)
-                          </span>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  }
-
-                  return disabledItem;
-                })}
+                    return disabledItem;
+                  })}
             </nav>
           </div>
 
@@ -284,10 +297,11 @@ export function Sidebar({
 
           {/* Collapse Toggle — desktop only */}
           {!isMobile && onToggleCollapse && (
-            <button
+            <Button
+              variant="ghost"
               data-testid="sidebar-toggle-btn"
               onClick={onToggleCollapse}
-              className="absolute -right-3.5 top-[76px] -translate-y-1/2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full ring-2 ring-background border border-[#263762] bg-[#12203d] shadow-sm hover:bg-[#263762] transition-all z-50 text-slate-400 hover:text-white"
+              className="absolute right-0 translate-x-1/2 top-14 -translate-y-1/2 flex h-7 w-7 p-0 cursor-pointer items-center justify-center rounded-full ring-2 ring-background border border-[#263762] bg-[#12203d] shadow-sm hover:bg-[#263762] transition-all z-50 text-slate-400 hover:text-white"
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (
@@ -295,10 +309,10 @@ export function Sidebar({
               ) : (
                 <ChevronsLeftIcon size={16} />
               )}
-            </button>
+            </Button>
           )}
         </div>
       </div>
-    </TooltipProvider>
+    </>
   );
 }

@@ -132,7 +132,7 @@ const CreateVehicleForm: React.FC<{
               <Label htmlFor="vehicle_number">
                 Vehicle Number <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-1"
                 id="vehicle_number"
                 placeholder="AP 02 AB 1234"
@@ -161,7 +161,7 @@ const CreateVehicleForm: React.FC<{
               <Label htmlFor="vehicle_type">
                 Vehicle Type <span className="text-red-500">*</span>
               </Label>
-              <Select
+              <Select disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-select-1"
                 value={formData.vehicle_type}
                 onValueChange={(val) => {
@@ -197,7 +197,7 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="company">Company</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-2"
                 id="company"
                 placeholder="e.g. Tata"
@@ -207,7 +207,7 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="model">Model</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-3"
                 id="model"
                 placeholder="e.g. Starbus"
@@ -220,7 +220,7 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="capacity">Seating / Load Capacity</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-4"
                 id="capacity"
                 placeholder="e.g. 40 Seater"
@@ -230,7 +230,7 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="last_service_date">Last Service Date</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-5"
                 id="last_service_date"
                 type="date"
@@ -243,7 +243,7 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="status">Initial Status</Label>
-              <Select
+              <Select disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-select-2"
                 value={formData.status}
                 onValueChange={(val) => handleSelectChange("status", val)}
@@ -260,7 +260,7 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="fuel_type">Fuel Type</Label>
-              <Select
+              <Select disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-select-3"
                 value={formData.fuel_type || "Diesel"}
                 onValueChange={(val) => handleSelectChange("fuel_type", val)}
@@ -280,7 +280,7 @@ const CreateVehicleForm: React.FC<{
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="expected_kml">Expected Km/L</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-6"
                 id="expected_kml"
                 type="number"
@@ -301,7 +301,7 @@ const CreateVehicleForm: React.FC<{
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-createVehicleModal-createVehicleModal-input-7"
                 id="tank_capacity"
                 type="number"

@@ -29,7 +29,14 @@ export type AuditAction =
   | "BAN_USER"
   | "UNBAN_USER"
   | "REVOKE_SESSIONS"
-  | "RESET_PASSWORD";
+  | "RESET_PASSWORD"
+  // Warranty / Vendors / Parts
+  | "CREATE_VENDOR"
+  | "UPDATE_VENDOR"
+  | "CREATE_PART_OPTION"
+  | "CREATE_REPAIR_PART"
+  | "UPDATE_REPAIR_PART"
+  | "DELETE_REPAIR_PART";
 
 interface LogActivityParams {
   action: AuditAction;
@@ -67,6 +74,9 @@ export async function logActivity({
     // Log to server console but never fail the parent request.
     // Sanitize: capture message only, never stack traces.
     const errorMessage = err instanceof Error ? err.message : String(err);
-    logger.error("Failed to write activity log", { action, error: errorMessage });
+    logger.error("Failed to write activity log", {
+      action,
+      error: errorMessage,
+    });
   }
 }

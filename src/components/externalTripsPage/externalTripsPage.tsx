@@ -22,6 +22,7 @@ import type {
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { ExternalTripsModal } from "../externalTripsModal";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -619,7 +620,7 @@ export function ExternalTripsPage() {
       >
         {/* Trip Type — Radix Select */}
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Trip Type</label>
+          <Label style={filterFieldLabel}>Trip Type</Label>
           <Select
             value={drawerFilters.tripType}
             onValueChange={(v) =>
@@ -647,7 +648,7 @@ export function ExternalTripsPage() {
 
         {/* Vehicle — Typeahead */}
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Vehicle</label>
+          <Label style={filterFieldLabel}>Vehicle</Label>
           <Typeahead
             options={vehicles}
             value={drawerFilters.vehicleId}
@@ -673,7 +674,7 @@ export function ExternalTripsPage() {
 
         {/* From Date */}
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>From Date</label>
+          <Label style={filterFieldLabel}>From Date</Label>
           <Input
             type="date"
             value={drawerFilters.fromDate}
@@ -689,7 +690,7 @@ export function ExternalTripsPage() {
 
         {/* To Date */}
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>To Date</label>
+          <Label style={filterFieldLabel}>To Date</Label>
           <Input
             type="date"
             value={drawerFilters.toDate}

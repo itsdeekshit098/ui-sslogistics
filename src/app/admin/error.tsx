@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function AdminError({
   error,
@@ -62,22 +63,15 @@ export default function AdminError({
           An error occurred while loading this page. Please try again.
         </p>
       </div>
-      <button
+      <Button
         onClick={reset}
         style={{
           padding: "0.5rem 1.25rem",
           borderRadius: "9999px",
-          border: "none",
-          backgroundColor: "var(--primary, #0f172a)",
-          color: "var(--primary-foreground, #fff)",
-          fontWeight: 600,
-          fontSize: "0.875rem",
-          cursor: "pointer",
-          transition: "opacity 0.15s ease",
         }}
       >
         Try Again
-      </button>
+      </Button>
     </div>
   );
 }
