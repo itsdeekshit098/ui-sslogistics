@@ -48,6 +48,8 @@ export interface RowAction<TData> {
   hidden?: (row: TData) => boolean;
   /** Conditionally disable the action */
   disabled?: (row: TData) => boolean;
+  /** Tooltip to show when disabled */
+  disabledTooltip?: string | ((row: TData) => string);
 }
 
 // ─── DataTable Props ─────────────────────────────────────────────────────────

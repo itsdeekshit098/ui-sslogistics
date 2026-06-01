@@ -59,11 +59,25 @@ function WarrantyCard({
   item,
   onEdit,
   onDelete,
+  refDataError,
 }: {
   item: WarrantyItem;
   onEdit: (item: WarrantyItem) => void;
   onDelete: (item: WarrantyItem) => void;
+  refDataError?: string | null;
 }) {
+  const editBtn = (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={!!refDataError}
+      style={refDataError ? { pointerEvents: "none" } : undefined}
+      onClick={() => onEdit(item)}
+    >
+      <PencilIcon size={14} style={{ marginRight: "0.25rem" }} /> Edit
+    </Button>
+  );
+
   return (
     <div style={styles.warrantyCard}>
       <div
@@ -113,9 +127,15 @@ function WarrantyCard({
           marginTop: "0.5rem",
         }}
       >
-        <Button variant="outline" size="sm" onClick={() => onEdit(item)}>
-          <PencilIcon size={14} style={{ marginRight: "0.25rem" }} /> Edit
-        </Button>
+        {refDataError ? (
+          <Tooltip content={refDataError}>
+            <span style={{ cursor: "not-allowed", display: "inline-block" }}>
+              {editBtn}
+            </span>
+          </Tooltip>
+        ) : (
+          editBtn
+        )}
         <Button variant="destructive" size="sm" onClick={() => onDelete(item)}>
           <Trash2Icon size={14} style={{ marginRight: "0.25rem" }} /> Delete
         </Button>
@@ -293,7 +313,12 @@ export function WarrantyPage() {
         setItems(json.data.data);
         setTotal(json.data.total);
       } else {
-        setFetchError(json.error || "Failed to load warranty records.");
+        const errorMsg = json.error || "Failed to load warranty records.";
+        setFetchError(
+          errorMsg.toLowerCase().includes("internal server")
+            ? "Failed to load warranty records. Please try again."
+            : errorMsg
+        );
       }
     } catch {
       setFetchError("Network error. Please try again.");
@@ -356,40 +381,19 @@ export function WarrantyPage() {
     }
   };
 
+  const addPartBtn = (
+    <Button
+      onClick={() => setShowAddPart(true)}
+      disabled={refDataLoading || !!refDataError}
+      style={refDataError ? { pointerEvents: "none" } : undefined}
+    >
+      <PlusIcon size={16} style={{ marginRight: "0.375rem" }} />
+      Add Part
+    </Button>
+  );
+
   return (
     <div style={styles.pageContainer}>
-      {refDataError && (
-        <div
-          style={{
-            padding: "1rem",
-            backgroundColor: "#FEE2E2",
-            color: "#B91C1C",
-            borderRadius: "0.5rem",
-            marginBottom: "1rem",
-          }}
-        >
-          {refDataError}
-        </div>
-      )}
-      {fetchError && (
-        <div
-          style={{
-            padding: "1rem",
-            backgroundColor: "#FEE2E2",
-            color: "#B91C1C",
-            borderRadius: "0.5rem",
-            marginBottom: "1rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span>{fetchError}</span>
-          <Button variant="outline" size="sm" onClick={() => fetchData()}>
-            Retry
-          </Button>
-        </div>
-      )}
       {/* Header */}
       <div style={styles.headerRow}>
         <h1 style={styles.title}>
@@ -415,14 +419,15 @@ export function WarrantyPage() {
               Clear all
             </Button>
           )}
-          <Button
-            className="hidden sm:flex"
-            onClick={() => setShowAddPart(true)}
-            disabled={refDataLoading || !!refDataError}
-          >
-            <PlusIcon size={16} style={{ marginRight: "0.375rem" }} />
-            Add Part
-          </Button>
+          {refDataError ? (
+            <Tooltip content={refDataError}>
+              <span style={{ cursor: "not-allowed", display: "inline-block" }}>
+                {addPartBtn}
+              </span>
+            </Tooltip>
+          ) : (
+            addPartBtn
+          )}
         </div>
       </div>
 
@@ -454,7 +459,12 @@ export function WarrantyPage() {
           {loading ? (
             <div style={styles.emptyContainer}>Loading warranty records...</div>
           ) : fetchError ? (
-            <div style={styles.emptyContainer}>Failed to load records.</div>
+            <div style={{ ...styles.emptyContainer, flexDirection: "column", gap: "1rem" }}>
+              <span style={{ color: "var(--destructive, #ef4444)" }}>{fetchError}</span>
+              <Button variant="outline" size="sm" onClick={() => fetchData()}>
+                Retry
+              </Button>
+            </div>
           ) : items.length === 0 ? (
             <div style={styles.emptyContainer}>
               <span>No warranty records found</span>
@@ -467,6 +477,7 @@ export function WarrantyPage() {
                   item={item}
                   onEdit={setEditItem}
                   onDelete={setDeleteItem}
+                  refDataError={refDataError}
                 />
               ))}
             </div>
@@ -480,6 +491,16 @@ export function WarrantyPage() {
             rowKey={(r) => r.id}
             loading={loading}
             emptyMessage="No warranty records found"
+            emptyNode={
+              fetchError ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "2rem" }}>
+                  <span style={{ color: "var(--destructive, #ef4444)" }}>{fetchError}</span>
+                  <Button variant="outline" size="sm" onClick={() => fetchData()}>
+                    Retry
+                  </Button>
+                </div>
+              ) : undefined
+            }
             striped
             stickyHeader
             rowActions={[
@@ -487,6 +508,8 @@ export function WarrantyPage() {
                 key: "edit",
                 label: "Edit",
                 icon: <PencilIcon size={14} />,
+                disabled: () => !!refDataError,
+                disabledTooltip: refDataError || undefined,
                 onClick: (row) => setEditItem(row),
               },
               {
