@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
+import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
@@ -296,10 +297,11 @@ export function Sidebar({
 
           {/* Collapse Toggle — desktop only */}
           {!isMobile && onToggleCollapse && (
-            <button
+            <Button
+              variant="ghost"
               data-testid="sidebar-toggle-btn"
               onClick={onToggleCollapse}
-              className="absolute -right-3.5 top-[76px] -translate-y-1/2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full ring-2 ring-background border border-[#263762] bg-[#12203d] shadow-sm hover:bg-[#263762] transition-all z-50 text-slate-400 hover:text-white"
+              className="absolute -right-3.5 top-[76px] -translate-y-1/2 flex h-7 w-7 p-0 cursor-pointer items-center justify-center rounded-full ring-2 ring-background border border-[#263762] bg-[#12203d] shadow-sm hover:bg-[#263762] transition-all z-50 text-slate-400 hover:text-white"
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (
@@ -307,7 +309,7 @@ export function Sidebar({
               ) : (
                 <ChevronsLeftIcon size={16} />
               )}
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -188,12 +188,14 @@ export function DocumentModal({
           {errorMsg && (
             <div className={DM_ERROR_WRAPPER}>
               <span>{errorMsg}</span>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setErrorMsg(null)}
                 className={DM_ERROR_CLOSE}
               >
                 &times;
-              </button>
+              </Button>
             </div>
           )}
 

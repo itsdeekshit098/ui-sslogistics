@@ -368,7 +368,8 @@ const PartForm: React.FC<{
                 emptyMessage="No vendors found."
                 invalid={Boolean(fieldErrors.vendorId)}
                 footer={
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     style={styles.addVendorFooterBtn}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -376,7 +377,7 @@ const PartForm: React.FC<{
                   >
                     <PlusIcon size={14} />
                     Add New Vendor
-                  </button>
+                  </Button>
                 }
               />
               {fieldErrors.vendorId && (

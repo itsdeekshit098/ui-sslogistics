@@ -131,16 +131,17 @@ export default function AdminLayout({
               onMouseEnter={handleUserMenuEnter}
               onMouseLeave={handleUserMenuLeave}
             >
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => setIsUserMenuOpen((prev) => !prev)}
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
                 aria-label="User Account Menu"
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                className="flex h-9 w-9 p-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
               >
                 {user?.email?.charAt(0).toUpperCase() || "U"}
-              </button>
+              </Button>
 
               {isUserMenuOpen && (
                 <div className="absolute top-full right-0 pt-2 z-[9999] animate-in fade-in-0 zoom-in-95 duration-100">

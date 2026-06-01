@@ -231,7 +231,7 @@ const AddTechnicianForm: React.FC<{
         </div>
 
         <div style={styles.fieldGroup}>
-          <label style={styles.fieldLabel}>Specializations</label>
+          <Label style={styles.fieldLabel}>Specializations</Label>
           <div style={styles.issueGrid}>
             {localSpecializations.map((spec) => {
               const selected = formData.specializations.includes(spec.name);

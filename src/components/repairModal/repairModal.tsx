@@ -543,10 +543,10 @@ const RepairForm: React.FC<{
         <div style={styles.formSection}>
           {/* ── Vehicle ── */}
           <div style={styles.fieldGroup}>
-            <label style={styles.fieldLabel}>
+            <Label style={styles.fieldLabel}>
               Vehicle
               {!isEdit && <span style={styles.requiredStar}>*</span>}
-            </label>
+            </Label>
             {isEdit && selectedVehicle ? (
               <div
                 style={{
@@ -629,10 +629,10 @@ const RepairForm: React.FC<{
 
           {/* ── Category (radio-style cards) ── */}
           <div style={styles.fieldGroup}>
-            <label style={styles.fieldLabel}>
+            <Label style={styles.fieldLabel}>
               Category
               {!isEdit && <span style={styles.requiredStar}>*</span>}
-            </label>
+            </Label>
 
             {isEdit ? (
               <div
@@ -714,7 +714,7 @@ const RepairForm: React.FC<{
           {/* ── Sub-issues (Typeahead) ── */}
           {formData.category && (
             <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>Specific Issues</label>
+              <Label style={styles.fieldLabel}>Specific Issues</Label>
               <Typeahead
                 placeholder={
                   formData.category
@@ -857,7 +857,8 @@ const RepairForm: React.FC<{
                 emptyMessage="No technicians found."
                 invalid={Boolean(fieldErrors.technicianId)}
                 footer={
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     style={styles.addTechnicianButton}
                     onPointerDown={(e) => {
@@ -866,20 +867,10 @@ const RepairForm: React.FC<{
                       e.stopPropagation();
                     }}
                     onClick={() => setShowAddTechnician(true)}
-                    onMouseEnter={(e) => {
-                      (
-                        e.currentTarget as HTMLButtonElement
-                      ).style.backgroundColor = "var(--secondary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (
-                        e.currentTarget as HTMLButtonElement
-                      ).style.backgroundColor = "var(--background)";
-                    }}
                   >
                     <UserPlusIcon size={16} />
                     Add New Technician
-                  </button>
+                  </Button>
                 }
               />
               {fieldErrors.technicianId && (
@@ -972,14 +963,16 @@ const RepairForm: React.FC<{
                     <div style={styles.partCardHeader}>
                       <span style={styles.partCardTitle}>Part #{idx + 1}</span>
                       {idx > 0 && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           type="button"
                           style={styles.partRemoveButton}
                           onClick={() => removePartRow(idx)}
                           aria-label={`Remove part ${idx + 1}`}
                         >
                           <XIcon size={14} />
-                        </button>
+                        </Button>
                       )}
                     </div>
 
@@ -1178,7 +1171,8 @@ const RepairForm: React.FC<{
                           placeholder="Search vendor..."
                           emptyMessage="No vendors found."
                           footer={
-                            <button
+                            <Button
+                              variant="ghost"
                               type="button"
                               style={styles.addVendorFooterButton}
                               onPointerDown={(e) => e.stopPropagation()}
@@ -1189,7 +1183,7 @@ const RepairForm: React.FC<{
                             >
                               <PlusIcon size={14} />
                               Add New Vendor
-                            </button>
+                            </Button>
                           }
                         />
                       </div>
@@ -1323,14 +1317,15 @@ const RepairForm: React.FC<{
                   </div>
                 ))}
 
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   style={styles.addPartButton}
                   onClick={addPartRow}
                 >
                   <PlusIcon size={14} />
                   Add another part
-                </button>
+                </Button>
               </div>
             )}
           </div>

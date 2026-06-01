@@ -19,6 +19,9 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import type { SessionUser } from "./sessionsPage.types";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import * as styles from "./sessionsPage.style";
 
 /** Format a date string to a short, readable form. */
@@ -310,7 +313,7 @@ export function SessionsPage() {
                           </td>
                           <td style={styles.td}>
                             {sessionCount > 0 ? (
-                              <button
+                              <Button
                                 style={styles.expandBtn}
                                 className="hover:bg-muted transition-colors"
                                 onClick={() => toggleExpand(user.id)}
@@ -321,7 +324,7 @@ export function SessionsPage() {
                                   <ChevronRightIcon size={12} />
                                 )}
                                 {sessionCount} active
-                              </button>
+                              </Button>
                             ) : (
                               <span style={styles.sessionChipMeta}>
                                 No sessions
@@ -333,42 +336,42 @@ export function SessionsPage() {
                           </td>
                           <td style={styles.td}>
                             <div style={styles.actionsCell}>
-                              <button
+                              <Button
                                 style={styles.resetPasswordBtn}
                                 className="hover:opacity-80 transition-opacity"
                                 onClick={() => openAction(user, "resetPassword")}
                               >
                                 <KeyRoundIcon size={14} style={{ marginRight: "0.25rem" }} />
                                 Password
-                              </button>
+                              </Button>
                               {sessionCount > 0 && (
-                                <button
+                                <Button
                                   style={styles.revokeBtn}
                                   className="hover:opacity-80 transition-opacity"
                                   onClick={() => openAction(user, "revoke")}
                                 >
                                   <LogOutIcon size={14} style={{ marginRight: "0.25rem" }} />
                                   Revoke
-                                </button>
+                                </Button>
                               )}
                               {user.isBanned ? (
-                                <button
+                                <Button
                                   style={styles.unbanBtn}
                                   className="hover:opacity-80 transition-opacity"
                                   onClick={() => openAction(user, "unban")}
                                 >
                                   <ShieldCheckIcon size={14} style={{ marginRight: "0.25rem" }} />
                                   Unban
-                                </button>
+                                </Button>
                               ) : (
-                                <button
+                                <Button
                                   style={styles.banBtn}
                                   className="hover:opacity-80 transition-opacity"
                                   onClick={() => openAction(user, "ban")}
                                 >
                                   <ShieldOffIcon size={14} style={{ marginRight: "0.25rem" }} />
                                   Ban
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -447,7 +450,7 @@ export function SessionsPage() {
                   <div style={styles.mobileCardRow}>
                     <span style={styles.mobileLabel}>Sessions</span>
                     {sessionCount > 0 ? (
-                      <button
+                      <Button
                         style={styles.expandBtn}
                         className="hover:bg-muted transition-colors"
                         onClick={() => toggleExpand(user.id)}
@@ -458,7 +461,7 @@ export function SessionsPage() {
                           <ChevronRightIcon size={12} />
                         )}
                         {sessionCount} active
-                      </button>
+                      </Button>
                     ) : (
                       <span style={styles.sessionChipMeta}>None</span>
                     )}
@@ -508,7 +511,7 @@ export function SessionsPage() {
                       marginTop: "0.25rem",
                     }}
                   >
-                    <button
+                    <Button
                       style={{
                         ...styles.resetPasswordBtn,
                         flex: 1,
@@ -519,9 +522,9 @@ export function SessionsPage() {
                     >
                       <KeyRoundIcon size={14} style={{ marginRight: "0.25rem" }} />
                       Password
-                    </button>
+                    </Button>
                     {sessionCount > 0 && (
-                      <button
+                      <Button
                         style={{
                           ...styles.revokeBtn,
                           flex: 1,
@@ -532,10 +535,10 @@ export function SessionsPage() {
                       >
                         <LogOutIcon size={14} style={{ marginRight: "0.25rem" }} />
                         Revoke
-                      </button>
+                      </Button>
                     )}
                     {user.isBanned ? (
-                      <button
+                      <Button
                         style={{
                           ...styles.unbanBtn,
                           flex: 1,
@@ -546,9 +549,9 @@ export function SessionsPage() {
                       >
                         <ShieldCheckIcon size={14} style={{ marginRight: "0.25rem" }} />
                         Unban
-                      </button>
+                      </Button>
                     ) : (
-                      <button
+                      <Button
                         style={{
                           ...styles.banBtn,
                           flex: 1,
@@ -559,7 +562,7 @@ export function SessionsPage() {
                       >
                         <ShieldOffIcon size={14} style={{ marginRight: "0.25rem" }} />
                         Ban
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -570,25 +573,25 @@ export function SessionsPage() {
           {/* ── Pagination ── */}
           {total > perPage && (
             <div style={styles.paginationContainer}>
-              <button
+              <Button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
                 style={styles.paginationButton}
                 className="hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
-              </button>
+              </Button>
               <span style={styles.paginationInfo}>
                 Page {page} of {Math.ceil(total / perPage)}
               </span>
-              <button
+              <Button
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page >= Math.ceil(total / perPage)}
                 style={styles.paginationButton}
                 className="hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
-              </button>
+              </Button>
             </div>
           )}
         </>
@@ -609,9 +612,9 @@ export function SessionsPage() {
         >
           {actionType === "resetPassword" && (
             <div style={styles.passwordInputWrapper}>
-              <label htmlFor="reset-password-input" style={styles.passwordInputLabel}>New Password</label>
+              <Label htmlFor="reset-password-input" style={styles.passwordInputLabel}>New Password</Label>
               <div style={{ position: "relative" }}>
-                <input
+                <Input
                   id="reset-password-input"
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
@@ -626,7 +629,7 @@ export function SessionsPage() {
                     handleConfirmAction();
                   }}
                 />
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   style={{
@@ -645,7 +648,7 @@ export function SessionsPage() {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
-                </button>
+                </Button>
               </div>
               <span style={styles.passwordHint}>Minimum 6 characters</span>
             </div>

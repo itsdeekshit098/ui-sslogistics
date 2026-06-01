@@ -7,6 +7,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from "@/components/ui/icon";
 import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -78,44 +81,34 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-foreground"
-            >
-              Email address
-            </label>
-            <input
+            <Label htmlFor="email">Email address</Label>
+            <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-input bg-background rounded-[var(--input-radius)] focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
               placeholder="name@example.com"
             />
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-foreground"
-            >
-              Password
-            </label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <input
+              <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-input bg-background rounded-[var(--input-radius)] focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors pr-10"
                 placeholder="••••••••"
+                className="pr-10"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/20 rounded-sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground rounded-sm"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -133,17 +126,17 @@ export default function LoginPage() {
                     )}
                   </motion.div>
                 </AnimatePresence>
-              </button>
+              </Button>
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center py-2.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full font-medium transition-colors disabled:opacity-70"
+            className="w-full rounded-full py-2.5 h-auto"
           >
             {isLoading ? "Signing in..." : "Sign in to Operations Portal"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -565,17 +565,19 @@ export default function VehiclesPage() {
                   }}
                 />
                 {searchQuery && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     data-testid="vehicles-search-clear-btn"
                     type="button"
                     onClick={() => {
                       setSearchQuery("");
                       fetchVehicles({ overrideSearch: "", overridePage: 1 });
                     }}
-                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1.5 text-muted-foreground hover:text-foreground h-auto w-auto p-1"
                   >
                     <XIcon size={16} />
-                  </button>
+                  </Button>
                 )}
               </div>
               <Button
@@ -884,13 +886,15 @@ export default function VehiclesPage() {
             {editSubmitError && (
               <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
                 <span>{editSubmitError}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   type="button"
                   onClick={() => setEditSubmitError(null)}
-                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 mt-0.5"
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 mt-0.5 h-auto w-auto p-1"
                 >
                   <XIcon size={16} />
-                </button>
+                </Button>
               </div>
             )}
             <div className="grid gap-4 py-4">
@@ -1122,13 +1126,15 @@ export default function VehiclesPage() {
             {deleteError && (
               <div className="bg-red-50 text-red-600 p-2 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
                 <span className="flex-1">{deleteError}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   type="button"
                   onClick={() => setDeleteError(null)}
-                  className="text-red-600 hover:text-red-800 focus:outline-none flex-shrink-0 self-center cursor-pointer"
+                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 self-center cursor-pointer h-auto w-auto p-1"
                 >
                   <XIcon size={16} />
-                </button>
+                </Button>
               </div>
             )}
             <div className="flex gap-3 w-full">
@@ -1188,7 +1194,7 @@ export default function VehiclesPage() {
         onApply={applyDrawerFilters}
       >
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Type of Vehicle</label>
+          <Label style={filterFieldLabel}>Type of Vehicle</Label>
           <Select
             value={drawerFilters.type}
             onValueChange={(v) =>
@@ -1213,7 +1219,7 @@ export default function VehiclesPage() {
         </div>
 
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Status</label>
+          <Label style={filterFieldLabel}>Status</Label>
           <Select
             value={drawerFilters.status || "all"}
             onValueChange={(v) =>

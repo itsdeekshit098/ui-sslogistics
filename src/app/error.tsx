@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
   error,
@@ -63,22 +64,15 @@ export default function GlobalError({
           the issue persists.
         </p>
       </div>
-      <button
+      <Button
         onClick={reset}
         style={{
           padding: "0.625rem 1.5rem",
           borderRadius: "9999px",
-          border: "none",
-          backgroundColor: "var(--primary, #0f172a)",
-          color: "var(--primary-foreground, #fff)",
-          fontWeight: 600,
-          fontSize: "0.875rem",
-          cursor: "pointer",
-          transition: "opacity 0.15s ease",
         }}
       >
         Try Again
-      </button>
+      </Button>
     </div>
   );
 }

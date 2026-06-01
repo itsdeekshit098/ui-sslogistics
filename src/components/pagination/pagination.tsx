@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -89,14 +90,15 @@ export default function Pagination({
       </div>
 
       <div className="flex w-full items-center justify-center gap-1 sm:w-auto">
-        <button
-          className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:hover:bg-primary/10 transition-colors"
+        <Button
+          variant="ghost"
+          className="flex h-8 w-8 p-0 items-center justify-center rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:hover:bg-primary/10 transition-colors"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           aria-label="Previous page"
         >
           <ChevronLeftIcon size={16} />
-        </button>
+        </Button>
 
         {getPageNumbers().map((pageNum, idx) => {
           if (pageNum === "...") {
@@ -110,10 +112,11 @@ export default function Pagination({
             );
           }
           return (
-            <button
+            <Button
+              variant="ghost"
               key={`page-${pageNum}`}
               className={cn(
-                "flex h-8 min-w-[32px] items-center justify-center rounded-md px-2 transition-colors text-sm cursor-pointer",
+                "flex h-8 min-w-[32px] p-0 items-center justify-center rounded-md px-2 transition-colors text-sm cursor-pointer",
                 page === pageNum
                   ? "bg-primary text-primary-foreground font-medium shadow hover:bg-primary/90"
                   : "hover:bg-muted text-muted-foreground hover:text-foreground",
@@ -121,18 +124,19 @@ export default function Pagination({
               onClick={() => onPageChange(pageNum as number)}
             >
               {pageNum}
-            </button>
+            </Button>
           );
         })}
 
-        <button
-          className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:hover:bg-primary/10 transition-colors"
+        <Button
+          variant="ghost"
+          className="flex h-8 w-8 p-0 items-center justify-center rounded-md bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:hover:bg-primary/10 transition-colors"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           aria-label="Next page"
         >
           <ChevronRightIcon size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   );

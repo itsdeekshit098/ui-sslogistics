@@ -342,9 +342,10 @@ const CreateDieselForm: React.FC<{
               emptyMessage="No drivers found."
               invalid={Boolean(fieldErrors.driverName)}
               footer={
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors"
+                  className="flex items-center justify-start gap-2 w-full px-3 py-2 text-sm text-primary hover:bg-muted transition-colors rounded-none h-auto"
                   onPointerDown={(e) => {
                     e.stopPropagation();
                   }}
@@ -352,7 +353,7 @@ const CreateDieselForm: React.FC<{
                 >
                   <UserPlusIcon size={14} />
                   Add New Driver
-                </button>
+                </Button>
               }
             />
             {fieldErrors.driverName && (

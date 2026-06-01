@@ -11,6 +11,7 @@ import React, {
 import { createPortal } from "react-dom";
 import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TypeaheadProps } from "./typeahead.types";
 
@@ -260,15 +261,16 @@ const Typeahead = <TOption,>({
         )}
       />
       {shouldShowClear && (
-        <button
+        <Button
+          variant="ghost"
           type="button"
           aria-label="Clear selection"
-          className="absolute right-8 top-1/2 z-10 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute right-8 top-1/2 z-10 inline-flex h-6 w-6 p-0 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onMouseDown={(event) => event.preventDefault()}
           onClick={clearSelection}
         >
           <XIcon size={16} />
-        </button>
+        </Button>
       )}
       <ChevronDownIcon size={16} className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground" />
 
@@ -309,7 +311,8 @@ const Typeahead = <TOption,>({
               const isHighlighted = index === activeIndex;
 
               return (
-                <button
+                <Button
+                  variant="ghost"
                   key={optionValue}
                   id={`${inputId}-option-${index}`}
                   type="button"
@@ -317,7 +320,7 @@ const Typeahead = <TOption,>({
                   tabIndex={-1}
                   aria-selected={isSelected}
                   className={cn(
-                    "flex min-h-11 w-full items-center gap-3 rounded-[calc(var(--input-radius)-1px)] px-3 py-2 text-left outline-none transition-colors",
+                    "flex min-h-11 w-full items-center gap-3 rounded-[calc(var(--input-radius)-1px)] px-3 py-2 text-left outline-none transition-colors h-auto justify-start font-normal",
                     isHighlighted && "bg-secondary text-foreground",
                     isSelected && "font-semibold",
                   )}
@@ -338,7 +341,7 @@ const Typeahead = <TOption,>({
                       </span>
                     )}
                   </span>
-                </button>
+                </Button>
               );
             })
           ) : (

@@ -33,6 +33,7 @@ import { RepairModal } from "@/components/repairModal";
 import { Typeahead } from "@/components/typeahead";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 import { useAuth } from "@/context/AuthContext";
+import { Label } from "@/components/ui/label";
 import { StatCard } from "@/components/ui/statCard";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import type {
@@ -779,7 +780,7 @@ export function RepairRecordsPage() {
           onApply={applyDrawerFilters}
         >
           <div style={filterFieldGroup}>
-            <label style={filterFieldLabel}>Category</label>
+            <Label style={filterFieldLabel}>Category</Label>
             <Select
               value={drawerFilters.category || "all"}
               onValueChange={(v) =>
@@ -801,7 +802,7 @@ export function RepairRecordsPage() {
           </div>
 
           <div style={filterFieldGroup}>
-            <label style={filterFieldLabel}>Status</label>
+            <Label style={filterFieldLabel}>Status</Label>
             <Select
               value={drawerFilters.status || "all"}
               onValueChange={(v) =>
@@ -823,7 +824,7 @@ export function RepairRecordsPage() {
           </div>
 
           <div style={filterFieldGroup}>
-            <label style={filterFieldLabel}>From Date</label>
+            <Label style={filterFieldLabel}>From Date</Label>
             <Input
               type="date"
               value={drawerFilters.fromDate}
@@ -838,7 +839,7 @@ export function RepairRecordsPage() {
           </div>
 
           <div style={filterFieldGroup}>
-            <label style={filterFieldLabel}>To Date</label>
+            <Label style={filterFieldLabel}>To Date</Label>
             <Input
               type="date"
               value={drawerFilters.toDate}

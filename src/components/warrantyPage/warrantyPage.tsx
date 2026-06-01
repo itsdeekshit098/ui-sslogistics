@@ -3,6 +3,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   SearchIcon,
   PackageIcon,
@@ -501,26 +509,27 @@ export function WarrantyPage() {
         onApply={applyDrawerFilters}
       >
         <div style={filterFieldGroup}>
-          <label style={filterFieldLabel}>Status</label>
-          <select
+          <Label style={filterFieldLabel}>Status</Label>
+          <Select
             value={drawerFilters.status}
-            onChange={(e) =>
+            onValueChange={(v) =>
               setDrawerFilters({
                 ...drawerFilters,
-                status: e.target.value as WarrantyStatusFilter,
+                status: v as WarrantyStatusFilter,
               })
             }
-            style={{
-              padding: "0.5rem",
-              borderRadius: "var(--input-radius, 0.5rem)",
-            }}
           >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </FilterDrawer>
 
