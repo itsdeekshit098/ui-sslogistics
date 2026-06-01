@@ -288,6 +288,7 @@ export default function NewDieselRecordPage() {
               <div className="flex gap-2">
                 <Button
                   type="button"
+                  disabled={loading}
                   variant={formData.fillType === "full" ? "default" : "outline"}
                   className="flex-1"
                   onClick={() =>
@@ -298,6 +299,7 @@ export default function NewDieselRecordPage() {
                 </Button>
                 <Button
                   type="button"
+                  disabled={loading}
                   variant={
                     formData.fillType === "partial" ? "default" : "outline"
                   }

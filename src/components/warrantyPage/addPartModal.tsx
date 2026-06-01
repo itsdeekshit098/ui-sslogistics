@@ -221,7 +221,7 @@ const AddPartForm: React.FC<{
             <Label>
               Vehicle <span style={requiredStar}>*</span>
             </Label>
-            <Typeahead
+            <Typeahead disabled={loading}
               options={vehicles}
               value={formData.vehicleId}
               onValueChange={(val) => {
@@ -249,6 +249,7 @@ const AddPartForm: React.FC<{
                 Part Name <span style={requiredStar}>*</span>
               </Label>
               <Typeahead
+                disabled={loading}
                 id="addPartTypeahead"
                 options={partOptions}
                 value={formData.partName}
@@ -272,6 +273,7 @@ const AddPartForm: React.FC<{
                     }}
                   >
                     <Input
+                      disabled={isSavingPart}
                       placeholder="Custom part name..."
                       value={customPartName}
                       onChange={(e) => {
@@ -397,7 +399,7 @@ const AddPartForm: React.FC<{
               <Label>
                 Vendor <span style={requiredStar}>*</span>
               </Label>
-              <Typeahead
+              <Typeahead disabled={loading}
                 options={vendors}
                 value={formData.vendorId}
                 onValueChange={(val) => {
@@ -435,7 +437,7 @@ const AddPartForm: React.FC<{
               <Label>
                 Cost (₹) <span style={requiredStar}>*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 type="number"
                 placeholder="0.00"
                 min="0"
@@ -460,7 +462,7 @@ const AddPartForm: React.FC<{
               <Label>
                 Purchase Date <span style={requiredStar}>*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 type="date"
                 value={formData.purchaseDate}
                 onChange={(e) => {
@@ -495,7 +497,7 @@ const AddPartForm: React.FC<{
                 Warranty <span style={requiredStar}>*</span>
               </Label>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <Input
+                <Input disabled={loading}
                   type="number"
                   min="1"
                   step="1"
@@ -522,7 +524,7 @@ const AddPartForm: React.FC<{
                       : {}),
                   }}
                 />
-                <Select
+                <Select disabled={loading}
                   value={formData.warrantyDurationUnit}
                   onValueChange={(val: "months" | "years") => {
                     setFormData((p) => ({
@@ -558,7 +560,7 @@ const AddPartForm: React.FC<{
             {/* Notes */}
             <div style={formCol}>
               <Label>Expiry Date (auto)</Label>
-              <Input
+              <Input disabled={loading}
                 type="date"
                 value={formData.warrantyExpiry}
                 readOnly
@@ -570,7 +572,7 @@ const AddPartForm: React.FC<{
           {/* Notes (Full Width) */}
           <div style={fieldGroup}>
             <Label>Notes</Label>
-            <Textarea
+            <Textarea disabled={loading}
               placeholder="Optional"
               value={formData.notes}
               onChange={(e) =>

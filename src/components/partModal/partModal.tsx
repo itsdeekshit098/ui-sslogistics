@@ -187,9 +187,9 @@ const PartForm: React.FC<{
               Vehicle <span style={styles.requiredStar}>*</span>
             </Label>
             <Typeahead
+              disabled={loading || mode === "edit"}
               options={vehicles}
               value={formData.vehicleId}
-              disabled={mode === "edit"}
               onValueChange={(val) => {
                 setFormData((p) => ({ ...p, vehicleId: val }));
                 setFieldErrors((p) => ({ ...p, vehicleId: "" }));
@@ -215,6 +215,7 @@ const PartForm: React.FC<{
                 Part Name <span style={styles.requiredStar}>*</span>
               </Label>
               <Typeahead
+                disabled={loading}
                 id={`${mode}PartTypeahead`}
                 options={partOptions}
                 value={formData.partName}
@@ -238,6 +239,7 @@ const PartForm: React.FC<{
                     }}
                   >
                     <Input
+                      disabled={isSavingPart}
                       placeholder="Custom part name..."
                       value={customPartName}
                       onChange={(e) => {
@@ -354,7 +356,7 @@ const PartForm: React.FC<{
               <Label>
                 Vendor <span style={styles.requiredStar}>*</span>
               </Label>
-              <Typeahead
+              <Typeahead disabled={loading}
                 options={vendors}
                 value={formData.vendorId}
                 onValueChange={(val) => {
@@ -392,7 +394,7 @@ const PartForm: React.FC<{
               <Label>
                 Cost (₹) <span style={styles.requiredStar}>*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 type="number"
                 placeholder="0.00"
                 min="0"
@@ -415,7 +417,7 @@ const PartForm: React.FC<{
               <Label>
                 Purchase Date <span style={styles.requiredStar}>*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 type="date"
                 value={formData.purchaseDate}
                 onChange={(e) => {
@@ -446,7 +448,7 @@ const PartForm: React.FC<{
                 Warranty <span style={styles.requiredStar}>*</span>
               </Label>
               <div style={styles.warrantyInputRow}>
-                <Input
+                <Input disabled={loading}
                   type="number"
                   min="1"
                   step="1"
@@ -471,7 +473,7 @@ const PartForm: React.FC<{
                     ...(fieldErrors.warrantyDuration ? styles.inputError : {}),
                   }}
                 />
-                <Select
+                <Select disabled={loading}
                   value={formData.warrantyDurationUnit}
                   onValueChange={(val: "months" | "years") => {
                     setFormData((p) => ({
@@ -502,7 +504,7 @@ const PartForm: React.FC<{
             {/* Notes */}
             <div style={styles.formCol}>
               <Label>Expiry Date (auto)</Label>
-              <Input
+              <Input disabled={loading}
                 type="date"
                 value={formData.warrantyExpiry}
                 readOnly
@@ -514,7 +516,7 @@ const PartForm: React.FC<{
           {/* Notes (Full Width) */}
           <div style={styles.fieldGroup}>
             <Label>Notes</Label>
-            <Textarea
+            <Textarea disabled={loading}
               placeholder="Optional"
               value={formData.notes}
               onChange={(e) =>

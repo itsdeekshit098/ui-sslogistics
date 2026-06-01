@@ -139,24 +139,24 @@ export function Sidebar({
           <div
             className={cn(
               "flex py-3 items-center",
-              collapsed && !isMobile ? "px-3 justify-center" : "px-5",
+              collapsed && !isMobile ? "px-0 justify-center" : "px-5",
             )}
           >
             <Link
               data-testid="sidebar-logo-link"
               href="/"
-              className="flex items-center gap-3 group"
+              className="flex items-center justify-center gap-3 group w-full"
               onClick={onClose}
             >
               <Image
-                src="/logo/sslogo.png"
+                src={collapsed && !isMobile ? "/favicon.png" : "/logo/sslogo.png"}
                 alt="Sri Srinivasa Logo"
-                width={collapsed && !isMobile ? 32 : 180}
-                height={collapsed && !isMobile ? 32 : 33}
+                width={collapsed && !isMobile ? 44 : 180}
+                height={collapsed && !isMobile ? 44 : 33}
                 style={{
                   display: "block",
-                  width: collapsed && !isMobile ? "32px" : "180px",
-                  height: "auto",
+                  width: collapsed && !isMobile ? "44px" : "180px",
+                  height: collapsed && !isMobile ? "44px" : "33px",
                   objectFit: "contain",
                   flexShrink: 0,
                 }}
@@ -169,7 +169,7 @@ export function Sidebar({
           <div className="flex-1 overflow-y-auto pb-3 pt-2 w-full scrollbar-custom">
             <nav
               className={cn(
-                "flex flex-col gap-0.5 w-full",
+                "flex flex-col gap-1 w-full",
                 collapsed && !isMobile ? "px-2" : "px-3",
               )}
             >
@@ -203,8 +203,8 @@ export function Sidebar({
                           className={cn(
                             "flex items-center rounded-lg text-sm font-semibold text-white transition-all w-full",
                             collapsed && !isMobile
-                              ? "justify-center px-2 py-2.5"
-                              : "gap-3 px-3 py-2.5",
+                              ? "justify-center px-2 py-2"
+                              : "gap-3 px-3 py-2",
                             isActive
                               ? "bg-[#2563EB] shadow-md"
                               : "hover:bg-[#263762]",
@@ -234,8 +234,8 @@ export function Sidebar({
                         className={cn(
                           "flex items-center rounded-lg text-sm font-semibold text-white/40 cursor-not-allowed w-full",
                           collapsed && !isMobile
-                            ? "justify-center px-2 py-2.5"
-                            : "gap-3 px-3 py-2.5",
+                            ? "justify-center px-2 py-2"
+                            : "gap-3 px-3 py-2",
                         )}
                       >
                         {iconEl}
@@ -301,7 +301,7 @@ export function Sidebar({
               variant="ghost"
               data-testid="sidebar-toggle-btn"
               onClick={onToggleCollapse}
-              className="absolute -right-3.5 top-[76px] -translate-y-1/2 flex h-7 w-7 p-0 cursor-pointer items-center justify-center rounded-full ring-2 ring-background border border-[#263762] bg-[#12203d] shadow-sm hover:bg-[#263762] transition-all z-50 text-slate-400 hover:text-white"
+              className="absolute right-0 translate-x-1/2 top-14 -translate-y-1/2 flex h-7 w-7 p-0 cursor-pointer items-center justify-center rounded-full ring-2 ring-background border border-[#263762] bg-[#12203d] shadow-sm hover:bg-[#263762] transition-all z-50 text-slate-400 hover:text-white"
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (

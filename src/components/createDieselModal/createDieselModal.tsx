@@ -371,6 +371,7 @@ const CreateDieselForm: React.FC<{
                 <Button
                   data-testid="components-createDieselModal-createDieselModal-button-1"
                   type="button"
+                  disabled={loading}
                   variant={formData.fillType === "full" ? "default" : "outline"}
                   className="flex-1"
                   onClick={() =>
@@ -382,6 +383,7 @@ const CreateDieselForm: React.FC<{
                 <Button
                   data-testid="components-createDieselModal-createDieselModal-button-2"
                   type="button"
+                  disabled={loading}
                   variant={
                     formData.fillType === "partial" ? "default" : "outline"
                   }

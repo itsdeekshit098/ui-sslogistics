@@ -561,7 +561,7 @@ const RepairForm: React.FC<{
               </div>
             ) : (
               <>
-                <Typeahead
+                <Typeahead disabled={loading}
                   id="vehicleId"
                   options={vehicles}
                   value={formData.vehicleId}
@@ -611,7 +611,7 @@ const RepairForm: React.FC<{
               </div>
             ) : (
               <>
-                <Input
+                <Input disabled={loading}
                   id="date"
                   type="date"
                   value={formData.date}

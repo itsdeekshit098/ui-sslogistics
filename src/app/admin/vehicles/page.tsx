@@ -903,7 +903,7 @@ export default function VehiclesPage() {
                   <Label htmlFor="vehicle_number">
                     Vehicle Number <span className="text-red-500">*</span>
                   </Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="vehicle_number"
                     value={editFormData.vehicle_number}
                     onChange={(e) => {
@@ -930,7 +930,7 @@ export default function VehiclesPage() {
                   <Label htmlFor="vehicle_type">
                     Vehicle Type <span className="text-red-500">*</span>
                   </Label>
-                  <Select
+                  <Select disabled={isSaving}
                     value={editFormData.vehicle_type}
                     onValueChange={(value) => {
                       handleEditSelectChange("vehicle_type", value);
@@ -963,7 +963,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="company">Company</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="company"
                     value={editFormData.company}
                     onChange={handleEditChange}
@@ -971,7 +971,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="model">Model</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="model"
                     value={editFormData.model}
                     onChange={handleEditChange}
@@ -982,7 +982,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="capacity">Capacity</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="capacity"
                     value={editFormData.capacity}
                     onChange={handleEditChange}
@@ -990,7 +990,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="last_service_date">Last Service Date</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="last_service_date"
                     type="date"
                     value={editFormData.last_service_date || ""}
@@ -1002,7 +1002,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="status">Status</Label>
-                  <Select
+                  <Select disabled={isSaving}
                     value={editFormData.status}
                     onValueChange={(value) =>
                       handleEditSelectChange("status", value)
@@ -1020,7 +1020,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="fuel_type">Fuel Type</Label>
-                  <Select
+                  <Select disabled={isSaving}
                     value={editFormData.fuel_type || "Diesel"}
                     onValueChange={(value) =>
                       handleEditSelectChange("fuel_type", value)
@@ -1041,7 +1041,7 @@ export default function VehiclesPage() {
               <div className={CA_MODAL_GRID}>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="expected_kml">Expected Km/L</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="expected_kml"
                     type="number"
                     placeholder="e.g. 4.5"
@@ -1061,7 +1061,7 @@ export default function VehiclesPage() {
                 </div>
                 <div className={CA_MODAL_LABEL_SPACE}>
                   <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-                  <Input
+                  <Input disabled={isSaving}
                     id="tank_capacity"
                     type="number"
                     placeholder="e.g. 200"

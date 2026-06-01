@@ -614,7 +614,7 @@ export function SessionsPage() {
             <div style={styles.passwordInputWrapper}>
               <Label htmlFor="reset-password-input" style={styles.passwordInputLabel}>New Password</Label>
               <div style={{ position: "relative" }}>
-                <Input
+                <Input disabled={loading}
                   id="reset-password-input"
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
