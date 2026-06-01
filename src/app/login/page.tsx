@@ -88,6 +88,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
               placeholder="name@example.com"
             />
           </div>
@@ -101,12 +102,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
                 placeholder="••••••••"
                 className="pr-10"
               />
               <Button
                 type="button"
                 variant="ghost"
+                disabled={isLoading}
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground rounded-sm"
                 aria-label={showPassword ? "Hide password" : "Show password"}

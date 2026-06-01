@@ -329,7 +329,7 @@ const ExternalTripsForm: React.FC<{
                   {selectedVehicle.model}
                 </div>
               ) : (
-                <Typeahead
+                <Typeahead disabled={loading}
                   id="vehicleId"
                   options={vehicles}
                   value={formData.vehicleId}
@@ -417,7 +417,7 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="customerName">Customer Name</Label>
-                <Input
+                <Input disabled={loading}
                   id="customerName"
                   placeholder="Company or person name"
                   value={formData.customerName}
@@ -431,7 +431,7 @@ const ExternalTripsForm: React.FC<{
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="customerPhone">Customer Phone</Label>
-                <Input
+                <Input disabled={loading}
                   id="customerPhone"
                   placeholder="10-digit mobile"
                   value={formData.customerPhone}
@@ -459,7 +459,7 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="fromLocation">From Location</Label>
-                <Input
+                <Input disabled={loading}
                   id="fromLocation"
                   placeholder="Origin"
                   value={formData.fromLocation}
@@ -473,7 +473,7 @@ const ExternalTripsForm: React.FC<{
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="toLocation">To Location</Label>
-                <Input
+                <Input disabled={loading}
                   id="toLocation"
                   placeholder="Destination"
                   value={formData.toLocation}
@@ -491,7 +491,7 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="startDate">Start Date</Label>
-                <Input
+                <Input disabled={loading}
                   id="startDate"
                   type="date"
                   value={formData.startDate}
@@ -505,7 +505,7 @@ const ExternalTripsForm: React.FC<{
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="endDate">End Date</Label>
-                <Input
+                <Input disabled={loading}
                   id="endDate"
                   type="date"
                   value={formData.endDate}
@@ -527,7 +527,7 @@ const ExternalTripsForm: React.FC<{
             {/* ── Driver ── */}
             <div style={styles.fieldGroup}>
               <Label style={styles.fieldLabel}>Driver</Label>
-              <Typeahead
+              <Typeahead disabled={loading}
                 id="driverId"
                 options={driversList}
                 value={formData.driverId}
@@ -571,7 +571,7 @@ const ExternalTripsForm: React.FC<{
             {/* ── Notes ── */}
             <div style={styles.fieldGroup}>
               <Label htmlFor="notes">Notes</Label>
-              <Textarea
+              <Textarea disabled={loading}
                 id="notes"
                 placeholder="Any additional details..."
                 value={formData.notes}
@@ -612,7 +612,7 @@ const ExternalTripsForm: React.FC<{
                 Amount Received (₹)
                 <span style={styles.requiredStar}>*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 id="amountReceived"
                 placeholder="Amount received from customer"
                 type="number"
@@ -649,7 +649,7 @@ const ExternalTripsForm: React.FC<{
                       <span style={styles.requiredStar}>*</span>
                     </div>
                   ) : (
-                    <Input
+                    <Input disabled={loading}
                       placeholder="Label (e.g. Toll)"
                       value={item.label}
                       onChange={(e) =>
@@ -658,7 +658,7 @@ const ExternalTripsForm: React.FC<{
                       style={getErrorStyle(`costItem_${index}`)}
                     />
                   )}
-                  <Input
+                  <Input disabled={loading}
                     placeholder="₹ Amount"
                     type="number"
                     min="0"

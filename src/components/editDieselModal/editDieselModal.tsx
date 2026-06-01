@@ -195,7 +195,7 @@ const EditDieselForm: React.FC<{
             <Label htmlFor="driverName">
               Driver Name <span className="text-red-500">*</span>
             </Label>
-            <Typeahead
+            <Typeahead disabled={loading}
               id="driverName"
               data-testid="components-editDieselModal-editDieselModal-driver-typeahead"
               options={driversList.filter((d) => d.is_active)}
@@ -248,7 +248,7 @@ const EditDieselForm: React.FC<{
               <Label htmlFor="fuelLitres">
                 Fuel Added (Litres) <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-editDieselModal-editDieselModal-input-2"
                 id="fuelLitres"
                 type="number"
@@ -270,7 +270,7 @@ const EditDieselForm: React.FC<{
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="pricePerL">Price per L (₹)</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-editDieselModal-editDieselModal-input-3"
                 id="pricePerL"
                 type="number"
@@ -302,7 +302,7 @@ const EditDieselForm: React.FC<{
           {/* Station */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="station">Fuel Station</Label>
-            <Input
+            <Input disabled={loading}
               data-testid="components-editDieselModal-editDieselModal-input-4"
               id="station"
               placeholder="Station Name / Location"
@@ -315,7 +315,7 @@ const EditDieselForm: React.FC<{
           <div className={MODAL_GRID}>
             <div className={MODAL_LABEL_SPACE}>
               <Label>Payment Method</Label>
-              <Select
+              <Select disabled={loading}
                 data-testid="components-editDieselModal-editDieselModal-select-1"
                 value={formData.paymentMethod}
                 onValueChange={(v) =>
@@ -338,7 +338,7 @@ const EditDieselForm: React.FC<{
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="receiptNumber">Receipt Number</Label>
-              <Input
+              <Input disabled={loading}
                 data-testid="components-editDieselModal-editDieselModal-input-5"
                 id="receiptNumber"
                 placeholder="Receipt / Bill No."
@@ -351,7 +351,7 @@ const EditDieselForm: React.FC<{
           {/* Notes */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="notes">Notes</Label>
-            <Textarea
+            <Textarea disabled={loading}
               id="notes"
               placeholder="Any additional notes..."
               value={formData.notes}

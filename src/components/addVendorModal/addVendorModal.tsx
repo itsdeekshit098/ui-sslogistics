@@ -105,7 +105,7 @@ const AddVendorForm: React.FC<{
             <Label htmlFor="name">
               Vendor Name <span style={styles.requiredStar}>*</span>
             </Label>
-            <Input
+            <Input disabled={loading}
               id="name"
               placeholder="e.g. AutoParts India"
               value={formData.name}
@@ -119,7 +119,7 @@ const AddVendorForm: React.FC<{
 
           <div style={styles.fieldGroup}>
             <Label htmlFor="phone">Phone</Label>
-            <Input
+            <Input disabled={loading}
               id="phone"
               placeholder="e.g. 9876543210"
               value={formData.phone}
@@ -134,7 +134,7 @@ const AddVendorForm: React.FC<{
 
           <div style={styles.fieldGroup}>
             <Label htmlFor="location">Location</Label>
-            <Input
+            <Input disabled={loading}
               id="location"
               placeholder="e.g. Chennai"
               value={formData.location}

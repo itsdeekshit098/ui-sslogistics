@@ -190,7 +190,7 @@ const AddTechnicianForm: React.FC<{
           <Label htmlFor="name">
             Name <span style={styles.requiredStar}>*</span>
           </Label>
-          <Input
+          <Input disabled={loading}
             id="name"
             placeholder="Technician name"
             value={formData.name}
@@ -206,7 +206,7 @@ const AddTechnicianForm: React.FC<{
 
         <div style={styles.fieldGroup}>
           <Label htmlFor="phone">Phone Number</Label>
-          <Input
+          <Input disabled={loading}
             id="phone"
             placeholder="10-digit mobile number"
             value={formData.phone}
@@ -222,7 +222,7 @@ const AddTechnicianForm: React.FC<{
 
         <div style={styles.fieldGroup}>
           <Label htmlFor="location">Location / Address</Label>
-          <Input
+          <Input disabled={loading}
             id="location"
             placeholder="Workshop location"
             value={formData.location}
@@ -270,7 +270,7 @@ const AddTechnicianForm: React.FC<{
               ))}
           </div>
           <div style={styles.customIssueRow}>
-            <Input
+            <Input disabled={loading}
               placeholder="Custom specialization..."
               value={customSpec}
               onChange={(e) => setCustomSpec(e.target.value)}
