@@ -39,7 +39,14 @@ export async function GET(req: Request) {
       .order("id", { ascending: false });
 
     if (vehicleId) {
-      query = query.eq("vehicle_id", Number(vehicleId));
+      const vehicleIdNum = Number(vehicleId);
+      if (!Number.isFinite(vehicleIdNum)) {
+        return new Response(JSON.stringify({ error: "Invalid vehicle_id" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      query = query.eq("vehicle_id", vehicleIdNum);
     }
     if (fromDate) {
       query = query.gte("repair_date", fromDate);
@@ -114,10 +121,27 @@ export async function GET(req: Request) {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": "attachment; filename=\"repair_records.csv\"",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
 
   } catch (err: unknown) {
+    if (err instanceof Error) {
+      if (err.message.startsWith("UNAUTHORIZED")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (err.message.startsWith("FORBIDDEN")) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
     logger.error("Failed to export CSV", { error: err });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
