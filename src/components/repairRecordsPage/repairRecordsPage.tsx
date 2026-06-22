@@ -11,6 +11,7 @@ import {
   InboxIcon,
   FolderOpenIcon,
   CheckCircleIcon,
+  DownloadIcon,
 } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +90,7 @@ export function RepairRecordsPage() {
   // ─── Loading / Error ───
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Skip summary on page-only changes
@@ -311,6 +313,38 @@ export function RepairRecordsPage() {
     });
   };
 
+  // ─── Export Handler ───
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedVehicleId) params.set("vehicle_id", selectedVehicleId);
+      if (fromDate) params.set("from_date", fromDate);
+      if (toDate) params.set("to_date", toDate);
+      if (category) params.set("category", category);
+      if (status) params.set("status", status);
+
+      const res = await fetch(`/api/repair-records/export?${params}`);
+      if (!res.ok) throw new Error("Export failed");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "repair_records.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      alert("Download completed successfully.");
+    } catch {
+      alert("Failed to download repair records.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   // Page change handlers — set state immediately for visual feedback
   const handlePageChange = (p: number) => {
     setPage(p);
@@ -526,6 +560,19 @@ export function RepairRecordsPage() {
                       {activeFilterCount}
                     </span>
                   )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDownload}
+                  disabled={isDownloading || recordsLoading}
+                  className="gap-2"
+                >
+                  {isDownloading ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <DownloadIcon size={16} />
+                  )}
+                  <span className="hidden sm:inline">Export</span>
                 </Button>
                 {hasActiveFilters && (
                   <Button
