@@ -301,7 +301,8 @@ export default function DieselRecordsPage() {
                   onClick={fetchVehicles}
                   className="shrink-0"
                 >
-                  <RefreshCwIcon size={16} style={{ marginRight: "0.25rem" }} /> Retry
+                  <RefreshCwIcon size={16} style={{ marginRight: "0.25rem" }} />{" "}
+                  Retry
                 </Button>
               )}
             </div>
@@ -470,7 +471,7 @@ export default function DieselRecordsPage() {
                                   <span className="text-muted-foreground">
                                     Exp:
                                   </span>{" "}
-                                  {displayVal(record.expected_kml)}
+                                  {displayVal(record.expected_kml, " km/L")}
                                 </div>
                                 <div
                                   className={
@@ -495,11 +496,50 @@ export default function DieselRecordsPage() {
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground">
+                                    Cycle #:
+                                  </span>{" "}
+                                  {record.cycle_id}
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    ₹/L:
+                                  </span>{" "}
+                                  {record.price_per_l
+                                    ? `₹${record.price_per_l}`
+                                    : "—"}
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
                                     Station:
                                   </span>{" "}
                                   {record.station || "—"}
                                 </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Payment:
+                                  </span>{" "}
+                                  {record.payment_method || "—"}
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Receipt:
+                                  </span>{" "}
+                                  {record.receipt_number || "—"}
+                                </div>
                               </div>
+                              {record.notes && (
+                                <div className="text-xs text-muted-foreground bg-muted/40 rounded px-2 py-1.5 line-clamp-3">
+                                  <span className="font-medium text-foreground">
+                                    Notes:{" "}
+                                  </span>
+                                  {record.notes}
+                                </div>
+                              )}
+                              {record.verified_by && (
+                                <div className="text-xs text-muted-foreground">
+                                  ✓ {record.verified_by}
+                                </div>
+                              )}
                               {(() => {
                                 const warnings = getRecordWarnings(record);
                                 if (warnings.length === 0) return null;
@@ -567,8 +607,12 @@ export default function DieselRecordsPage() {
                               const { date, time } = formatDate(row.fill_date);
                               return (
                                 <div className="flex flex-col">
-                                  <span className="whitespace-nowrap">{date}</span>
-                                  <span className="text-xs text-muted-foreground">{time}</span>
+                                  <span className="whitespace-nowrap">
+                                    {date}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {time}
+                                  </span>
                                 </div>
                               );
                             },
@@ -640,7 +684,8 @@ export default function DieselRecordsPage() {
                             cell: (row) => (
                               <span
                                 className={
-                                  row.dev_pct !== null && row.dev_pct !== undefined
+                                  row.dev_pct !== null &&
+                                  row.dev_pct !== undefined
                                     ? row.dev_pct < 0
                                       ? "text-red-600 dark:text-red-400 font-medium"
                                       : "text-green-600 dark:text-green-400 font-medium"
@@ -656,7 +701,11 @@ export default function DieselRecordsPage() {
                             header: "Fill Type",
                             cell: (row) => (
                               <Badge
-                                variant={row.fill_type === "full" ? "info" : "secondary"}
+                                variant={
+                                  row.fill_type === "full"
+                                    ? "info"
+                                    : "secondary"
+                                }
                                 className="text-xs"
                               >
                                 {row.fill_type === "full" ? "Full" : "Partial"}
@@ -668,10 +717,16 @@ export default function DieselRecordsPage() {
                             header: "Cycle",
                             cell: (row) => (
                               <Badge
-                                variant={row.cycle_status === "closed" ? "success" : "warning"}
+                                variant={
+                                  row.cycle_status === "closed"
+                                    ? "success"
+                                    : "warning"
+                                }
                                 className="text-xs whitespace-nowrap"
                               >
-                                {row.cycle_status === "closed" ? "● Closed" : "● Open"}
+                                {row.cycle_status === "closed"
+                                  ? "● Closed"
+                                  : "● Open"}
                               </Badge>
                             ),
                           },
@@ -683,7 +738,8 @@ export default function DieselRecordsPage() {
                           {
                             key: "price_per_l",
                             header: "Price/L",
-                            cell: (row) => (row.price_per_l ? `₹${row.price_per_l}` : "—"),
+                            cell: (row) =>
+                              row.price_per_l ? `₹${row.price_per_l}` : "—",
                           },
                           {
                             key: "amount",
@@ -693,7 +749,11 @@ export default function DieselRecordsPage() {
                           {
                             key: "cost_per_km",
                             header: "Cost/km",
-                            cell: (row) => (row.cost_per_km !== null && row.cost_per_km !== undefined ? `₹${row.cost_per_km}` : "—"),
+                            cell: (row) =>
+                              row.cost_per_km !== null &&
+                              row.cost_per_km !== undefined
+                                ? `₹${row.cost_per_km}`
+                                : "—",
                           },
                           {
                             key: "station",
@@ -726,8 +786,14 @@ export default function DieselRecordsPage() {
                                   content={
                                     <div className="space-y-1 py-1 max-w-xs">
                                       {warnings.map((w, i) => (
-                                        <div key={i} className="flex items-start gap-2 text-xs text-amber-100">
-                                          <AlertTriangleIcon size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                                        <div
+                                          key={i}
+                                          className="flex items-start gap-2 text-xs text-amber-100"
+                                        >
+                                          <AlertTriangleIcon
+                                            size={14}
+                                            className="shrink-0 mt-0.5 text-amber-400"
+                                          />
                                           {w}
                                         </div>
                                       ))}
@@ -736,7 +802,10 @@ export default function DieselRecordsPage() {
                                   position="left"
                                 >
                                   <div className="flex items-center gap-1 cursor-pointer">
-                                    <AlertTriangleIcon size={16} className="text-amber-600 dark:text-amber-400" />
+                                    <AlertTriangleIcon
+                                      size={16}
+                                      className="text-amber-600 dark:text-amber-400"
+                                    />
                                     <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">
                                       {warnings.length} issue
                                       {warnings.length > 1 ? "s" : ""}
