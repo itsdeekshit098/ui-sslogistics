@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { XIcon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import type { FilterDrawerProps } from "./filterDrawer.types";
@@ -13,9 +14,16 @@ export function FilterDrawer({
   children,
   title = "Filters",
 }: FilterDrawerProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  if (!open || !mounted || typeof document === "undefined") return null;
+
+  const drawerContent = (
     <>
       {/* Backdrop */}
       <div
@@ -63,4 +71,6 @@ export function FilterDrawer({
       </div>
     </>
   );
+
+  return createPortal(drawerContent, document.body);
 }

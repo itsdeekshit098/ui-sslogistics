@@ -9,7 +9,7 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 const ALLOWED_VEHICLE_FIELDS = [
   "vehicle_number",
   "vehicle_type",
-  "capacity",
+  "seating_capacity",
   "company",
   "model",
   "status",
@@ -17,14 +17,29 @@ const ALLOWED_VEHICLE_FIELDS = [
   "expected_kml",
   "tank_capacity",
   "fuel_type",
+  "truck_type",
+  "container_length",
+  "axle_type",
+  "container_body_type",
 ] as const;
+
+const SEATING_CAPACITY_VEHICLE_TYPES = ["CAR", "BUS", "TEMPO_TRAVELLER"] as const;
+const VALID_FUEL_TYPES = ["DIESEL", "PETROL", "CNG", "LPG", "ELECTRIC", "HYBRID", "LNG"] as const;
 
 function pickAllowedFields(body: Record<string, unknown>) {
   const picked: Record<string, unknown> = {};
   for (const key of ALLOWED_VEHICLE_FIELDS) {
     if (key in body) {
       const value = body[key];
-      picked[key] = value === "" ? null : value;
+      if (value === "" || value === undefined) {
+        picked[key] = null;
+      } else if (key === "seating_capacity" && value !== null) {
+        // Coerce to integer — DB column is INTEGER
+        const parsed = parseInt(String(value), 10);
+        picked[key] = isNaN(parsed) ? null : parsed;
+      } else {
+        picked[key] = value;
+      }
     }
   }
   return picked;
@@ -108,6 +123,31 @@ export async function POST(req: Request) {
     const authUser = await requireAdminAuth();
     const body = await req.json();
 
+    // Server-side validation for conditional required sub-fields
+    if (body.vehicle_type === "TRUCK" && !body.truck_type) {
+      return apiError("Truck Type is required for TRUCK vehicle type", 400);
+    }
+    if (body.vehicle_type === "CONTAINER") {
+      if (!body.container_length) {
+        return apiError("Container Length is required for CONTAINER vehicle type", 400);
+      }
+      if (!body.axle_type) {
+        return apiError("Axle Type is required for CONTAINER vehicle type", 400);
+      }
+      if (!body.container_body_type) {
+        return apiError("Body Type is required for CONTAINER vehicle type", 400);
+      }
+    }
+    if (
+      (SEATING_CAPACITY_VEHICLE_TYPES as readonly string[]).includes(body.vehicle_type) &&
+      (body.seating_capacity === null || body.seating_capacity === undefined || body.seating_capacity === "")
+    ) {
+      return apiError("Seating Capacity is required for this vehicle type", 400);
+    }
+    if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
+      return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
+    }
+
     const payload = pickAllowedFields(body);
 
     // Attach who created this record
@@ -155,6 +195,31 @@ export async function PUT(req: Request) {
 
     if (!id) {
       return apiError("Missing vehicle ID", 400);
+    }
+
+    // Server-side validation for conditional required sub-fields
+    if (body.vehicle_type === "TRUCK" && !body.truck_type) {
+      return apiError("Truck Type is required for TRUCK vehicle type", 400);
+    }
+    if (body.vehicle_type === "CONTAINER") {
+      if (!body.container_length) {
+        return apiError("Container Length is required for CONTAINER vehicle type", 400);
+      }
+      if (!body.axle_type) {
+        return apiError("Axle Type is required for CONTAINER vehicle type", 400);
+      }
+      if (!body.container_body_type) {
+        return apiError("Body Type is required for CONTAINER vehicle type", 400);
+      }
+    }
+    if (
+      (SEATING_CAPACITY_VEHICLE_TYPES as readonly string[]).includes(body.vehicle_type) &&
+      (body.seating_capacity === null || body.seating_capacity === undefined || body.seating_capacity === "")
+    ) {
+      return apiError("Seating Capacity is required for this vehicle type", 400);
+    }
+    if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
+      return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
 
     const updatePayload = pickAllowedFields(body);
