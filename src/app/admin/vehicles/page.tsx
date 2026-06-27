@@ -8,7 +8,6 @@ import {
   TruckIcon,
   CarIcon,
   BusIcon,
-  SaveIcon,
   VanIcon,
   FolderOpenIcon,
   Trash2Icon,
@@ -22,14 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Modal,
-  ModalContent,
-  ModalDescription,
-  ModalFooter,
-  ModalHeader,
-  ModalTitle,
-} from "@/components/ui/modal";
+import { Modal, ModalContent } from "@/components/ui/modal";
 import {
   Select,
   SelectContent,
@@ -37,20 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Vehicle, VehicleType, VEHICLE_TYPES } from "./vehicles.types";
 import {
-  Vehicle,
-  VehicleType,
-  VEHICLE_TYPES,
-  TRUCK_TYPES,
-  CONTAINER_LENGTHS,
-  AXLE_TYPES,
-  CONTAINER_BODY_TYPES,
-  FUEL_TYPES,
-} from "./vehicles.types";
-import {
-  getDefaultVehicleFormData,
   getStatusBadgeVariant,
-  hasSeatingCapacity,
   getVehicleTypeLabel,
   getVehicleSubDetail,
 } from "./vehicles.utils";
@@ -60,15 +41,15 @@ import {
   CA_VEHICLES_CONTAINER,
   CA_VEHICLES_HEADER_TITLE,
   CA_VEHICLES_HEADER_DESC,
-  CA_MODAL_GRID,
-  CA_MODAL_LABEL_SPACE,
 } from "./vehicles.styles";
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { CreateVehicleModal } from "@/components/createVehicleModal";
+import { EditVehicleModal } from "@/components/editVehicleModal";
 import { ErrorState } from "@/components/errorState";
+import { deleteVehicle } from "@/services/vehiclesService";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable";
@@ -280,19 +261,6 @@ export default function VehiclesPage() {
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  const [editFormData, setEditFormData] = useState<Omit<Vehicle, "id">>(
-    getDefaultVehicleFormData(),
-  );
-  const [editErrors, setEditErrors] = useState<{
-    vehicle_number?: string;
-    vehicle_type?: string;
-    truck_type?: string;
-    container_length?: string;
-    axle_type?: string;
-    container_body_type?: string;
-    seating_capacity?: string;
-  }>({});
-  const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
 
   // Document Modal State
   const [isDocOpen, setIsDocOpen] = useState(false);
@@ -306,7 +274,6 @@ export default function VehiclesPage() {
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   const fetchVehiclesRefetch = useCallback(() => {
     // Re-fetch current page (used after create/edit/delete)
@@ -315,121 +282,7 @@ export default function VehiclesPage() {
 
   const handleEditClick = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
-    setEditFormData({
-      vehicle_number: vehicle.vehicle_number || "",
-      vehicle_type: vehicle.vehicle_type || "",
-      company: vehicle.company || "",
-      model: vehicle.model || "",
-      seating_capacity: vehicle.seating_capacity ?? null,
-      status: vehicle.status || "Active",
-      last_service_date: vehicle.last_service_date || "",
-      truck_type: vehicle.truck_type ?? null,
-      container_length: vehicle.container_length ?? null,
-      axle_type: vehicle.axle_type ?? null,
-      container_body_type: vehicle.container_body_type ?? null,
-      rc_url: vehicle.rc_url || "",
-      insurance_url: vehicle.insurance_url || "",
-      fc_url: vehicle.fc_url || "",
-      permit_url: vehicle.permit_url || "",
-      pollution_url: vehicle.pollution_url || "",
-      tax_url: vehicle.tax_url || "",
-      expected_kml: vehicle.expected_kml ?? null,
-      tank_capacity: vehicle.tank_capacity ?? null,
-      fuel_type: vehicle.fuel_type || "DIESEL",
-    });
-    setEditErrors({});
-    setEditSubmitError(null);
     setIsEditOpen(true);
-  };
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setEditFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleEditSelectChange = (field: string, value: string) => {
-    setEditFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleUpdateVehicle = async () => {
-    if (!editingVehicle) return;
-
-    const newErrors: {
-      vehicle_number?: string;
-      vehicle_type?: string;
-      truck_type?: string;
-      container_length?: string;
-      axle_type?: string;
-      container_body_type?: string;
-      seating_capacity?: string;
-    } = {};
-    if (
-      !editFormData.vehicle_number ||
-      editFormData.vehicle_number.trim() === ""
-    ) {
-      newErrors.vehicle_number = "Vehicle Number is required";
-    }
-    if (!editFormData.vehicle_type || editFormData.vehicle_type.trim() === "") {
-      newErrors.vehicle_type = "Vehicle Type is required";
-    }
-    if (editFormData.vehicle_type === "TRUCK" && !editFormData.truck_type) {
-      newErrors.truck_type = "Truck Type is required";
-    }
-    if (editFormData.vehicle_type === "CONTAINER") {
-      if (!editFormData.container_length)
-        newErrors.container_length = "Container Length is required";
-      if (!editFormData.axle_type)
-        newErrors.axle_type = "Axle Type is required";
-      if (!editFormData.container_body_type)
-        newErrors.container_body_type = "Body Type is required";
-    }
-
-    if (hasSeatingCapacity(editFormData.vehicle_type)) {
-      if (editFormData.seating_capacity === null || editFormData.seating_capacity === undefined || !Number.isFinite(editFormData.seating_capacity)) {
-        newErrors.seating_capacity = "Seating Capacity is required";
-      }
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setEditErrors(newErrors);
-      return;
-    }
-    setEditErrors({});
-
-    setEditSubmitError(null);
-    setIsSaving(true);
-
-    const payload = {
-      id: editingVehicle.id,
-      ...editFormData,
-      last_service_date: editFormData.last_service_date
-        ? editFormData.last_service_date
-        : null,
-    };
-
-    try {
-      const res = await fetch("/api/vehicles", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        setEditSubmitError(
-          `Failed to update vehicle: ${errorData.error || res.statusText}`,
-        );
-        return;
-      }
-
-      // Refetch to get fresh data from the server
-      await fetchVehicles();
-      setIsEditOpen(false);
-    } catch {
-      setEditSubmitError("Unexpected error updating vehicle.");
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDeleteClick = (vehicle: Vehicle) => {
@@ -443,29 +296,21 @@ export default function VehiclesPage() {
 
     setIsDeleting(true);
     setDeleteError(null);
-    try {
-      const res = await fetch(`/api/vehicles?id=${deletingVehicle.id}`, {
-        method: "DELETE",
-      });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        setDeleteError(
-          `Failed to delete vehicle: ${errorData.error || res.statusText}`,
-        );
-        return;
-      }
+    const result = await deleteVehicle(deletingVehicle.id);
 
-      // Refetch to get fresh data from the server
-      await fetchVehicles();
-
-      setIsDeleteOpen(false);
-      setDeletingVehicle(null);
-    } catch {
-      setDeleteError("Unexpected error deleting vehicle.");
-    } finally {
+    if (!result.success) {
+      setDeleteError(result.error ?? "Unexpected error deleting vehicle.");
       setIsDeleting(false);
+      return;
     }
+
+    // Refetch to get fresh data from the server
+    await fetchVehicles();
+
+    setIsDeleteOpen(false);
+    setDeletingVehicle(null);
+    setIsDeleting(false);
   };
 
   if (authLoading || initialLoading)
@@ -963,468 +808,12 @@ export default function VehiclesPage() {
       </Card>
 
       {/* Edit Vehicle Modal */}
-      <Modal open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <ModalContent className="w-[95vw] max-w-175 p-0 overflow-hidden rounded-xl sm:rounded-2xl">
-          <div className="max-h-[85vh] overflow-y-auto p-4 md:p-6 scrollbar-custom">
-            <ModalHeader>
-              <ModalTitle>Edit Vehicle</ModalTitle>
-              <ModalDescription>
-                Make changes to the vehicle details here. Click save when
-                you&apos;re done.
-              </ModalDescription>
-            </ModalHeader>
-            {editSubmitError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
-                <span>{editSubmitError}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  onClick={() => setEditSubmitError(null)}
-                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 mt-0.5 h-auto w-auto p-1"
-                >
-                  <XIcon size={16} />
-                </Button>
-              </div>
-            )}
-            <div className="grid gap-4 py-4">
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="vehicle_number">
-                    Vehicle Number <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    disabled={isSaving}
-                    id="vehicle_number"
-                    value={editFormData.vehicle_number}
-                    onChange={(e) => {
-                      handleEditChange(e);
-                      if (editErrors.vehicle_number)
-                        setEditErrors((prev) => ({
-                          ...prev,
-                          vehicle_number: undefined,
-                        }));
-                    }}
-                    className={
-                      editErrors.vehicle_number
-                        ? "border-red-500 focus-visible:ring-red-500"
-                        : ""
-                    }
-                  />
-                  {editErrors.vehicle_number && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {editErrors.vehicle_number}
-                    </p>
-                  )}
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="vehicle_type">
-                    Vehicle Type <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    disabled={isSaving}
-                    value={editFormData.vehicle_type}
-                    onValueChange={(value) => {
-                      // Reset sub-fields and seating_capacity when type changes
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        vehicle_type: value,
-                        seating_capacity: null,
-                        truck_type: null,
-                        container_length: null,
-                        axle_type: null,
-                        container_body_type: null,
-                      }));
-                      setEditErrors((prev) => ({
-                        ...prev,
-                        vehicle_type: undefined,
-                        truck_type: undefined,
-                        container_length: undefined,
-                        axle_type: undefined,
-                        container_body_type: undefined,
-                      }));
-                    }}
-                  >
-                    <SelectTrigger
-                      className={
-                        editErrors.vehicle_type
-                          ? "border-red-500 focus:ring-red-500"
-                          : ""
-                      }
-                    >
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VEHICLE_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {editErrors.vehicle_type && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {editErrors.vehicle_type}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Truck sub-field */}
-              {editFormData.vehicle_type === "TRUCK" && (
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="truck_type">
-                    Truck Type <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    disabled={isSaving}
-                    value={editFormData.truck_type ?? ""}
-                    onValueChange={(val) => {
-                      handleEditSelectChange("truck_type", val);
-                      if (editErrors.truck_type)
-                        setEditErrors((prev) => ({
-                          ...prev,
-                          truck_type: undefined,
-                        }));
-                    }}
-                  >
-                    <SelectTrigger
-                      className={
-                        editErrors.truck_type
-                          ? "border-red-500 focus:ring-red-500"
-                          : ""
-                      }
-                    >
-                      <SelectValue placeholder="Select Truck Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TRUCK_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {editErrors.truck_type && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {editErrors.truck_type}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Container sub-fields */}
-              {editFormData.vehicle_type === "CONTAINER" && (
-                <>
-                  <div className={CA_MODAL_GRID}>
-                    <div className={CA_MODAL_LABEL_SPACE}>
-                      <Label htmlFor="container_length">
-                        Container Length <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        disabled={isSaving}
-                        value={editFormData.container_length ?? ""}
-                        onValueChange={(val) => {
-                          handleEditSelectChange("container_length", val);
-                          if (editErrors.container_length)
-                            setEditErrors((prev) => ({
-                              ...prev,
-                              container_length: undefined,
-                            }));
-                        }}
-                      >
-                        <SelectTrigger
-                          className={
-                            editErrors.container_length
-                              ? "border-red-500 focus:ring-red-500"
-                              : ""
-                          }
-                        >
-                          <SelectValue placeholder="Select Length" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CONTAINER_LENGTHS.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {editErrors.container_length && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {editErrors.container_length}
-                        </p>
-                      )}
-                    </div>
-                    <div className={CA_MODAL_LABEL_SPACE}>
-                      <Label htmlFor="axle_type">
-                        Axle Type <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        disabled={isSaving}
-                        value={editFormData.axle_type ?? ""}
-                        onValueChange={(val) => {
-                          handleEditSelectChange("axle_type", val);
-                          if (editErrors.axle_type)
-                            setEditErrors((prev) => ({
-                              ...prev,
-                              axle_type: undefined,
-                            }));
-                        }}
-                      >
-                        <SelectTrigger
-                          className={
-                            editErrors.axle_type
-                              ? "border-red-500 focus:ring-red-500"
-                              : ""
-                          }
-                        >
-                          <SelectValue placeholder="Select Axle Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {AXLE_TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {editErrors.axle_type && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {editErrors.axle_type}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className={CA_MODAL_LABEL_SPACE}>
-                    <Label htmlFor="container_body_type">
-                      Body Type <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      disabled={isSaving}
-                      value={editFormData.container_body_type ?? ""}
-                      onValueChange={(val) => {
-                        handleEditSelectChange("container_body_type", val);
-                        if (editErrors.container_body_type)
-                          setEditErrors((prev) => ({
-                            ...prev,
-                            container_body_type: undefined,
-                          }));
-                      }}
-                    >
-                      <SelectTrigger
-                        className={
-                          editErrors.container_body_type
-                            ? "border-red-500 focus:ring-red-500"
-                            : ""
-                        }
-                      >
-                        <SelectValue placeholder="Select Body Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CONTAINER_BODY_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {editErrors.container_body_type && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {editErrors.container_body_type}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    disabled={isSaving}
-                    id="company"
-                    value={editFormData.company}
-                    onChange={handleEditChange}
-                  />
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="model">Model</Label>
-                  <Input
-                    disabled={isSaving}
-                    id="model"
-                    value={editFormData.model}
-                    onChange={handleEditChange}
-                  />
-                </div>
-              </div>
-
-              {/* Seating Capacity — only for Car / Bus / Tempo Traveller */}
-              {hasSeatingCapacity(editFormData.vehicle_type) && (
-                <div className={CA_MODAL_GRID}>
-                  <div className={CA_MODAL_LABEL_SPACE}>
-                    <Label htmlFor="seating_capacity">
-                      Seating Capacity <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      disabled={isSaving}
-                      id="seating_capacity"
-                      type="number"
-                      placeholder="e.g. 40"
-                      min="1"
-                      value={editFormData.seating_capacity?.toString() ?? ""}
-                      onChange={(e) => {
-                        setEditFormData((prev) => ({
-                          ...prev,
-                          seating_capacity: e.target.value ? parseInt(e.target.value, 10) : null,
-                        }));
-                        if (editErrors.seating_capacity) {
-                          setEditErrors((prev) => ({ ...prev, seating_capacity: undefined }));
-                        }
-                      }}
-                      onWheel={(e) => e.currentTarget.blur()}
-                      className={editErrors.seating_capacity ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    />
-                    {editErrors.seating_capacity && (
-                      <p className="text-xs text-red-500 mt-1">{editErrors.seating_capacity}</p>
-                    )}
-                  </div>
-                  <div className={CA_MODAL_LABEL_SPACE}>
-                    <Label htmlFor="last_service_date">Last Service Date</Label>
-                    <Input
-                      disabled={isSaving}
-                      id="last_service_date"
-                      type="date"
-                      value={editFormData.last_service_date || ""}
-                      onChange={handleEditChange}
-                    />
-                  </div>
-                </div>
-              )}
-              {/* Last Service Date standalone when no seating capacity */}
-              {!hasSeatingCapacity(editFormData.vehicle_type) &&
-                editFormData.vehicle_type !== "" && (
-                  <div className={CA_MODAL_GRID}>
-                    <div className={CA_MODAL_LABEL_SPACE}>
-                      <Label htmlFor="last_service_date">
-                        Last Service Date
-                      </Label>
-                      <Input
-                        disabled={isSaving}
-                        id="last_service_date"
-                        type="date"
-                        value={editFormData.last_service_date || ""}
-                        onChange={handleEditChange}
-                      />
-                    </div>
-                  </div>
-                )}
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    disabled={isSaving}
-                    value={editFormData.status}
-                    onValueChange={(value) =>
-                      handleEditSelectChange("status", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Maintenance">Maintenance</SelectItem>
-                      <SelectItem value="Idle">Idle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="fuel_type">Fuel Type</Label>
-                  <Select
-                    disabled={isSaving}
-                    value={editFormData.fuel_type || "DIESEL"}
-                    onValueChange={(value) =>
-                      handleEditSelectChange("fuel_type", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Fuel Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FUEL_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="expected_kml">Expected Km/L</Label>
-                  <Input
-                    disabled={isSaving}
-                    id="expected_kml"
-                    type="number"
-                    placeholder="e.g. 4.5"
-                    step="0.01"
-                    min="0"
-                    value={editFormData.expected_kml ?? ""}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        expected_kml: e.target.value
-                          ? parseFloat(e.target.value)
-                          : null,
-                      }))
-                    }
-                    onWheel={(e) => e.currentTarget.blur()}
-                  />
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-                  <Input
-                    disabled={isSaving}
-                    id="tank_capacity"
-                    type="number"
-                    placeholder="e.g. 200"
-                    step="0.01"
-                    min="0"
-                    value={editFormData.tank_capacity ?? ""}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        tank_capacity: e.target.value
-                          ? parseFloat(e.target.value)
-                          : null,
-                      }))
-                    }
-                    onWheel={(e) => e.currentTarget.blur()}
-                  />
-                </div>
-              </div>
-            </div>
-            <ModalFooter>
-              <Button
-                type="submit"
-                onClick={handleUpdateVehicle}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                ) : (
-                  <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
-                )}
-                {isSaving ? "Saving..." : "Save changes"}
-              </Button>
-            </ModalFooter>
-          </div>
-        </ModalContent>
-      </Modal>
+      <EditVehicleModal
+        isOpen={isEditOpen}
+        vehicle={editingVehicle}
+        onClose={() => setIsEditOpen(false)}
+        onSuccess={fetchVehiclesRefetch}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

@@ -1,26 +1,29 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { CreateVehicleModalProps } from "./createVehicleModal.types";
+import { EditVehicleModalProps } from "./editVehicleModal.types";
+import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { SaveIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import { VehicleFormFields } from "@/components/vehicleFormFields";
 import { useVehicleForm } from "@/hooks/useVehicleForm";
-import { createVehicle } from "@/services/vehiclesService";
+import { updateVehicle } from "@/services/vehiclesService";
 
 /**
- * Inner form component that mounts/unmounts with modal visibility.
- * This ensures form state is naturally reset on each open — no useEffect needed.
+ * Inner form — mounts/unmounts with modal visibility so form state resets
+ * naturally on each open (same pattern as CreateVehicleModal).
  */
-const CreateVehicleForm: React.FC<{
+const EditVehicleForm: React.FC<{
+  vehicle: Vehicle;
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
-}> = ({ onClose, onSuccess }) => {
+}> = ({ vehicle, onClose, onSuccess }) => {
   const { formData, errors, submitError, loading, handleChange, handleSelectChange, handleVehicleTypeChange, handleNumberChange, handleSubmit } =
     useVehicleForm({
-      onSubmit: createVehicle,
+      initialVehicle: vehicle,
+      onSubmit: (payload) => updateVehicle(vehicle.id, payload),
       onSuccess: async () => {
         await onSuccess();
         onClose();
@@ -33,17 +36,16 @@ const CreateVehicleForm: React.FC<{
 
   return (
     <div className="w-full">
-      {/* Scrollable Form Content */}
       <div className="space-y-6 sm:mt-2">
         <div className="mb-2 pr-8">
           <h2
-            id="create-vehicle-title"
+            id="edit-vehicle-title"
             className="text-xl sm:text-2xl font-bold tracking-tight"
           >
-            Add New Vehicle
+            Edit Vehicle
           </h2>
           <p className="text-sm text-muted-foreground hidden sm:block mt-1">
-            Register a new vehicle to the fleet.
+            Make changes to the vehicle details here.
           </p>
         </div>
         {submitError && (
@@ -60,20 +62,13 @@ const CreateVehicleForm: React.FC<{
           onSelectChange={handleSelectChange}
           onVehicleTypeChange={handleVehicleTypeChange}
           onNumberChange={handleNumberChange}
-          testIdPrefix="components-createVehicleModal-createVehicleModal"
+          testIdPrefix="components-editVehicleModal-editVehicleModal"
         />
-
-        <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mt-2">
-          <strong>Note:</strong> You will be able to securely upload PDF and
-          Image documents (RC, FC, Insurance, etc.) to Supabase Storage by
-          clicking &quot;Manage Docs&quot; on the main vehicle table after
-          successfully creating this vehicle entry.
-        </div>
 
         {/* Footer Buttons */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 border-t mt-4">
           <Button
-            data-testid="components-createVehicleModal-createVehicleModal-button-1"
+            data-testid="components-editVehicleModal-editVehicleModal-button-1"
             variant="outline"
             onClick={handleClose}
             disabled={loading}
@@ -82,7 +77,7 @@ const CreateVehicleForm: React.FC<{
             Cancel
           </Button>
           <Button
-            data-testid="components-createVehicleModal-createVehicleModal-button-2"
+            data-testid="components-editVehicleModal-editVehicleModal-button-2"
             onClick={handleSubmit}
             disabled={loading}
             className="w-full sm:w-auto"
@@ -92,7 +87,7 @@ const CreateVehicleForm: React.FC<{
             ) : (
               <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
             )}
-            {loading ? "Saving..." : "Save Vehicle"}
+            {loading ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </div>
@@ -101,23 +96,32 @@ const CreateVehicleForm: React.FC<{
 };
 
 /**
- * Wrapper that conditionally mounts/unmounts the form.
- * This pattern avoids useEffect-based state resets entirely.
+ * Wrapper — conditionally mounts/unmounts the form. Mirrors CreateVehicleModal
+ * so the two flows share the same chrome instead of drifting (the previous
+ * inline edit modal used a different Modal/ModalHeader/ModalFooter layout and
+ * had no Cancel button).
  */
-const CreateVehicleModal: React.FC<CreateVehicleModalProps> = ({
+const EditVehicleModal: React.FC<EditVehicleModalProps> = ({
   isOpen,
+  vehicle,
   onClose,
   onSuccess,
 }) => {
   return (
-    <Modal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Modal open={isOpen && !!vehicle} onOpenChange={(open) => !open && onClose()}>
       <ModalContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
         <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
-          <CreateVehicleForm onClose={onClose} onSuccess={onSuccess} />
+          {vehicle && (
+            <EditVehicleForm
+              vehicle={vehicle}
+              onClose={onClose}
+              onSuccess={onSuccess}
+            />
+          )}
         </div>
       </ModalContent>
     </Modal>
   );
 };
 
-export default CreateVehicleModal;
+export default EditVehicleModal;
