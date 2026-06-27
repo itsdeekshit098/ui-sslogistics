@@ -817,8 +817,8 @@ export default function VehiclesPage() {
 
       {/* Delete Confirmation Modal */}
       <Modal open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <ModalContent className="max-w-md rounded-xl sm:rounded-2xl">
-          <div className="flex flex-col items-center space-y-2 text-center">
+        <ModalContent className="max-w-md p-6 rounded-xl sm:rounded-2xl">
+          <div className="flex flex-col items-center space-y-4 text-center">
             <div className="rounded-full bg-red-100 p-3">
               <Trash2Icon size={24} className="text-red-600" />
             </div>
