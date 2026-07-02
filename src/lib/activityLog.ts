@@ -21,6 +21,10 @@ export type AuditAction =
   | "CREATE_DRIVER"
   | "UPDATE_DRIVER"
   | "DELETE_DRIVER"
+  // Vehicle Owners
+  | "CREATE_VEHICLE_OWNER"
+  | "UPDATE_VEHICLE_OWNER"
+  | "DELETE_VEHICLE_OWNER"
   // External Trips
   | "CREATE_EXTERNAL_TRIP"
   | "UPDATE_EXTERNAL_TRIP"

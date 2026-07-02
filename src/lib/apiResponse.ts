@@ -15,19 +15,25 @@ export function apiSuccess<T>(
   return NextResponse.json({ success: true, data, message }, { status });
 }
 
-export function apiError(error: string, status = 500): NextResponse {
-  return NextResponse.json({ success: false, error }, { status });
+export function apiError(error: string, status = 500, code?: string): NextResponse {
+  return NextResponse.json({ success: false, error, ...(code ? { code } : {}) }, { status });
 }
 
 /**
  * Catch-all handler for route-level try/catch blocks.
  * Maps auth errors to 401/403 and everything else to a generic 500
  * so internal details are never leaked to the client.
+ *
+ * 401s are tagged with code "SESSION_INVALID" so clients (particularly
+ * the mobile app, which has no other way to distinguish this) can tell
+ * "your session no longer exists" (e.g. revoked by a login elsewhere)
+ * apart from other failure modes and react accordingly (force logout +
+ * redirect to login) instead of treating it like a generic/retryable error.
  */
 export function handleApiError(err: unknown): NextResponse {
   if (err instanceof Error) {
     if (err.message.startsWith("UNAUTHORIZED")) {
-      return apiError("Unauthorized", 401);
+      return apiError("Unauthorized", 401, "SESSION_INVALID");
     }
     if (err.message.startsWith("FORBIDDEN")) {
       return apiError("Forbidden", 403);

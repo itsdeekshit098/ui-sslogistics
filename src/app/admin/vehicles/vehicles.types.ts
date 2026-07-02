@@ -61,6 +61,22 @@ export const SEATING_CAPACITY_TYPES: VehicleType[] = [
   "TEMPO_TRAVELLER",
 ];
 
+/** Matches the check constraint on `vehicles.owner_type` and `vehicle_owners.owner_type` */
+export const OWNER_TYPES = [
+  { value: "OWN", label: "Own" },
+  { value: "EXTERNAL", label: "External" },
+] as const;
+
+export type OwnerType = (typeof OWNER_TYPES)[number]["value"];
+
+/** A row from the `vehicle_owners` lookup table, used to populate the Owner Name dropdown. */
+export interface VehicleOwner {
+  id: number;
+  name: string;
+  owner_type: OwnerType;
+  created_at?: string;
+}
+
 export interface Vehicle {
   id: number;
   vehicle_number: string;
@@ -89,6 +105,9 @@ export interface Vehicle {
   tank_capacity?: number | null;
   /** Matches fuel_type_enum in DB — always UPPERCASE */
   fuel_type?: FuelType;
+  // Ownership
+  owner_type?: OwnerType | null;
+  owner_name?: string | null;
   created_at?: string;
   updated_at?: string;
 }

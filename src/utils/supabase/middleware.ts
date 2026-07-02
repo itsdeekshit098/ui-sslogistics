@@ -50,7 +50,12 @@ export async function updateSession(request: NextRequest) {
   if ((isAdminRoute || isApiRoute) && !isPublicAuthRoute) {
     if (!user) {
       if (isApiRoute) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        // code SESSION_INVALID lets clients (mobile app) distinguish a
+        // revoked/expired session from other errors and force a re-login
+        return NextResponse.json(
+          { success: false, error: "Unauthorized", code: "SESSION_INVALID" },
+          { status: 401 },
+        );
       }
       // Not logged in -> Redirect to /login
       const url = request.nextUrl.clone();

@@ -15,6 +15,8 @@ export type VehicleFormErrors = {
   axle_type?: string;
   container_body_type?: string;
   seating_capacity?: string;
+  owner_type?: string;
+  owner_name?: string;
 };
 
 export type VehicleFormData = Omit<Vehicle, "id">;
@@ -35,6 +37,12 @@ export function validateVehicleForm(
   }
   if (!formData.vehicle_type || formData.vehicle_type.trim() === "") {
     errors.vehicle_type = "Vehicle Type is required";
+  }
+  if (!formData.owner_type) {
+    errors.owner_type = "Owner Type is required";
+  }
+  if (!formData.owner_name || formData.owner_name.trim() === "") {
+    errors.owner_name = "Owner Name is required";
   }
   if (formData.vehicle_type === "TRUCK" && !formData.truck_type) {
     errors.truck_type = "Truck Type is required";

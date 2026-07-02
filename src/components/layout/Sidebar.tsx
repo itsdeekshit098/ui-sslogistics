@@ -21,6 +21,7 @@ import {
   RouteIcon,
   ShieldIcon,
   PackageIcon,
+  UserIcon,
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
@@ -68,6 +69,12 @@ const sidebarItems = [
     enabled: true,
   },
   { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
+  {
+    name: "Vehicle Owners",
+    href: "/admin/vehicle-owners",
+    icon: UserIcon,
+    enabled: true,
+  },
   {
     name: "External Trips",
     href: "/admin/external-trips",

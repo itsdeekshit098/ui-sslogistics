@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { LogOutIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -23,8 +21,6 @@ import * as styles from "./signOutButton.style";
 const SignOutButton: React.FC<SignOutButtonProps> = ({
   variant = "desktop",
 }) => {
-  const router = useRouter();
-  const { refreshSession } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +41,11 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
 
       if (!res.ok || !json.success) throw new Error(json.error || "Sign out failed");
 
-      await refreshSession();
-      router.push("/");
-      router.refresh();
+      // Hard navigation instead of refreshSession + SPA push: clearing the
+      // user in-place would trip the admin layout's session-expired redirect
+      // and show the "signed in on another device" banner after a voluntary
+      // sign-out. A full page load resets auth state cleanly.
+      window.location.assign("/login");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to sign out. Please try again.";

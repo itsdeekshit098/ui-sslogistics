@@ -18,7 +18,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return apiError("Not authenticated", 401);
+      return apiError("Not authenticated", 401, "SESSION_INVALID");
     }
 
     return apiSuccess({

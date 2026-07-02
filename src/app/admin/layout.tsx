@@ -22,7 +22,16 @@ export default function AdminLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, refreshSession } = useAuth();
+  const { user, loading, refreshSession } = useAuth();
+
+  // If the session disappears while inside the admin area (revoked by a
+  // login on another device, expired, etc.), route to /login immediately
+  // instead of leaving an empty dashboard shell until the next hard reload.
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login?reason=session_expired");
+    }
+  }, [loading, user, router]);
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);

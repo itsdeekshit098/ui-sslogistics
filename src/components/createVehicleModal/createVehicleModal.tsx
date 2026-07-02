@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
 import { SaveIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import { VehicleFormFields } from "@/components/vehicleFormFields";
+import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
 import { useVehicleForm } from "@/hooks/useVehicleForm";
+import { useVehicleOwners } from "@/hooks/useVehicleOwners";
 import { createVehicle } from "@/services/vehiclesService";
+import { VehicleOwner } from "@/app/admin/vehicles/vehicles.types";
 
 /**
  * Inner form component that mounts/unmounts with modal visibility.
@@ -18,7 +21,7 @@ const CreateVehicleForm: React.FC<{
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
 }> = ({ onClose, onSuccess }) => {
-  const { formData, errors, submitError, loading, handleChange, handleSelectChange, handleVehicleTypeChange, handleNumberChange, handleSubmit } =
+  const { formData, errors, submitError, loading, handleChange, handleSelectChange, handleVehicleTypeChange, handleOwnerTypeChange, handleNumberChange, handleSubmit } =
     useVehicleForm({
       onSubmit: createVehicle,
       onSuccess: async () => {
@@ -26,6 +29,18 @@ const CreateVehicleForm: React.FC<{
         onClose();
       },
     });
+
+  const { owners, addOwner } = useVehicleOwners();
+  const [showAddOwner, setShowAddOwner] = useState(false);
+
+  const handleOwnerAdded = useCallback((newOwner: VehicleOwner) => {
+    addOwner(newOwner);
+    // Adopt the new owner's type too — it can be changed inside the add-owner
+    // modal, and syncing only the name would persist a mismatched pair.
+    handleSelectChange("owner_type", newOwner.owner_type);
+    handleSelectChange("owner_name", newOwner.name);
+    setShowAddOwner(false);
+  }, [addOwner, handleSelectChange]);
 
   const handleClose = useCallback(() => {
     if (!loading) onClose();
@@ -56,11 +71,21 @@ const CreateVehicleForm: React.FC<{
           formData={formData}
           errors={errors}
           disabled={loading}
+          owners={owners}
           onChange={handleChange}
           onSelectChange={handleSelectChange}
           onVehicleTypeChange={handleVehicleTypeChange}
+          onOwnerTypeChange={handleOwnerTypeChange}
           onNumberChange={handleNumberChange}
+          onAddOwnerClick={() => setShowAddOwner(true)}
           testIdPrefix="components-createVehicleModal-createVehicleModal"
+        />
+
+        <AddVehicleOwnerModal
+          isOpen={showAddOwner}
+          defaultOwnerType={formData.owner_type}
+          onClose={() => setShowAddOwner(false)}
+          onSuccess={handleOwnerAdded}
         />
 
         <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mt-2">

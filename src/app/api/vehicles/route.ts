@@ -21,10 +21,53 @@ const ALLOWED_VEHICLE_FIELDS = [
   "container_length",
   "axle_type",
   "container_body_type",
+  "owner_type",
+  "owner_name",
 ] as const;
 
 const SEATING_CAPACITY_VEHICLE_TYPES = ["CAR", "BUS", "TEMPO_TRAVELLER"] as const;
 const VALID_FUEL_TYPES = ["DIESEL", "PETROL", "CNG", "LPG", "ELECTRIC", "HYBRID", "LNG"] as const;
+const VALID_OWNER_TYPES = ["OWN", "EXTERNAL"] as const;
+
+/**
+ * Owner fields are optional at the API level so older mobile builds and
+ * legacy vehicle rows (NULL owner columns) keep working; the web/mobile forms
+ * enforce them as required. When an owner_name IS supplied it must exist in
+ * vehicle_owners, and owner_type is derived from that row so the pair can
+ * never be persisted inconsistently. Returns an error response or null,
+ * normalizing body.owner_type / body.owner_name in place.
+ */
+async function validateOwnerFields(body: Record<string, unknown>): Promise<Response | null> {
+  if (body.owner_name !== undefined && body.owner_name !== null) {
+    const ownerName = String(body.owner_name).trim();
+    if (ownerName === "") {
+      return apiError("Owner Name cannot be empty", 400);
+    }
+    const { data: owner, error } = await supabaseAdmin
+      .from("vehicle_owners")
+      .select("owner_type")
+      .eq("name", ownerName)
+      .maybeSingle();
+    if (error) {
+      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+      return apiError("Internal server error", 500);
+    }
+    if (!owner) {
+      return apiError("Unknown Owner Name — add the owner first", 400);
+    }
+    if (body.owner_type != null && body.owner_type !== owner.owner_type) {
+      return apiError("Owner Type does not match the selected owner", 400);
+    }
+    body.owner_name = ownerName;
+    body.owner_type = owner.owner_type;
+  } else if (
+    body.owner_type != null &&
+    !(VALID_OWNER_TYPES as readonly string[]).includes(String(body.owner_type))
+  ) {
+    return apiError(`Invalid owner type. Allowed values: ${VALID_OWNER_TYPES.join(", ")}`, 400);
+  }
+  return null;
+}
 
 function pickAllowedFields(body: Record<string, unknown>) {
   const picked: Record<string, unknown> = {};
@@ -58,6 +101,9 @@ export async function GET(req: Request) {
     const search = searchParams.get("search")?.trim() ?? "";
     const type = searchParams.get("type")?.trim() ?? "";
     const status = searchParams.get("status")?.trim() ?? "";
+    const ownerType = searchParams.get("ownerType")?.trim() ?? "";
+    const ownerName = searchParams.get("ownerName")?.trim() ?? "";
+    const fuelType = searchParams.get("fuelType")?.trim() ?? "";
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -78,6 +124,15 @@ export async function GET(req: Request) {
     if (status) {
       query = query.eq("status", status);
     }
+    if (ownerType) {
+      query = query.eq("owner_type", ownerType);
+    }
+    if (ownerName) {
+      query = query.eq("owner_name", ownerName);
+    }
+    if (fuelType) {
+      query = query.eq("fuel_type", fuelType);
+    }
 
     query = query.range(from, to);
 
@@ -88,13 +143,19 @@ export async function GET(req: Request) {
       return apiError("Internal server error", 500);
     }
 
-    // Stats — get aggregated counts via RPC for optimization
+    // Stats — get aggregated counts via RPC for optimization. Requires
+    // sql/18_extend_get_vehicles_summary_filters.sql applied in
+    // Supabase (adds p_owner_type/p_owner_name/p_fuel_type, all optional)
+    // so the tiles reflect every active filter, not just search/type/status.
     const { data: statsData, error: statsError } = await supabaseAdmin.rpc(
       "get_vehicles_summary",
       {
         p_search: search || null,
         p_type: type || null,
         p_status: status || null,
+        p_owner_type: ownerType || null,
+        p_owner_name: ownerName || null,
+        p_fuel_type: fuelType || null,
       }
     );
 
@@ -147,6 +208,8 @@ export async function POST(req: Request) {
     if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
       return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
+    const ownerError = await validateOwnerFields(body);
+    if (ownerError) return ownerError;
 
     const payload = pickAllowedFields(body);
 
@@ -221,6 +284,8 @@ export async function PUT(req: Request) {
     if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
       return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
+    const ownerError = await validateOwnerFields(body);
+    if (ownerError) return ownerError;
 
     const updatePayload = pickAllowedFields(body);
     updatePayload.updated_by = authUser.id;

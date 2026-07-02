@@ -95,6 +95,17 @@ export function useVehicleForm({
     }));
   }, []);
 
+  /** Changing the owner type invalidates the previously-selected owner name. */
+  const handleOwnerTypeChange = useCallback((value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      owner_type: value as VehicleFormData["owner_type"],
+      owner_name: null,
+    }));
+    clearFieldError("owner_type");
+    clearFieldError("owner_name");
+  }, [clearFieldError]);
+
   const handleNumberChange = useCallback(
     (field: NumericVehicleField, rawValue: string, isFloat = false) => {
       setFormData((prev) => ({
@@ -145,6 +156,7 @@ export function useVehicleForm({
     handleChange,
     handleSelectChange,
     handleVehicleTypeChange,
+    handleOwnerTypeChange,
     handleNumberChange,
     handleSubmit,
     clearSubmitError: () => setSubmitError(null),

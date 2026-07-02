@@ -22,8 +22,13 @@ const AuthContext = createContext<AuthContextType>({
   refreshSession: async () => {},
 });
 
-/** Only refetch on visibilitychange if at least this many ms have elapsed. */
-const STALE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+/**
+ * Only refetch on visibilitychange if at least this many ms have elapsed.
+ * Kept short so a session revoked elsewhere (single-login enforcement) is
+ * detected promptly when the user returns to the tab, while still avoiding
+ * a request storm from rapid tab switching.
+ */
+const STALE_THRESHOLD_MS = 15 * 1000; // 15 seconds
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);

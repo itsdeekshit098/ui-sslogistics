@@ -7,6 +7,7 @@ import {
   AXLE_TYPES,
   CONTAINER_BODY_TYPES,
   SEATING_CAPACITY_TYPES,
+  OWNER_TYPES,
 } from "./vehicles.types";
 
 /** Strips spaces and lowercases for case-insensitive matching. */
@@ -118,7 +119,16 @@ export const getDefaultVehicleFormData = (): Omit<Vehicle, "id"> => ({
   expected_kml: null,
   tank_capacity: null,
   fuel_type: "DIESEL",
+  owner_type: null,
+  owner_name: null,
 });
+
+/** Returns the display label for a given owner_type value (e.g. "EXTERNAL" → "External"). */
+export const getOwnerTypeLabel = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  const found = OWNER_TYPES.find((t) => t.value === value);
+  return found?.label ?? value;
+};
 
 /** Returns the display label for a given truck_type value (e.g. "MINI_TRUCK" → "Mini Truck"). */
 export const getTruckTypeLabel = (value: string | null | undefined): string => {

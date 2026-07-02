@@ -29,11 +29,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Vehicle, VehicleType, VEHICLE_TYPES } from "./vehicles.types";
+import {
+  Vehicle,
+  VehicleType,
+  VEHICLE_TYPES,
+  FUEL_TYPES,
+  OWNER_TYPES,
+} from "./vehicles.types";
+import { useVehicleOwners } from "@/hooks/useVehicleOwners";
 import {
   getStatusBadgeVariant,
   getVehicleTypeLabel,
   getVehicleSubDetail,
+  getOwnerTypeLabel,
 } from "./vehicles.utils";
 import HighlightMatch from "./highlightMatch";
 import * as styles from "./vehiclesPage.style";
@@ -97,19 +105,40 @@ export default function VehiclesPage() {
   const [statusFilter, setStatusFilter] = useState<string>(
     searchParams.get("status") || "",
   );
+  const [ownerTypeFilter, setOwnerTypeFilter] = useState<string>(
+    searchParams.get("ownerType") || "",
+  );
+  const [ownerNameFilter, setOwnerNameFilter] = useState<string>(
+    searchParams.get("ownerName") || "",
+  );
+  const [fuelTypeFilter, setFuelTypeFilter] = useState<string>(
+    searchParams.get("fuelType") || "",
+  );
   const [drawerFilters, setDrawerFilters] = useState<{
     type: VehicleType | "all";
     status: string;
+    ownerType: string;
+    ownerName: string;
+    fuelType: string;
   }>({
     type: (searchParams.get("type") as VehicleType | "all") || "all",
     status: searchParams.get("status") || "",
+    ownerType: searchParams.get("ownerType") || "",
+    ownerName: searchParams.get("ownerName") || "",
+    fuelType: searchParams.get("fuelType") || "",
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { owners } = useVehicleOwners();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasActiveFilters =
-    searchQuery !== "" || typeFilter !== "all" || statusFilter !== "";
+    searchQuery !== "" ||
+    typeFilter !== "all" ||
+    statusFilter !== "" ||
+    ownerTypeFilter !== "" ||
+    ownerNameFilter !== "" ||
+    fuelTypeFilter !== "";
 
   // ─── URL sync ───
   const syncUrl = useCallback(
@@ -119,6 +148,9 @@ export default function VehiclesPage() {
       search: string,
       type: VehicleType | "all",
       status: string,
+      ownerType: string,
+      ownerName: string,
+      fuelType: string,
     ) => {
       const params = new URLSearchParams();
       if (p > 1) params.set("page", String(p));
@@ -126,6 +158,9 @@ export default function VehiclesPage() {
       if (search) params.set("search", search);
       if (type !== "all") params.set("type", type);
       if (status) params.set("status", status);
+      if (ownerType) params.set("ownerType", ownerType);
+      if (ownerName) params.set("ownerName", ownerName);
+      if (fuelType) params.set("fuelType", fuelType);
       const qs = params.toString();
       router.replace(`/admin/vehicles${qs ? `?${qs}` : ""}`, {
         scroll: false,
@@ -142,17 +177,23 @@ export default function VehiclesPage() {
       overrideSearch?: string;
       overrideType?: VehicleType | "all";
       overrideStatus?: string;
+      overrideOwnerType?: string;
+      overrideOwnerName?: string;
+      overrideFuelType?: string;
     }) => {
       const p = opts?.overridePage ?? page;
       const ps = opts?.overridePageSize ?? pageSize;
       const search = opts?.overrideSearch ?? debouncedQuery;
       const type = opts?.overrideType ?? typeFilter;
       const st = opts?.overrideStatus ?? statusFilter;
+      const ot = opts?.overrideOwnerType ?? ownerTypeFilter;
+      const on = opts?.overrideOwnerName ?? ownerNameFilter;
+      const ft = opts?.overrideFuelType ?? fuelTypeFilter;
 
       setLoading(true);
       setFetchError(null);
       // Optimistic URL sync
-      syncUrl(p, ps, search, type, st);
+      syncUrl(p, ps, search, type, st, ot, on, ft);
 
       try {
         const params = new URLSearchParams({
@@ -162,6 +203,9 @@ export default function VehiclesPage() {
         if (search) params.set("search", search);
         if (type !== "all") params.set("type", type);
         if (st) params.set("status", st);
+        if (ot) params.set("ownerType", ot);
+        if (on) params.set("ownerName", on);
+        if (ft) params.set("fuelType", ft);
 
         const res = await fetch(`/api/vehicles?${params}`);
         if (!res.ok) throw new Error("Failed to fetch");
@@ -178,6 +222,9 @@ export default function VehiclesPage() {
         setDebouncedQuery(search);
         setTypeFilter(type);
         setStatusFilter(st);
+        setOwnerTypeFilter(ot);
+        setOwnerNameFilter(on);
+        setFuelTypeFilter(ft);
       } catch {
         setFetchError(
           "We couldn\u2019t load your vehicles. Please check your connection and try again.",
@@ -187,7 +234,17 @@ export default function VehiclesPage() {
         setInitialLoading(false);
       }
     },
-    [page, pageSize, debouncedQuery, typeFilter, statusFilter, syncUrl],
+    [
+      page,
+      pageSize,
+      debouncedQuery,
+      typeFilter,
+      statusFilter,
+      ownerTypeFilter,
+      ownerNameFilter,
+      fuelTypeFilter,
+      syncUrl,
+    ],
   );
 
   // Initial fetch on mount
@@ -216,18 +273,30 @@ export default function VehiclesPage() {
 
   // ─── Filter/page change handlers (all atomic, no cascading effects) ───
   const openDrawer = () => {
-    setDrawerFilters({ type: typeFilter, status: statusFilter });
+    setDrawerFilters({
+      type: typeFilter,
+      status: statusFilter,
+      ownerType: ownerTypeFilter,
+      ownerName: ownerNameFilter,
+      fuelType: fuelTypeFilter,
+    });
     setIsDrawerOpen(true);
   };
 
   const applyDrawerFilters = () => {
     setTypeFilter(drawerFilters.type);
     setStatusFilter(drawerFilters.status);
+    setOwnerTypeFilter(drawerFilters.ownerType);
+    setOwnerNameFilter(drawerFilters.ownerName);
+    setFuelTypeFilter(drawerFilters.fuelType);
     setPage(1);
     setIsDrawerOpen(false);
     fetchVehicles({
       overrideType: drawerFilters.type,
       overrideStatus: drawerFilters.status,
+      overrideOwnerType: drawerFilters.ownerType,
+      overrideOwnerName: drawerFilters.ownerName,
+      overrideFuelType: drawerFilters.fuelType,
       overridePage: 1,
     });
   };
@@ -236,13 +305,25 @@ export default function VehiclesPage() {
     setSearchQuery("");
     setTypeFilter("all");
     setStatusFilter("");
-    setDrawerFilters({ type: "all", status: "" });
+    setOwnerTypeFilter("");
+    setOwnerNameFilter("");
+    setFuelTypeFilter("");
+    setDrawerFilters({
+      type: "all",
+      status: "",
+      ownerType: "",
+      ownerName: "",
+      fuelType: "",
+    });
     setIsDrawerOpen(false);
     setPage(1);
     fetchVehicles({
       overrideSearch: "",
       overrideType: "all",
       overrideStatus: "",
+      overrideOwnerType: "",
+      overrideOwnerName: "",
+      overrideFuelType: "",
       overridePage: 1,
     });
   }, [fetchVehicles]);
@@ -485,10 +566,17 @@ export default function VehiclesPage() {
               >
                 <SlidersHorizontalIcon size={16} />
                 Filters
-                {(typeFilter !== "all" || statusFilter !== "") && (
+                {(typeFilter !== "all" ||
+                  statusFilter !== "" ||
+                  ownerTypeFilter !== "" ||
+                  ownerNameFilter !== "" ||
+                  fuelTypeFilter !== "") && (
                   <span style={styles.activeFilterBadge}>
                     {(typeFilter !== "all" ? 1 : 0) +
-                      (statusFilter !== "" ? 1 : 0)}
+                      (statusFilter !== "" ? 1 : 0) +
+                      (ownerTypeFilter !== "" ? 1 : 0) +
+                      (ownerNameFilter !== "" ? 1 : 0) +
+                      (fuelTypeFilter !== "" ? 1 : 0)}
                   </span>
                 )}
               </Button>
@@ -561,17 +649,22 @@ export default function VehiclesPage() {
                             query={debouncedQuery}
                           />
                         </span>
-                        <Badge
-                          variant={
-                            getStatusBadgeVariant(vehicle.status) as
-                              | "default"
-                              | "destructive"
-                              | "secondary"
-                              | "outline"
-                          }
-                        >
-                          {vehicle.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          {vehicle.owner_type === "EXTERNAL" && (
+                            <Badge variant="outline">External</Badge>
+                          )}
+                          <Badge
+                            variant={
+                              getStatusBadgeVariant(vehicle.status) as
+                                | "default"
+                                | "destructive"
+                                | "secondary"
+                                | "outline"
+                            }
+                          >
+                            {vehicle.status}
+                          </Badge>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         {vehicle.vehicle_type === "BUS" ? (
@@ -701,6 +794,16 @@ export default function VehiclesPage() {
                   key: "model",
                   header: "Model",
                   cell: (row) => `${row.company} ${row.model}`,
+                },
+                {
+                  key: "owner_type",
+                  header: "Owner Type",
+                  cell: (row) => getOwnerTypeLabel(row.owner_type),
+                },
+                {
+                  key: "owner_name",
+                  header: "Owner Name",
+                  cell: (row) => row.owner_name || "—",
                 },
                 {
                   key: "details",
@@ -953,6 +1056,95 @@ export default function VehiclesPage() {
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Maintenance">Maintenance</SelectItem>
               <SelectItem value="Idle">Idle</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Fuel</Label>
+          <Select
+            value={drawerFilters.fuelType || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                fuelType: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Fuel Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Fuel Types</SelectItem>
+              {FUEL_TYPES.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Owner Type</Label>
+          <Select
+            value={drawerFilters.ownerType || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                ownerType: v === "all" ? "" : v,
+                // Clear a name that no longer belongs to the newly chosen type.
+                ownerName:
+                  v === "all"
+                    ? p.ownerName
+                    : owners.find((o) => o.name === p.ownerName)
+                          ?.owner_type === v
+                      ? p.ownerName
+                      : "",
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Owner Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Owner Types</SelectItem>
+              {OWNER_TYPES.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Owner Name</Label>
+          <Select
+            value={drawerFilters.ownerName || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                ownerName: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Owners" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Owners</SelectItem>
+              {owners
+                .filter(
+                  (o) =>
+                    drawerFilters.ownerType === "" ||
+                    o.owner_type === drawerFilters.ownerType,
+                )
+                .map((o) => (
+                  <SelectItem key={o.id} value={o.name}>
+                    {o.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

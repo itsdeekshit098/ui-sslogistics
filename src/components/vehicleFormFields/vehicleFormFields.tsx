@@ -17,6 +17,7 @@ import {
   AXLE_TYPES,
   CONTAINER_BODY_TYPES,
   FUEL_TYPES,
+  OWNER_TYPES,
 } from "@/app/admin/vehicles/vehicles.types";
 import { hasSeatingCapacity } from "@/app/admin/vehicles/vehicles.utils";
 import {
@@ -39,18 +40,95 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
   formData,
   errors,
   disabled,
+  owners,
   onChange,
   onSelectChange,
   onVehicleTypeChange,
+  onOwnerTypeChange,
   onNumberChange,
+  onAddOwnerClick,
   testIdPrefix,
 }) => {
   const isTruck = formData.vehicle_type === "TRUCK";
   const isContainer = formData.vehicle_type === "CONTAINER";
   const showSeatingCapacity = hasSeatingCapacity(formData.vehicle_type);
+  const ownersForType = owners.filter(
+    (o) => o.owner_type === formData.owner_type,
+  );
 
   return (
     <div className="space-y-4">
+      {/* Row: Owner Type + Owner Name */}
+      <div className={CA_MODAL_GRID}>
+        <div className={CA_MODAL_LABEL_SPACE}>
+          <Label htmlFor="owner_type">
+            Owner Type <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            disabled={disabled}
+            data-testid={`${testIdPrefix}-select-owner-type`}
+            value={formData.owner_type ?? ""}
+            onValueChange={onOwnerTypeChange}
+          >
+            <SelectTrigger className={errorTriggerClass(errors.owner_type)}>
+              <SelectValue placeholder="Select Owner Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {OWNER_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.owner_type && (
+            <p className="text-xs text-red-500 mt-1">{errors.owner_type}</p>
+          )}
+        </div>
+        <div className={CA_MODAL_LABEL_SPACE}>
+          <Label htmlFor="owner_name">
+            Owner Name <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            disabled={disabled || !formData.owner_type}
+            data-testid={`${testIdPrefix}-select-owner-name`}
+            value={formData.owner_name ?? ""}
+            onValueChange={(val) => onSelectChange("owner_name", val)}
+          >
+            <SelectTrigger className={errorTriggerClass(errors.owner_name)}>
+              <SelectValue
+                placeholder={
+                  formData.owner_type
+                    ? "Select Owner Name"
+                    : "Select Owner Type first"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {ownersForType.map((o) => (
+                <SelectItem key={o.id} value={o.name}>
+                  {o.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.owner_name && (
+            <p className="text-xs text-red-500 mt-1">{errors.owner_name}</p>
+          )}
+          {formData.owner_type && (
+            <button
+              type="button"
+              data-testid={`${testIdPrefix}-button-add-owner`}
+              disabled={disabled}
+              onClick={onAddOwnerClick}
+              className="text-xs text-primary hover:underline text-left mt-1 w-fit"
+            >
+              + Add New Owner
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Row 1: Vehicle Number + Vehicle Type */}
       <div className={CA_MODAL_GRID}>
         <div className={CA_MODAL_LABEL_SPACE}>
