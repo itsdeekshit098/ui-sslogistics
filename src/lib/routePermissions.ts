@@ -9,6 +9,7 @@ export type UserRole = "admin" | "staff" | "driver";
  */
 export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
   "/admin/sessions": ["admin"],
+  "/admin/settings": ["admin"],
   "/admin/warranty": ["admin"],
   "/admin/vehicles": ["admin", "staff"],
   "/admin/activity-log": ["admin", "staff"],

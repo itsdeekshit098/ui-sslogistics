@@ -22,6 +22,7 @@ import {
   ShieldIcon,
   PackageIcon,
   UserIcon,
+  SettingsIcon,
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
@@ -103,6 +104,12 @@ const sidebarItems = [
     name: "Sessions",
     href: "/admin/sessions",
     icon: ShieldIcon,
+    enabled: true,
+  },
+  {
+    name: "Settings",
+    href: "/admin/settings",
+    icon: SettingsIcon,
     enabled: true,
   },
 ];

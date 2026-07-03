@@ -38,6 +38,9 @@ export function handleApiError(err: unknown): NextResponse {
     if (err.message.startsWith("FORBIDDEN")) {
       return apiError("Forbidden", 403);
     }
+    if (err.message.startsWith("MAINTENANCE")) {
+      return apiError("Under maintenance", 503, "MAINTENANCE_MODE");
+    }
   }
 
   // Never expose internal error details to the client

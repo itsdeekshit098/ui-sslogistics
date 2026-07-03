@@ -40,7 +40,10 @@ export type AuditAction =
   | "CREATE_PART_OPTION"
   | "CREATE_REPAIR_PART"
   | "UPDATE_REPAIR_PART"
-  | "DELETE_REPAIR_PART";
+  | "DELETE_REPAIR_PART"
+  // System / Maintenance mode
+  | "ENABLE_MAINTENANCE_MODE"
+  | "DISABLE_MAINTENANCE_MODE";
 
 interface LogActivityParams {
   action: AuditAction;
