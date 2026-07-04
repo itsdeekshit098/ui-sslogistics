@@ -28,6 +28,9 @@ import {
   DM_UPLOAD_SUBTITLE,
   DM_ERROR_WRAPPER,
   DM_ERROR_CLOSE,
+  DM_DATE_ROW,
+  DM_DATE_LABEL,
+  DM_DATE_INPUT,
 } from "./documentModal.style";
 
 interface DocumentApiResponse {
@@ -62,12 +65,54 @@ export function DocumentModal({
 
   const docTypes = [
     { key: "rc_url", label: "Registration (RC)" },
-    { key: "fc_url", label: "Fitness Certificate (FC)" },
-    { key: "insurance_url", label: "Insurance" },
+    {
+      key: "fc_url",
+      label: "Fitness Certificate (FC)",
+      dateFields: { start: "fc_start_date", end: "fc_end_date" } as const,
+    },
+    {
+      key: "insurance_url",
+      label: "Insurance",
+      dateFields: {
+        start: "insurance_start_date",
+        end: "insurance_end_date",
+      } as const,
+    },
     { key: "permit_url", label: "Permit" },
     { key: "pollution_url", label: "Pollution (PUC)" },
     { key: "tax_url", label: "Road Tax" },
   ];
+
+  const [dateSaving, setDateSaving] = useState<string | null>(null);
+
+  const handleDateChange = async (field: string, value: string) => {
+    if (!localVehicle) return;
+
+    setLocalVehicle((prev) =>
+      prev ? ({ ...prev, [field]: value || null } as Vehicle) : null,
+    );
+    setDateSaving(field);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch("/api/vehicles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: localVehicle.id, [field]: value || null }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to save date");
+      }
+    } catch (error: unknown) {
+      setErrorMsg(
+        `Failed to save date: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      setDateSaving(null);
+    }
+  };
 
   /**
    * View a document in an in-app preview modal.
@@ -255,6 +300,43 @@ export function DocumentModal({
                         <span className={DM_UPLOAD_SUBTITLE}>
                           Upload Document
                         </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {doc.dateFields && (
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <div className={DM_DATE_ROW}>
+                        <label className={DM_DATE_LABEL}>Start</label>
+                        <input
+                          type="date"
+                          className={DM_DATE_INPUT}
+                          value={
+                            (localVehicle[
+                              doc.dateFields.start as keyof Vehicle
+                            ] as string | undefined) ?? ""
+                          }
+                          disabled={dateSaving === doc.dateFields.start}
+                          onChange={(e) =>
+                            handleDateChange(doc.dateFields!.start, e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className={DM_DATE_ROW}>
+                        <label className={DM_DATE_LABEL}>End</label>
+                        <input
+                          type="date"
+                          className={DM_DATE_INPUT}
+                          value={
+                            (localVehicle[
+                              doc.dateFields.end as keyof Vehicle
+                            ] as string | undefined) ?? ""
+                          }
+                          disabled={dateSaving === doc.dateFields.end}
+                          onChange={(e) =>
+                            handleDateChange(doc.dateFields!.end, e.target.value)
+                          }
+                        />
                       </div>
                     </div>
                   )}

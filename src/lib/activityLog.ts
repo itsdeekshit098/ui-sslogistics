@@ -49,6 +49,7 @@ interface LogActivityParams {
   action: AuditAction;
   userId: string | null;
   userEmail: string | null;
+  userDisplayName?: string | null;
   tableName: string;
   recordId: number | string | null;
   details?: Record<string, unknown>;
@@ -62,6 +63,7 @@ export async function logActivity({
   action,
   userId,
   userEmail,
+  userDisplayName,
   tableName,
   recordId,
   details = {},
@@ -72,6 +74,7 @@ export async function logActivity({
         action,
         user_id: userId,
         user_email: userEmail,
+        user_display_name: userDisplayName ?? userEmail,
         table_name: tableName,
         record_id: recordId ? Number(recordId) : null,
         details,

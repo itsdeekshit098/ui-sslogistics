@@ -89,6 +89,17 @@ export default function DieselRecordsPage() {
     fetchVehicles();
   }, [fetchVehicles]);
 
+  // Re-sync selected vehicle when the URL's vehicle_id changes externally
+  // (e.g. clicking another notification while already on this page, which
+  // updates searchParams without remounting the component).
+  useEffect(() => {
+    const urlVehicleId = searchParams.get("vehicle_id") || "";
+    setSelectedVehicleId((current) =>
+      current === urlVehicleId ? current : urlVehicleId,
+    );
+    setPage(Number(searchParams.get("page")) || 1);
+  }, [searchParams]);
+
   // Sync state to URL
   const updateUrl = useCallback(
     (vehicleId: string, p: number, ps: number) => {

@@ -33,3 +33,9 @@ export const DM_ERROR_WRAPPER = "bg-red-50 text-red-600 px-4 py-3 rounded-lg tex
 export const DM_ERROR_CLOSE = "text-red-400 hover:text-red-600 text-lg font-bold leading-none cursor-pointer";
 
 export const DM_LOADER_ICON = "h-4 w-4 animate-spin text-muted-foreground";
+
+// Validity date inputs (insurance + FC only)
+export const DM_DATE_ROW = "flex gap-2 items-center";
+export const DM_DATE_LABEL = "text-xs text-muted-foreground w-10 shrink-0";
+export const DM_DATE_INPUT =
+  "flex-1 text-xs border rounded-md px-2 py-1 bg-background";

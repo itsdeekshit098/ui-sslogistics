@@ -33,6 +33,7 @@ export async function PUT(req: Request) {
       action: maintenanceMode ? "ENABLE_MAINTENANCE_MODE" : "DISABLE_MAINTENANCE_MODE",
       userId: authUser.id,
       userEmail: authUser.email,
+      userDisplayName: authUser.displayName,
       tableName: "system_settings",
       recordId: null,
       details: { message: message || null },

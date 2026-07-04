@@ -73,6 +73,7 @@ export async function POST(req: Request) {
         action: "CREATE_PART_OPTION",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "part_options",
         recordId: partOption.id,
         details: { name: partOption.name },

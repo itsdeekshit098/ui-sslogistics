@@ -205,33 +205,37 @@ export function SessionsPage() {
   };
 
   const getModalConfig = () => {
-    const email = actionTarget?.email || "";
+    const name = actionTarget?.displayName || actionTarget?.email || "";
+    const identity =
+      actionTarget?.displayName && actionTarget.displayName !== actionTarget.email
+        ? `${name} (${actionTarget.email})`
+        : name;
     switch (actionType) {
       case "ban":
         return {
           title: "Ban User",
-          description: `Are you sure you want to ban ${email}? They will be unable to log in until unbanned.`,
+          description: `Are you sure you want to ban ${identity}? They will be unable to log in until unbanned.`,
           confirmText: "Ban User",
           icon: <ShieldIcon size={24} className="text-red-500" />,
         };
       case "unban":
         return {
           title: "Unban User",
-          description: `Are you sure you want to unban ${email}? They will regain access to the portal.`,
+          description: `Are you sure you want to unban ${identity}? They will regain access to the portal.`,
           confirmText: "Unban User",
           icon: <ShieldCheckIcon size={24} className="text-emerald-500" />,
         };
       case "revoke":
         return {
           title: "Revoke All Sessions",
-          description: `Are you sure you want to force sign out ${email} from all devices? They will need to log in again.`,
+          description: `Are you sure you want to force sign out ${identity} from all devices? They will need to log in again.`,
           confirmText: "Revoke Sessions",
           icon: <LogOutIcon size={24} className="text-amber-500" />,
         };
       case "resetPassword":
         return {
           title: "Reset Password",
-          description: `Set a new password for ${email}. They will be signed out from all devices and must log in with the new password.`,
+          description: `Set a new password for ${identity}. They will be signed out from all devices and must log in with the new password.`,
           confirmText: "Reset Password",
           icon: <KeyRoundIcon size={24} className="text-indigo-500" />,
         };
@@ -275,7 +279,7 @@ export function SessionsPage() {
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>User</th>
                     <th style={styles.th}>Role</th>
                     <th style={styles.th}>Status</th>
                     <th style={styles.th}>Sessions</th>
@@ -293,7 +297,12 @@ export function SessionsPage() {
                         {/* User row */}
                         <tr>
                           <td style={{ ...styles.td, ...styles.emailCell }}>
-                            {user.email}
+                            {user.displayName || user.email}
+                            {user.displayName && user.displayName !== user.email && (
+                              <span style={styles.emailCellSecondary}>
+                                {user.email}
+                              </span>
+                            )}
                           </td>
                           <td style={styles.td}>
                             <span style={getRoleBadgeStyle(user.role)}>
@@ -426,8 +435,15 @@ export function SessionsPage() {
               return (
                 <div key={user.id} style={styles.mobileCard}>
                   <div style={styles.mobileCardRow}>
-                    <span style={{ ...styles.mobileValue, fontWeight: 600 }}>
-                      {user.email}
+                    <span style={{ display: "flex", flexDirection: "column" }}>
+                      <span style={{ ...styles.mobileValue, fontWeight: 600 }}>
+                        {user.displayName || user.email}
+                      </span>
+                      {user.displayName && user.displayName !== user.email && (
+                        <span style={styles.emailCellSecondary}>
+                          {user.email}
+                        </span>
+                      )}
                     </span>
                     <span
                       style={

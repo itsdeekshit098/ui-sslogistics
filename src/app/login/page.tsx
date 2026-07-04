@@ -17,11 +17,16 @@ function LoginForm() {
   const { refreshSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(() =>
-    searchParams.get("reason") === "session_expired"
-      ? "Your session ended because this account was signed in on another device. Please sign in again."
-      : null,
-  );
+  const [error, setError] = useState<string | null>(() => {
+    const reason = searchParams.get("reason");
+    if (reason === "idle_timeout") {
+      return "You were signed out due to inactivity. Please sign in again.";
+    }
+    if (reason === "session_expired") {
+      return "Your session ended because this account was signed in on another device. Please sign in again.";
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 

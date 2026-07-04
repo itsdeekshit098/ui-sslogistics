@@ -23,6 +23,10 @@ const ALLOWED_VEHICLE_FIELDS = [
   "container_body_type",
   "owner_type",
   "owner_name",
+  "insurance_start_date",
+  "insurance_end_date",
+  "fc_start_date",
+  "fc_end_date",
 ] as const;
 
 const SEATING_CAPACITY_VEHICLE_TYPES = ["CAR", "BUS", "TEMPO_TRAVELLER"] as const;
@@ -66,6 +70,41 @@ async function validateOwnerFields(body: Record<string, unknown>): Promise<Respo
   ) {
     return apiError(`Invalid owner type. Allowed values: ${VALID_OWNER_TYPES.join(", ")}`, 400);
   }
+  return null;
+}
+
+/**
+ * Validates that each start/end document date pair is a well-formed date
+ * and that end >= start when both are supplied. Returns an error response
+ * or null.
+ */
+function validateDocumentDates(body: Record<string, unknown>): Response | null {
+  const pairs: [string, string, string][] = [
+    ["insurance_start_date", "insurance_end_date", "Insurance"],
+    ["fc_start_date", "fc_end_date", "FC"],
+  ];
+
+  for (const [startKey, endKey, label] of pairs) {
+    const startValue = body[startKey];
+    const endValue = body[endKey];
+
+    for (const [key, value] of [[startKey, startValue], [endKey, endValue]] as const) {
+      if (value === null || value === undefined || value === "") continue;
+      if (isNaN(new Date(String(value)).getTime())) {
+        return apiError(`Invalid date for ${key}`, 400);
+      }
+    }
+
+    if (
+      startValue !== null && startValue !== undefined && startValue !== "" &&
+      endValue !== null && endValue !== undefined && endValue !== ""
+    ) {
+      if (new Date(String(endValue)).getTime() < new Date(String(startValue)).getTime()) {
+        return apiError(`${label} end date must be on or after the start date`, 400);
+      }
+    }
+  }
+
   return null;
 }
 
@@ -208,6 +247,8 @@ export async function POST(req: Request) {
     if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
       return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
+    const dateError = validateDocumentDates(body);
+    if (dateError) return dateError;
     const ownerError = await validateOwnerFields(body);
     if (ownerError) return ownerError;
 
@@ -233,6 +274,7 @@ export async function POST(req: Request) {
         action: "CREATE_VEHICLE",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: data?.id || null,
         details: {
@@ -284,6 +326,8 @@ export async function PUT(req: Request) {
     if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
       return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
+    const dateError = validateDocumentDates(body);
+    if (dateError) return dateError;
     const ownerError = await validateOwnerFields(body);
     if (ownerError) return ownerError;
 
@@ -305,6 +349,7 @@ export async function PUT(req: Request) {
         action: "UPDATE_VEHICLE",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: id,
         details: {
@@ -359,6 +404,7 @@ export async function DELETE(req: Request) {
         action: "DELETE_VEHICLE",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: Number(id),
         details: {

@@ -281,7 +281,7 @@ export default function ActivityLogPage() {
                         <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground/70">
                           <span className="flex items-center gap-1">
                             <UserIcon size={12} />
-                            {entry.user_email || "System"}
+                            {entry.user_display_name || entry.user_email || "System"}
                           </span>
                           <span className="flex items-center gap-1">
                             <ClockIcon size={12} />

@@ -4,6 +4,10 @@ export interface AuthUser {
   id: string;
   email: string;
   role: string | null;
+  /** Human-readable name for display purposes (e.g. notifications). Falls
+   * back to email when the user has no display_name set in user_metadata —
+   * not every account has one. */
+  displayName: string;
 }
 
 /**
@@ -20,10 +24,13 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 
     if (!user) return null;
 
+    const email = user.email || "unknown";
+
     return {
       id: user.id,
-      email: user.email || "unknown",
+      email,
       role: user.app_metadata?.role || null,
+      displayName: user.user_metadata?.display_name || email,
     };
   } catch {
     return null;

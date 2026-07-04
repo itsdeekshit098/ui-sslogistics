@@ -117,6 +117,7 @@ export async function POST(req: Request) {
         action: "UPLOAD_DOCUMENT",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: Number(vehicleId),
         details: {
@@ -182,6 +183,7 @@ export async function DELETE(req: Request) {
         action: "DELETE_DOCUMENT",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: Number(vehicleId),
         details: {

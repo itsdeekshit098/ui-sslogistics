@@ -564,6 +564,7 @@ export async function POST(req: Request) {
           action: "CREATE_REPAIR_RECORD",
           userId: authUser.id,
           userEmail: authUser.email,
+          userDisplayName: authUser.displayName,
           tableName: "repair_records",
           recordId: newRecord?.id || null,
           details: {
@@ -715,6 +716,7 @@ export async function PUT(req: Request) {
           action: "UPDATE_REPAIR_RECORD",
           userId: authUser.id,
           userEmail: authUser.email,
+          userDisplayName: authUser.displayName,
           tableName: "repair_records",
           recordId: Number(id),
           details: updatePayload,
@@ -779,6 +781,7 @@ export async function DELETE(req: Request) {
           action: "DELETE_REPAIR_RECORD",
           userId: authUser.id,
           userEmail: authUser.email,
+          userDisplayName: authUser.displayName,
           tableName: "repair_records",
           recordId: Number(id),
           details: {

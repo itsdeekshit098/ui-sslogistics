@@ -25,6 +25,7 @@ export async function GET() {
       id: user.id,
       email: user.email || null,
       role: user.app_metadata?.role || null,
+      displayName: user.user_metadata?.display_name || user.email || null,
     });
   } catch (err: unknown) {
     return handleApiError(err);

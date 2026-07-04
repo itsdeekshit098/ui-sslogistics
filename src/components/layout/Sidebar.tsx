@@ -297,11 +297,11 @@ export function Sidebar({
               </div>
               <div className="flex items-center gap-3 rounded-lg p-2 bg-[#263762]/30">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-transparent text-sm font-semibold text-slate-600 dark:text-slate-400">
-                  {user?.email?.charAt(0).toUpperCase() || "U"}
+                  {(user?.displayName || user?.email)?.charAt(0).toUpperCase() || "U"}
                 </div>
                 <div className="flex flex-1 flex-col overflow-hidden">
                   <span className="truncate text-[13px] font-medium text-slate-200">
-                    {user?.email || "User"}
+                    {user?.displayName || user?.email || "User"}
                   </span>
                 </div>
                 <SignOutButton variant="icon" />

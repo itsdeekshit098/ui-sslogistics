@@ -231,6 +231,7 @@ export async function POST(req: Request) {
         action: "CREATE_REPAIR_PART",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "repair_parts",
         recordId: part.id,
         details: {
@@ -284,6 +285,7 @@ export async function DELETE(req: Request) {
         action: "DELETE_REPAIR_PART",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "repair_parts",
         recordId: part.id,
         details: {
@@ -409,6 +411,7 @@ export async function PUT(req: Request) {
         action: "UPDATE_REPAIR_PART",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "repair_parts",
         recordId: part.id,
         details: {

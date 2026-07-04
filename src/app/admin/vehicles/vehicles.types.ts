@@ -100,6 +100,11 @@ export interface Vehicle {
   permit_url?: string;
   pollution_url?: string;
   tax_url?: string;
+  // Document validity dates (insurance + FC only, for expiry reminders)
+  insurance_start_date?: string | null;
+  insurance_end_date?: string | null;
+  fc_start_date?: string | null;
+  fc_end_date?: string | null;
   // Fuel / performance
   expected_kml?: number | null;
   tank_capacity?: number | null;
