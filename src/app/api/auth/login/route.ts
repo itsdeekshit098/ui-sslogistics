@@ -10,9 +10,11 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
  * via the server-side Supabase client. This keeps the Supabase
  * URL and anon key off the browser entirely.
  *
- * After a successful login, all **other** sessions for this user
- * are revoked so only one active session exists at a time
- * (single-session enforcement).
+ * After a successful login, old sessions for this user are revoked
+ * so at most one active session exists at a time — except admins,
+ * who are allowed 2 concurrent sessions (e.g. web + mobile). The
+ * role-based cap is enforced inside the `revoke_old_user_sessions`
+ * Supabase RPC, not here.
  */
 export async function POST(req: Request) {
   try {
@@ -43,9 +45,9 @@ export async function POST(req: Request) {
       return apiError("Authentication failed", 500);
     }
 
-    // ── Step 2: Single-session enforcement ──
-    // Revoke all OLD sessions by deleting from auth.sessions table
-    // Keep only the most recent session (the one we just created)
+    // ── Step 2: Session-cap enforcement ──
+    // Revoke old sessions by deleting from auth.sessions table.
+    // Keeps 1 session normally, 2 for admins (see revoke_old_user_sessions RPC).
     try {
       const { error: revokeError } = await supabaseAdmin.rpc(
         "revoke_old_user_sessions",

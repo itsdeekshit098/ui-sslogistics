@@ -68,7 +68,9 @@ export async function resolveUserIdsForRoles(
 
 /**
  * Bulk-inserts one notification row per recipient. Fire-and-forget — never
- * throws into the caller, same style as logActivity.
+ * throws into the caller, same style as logActivity. Returns the inserted
+ * row id per user so callers (e.g. push) can tell each recipient's device
+ * which notification row a tap corresponds to.
  */
 export async function createNotification({
   userIds,
@@ -77,8 +79,8 @@ export async function createNotification({
   body,
   linkPath,
   metadata = {},
-}: CreateNotificationParams): Promise<void> {
-  if (userIds.length === 0) return;
+}: CreateNotificationParams): Promise<Record<string, string>> {
+  if (userIds.length === 0) return {};
 
   try {
     const rows = userIds.map((userId) => ({
@@ -90,13 +92,24 @@ export async function createNotification({
       metadata,
     }));
 
-    const { error } = await supabaseAdmin.from("notifications").insert(rows);
+    const { data, error } = await supabaseAdmin
+      .from("notifications")
+      .insert(rows)
+      .select("id, user_id");
     if (error) {
       logger.error("Failed to insert notifications", { type, message: error.message });
+      return {};
     }
+
+    const idsByUser: Record<string, string> = {};
+    for (const row of data || []) {
+      idsByUser[row.user_id as string] = String(row.id);
+    }
+    return idsByUser;
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     logger.error("Failed to create notifications", { type, error: errorMessage });
+    return {};
   }
 }
 
@@ -116,8 +129,13 @@ export async function notifyRoles({
   }
   if (userIds.length === 0) return;
 
-  await createNotification({ userIds, type, title, body, linkPath, metadata });
-  await sendPushToUsers(userIds, { title, body, data: { type, linkPath: linkPath ?? "", ...metadata } });
+  const notificationIdsByUser = await createNotification({ userIds, type, title, body, linkPath, metadata });
+  await sendPushToUsers(userIds, {
+    title,
+    body,
+    data: { type, linkPath: linkPath ?? "", ...metadata },
+    notificationIdsByUser,
+  });
 }
 
 let firebaseInitialized = false;
@@ -159,14 +177,26 @@ function sleep(ms: number): Promise<void> {
  */
 export async function sendPushToUsers(
   userIds: string[],
-  { title, body, data = {} }: { title: string; body: string; data?: Record<string, unknown> },
+  {
+    title,
+    body,
+    data = {},
+    notificationIdsByUser = {},
+  }: {
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+    /** Per-recipient notification row id, so a device can mark the exact
+     * row read when the user taps the push. */
+    notificationIdsByUser?: Record<string, string>;
+  },
 ): Promise<void> {
   if (userIds.length === 0) return;
   if (!ensureFirebaseInitialized()) return;
 
   const { data: tokenRows, error } = await supabaseAdmin
     .from("device_push_tokens")
-    .select("token")
+    .select("token, user_id")
     .in("user_id", userIds);
 
   if (error) {
@@ -174,13 +204,23 @@ export async function sendPushToUsers(
     return;
   }
 
-  const tokens = (tokenRows || []).map((r) => r.token as string);
-  if (tokens.length === 0) return;
+  const rows = tokenRows || [];
+  if (rows.length === 0) return;
 
-  const stringData: Record<string, string> = {};
+  const baseData: Record<string, string> = {};
   for (const [key, value] of Object.entries(data)) {
-    stringData[key] = String(value);
+    baseData[key] = String(value);
   }
+
+  const tokens = rows.map((r) => r.token as string);
+  const messages = rows.map((r) => {
+    const notificationId = notificationIdsByUser[r.user_id as string];
+    return {
+      token: r.token as string,
+      notification: { title, body },
+      data: notificationId ? { ...baseData, notificationId } : baseData,
+    };
+  });
 
   const attempts = [0, 1000, 3000]; // immediate, then 1s, then 3s backoff
   let lastError: unknown = null;
@@ -189,11 +229,7 @@ export async function sendPushToUsers(
     if (attempts[i] > 0) await sleep(attempts[i]);
 
     try {
-      const response = await getMessaging().sendEachForMulticast({
-        tokens,
-        notification: { title, body },
-        data: stringData,
-      });
+      const response = await getMessaging().sendEach(messages);
 
       const deadTokens: string[] = [];
       response.responses.forEach((r, idx) => {
