@@ -131,12 +131,20 @@ export async function PUT(req: Request) {
       return apiError("Owner not found", 404);
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("vehicle_owners")
-      .update(updatePayload)
-      .eq("id", Number(id))
-      .select("*")
-      .single();
+    // Renaming the owner and cascading the new name/type onto every vehicle
+    // row that references it must be atomic — done via a single plpgsql
+    // function (sql/2026-07-04_atomic_vehicle_owner_rename.sql) rather than
+    // two separate updates, so a mid-flight failure can't leave vehicle_owners
+    // and vehicles out of sync with no rollback.
+    const { data: rpcRows, error } = await supabaseAdmin.rpc(
+      "rename_vehicle_owner",
+      {
+        p_id: Number(id),
+        p_name: (updatePayload.name as string | undefined) ?? existing.name,
+        p_owner_type:
+          (updatePayload.owner_type as string | undefined) ?? existing.owner_type,
+      },
+    );
 
     if (error) {
       if (error.code === "23505") {
@@ -146,20 +154,9 @@ export async function PUT(req: Request) {
       return apiError("Internal server error", 500);
     }
 
-    if (data.name !== existing.name || data.owner_type !== existing.owner_type) {
-      const { error: cascadeErr } = await supabaseAdmin
-        .from("vehicles")
-        .update({ owner_name: data.name, owner_type: data.owner_type })
-        .eq("owner_name", existing.name);
-
-      if (cascadeErr) {
-        logger.error("Failed to cascade owner rename to vehicles", {
-          error: cascadeErr.message,
-          code: cascadeErr?.code,
-          hint: cascadeErr?.hint,
-        });
-        return apiError("Internal server error", 500);
-      }
+    const data = rpcRows?.[0];
+    if (!data) {
+      return apiError("Owner not found", 404);
     }
 
     after(async () => {

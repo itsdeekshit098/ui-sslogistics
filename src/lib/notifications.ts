@@ -218,6 +218,12 @@ export async function sendPushToUsers(
     return {
       token: r.token as string,
       notification: { title, body },
+      // Custom sound for background/terminated-app delivery, where the OS
+      // renders the notification straight from this payload — foreground
+      // delivery instead goes through push_service.dart's local-notification
+      // sound config. channelId must match the Android channel created there.
+      android: { notification: { sound: "notification", channelId: "vehicle_alerts" } },
+      apns: { payload: { aps: { sound: "notification.caf" } } },
       data: notificationId ? { ...baseData, notificationId } : baseData,
     };
   });

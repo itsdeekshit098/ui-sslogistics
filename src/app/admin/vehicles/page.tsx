@@ -170,6 +170,10 @@ export default function VehiclesPage() {
   );
 
   // ─── Atomic fetch — accepts explicit params to avoid stale-state cascades ───
+  // requestIdRef guards against out-of-order responses: if the user changes
+  // page/filters again before an in-flight request resolves, the older
+  // response is discarded instead of clobbering the newer one.
+  const requestIdRef = useRef(0);
   const fetchVehicles = useCallback(
     async (opts?: {
       overridePage?: number;
@@ -189,6 +193,8 @@ export default function VehiclesPage() {
       const ot = opts?.overrideOwnerType ?? ownerTypeFilter;
       const on = opts?.overrideOwnerName ?? ownerNameFilter;
       const ft = opts?.overrideFuelType ?? fuelTypeFilter;
+
+      const requestId = ++requestIdRef.current;
 
       setLoading(true);
       setFetchError(null);
@@ -211,6 +217,8 @@ export default function VehiclesPage() {
         if (!res.ok) throw new Error("Failed to fetch");
 
         const json = await res.json();
+        if (requestIdRef.current !== requestId) return; // superseded by a newer request
+
         const result = json.data ?? {};
         setVehicles(result.data ?? []);
         setTotal(result.total ?? 0);
@@ -226,12 +234,15 @@ export default function VehiclesPage() {
         setOwnerNameFilter(on);
         setFuelTypeFilter(ft);
       } catch {
+        if (requestIdRef.current !== requestId) return;
         setFetchError(
           "We couldn\u2019t load your vehicles. Please check your connection and try again.",
         );
       } finally {
-        setLoading(false);
-        setInitialLoading(false);
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+          setInitialLoading(false);
+        }
       }
     },
     [
@@ -366,19 +377,26 @@ export default function VehiclesPage() {
     setIsEditOpen(true);
   };
 
+  // Tracks which vehicle the open delete dialog currently targets, independent
+  // of React state timing — used to detect if the target changed while a
+  // delete request was in flight (see handleDeleteVehicle).
+  const activeDeleteIdRef = useRef<number | null>(null);
+
   const handleDeleteClick = (vehicle: Vehicle) => {
     setDeletingVehicle(vehicle);
+    activeDeleteIdRef.current = vehicle.id;
     setDeleteError(null);
     setIsDeleteOpen(true);
   };
 
   const handleDeleteVehicle = async () => {
     if (!deletingVehicle) return;
+    const targetId = deletingVehicle.id;
 
     setIsDeleting(true);
     setDeleteError(null);
 
-    const result = await deleteVehicle(deletingVehicle.id);
+    const result = await deleteVehicle(targetId);
 
     if (!result.success) {
       setDeleteError(result.error ?? "Unexpected error deleting vehicle.");
@@ -389,9 +407,16 @@ export default function VehiclesPage() {
     // Refetch to get fresh data from the server
     await fetchVehicles();
 
-    setIsDeleteOpen(false);
-    setDeletingVehicle(null);
     setIsDeleting(false);
+    // Only close/clear the dialog if it's still targeting the vehicle we just
+    // deleted. The Cancel button and modal dismissal are disabled while
+    // isDeleting, so this shouldn't normally trigger — it's a safety net
+    // against a stale completion clobbering a dialog reopened for another
+    // vehicle.
+    if (activeDeleteIdRef.current === targetId) {
+      setIsDeleteOpen(false);
+      setDeletingVehicle(null);
+    }
   };
 
   if (authLoading || initialLoading)
@@ -919,7 +944,12 @@ export default function VehiclesPage() {
       />
 
       {/* Delete Confirmation Modal */}
-      <Modal open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <Modal
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!isDeleting) setIsDeleteOpen(open);
+        }}
+      >
         <ModalContent className="max-w-md p-6 rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="rounded-full bg-red-100 p-3">
@@ -961,6 +991,7 @@ export default function VehiclesPage() {
                 variant="outline"
                 className="flex-1"
                 onClick={() => setIsDeleteOpen(false)}
+                disabled={isDeleting}
               >
                 Cancel
               </Button>

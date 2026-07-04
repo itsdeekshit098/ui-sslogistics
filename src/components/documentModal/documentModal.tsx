@@ -201,12 +201,28 @@ export function DocumentModal({
         throw new Error(json.error || json.data?.error || "Delete failed");
       }
 
-      // Clean the UI up instantly so the 'Upload' button returns immediately
-      setLocalVehicle((prev) =>
-        prev ? ({ ...prev, [documentType]: null } as Vehicle) : null,
-      );
+      // The API also clears the paired start/end validity dates for
+      // fc_url/insurance_url (a deleted document shouldn't leave a stale
+      // expiry date behind) — mirror that locally and tell the parent.
+      const dateFields = docTypes.find((d) => d.key === documentType)
+        ?.dateFields;
+
+      setLocalVehicle((prev) => {
+        if (!prev) return null;
+        const next = { ...prev, [documentType]: null } as Vehicle;
+        if (dateFields) {
+          (next as unknown as Record<string, unknown>)[dateFields.start] =
+            null;
+          (next as unknown as Record<string, unknown>)[dateFields.end] = null;
+        }
+        return next;
+      });
 
       onUpdate(documentType, null);
+      if (dateFields) {
+        onUpdate(dateFields.start, null);
+        onUpdate(dateFields.end, null);
+      }
     } catch (error: unknown) {
       setErrorMsg(
         `Delete failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -316,7 +332,7 @@ export function DocumentModal({
                               doc.dateFields.start as keyof Vehicle
                             ] as string | undefined) ?? ""
                           }
-                          disabled={dateSaving === doc.dateFields.start}
+                          disabled={!filePath || dateSaving === doc.dateFields.start}
                           onChange={(e) =>
                             handleDateChange(doc.dateFields!.start, e.target.value)
                           }
@@ -332,12 +348,17 @@ export function DocumentModal({
                               doc.dateFields.end as keyof Vehicle
                             ] as string | undefined) ?? ""
                           }
-                          disabled={dateSaving === doc.dateFields.end}
+                          disabled={!filePath || dateSaving === doc.dateFields.end}
                           onChange={(e) =>
                             handleDateChange(doc.dateFields!.end, e.target.value)
                           }
                         />
                       </div>
+                      {!filePath && (
+                        <p className="text-xs text-muted-foreground">
+                          Upload the document to set validity dates.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

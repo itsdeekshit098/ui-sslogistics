@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
+import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 
 /** Allowed columns for vehicle insert/update — prevents mass assignment */
@@ -108,6 +109,52 @@ function validateDocumentDates(body: Record<string, unknown>): Response | null {
   return null;
 }
 
+/**
+ * Insurance/FC validity dates are meaningless without the document itself —
+ * blocks setting insurance_start_date/insurance_end_date or fc_start_date/
+ * fc_end_date unless the corresponding *_url is present either in this same
+ * request body or already saved on the vehicle. `vehicleId` is null on
+ * create, where the document can never already exist in the DB.
+ */
+async function validateDateRequiresDocument(
+  body: Record<string, unknown>,
+  vehicleId: number | null,
+): Promise<Response | null> {
+  const checks: [string, string, string, string][] = [
+    ["insurance_start_date", "insurance_end_date", "insurance_url", "Insurance"],
+    ["fc_start_date", "fc_end_date", "fc_url", "FC"],
+  ];
+
+  const hasValue = (v: unknown) => v !== null && v !== undefined && v !== "";
+
+  for (const [startKey, endKey, urlKey, label] of checks) {
+    if (!hasValue(body[startKey]) && !hasValue(body[endKey])) continue;
+
+    let hasDoc = hasValue(body[urlKey]);
+    if (!hasDoc && !(urlKey in body) && vehicleId !== null) {
+      const { data, error } = await supabaseAdmin
+        .from("vehicles")
+        .select(urlKey)
+        .eq("id", vehicleId)
+        .maybeSingle();
+      if (error) {
+        logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
+        return apiError("Internal server error", 500);
+      }
+      hasDoc = hasValue((data as Record<string, unknown> | null)?.[urlKey]);
+    }
+
+    if (!hasDoc) {
+      return apiError(
+        `Upload the ${label} document before setting its validity dates`,
+        400,
+      );
+    }
+  }
+
+  return null;
+}
+
 function pickAllowedFields(body: Record<string, unknown>) {
   const picked: Record<string, unknown> = {};
   for (const key of ALLOWED_VEHICLE_FIELDS) {
@@ -119,6 +166,10 @@ function pickAllowedFields(body: Record<string, unknown>) {
         // Coerce to integer — DB column is INTEGER
         const parsed = parseInt(String(value), 10);
         picked[key] = isNaN(parsed) ? null : parsed;
+      } else if (key === "vehicle_number" && typeof value === "string") {
+        // Trim so "AP02AB1234 " and "AP02AB1234" can't coexist as
+        // near-duplicate rows that a uniqueness check would otherwise miss.
+        picked[key] = value.trim();
       } else {
         picked[key] = value;
       }
@@ -126,6 +177,9 @@ function pickAllowedFields(body: Record<string, unknown>) {
   }
   return picked;
 }
+
+/** Postgres unique_violation */
+const PG_UNIQUE_VIOLATION = "23505";
 
 export async function GET(req: Request) {
   try {
@@ -198,13 +252,13 @@ export async function GET(req: Request) {
       }
     );
 
-    if (statsError) {
-      logger.error("Database error", { error: statsError.message, code: statsError?.code, hint: statsError?.hint });
-      return apiError("Internal server error", 500);
-    }
-
+    // The list query above already succeeded — don't fail the whole request
+    // over a broken/unapplied stats RPC. Degrade to zeroed stat tiles instead
+    // of a hard error so the vehicle list itself stays usable.
     const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
-    if (statsData && statsData.length > 0) {
+    if (statsError) {
+      logger.error("Database error fetching vehicle stats", { error: statsError.message, code: statsError?.code, hint: statsError?.hint });
+    } else if (statsData && statsData.length > 0) {
       const row = statsData[0];
       stats.total = Number(row.total_count || 0);
       stats.active = Number(row.active_count || 0);
@@ -249,6 +303,8 @@ export async function POST(req: Request) {
     }
     const dateError = validateDocumentDates(body);
     if (dateError) return dateError;
+    const docPrereqError = await validateDateRequiresDocument(body, null);
+    if (docPrereqError) return docPrereqError;
     const ownerError = await validateOwnerFields(body);
     if (ownerError) return ownerError;
 
@@ -265,6 +321,9 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
+      if (error.code === PG_UNIQUE_VIOLATION) {
+        return apiError("A vehicle with this number already exists", 409);
+      }
       logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
       return apiError("Internal server error", 500);
     }
@@ -283,6 +342,18 @@ export async function POST(req: Request) {
           company: payload.company,
           model: payload.model,
         },
+      }),
+    );
+
+    after(() =>
+      notifyRoles({
+        roles: ["admin", "staff"],
+        type: "vehicle_created",
+        title: "New vehicle added",
+        body: `${authUser.displayName} added vehicle ${payload.vehicle_number}`,
+        linkPath: `/admin/vehicles?vehicle_id=${data?.id}`,
+        metadata: { vehicle_id: data?.id },
+        excludeUserId: authUser.id,
       }),
     );
 
@@ -328,18 +399,25 @@ export async function PUT(req: Request) {
     }
     const dateError = validateDocumentDates(body);
     if (dateError) return dateError;
+    const docPrereqError = await validateDateRequiresDocument(body, Number(id));
+    if (docPrereqError) return docPrereqError;
     const ownerError = await validateOwnerFields(body);
     if (ownerError) return ownerError;
 
     const updatePayload = pickAllowedFields(body);
     updatePayload.updated_by = authUser.id;
 
-    const { error } = await supabaseAdmin
+    const { data: updated, error } = await supabaseAdmin
       .from("vehicles")
       .update(updatePayload)
-      .eq("id", id);
+      .eq("id", id)
+      .select("vehicle_number")
+      .single();
 
     if (error) {
+      if (error.code === PG_UNIQUE_VIOLATION) {
+        return apiError("A vehicle with this number already exists", 409);
+      }
       logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
       return apiError("Internal server error", 500);
     }
@@ -355,6 +433,18 @@ export async function PUT(req: Request) {
         details: {
           changes: updatePayload,
         },
+      }),
+    );
+
+    after(() =>
+      notifyRoles({
+        roles: ["admin", "staff"],
+        type: "vehicle_updated",
+        title: "Vehicle updated",
+        body: `${authUser.displayName} updated vehicle ${updated?.vehicle_number ?? id}`,
+        linkPath: `/admin/vehicles?vehicle_id=${id}`,
+        metadata: { vehicle_id: id, changes: updatePayload },
+        excludeUserId: authUser.id,
       }),
     );
 
@@ -389,6 +479,36 @@ export async function DELETE(req: Request) {
       return apiError("Vehicle not found", 404);
     }
 
+    // Block hard-deletion while other records still reference this vehicle —
+    // mirrors the in-use check in vehicle-owners/route.ts and drivers/route.ts.
+    // Without this, deleting a vehicle either orphans rows (if there's no FK)
+    // or surfaces as an opaque FK-violation 500 (if there is one).
+    const dependentChecks: [string, string][] = [
+      ["repair_records", "repair record(s)"],
+      ["warranty", "warranty claim(s)"],
+      ["external_trips", "external trip(s)"],
+      ["diesel_records", "diesel record(s)"],
+    ];
+
+    for (const [table, label] of dependentChecks) {
+      const { count, error: countErr } = await supabaseAdmin
+        .from(table)
+        .select("id", { count: "exact", head: true })
+        .eq("vehicle_id", id);
+
+      if (countErr) {
+        logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint, table });
+        return apiError("Internal server error", 500);
+      }
+
+      if ((count ?? 0) > 0) {
+        return apiError(
+          `Cannot delete "${vehicle.vehicle_number}" because it has ${count} ${label} on file. Remove those first.`,
+          400,
+        );
+      }
+    }
+
     const { error } = await supabaseAdmin
       .from("vehicles")
       .delete()
@@ -413,6 +533,17 @@ export async function DELETE(req: Request) {
           company: vehicle.company,
           model: vehicle.model,
         },
+      }),
+    );
+
+    after(() =>
+      notifyRoles({
+        roles: ["admin", "staff"],
+        type: "vehicle_deleted",
+        title: "Vehicle deleted",
+        body: `${authUser.displayName} deleted vehicle ${vehicle.vehicle_number}`,
+        metadata: { vehicle_id: Number(id) },
+        excludeUserId: authUser.id,
       }),
     );
 
