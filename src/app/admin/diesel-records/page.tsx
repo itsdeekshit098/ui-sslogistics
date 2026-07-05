@@ -515,7 +515,7 @@ export default function DieselRecordsPage() {
                                   <span className="text-muted-foreground">
                                     ₹/L:
                                   </span>{" "}
-                                  {record.price_per_l
+                                  {record.price_per_l != null
                                     ? `₹${record.price_per_l}`
                                     : "—"}
                                 </div>
@@ -750,7 +750,7 @@ export default function DieselRecordsPage() {
                             key: "price_per_l",
                             header: "Price/L",
                             cell: (row) =>
-                              row.price_per_l ? `₹${row.price_per_l}` : "—",
+                              row.price_per_l != null ? `₹${row.price_per_l}` : "—",
                           },
                           {
                             key: "amount",

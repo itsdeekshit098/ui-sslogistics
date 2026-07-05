@@ -15,7 +15,10 @@ let ownersPromise: Promise<VehicleOwner[]> | null = null;
 function loadOwners(): Promise<VehicleOwner[]> {
   ownersPromise ??= fetch("/api/vehicle-owners")
     .then((r) => r.json())
-    .then((d) => (d.success ? (d.data as VehicleOwner[]) : []))
+    .then((d) => {
+      if (!d.success) throw new Error("Failed to load owners");
+      return d.data as VehicleOwner[];
+    })
     .catch(() => {
       // Don't cache failures — retry on the next mount.
       ownersPromise = null;

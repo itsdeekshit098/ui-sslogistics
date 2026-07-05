@@ -238,7 +238,7 @@ export async function sendPushToUsers(
       const response = await getMessaging().sendEach(messages);
 
       const deadTokens: string[] = [];
-      response.responses.forEach((r, idx) => {
+      response.responses.forEach((r: import("firebase-admin/messaging").SendResponse, idx: number) => {
         if (!r.success && r.error) {
           const code = r.error.code;
           if (

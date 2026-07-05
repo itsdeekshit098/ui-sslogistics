@@ -93,6 +93,8 @@ export function RepairRecordsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const msgTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (msgTimeoutRef.current) clearTimeout(msgTimeoutRef.current); }, []);
 
   // Skip summary on page-only changes
   const skipSummaryRef = useRef(false);
@@ -338,11 +340,13 @@ export function RepairRecordsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
 
+      if (msgTimeoutRef.current) clearTimeout(msgTimeoutRef.current);
       setSuccessMsg("Download completed successfully.");
-      setTimeout(() => setSuccessMsg(null), 3000);
+      msgTimeoutRef.current = setTimeout(() => setSuccessMsg(null), 3000);
     } catch {
+      if (msgTimeoutRef.current) clearTimeout(msgTimeoutRef.current);
       setError("Failed to download repair records.");
-      setTimeout(() => setError(null), 3000);
+      msgTimeoutRef.current = setTimeout(() => setError(null), 3000);
     } finally {
       setIsDownloading(false);
     }
