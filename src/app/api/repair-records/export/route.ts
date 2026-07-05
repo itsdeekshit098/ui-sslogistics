@@ -1,17 +1,23 @@
 import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth } from "@/lib/auth";
+import { apiError, handleApiError } from "@/lib/apiResponse";
 import type { RepairCategory } from "@/components/repairRecordsPage";
 
 const VALID_CATEGORIES: RepairCategory[] = ["electrical", "mechanical"];
 
-// Helper to escape CSV values (quotes strings containing commas or quotes)
+// Helper to escape CSV values (quotes strings containing delimiters/newlines)
 function escapeCsvValue(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
   }
-  const str = String(value);
-  if (str.includes(",") || str.includes("\"") || str.includes("\\n")) {
+  let str = String(value);
+  // Neutralize spreadsheet formula injection (=, +, -, @, tab, CR at the start
+  // of user-controlled text). Numbers are left untouched so costs render as-is.
+  if (typeof value === "string" && /^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  if (/[",\r\n]/.test(str)) {
     return `"${str.replace(/"/g, "\"\"")}"`;
   }
   return str;
@@ -33,7 +39,7 @@ export async function GET(req: Request) {
     let query = supabaseAdmin
       .from("repair_records")
       .select(
-        "*, vehicles(vehicle_number, company, model), technicians(id, name, phone, specializations)"
+        "id, repair_date, category, issues, status, cost, description, vehicles(vehicle_number), technicians(name)"
       )
       .order("repair_date", { ascending: false })
       .order("id", { ascending: false });
@@ -41,10 +47,7 @@ export async function GET(req: Request) {
     if (vehicleId) {
       const vehicleIdNum = Number(vehicleId);
       if (!Number.isFinite(vehicleIdNum)) {
-        return new Response(JSON.stringify({ error: "Invalid vehicle_id" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return apiError("Invalid vehicle_id", 400);
       }
       query = query.eq("vehicle_id", vehicleIdNum);
     }
@@ -69,13 +72,23 @@ export async function GET(req: Request) {
 
     if (error) {
       logger.error("Database error during export", { error: error.message, code: error?.code, hint: error?.hint });
-      return new Response(JSON.stringify({ error: "Internal server error" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiError("Internal server error", 500);
     }
 
-    const records = data ?? [];
+    // PostgREST returns to-one embeds as objects at runtime, but without FK
+    // metadata in the generated types they are inferred as arrays — cast.
+    type ExportRow = {
+      id: number;
+      repair_date: string | null;
+      category: string | null;
+      issues: unknown;
+      status: string | null;
+      cost: number | null;
+      description: string | null;
+      vehicles: { vehicle_number: string | null } | null;
+      technicians: { name: string | null } | null;
+    };
+    const records = (data ?? []) as unknown as ExportRow[];
 
     // ── Format as CSV ──
     const headers = [
@@ -127,25 +140,6 @@ export async function GET(req: Request) {
     });
 
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      if (err.message.startsWith("UNAUTHORIZED")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      if (err.message.startsWith("FORBIDDEN")) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    logger.error("Failed to export CSV", { error: err });
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return handleApiError(err);
   }
 }

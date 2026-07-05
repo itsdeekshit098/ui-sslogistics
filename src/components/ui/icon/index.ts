@@ -92,5 +92,8 @@ export {
 
   // File actions
   DownloadIcon,
+
+  // Notifications
+  BellIcon,
 } from "./icon";
 export type { IconProps, ComponentIcon } from "./icon.types";

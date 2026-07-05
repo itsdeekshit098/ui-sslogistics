@@ -20,6 +20,7 @@
     "@wrksz/themes": "^0.8.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase-admin": "^14.1.0",
     "framer-motion": "^12.24.11",
     "next": "^16.2.6",
     "react": "19.2.3",

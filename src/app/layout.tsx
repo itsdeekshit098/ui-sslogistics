@@ -4,6 +4,8 @@ import "./globals.css";
 import { NavigationProgress } from "@/components/navigationProgress";
 import { ThemeProvider } from "@wrksz/themes/next";
 import { AuthProvider } from "@/context/AuthContext";
+import { MaintenanceProvider } from "@/context/MaintenanceContext";
+import { MaintenanceGate } from "@/components/maintenanceGate";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,8 +62,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <NavigationProgress />
-            {children}
+            <MaintenanceProvider>
+              <NavigationProgress />
+              <MaintenanceGate>{children}</MaintenanceGate>
+            </MaintenanceProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

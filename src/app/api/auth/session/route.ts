@@ -18,13 +18,14 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return apiError("Not authenticated", 401);
+      return apiError("Not authenticated", 401, "SESSION_INVALID");
     }
 
     return apiSuccess({
       id: user.id,
       email: user.email || null,
       role: user.app_metadata?.role || null,
+      displayName: user.user_metadata?.display_name || user.email || null,
     });
   } catch (err: unknown) {
     return handleApiError(err);

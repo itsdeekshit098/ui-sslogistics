@@ -95,6 +95,7 @@ export async function POST(req: Request) {
         action: "CREATE_VENDOR",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vendors",
         recordId: vendor.id,
         details: insertPayload,

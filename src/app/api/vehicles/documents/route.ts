@@ -37,6 +37,18 @@ function isValidDocumentType(
   return (VALID_DOCUMENT_TYPES as readonly string[]).includes(value);
 }
 
+/**
+ * Document types that carry a start/end validity date pair — removing the
+ * file makes those dates meaningless (they'd otherwise keep showing an
+ * expiry countdown for a document that no longer exists), so clear them too.
+ */
+const DOCUMENT_DATE_COLUMNS: Partial<
+  Record<(typeof VALID_DOCUMENT_TYPES)[number], [string, string]>
+> = {
+  insurance_url: ["insurance_start_date", "insurance_end_date"],
+  fc_url: ["fc_start_date", "fc_end_date"],
+};
+
 function isAllowedMimeType(mime: string): boolean {
   return (ALLOWED_MIME_TYPES as readonly string[]).includes(mime);
 }
@@ -117,6 +129,7 @@ export async function POST(req: Request) {
         action: "UPLOAD_DOCUMENT",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: Number(vehicleId),
         details: {
@@ -165,6 +178,12 @@ export async function DELETE(req: Request) {
     }
 
     const updatePayload: Record<string, unknown> = { [documentType]: null };
+    const dateColumns = DOCUMENT_DATE_COLUMNS[documentType];
+    if (dateColumns) {
+      const [startCol, endCol] = dateColumns;
+      updatePayload[startCol] = null;
+      updatePayload[endCol] = null;
+    }
     updatePayload.updated_by = authUser.id;
 
     const { error: dbError } = await supabaseAdmin
@@ -182,6 +201,7 @@ export async function DELETE(req: Request) {
         action: "DELETE_DOCUMENT",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "vehicles",
         recordId: Number(vehicleId),
         details: {

@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/themeToggle";
+import { NotificationBell } from "@/components/notificationBell";
 
 /** 15 minutes idle → silent auto-logout */
 const IDLE_MS = 15 * 60 * 1000;
@@ -22,7 +23,20 @@ export default function AdminLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, refreshSession } = useAuth();
+  const { user, loading, refreshSession } = useAuth();
+  const idleTimeoutTriggeredRef = useRef(false);
+
+  // If the session disappears while inside the admin area (revoked by a
+  // login on another device, expired, etc.), route to /login immediately
+  // instead of leaving an empty dashboard shell until the next hard reload.
+  // Skip this when the idle timer already initiated its own redirect below,
+  // otherwise this generic effect wins the race and mislabels idle logouts
+  // as "signed in on another device".
+  useEffect(() => {
+    if (!loading && !user && !idleTimeoutTriggeredRef.current) {
+      router.replace("/login?reason=session_expired");
+    }
+  }, [loading, user, router]);
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,13 +74,14 @@ export default function AdminLayout({
 
   // ── Idle Timeout — silent logout after 15 min ─────────
   const handleIdleTimeout = useCallback(async () => {
+    idleTimeoutTriggeredRef.current = true;
     try {
       await fetch("/api/auth/signout", { method: "POST" });
     } catch {
       // Best-effort sign out
     } finally {
       await refreshSession();
-      router.push("/login");
+      router.push("/login?reason=idle_timeout");
       router.refresh();
     }
   }, [router, refreshSession]);
@@ -77,8 +92,7 @@ export default function AdminLayout({
   });
 
   return (
-    <>
-      <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
+    <div className="flex h-[100dvh] w-full flex-col md:flex-row overflow-hidden bg-background">
         {/* Desktop Sidebar */}
         <Sidebar
           className="hidden md:block h-[100dvh] border-r border-border/50"
@@ -124,6 +138,7 @@ export default function AdminLayout({
         >
           {/* Desktop Header */}
           <header className="hidden md:flex h-14 shrink-0 items-center justify-end gap-3 bg-white dark:bg-background px-6 z-30 border-b border-border shadow-sm">
+            <NotificationBell />
             <ThemeToggle />
             <div className="h-6 w-px bg-border" />
             <div
@@ -140,7 +155,7 @@ export default function AdminLayout({
                 aria-label="User Account Menu"
                 className="flex h-9 w-9 p-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
               >
-                {user?.email?.charAt(0).toUpperCase() || "U"}
+                {(user?.displayName || user?.email)?.charAt(0).toUpperCase() || "U"}
               </Button>
 
               {isUserMenuOpen && (
@@ -154,7 +169,7 @@ export default function AdminLayout({
                         Account
                       </span>
                       <span className="text-sm font-semibold truncate block">
-                        {user?.email || "User"}
+                        {user?.displayName || user?.email || "User"}
                       </span>
                     </div>
                     <div className="h-px w-full bg-border my-0.5"></div>
@@ -172,7 +187,6 @@ export default function AdminLayout({
             {children}
           </main>
         </div>
-      </div>
-    </>
+    </div>
   );
 }

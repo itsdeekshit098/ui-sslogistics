@@ -281,6 +281,7 @@ export async function POST(req: Request) {
         action: "CREATE_EXTERNAL_TRIP",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "external_trips",
         recordId: newTrip.id,
         details: {
@@ -415,6 +416,7 @@ export async function PUT(req: Request) {
         action: "UPDATE_EXTERNAL_TRIP",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "external_trips",
         recordId: Number(id),
         details: updatePayload,
@@ -459,6 +461,7 @@ export async function DELETE(req: Request) {
         action: "DELETE_EXTERNAL_TRIP",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "external_trips",
         recordId: Number(id),
         details: { deleted: true },

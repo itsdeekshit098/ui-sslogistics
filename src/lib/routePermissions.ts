@@ -9,12 +9,14 @@ export type UserRole = "admin" | "staff" | "driver";
  */
 export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
   "/admin/sessions": ["admin"],
+  "/admin/settings": ["admin"],
   "/admin/warranty": ["admin"],
   "/admin/vehicles": ["admin", "staff"],
   "/admin/activity-log": ["admin", "staff"],
   "/admin/repair-records": ["admin", "staff"],
   "/admin/technicians": ["admin", "staff"],
   "/admin/drivers": ["admin", "staff"],
+  "/admin/vehicle-owners": ["admin", "staff"],
   "/admin/external-trips": ["admin", "staff"],
   // Pages accessible to ALL authenticated roles (including driver):
   // /admin              → Dashboard

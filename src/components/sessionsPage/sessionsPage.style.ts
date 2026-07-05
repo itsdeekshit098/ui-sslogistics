@@ -64,6 +64,13 @@ export const emailCell: CSSProperties = {
   color: "var(--foreground)",
 };
 
+export const emailCellSecondary: CSSProperties = {
+  display: "block",
+  fontSize: "0.75rem",
+  fontWeight: 400,
+  color: "var(--muted-foreground)",
+};
+
 export const timeCell: CSSProperties = {
   fontSize: "0.8125rem",
   color: "var(--muted-foreground)",

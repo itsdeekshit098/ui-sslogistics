@@ -8,7 +8,6 @@ import {
   TruckIcon,
   CarIcon,
   BusIcon,
-  SaveIcon,
   VanIcon,
   FolderOpenIcon,
   Trash2Icon,
@@ -22,14 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Modal,
-  ModalContent,
-  ModalDescription,
-  ModalFooter,
-  ModalHeader,
-  ModalTitle,
-} from "@/components/ui/modal";
+import { Modal, ModalContent } from "@/components/ui/modal";
 import {
   Select,
   SelectContent,
@@ -37,10 +29,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Vehicle, VehicleType, VEHICLE_TYPES } from "./vehicles.types";
 import {
-  getDefaultVehicleFormData,
+  Vehicle,
+  VehicleType,
+  VEHICLE_TYPES,
+  FUEL_TYPES,
+  OWNER_TYPES,
+} from "./vehicles.types";
+import { useVehicleOwners } from "@/hooks/useVehicleOwners";
+import {
   getStatusBadgeVariant,
+  getVehicleTypeLabel,
+  getVehicleSubDetail,
+  getOwnerTypeLabel,
 } from "./vehicles.utils";
 import HighlightMatch from "./highlightMatch";
 import * as styles from "./vehiclesPage.style";
@@ -48,20 +49,24 @@ import {
   CA_VEHICLES_CONTAINER,
   CA_VEHICLES_HEADER_TITLE,
   CA_VEHICLES_HEADER_DESC,
-  CA_MODAL_GRID,
-  CA_MODAL_LABEL_SPACE,
 } from "./vehicles.styles";
 import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { CreateVehicleModal } from "@/components/createVehicleModal";
+import { EditVehicleModal } from "@/components/editVehicleModal";
 import { ErrorState } from "@/components/errorState";
+import { deleteVehicle } from "@/services/vehiclesService";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
-import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
+import {
+  FilterDrawer,
+  fieldGroup as filterFieldGroup,
+  fieldLabel as filterFieldLabel,
+} from "@/components/ui/filterDrawer";
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -100,19 +105,40 @@ export default function VehiclesPage() {
   const [statusFilter, setStatusFilter] = useState<string>(
     searchParams.get("status") || "",
   );
+  const [ownerTypeFilter, setOwnerTypeFilter] = useState<string>(
+    searchParams.get("ownerType") || "",
+  );
+  const [ownerNameFilter, setOwnerNameFilter] = useState<string>(
+    searchParams.get("ownerName") || "",
+  );
+  const [fuelTypeFilter, setFuelTypeFilter] = useState<string>(
+    searchParams.get("fuelType") || "",
+  );
   const [drawerFilters, setDrawerFilters] = useState<{
     type: VehicleType | "all";
     status: string;
+    ownerType: string;
+    ownerName: string;
+    fuelType: string;
   }>({
     type: (searchParams.get("type") as VehicleType | "all") || "all",
     status: searchParams.get("status") || "",
+    ownerType: searchParams.get("ownerType") || "",
+    ownerName: searchParams.get("ownerName") || "",
+    fuelType: searchParams.get("fuelType") || "",
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { owners } = useVehicleOwners();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasActiveFilters =
-    searchQuery !== "" || typeFilter !== "all" || statusFilter !== "";
+    searchQuery !== "" ||
+    typeFilter !== "all" ||
+    statusFilter !== "" ||
+    ownerTypeFilter !== "" ||
+    ownerNameFilter !== "" ||
+    fuelTypeFilter !== "";
 
   // ─── URL sync ───
   const syncUrl = useCallback(
@@ -122,6 +148,9 @@ export default function VehiclesPage() {
       search: string,
       type: VehicleType | "all",
       status: string,
+      ownerType: string,
+      ownerName: string,
+      fuelType: string,
     ) => {
       const params = new URLSearchParams();
       if (p > 1) params.set("page", String(p));
@@ -129,6 +158,9 @@ export default function VehiclesPage() {
       if (search) params.set("search", search);
       if (type !== "all") params.set("type", type);
       if (status) params.set("status", status);
+      if (ownerType) params.set("ownerType", ownerType);
+      if (ownerName) params.set("ownerName", ownerName);
+      if (fuelType) params.set("fuelType", fuelType);
       const qs = params.toString();
       router.replace(`/admin/vehicles${qs ? `?${qs}` : ""}`, {
         scroll: false,
@@ -138,6 +170,10 @@ export default function VehiclesPage() {
   );
 
   // ─── Atomic fetch — accepts explicit params to avoid stale-state cascades ───
+  // requestIdRef guards against out-of-order responses: if the user changes
+  // page/filters again before an in-flight request resolves, the older
+  // response is discarded instead of clobbering the newer one.
+  const requestIdRef = useRef(0);
   const fetchVehicles = useCallback(
     async (opts?: {
       overridePage?: number;
@@ -145,17 +181,25 @@ export default function VehiclesPage() {
       overrideSearch?: string;
       overrideType?: VehicleType | "all";
       overrideStatus?: string;
+      overrideOwnerType?: string;
+      overrideOwnerName?: string;
+      overrideFuelType?: string;
     }) => {
       const p = opts?.overridePage ?? page;
       const ps = opts?.overridePageSize ?? pageSize;
       const search = opts?.overrideSearch ?? debouncedQuery;
       const type = opts?.overrideType ?? typeFilter;
       const st = opts?.overrideStatus ?? statusFilter;
+      const ot = opts?.overrideOwnerType ?? ownerTypeFilter;
+      const on = opts?.overrideOwnerName ?? ownerNameFilter;
+      const ft = opts?.overrideFuelType ?? fuelTypeFilter;
+
+      const requestId = ++requestIdRef.current;
 
       setLoading(true);
       setFetchError(null);
       // Optimistic URL sync
-      syncUrl(p, ps, search, type, st);
+      syncUrl(p, ps, search, type, st, ot, on, ft);
 
       try {
         const params = new URLSearchParams({
@@ -165,11 +209,16 @@ export default function VehiclesPage() {
         if (search) params.set("search", search);
         if (type !== "all") params.set("type", type);
         if (st) params.set("status", st);
+        if (ot) params.set("ownerType", ot);
+        if (on) params.set("ownerName", on);
+        if (ft) params.set("fuelType", ft);
 
         const res = await fetch(`/api/vehicles?${params}`);
         if (!res.ok) throw new Error("Failed to fetch");
 
         const json = await res.json();
+        if (requestIdRef.current !== requestId) return; // superseded by a newer request
+
         const result = json.data ?? {};
         setVehicles(result.data ?? []);
         setTotal(result.total ?? 0);
@@ -181,16 +230,32 @@ export default function VehiclesPage() {
         setDebouncedQuery(search);
         setTypeFilter(type);
         setStatusFilter(st);
+        setOwnerTypeFilter(ot);
+        setOwnerNameFilter(on);
+        setFuelTypeFilter(ft);
       } catch {
+        if (requestIdRef.current !== requestId) return;
         setFetchError(
           "We couldn\u2019t load your vehicles. Please check your connection and try again.",
         );
       } finally {
-        setLoading(false);
-        setInitialLoading(false);
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+          setInitialLoading(false);
+        }
       }
     },
-    [page, pageSize, debouncedQuery, typeFilter, statusFilter, syncUrl],
+    [
+      page,
+      pageSize,
+      debouncedQuery,
+      typeFilter,
+      statusFilter,
+      ownerTypeFilter,
+      ownerNameFilter,
+      fuelTypeFilter,
+      syncUrl,
+    ],
   );
 
   // Initial fetch on mount
@@ -219,18 +284,30 @@ export default function VehiclesPage() {
 
   // ─── Filter/page change handlers (all atomic, no cascading effects) ───
   const openDrawer = () => {
-    setDrawerFilters({ type: typeFilter, status: statusFilter });
+    setDrawerFilters({
+      type: typeFilter,
+      status: statusFilter,
+      ownerType: ownerTypeFilter,
+      ownerName: ownerNameFilter,
+      fuelType: fuelTypeFilter,
+    });
     setIsDrawerOpen(true);
   };
 
   const applyDrawerFilters = () => {
     setTypeFilter(drawerFilters.type);
     setStatusFilter(drawerFilters.status);
+    setOwnerTypeFilter(drawerFilters.ownerType);
+    setOwnerNameFilter(drawerFilters.ownerName);
+    setFuelTypeFilter(drawerFilters.fuelType);
     setPage(1);
     setIsDrawerOpen(false);
     fetchVehicles({
       overrideType: drawerFilters.type,
       overrideStatus: drawerFilters.status,
+      overrideOwnerType: drawerFilters.ownerType,
+      overrideOwnerName: drawerFilters.ownerName,
+      overrideFuelType: drawerFilters.fuelType,
       overridePage: 1,
     });
   };
@@ -239,13 +316,25 @@ export default function VehiclesPage() {
     setSearchQuery("");
     setTypeFilter("all");
     setStatusFilter("");
-    setDrawerFilters({ type: "all", status: "" });
+    setOwnerTypeFilter("");
+    setOwnerNameFilter("");
+    setFuelTypeFilter("");
+    setDrawerFilters({
+      type: "all",
+      status: "",
+      ownerType: "",
+      ownerName: "",
+      fuelType: "",
+    });
     setIsDrawerOpen(false);
     setPage(1);
     fetchVehicles({
       overrideSearch: "",
       overrideType: "all",
       overrideStatus: "",
+      overrideOwnerType: "",
+      overrideOwnerName: "",
+      overrideFuelType: "",
       overridePage: 1,
     });
   }, [fetchVehicles]);
@@ -264,14 +353,6 @@ export default function VehiclesPage() {
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  const [editFormData, setEditFormData] = useState<Omit<Vehicle, "id">>(
-    getDefaultVehicleFormData(),
-  );
-  const [editErrors, setEditErrors] = useState<{
-    vehicle_number?: string;
-    vehicle_type?: string;
-  }>({});
-  const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
 
   // Document Modal State
   const [isDocOpen, setIsDocOpen] = useState(false);
@@ -285,7 +366,6 @@ export default function VehiclesPage() {
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   const fetchVehiclesRefetch = useCallback(() => {
     // Re-fetch current page (used after create/edit/delete)
@@ -294,127 +374,48 @@ export default function VehiclesPage() {
 
   const handleEditClick = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
-    setEditFormData({
-      vehicle_number: vehicle.vehicle_number || "",
-      vehicle_type: vehicle.vehicle_type || "",
-      company: vehicle.company || "",
-      model: vehicle.model || "",
-      capacity: vehicle.capacity || "",
-      status: vehicle.status || "Active",
-      last_service_date: vehicle.last_service_date || "",
-      rc_url: vehicle.rc_url || "",
-      insurance_url: vehicle.insurance_url || "",
-      fc_url: vehicle.fc_url || "",
-      permit_url: vehicle.permit_url || "",
-      pollution_url: vehicle.pollution_url || "",
-      tax_url: vehicle.tax_url || "",
-      expected_kml: vehicle.expected_kml ?? null,
-      tank_capacity: vehicle.tank_capacity ?? null,
-      fuel_type: vehicle.fuel_type || "Diesel",
-    });
-    setEditErrors({});
-    setEditSubmitError(null);
     setIsEditOpen(true);
   };
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setEditFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleEditSelectChange = (field: string, value: string) => {
-    setEditFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleUpdateVehicle = async () => {
-    if (!editingVehicle) return;
-
-    const newErrors: { vehicle_number?: string; vehicle_type?: string } = {};
-    if (
-      !editFormData.vehicle_number ||
-      editFormData.vehicle_number.trim() === ""
-    ) {
-      newErrors.vehicle_number = "Vehicle Number is required";
-    }
-    if (!editFormData.vehicle_type || editFormData.vehicle_type.trim() === "") {
-      newErrors.vehicle_type = "Vehicle Type is required";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setEditErrors(newErrors);
-      return;
-    }
-    setEditErrors({});
-
-    setEditSubmitError(null);
-    setIsSaving(true);
-
-    const payload = {
-      id: editingVehicle.id,
-      ...editFormData,
-      last_service_date: editFormData.last_service_date
-        ? editFormData.last_service_date
-        : null,
-    };
-
-    try {
-      const res = await fetch("/api/vehicles", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        setEditSubmitError(
-          `Failed to update vehicle: ${errorData.error || res.statusText}`,
-        );
-        return;
-      }
-
-      // Refetch to get fresh data from the server
-      await fetchVehicles();
-      setIsEditOpen(false);
-    } catch {
-      setEditSubmitError("Unexpected error updating vehicle.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Tracks which vehicle the open delete dialog currently targets, independent
+  // of React state timing — used to detect if the target changed while a
+  // delete request was in flight (see handleDeleteVehicle).
+  const activeDeleteIdRef = useRef<number | null>(null);
 
   const handleDeleteClick = (vehicle: Vehicle) => {
     setDeletingVehicle(vehicle);
+    activeDeleteIdRef.current = vehicle.id;
     setDeleteError(null);
     setIsDeleteOpen(true);
   };
 
   const handleDeleteVehicle = async () => {
     if (!deletingVehicle) return;
+    const targetId = deletingVehicle.id;
 
     setIsDeleting(true);
     setDeleteError(null);
-    try {
-      const res = await fetch(`/api/vehicles?id=${deletingVehicle.id}`, {
-        method: "DELETE",
-      });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        setDeleteError(
-          `Failed to delete vehicle: ${errorData.error || res.statusText}`,
-        );
-        return;
-      }
+    const result = await deleteVehicle(targetId);
 
-      // Refetch to get fresh data from the server
-      await fetchVehicles();
+    if (!result.success) {
+      setDeleteError(result.error ?? "Unexpected error deleting vehicle.");
+      setIsDeleting(false);
+      return;
+    }
 
+    // Refetch to get fresh data from the server
+    await fetchVehicles();
+
+    setIsDeleting(false);
+    // Only close/clear the dialog if it's still targeting the vehicle we just
+    // deleted. The Cancel button and modal dismissal are disabled while
+    // isDeleting, so this shouldn't normally trigger — it's a safety net
+    // against a stale completion clobbering a dialog reopened for another
+    // vehicle.
+    if (activeDeleteIdRef.current === targetId) {
       setIsDeleteOpen(false);
       setDeletingVehicle(null);
-    } catch {
-      setDeleteError("Unexpected error deleting vehicle.");
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -554,7 +555,10 @@ export default function VehiclesPage() {
             </CardTitle>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
-              <SearchIcon size={16} className="absolute left-2 top-2.5 text-muted-foreground" />
+                <SearchIcon
+                  size={16}
+                  className="absolute left-2 top-2.5 text-muted-foreground"
+                />
                 <Input
                   data-testid="vehicles-search-input"
                   placeholder="Search vehicle number..."
@@ -587,10 +591,17 @@ export default function VehiclesPage() {
               >
                 <SlidersHorizontalIcon size={16} />
                 Filters
-                {(typeFilter !== "all" || statusFilter !== "") && (
+                {(typeFilter !== "all" ||
+                  statusFilter !== "" ||
+                  ownerTypeFilter !== "" ||
+                  ownerNameFilter !== "" ||
+                  fuelTypeFilter !== "") && (
                   <span style={styles.activeFilterBadge}>
                     {(typeFilter !== "all" ? 1 : 0) +
-                      (statusFilter !== "" ? 1 : 0)}
+                      (statusFilter !== "" ? 1 : 0) +
+                      (ownerTypeFilter !== "" ? 1 : 0) +
+                      (ownerNameFilter !== "" ? 1 : 0) +
+                      (fuelTypeFilter !== "" ? 1 : 0)}
                   </span>
                 )}
               </Button>
@@ -611,122 +622,147 @@ export default function VehiclesPage() {
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           {/* Mobile Card View */}
           <div className="block md:hidden space-y-3">
-            {loading ? (
-              <LoadingSpinner size="md" centered label="Loading vehicles..." />
-            ) : fetchError ? (
-              <ErrorState
-                title="Couldn't load vehicles"
-                description={fetchError}
-                onRetry={fetchVehicles}
-              />
-            ) : vehicles.length === 0 ? (
-              hasActiveFilters ? (
-                <EmptyState
-                  icon={SearchIcon}
-                  title="No Matches Found"
-                  description="No vehicles match your current search or filter. Try adjusting your criteria."
-                  actionLabel="Clear Filters"
-                  onAction={resetFilters}
-                />
-              ) : (
-                <EmptyState
-                  icon={TruckIcon}
-                  title="No Vehicles Found"
-                  description="You haven\u2019t added any vehicles yet. Add your first vehicle to get started."
-                  actionLabel="Add Vehicle"
-                  onAction={() => setIsCreateOpen(true)}
-                />
-              )
-            ) : (
-              vehicles.map((vehicle) => (
-                <div
-                  key={vehicle.id}
-                  className="border rounded-lg p-3 space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm">
-                      <HighlightMatch
-                        text={vehicle.vehicle_number}
-                        query={debouncedQuery}
-                      />
-                    </span>
-                    <Badge
-                      variant={
-                        getStatusBadgeVariant(vehicle.status) as
-                          | "default"
-                          | "destructive"
-                          | "secondary"
-                          | "outline"
-                      }
+            {(() => {
+              if (loading)
+                return (
+                  <LoadingSpinner
+                    size="md"
+                    centered
+                    label="Loading vehicles..."
+                  />
+                );
+              if (fetchError)
+                return (
+                  <ErrorState
+                    title="Couldn't load vehicles"
+                    description={fetchError}
+                    onRetry={fetchVehicles}
+                  />
+                );
+              if (vehicles.length === 0) {
+                if (hasActiveFilters)
+                  return (
+                    <EmptyState
+                      icon={SearchIcon}
+                      title="No Matches Found"
+                      description="No vehicles match your current search or filter. Try adjusting your criteria."
+                      actionLabel="Clear Filters"
+                      onAction={resetFilters}
+                    />
+                  );
+                return (
+                  <EmptyState
+                    icon={TruckIcon}
+                    title="No Vehicles Found"
+                    description="You haven’t added any vehicles yet. Add your first vehicle to get started."
+                    actionLabel="Add Vehicle"
+                    onAction={() => setIsCreateOpen(true)}
+                  />
+                );
+              }
+              return (
+                <>
+                  {vehicles.map((vehicle) => (
+                    <div
+                      key={vehicle.id}
+                      className="border rounded-lg p-3 space-y-2"
                     >
-                      {vehicle.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {vehicle.vehicle_type === "Bus" ? (
-                      <BusIcon size={14} />
-                    ) : vehicle.vehicle_type === "Car" ? (
-                      <CarIcon size={14} />
-                    ) : vehicle.vehicle_type === "Tempo Traveller" ||
-                      vehicle.vehicle_type === "Tempo" ? (
-                      <VanIcon size={14} />
-                    ) : (
-                      <TruckIcon size={14} />
-                    )}
-                    <span>{vehicle.vehicle_type}</span>
-                    <span className="text-muted-foreground/50">•</span>
-                    <span>
-                      {vehicle.company} {vehicle.model}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Capacity: {vehicle.capacity} | Service:{" "}
-                    {vehicle.last_service_date || "N/A"}
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      data-testid={`mobile-doc-btn-${vehicle.id}`}
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1 text-xs h-8"
-                      onClick={() => {
-                        setDocVehicle(vehicle);
-                        setIsDocOpen(true);
-                      }}
-                    >
-                      <FolderOpenIcon size={14} style={{ marginRight: "0.25rem" }} /> Docs
-                    </Button>
-                    {canWrite && (
-                      <>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">
+                          <HighlightMatch
+                            text={vehicle.vehicle_number}
+                            query={debouncedQuery}
+                          />
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {vehicle.owner_type === "EXTERNAL" && (
+                            <Badge variant="outline">External</Badge>
+                          )}
+                          <Badge
+                            variant={
+                              getStatusBadgeVariant(vehicle.status) as
+                                | "default"
+                                | "destructive"
+                                | "secondary"
+                                | "outline"
+                            }
+                          >
+                            {vehicle.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {vehicle.vehicle_type === "BUS" ? (
+                          <BusIcon size={14} />
+                        ) : vehicle.vehicle_type === "CAR" ? (
+                          <CarIcon size={14} />
+                        ) : vehicle.vehicle_type === "TEMPO_TRAVELLER" ? (
+                          <VanIcon size={14} />
+                        ) : (
+                          <TruckIcon size={14} />
+                        )}
+                        <span>{getVehicleTypeLabel(vehicle.vehicle_type)}</span>
+                        <span className="text-muted-foreground/50">•</span>
+                        <span>
+                          {vehicle.company} {vehicle.model}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        {getVehicleSubDetail(vehicle) !== "—" && (
+                          <div>{getVehicleSubDetail(vehicle)}</div>
+                        )}
+                        <div>Service: {vehicle.last_service_date || "N/A"}</div>
+                      </div>
+                      <div className="flex gap-2 pt-1">
                         <Button
-                          data-testid={`mobile-edit-btn-${vehicle.id}`}
+                          data-testid={`mobile-doc-btn-${vehicle.id}`}
                           variant="secondary"
                           size="sm"
-                          className="text-xs h-8"
-                          onClick={() => handleEditClick(vehicle)}
+                          className="flex-1 text-xs h-8"
+                          onClick={() => {
+                            setDocVehicle(vehicle);
+                            setIsDocOpen(true);
+                          }}
                         >
-                          Edit
+                          <FolderOpenIcon
+                            size={14}
+                            style={{ marginRight: "0.25rem" }}
+                          />{" "}
+                          Docs
                         </Button>
-                        {isAdmin && (
-                          <Button
-                            data-testid={`mobile-delete-btn-${vehicle.id}`}
-                            variant="destructive"
-                            size="sm"
-                            className="text-xs h-8 px-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(vehicle);
-                            }}
-                          >
-                            <Trash2Icon size={14} />
-                          </Button>
+                        {canWrite && (
+                          <>
+                            <Button
+                              data-testid={`mobile-edit-btn-${vehicle.id}`}
+                              variant="secondary"
+                              size="sm"
+                              className="text-xs h-8"
+                              onClick={() => handleEditClick(vehicle)}
+                            >
+                              Edit
+                            </Button>
+                            {isAdmin && (
+                              <Button
+                                data-testid={`mobile-delete-btn-${vehicle.id}`}
+                                variant="destructive"
+                                size="sm"
+                                className="text-xs h-8 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClick(vehicle);
+                                }}
+                              >
+                                <Trash2Icon size={14} />
+                              </Button>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </div>
 
           {/* Desktop Table View */}
@@ -751,18 +787,31 @@ export default function VehiclesPage() {
                   cell: (row) => (
                     <div style={styles.cellRow}>
                       <span style={styles.cellIconBadge}>
-                        {row.vehicle_type === "Bus" ? (
-                          <BusIcon size={14} style={{ color: styles.cellIconColor }} />
-                        ) : row.vehicle_type === "Car" ? (
-                          <CarIcon size={14} style={{ color: styles.cellIconColor }} />
-                        ) : row.vehicle_type === "Tempo Traveller" ||
-                          row.vehicle_type === "Tempo" ? (
-                          <VanIcon size={14} style={{ color: styles.cellIconColor }} />
+                        {row.vehicle_type === "BUS" ? (
+                          <BusIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
+                        ) : row.vehicle_type === "CAR" ? (
+                          <CarIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
+                        ) : row.vehicle_type === "TEMPO_TRAVELLER" ? (
+                          <VanIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
                         ) : (
-                          <TruckIcon size={14} style={{ color: styles.cellIconColor }} />
+                          <TruckIcon
+                            size={14}
+                            style={{ color: styles.cellIconColor }}
+                          />
                         )}
                       </span>
-                      <span style={styles.cellLabel}>{row.vehicle_type}</span>
+                      <span style={styles.cellLabel}>
+                        {getVehicleTypeLabel(row.vehicle_type)}
+                      </span>
                     </div>
                   ),
                 },
@@ -772,9 +821,19 @@ export default function VehiclesPage() {
                   cell: (row) => `${row.company} ${row.model}`,
                 },
                 {
-                  key: "capacity",
-                  header: "Capacity",
-                  cell: (row) => row.capacity,
+                  key: "owner_type",
+                  header: "Owner Type",
+                  cell: (row) => getOwnerTypeLabel(row.owner_type),
+                },
+                {
+                  key: "owner_name",
+                  header: "Owner Name",
+                  cell: (row) => row.owner_name || "—",
+                },
+                {
+                  key: "details",
+                  header: "Details",
+                  cell: (row) => getVehicleSubDetail(row),
                 },
                 {
                   key: "status",
@@ -811,7 +870,11 @@ export default function VehiclesPage() {
                         setIsDocOpen(true);
                       }}
                     >
-                      <FolderOpenIcon size={16} style={{ marginRight: "0.5rem" }} /> Manage Docs
+                      <FolderOpenIcon
+                        size={16}
+                        style={{ marginRight: "0.5rem" }}
+                      />{" "}
+                      Manage Docs
                     </Button>
                   ),
                 },
@@ -873,236 +936,22 @@ export default function VehiclesPage() {
       </Card>
 
       {/* Edit Vehicle Modal */}
-      <Modal open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <ModalContent className="w-[95vw] max-w-175 p-0 overflow-hidden rounded-xl sm:rounded-2xl">
-          <div className="max-h-[85vh] overflow-y-auto p-4 md:p-6 scrollbar-custom">
-            <ModalHeader>
-              <ModalTitle>Edit Vehicle</ModalTitle>
-              <ModalDescription>
-                Make changes to the vehicle details here. Click save when
-                you&apos;re done.
-              </ModalDescription>
-            </ModalHeader>
-            {editSubmitError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100 flex justify-between items-start gap-2">
-                <span>{editSubmitError}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  onClick={() => setEditSubmitError(null)}
-                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 mt-0.5 h-auto w-auto p-1"
-                >
-                  <XIcon size={16} />
-                </Button>
-              </div>
-            )}
-            <div className="grid gap-4 py-4">
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="vehicle_number">
-                    Vehicle Number <span className="text-red-500">*</span>
-                  </Label>
-                  <Input disabled={isSaving}
-                    id="vehicle_number"
-                    value={editFormData.vehicle_number}
-                    onChange={(e) => {
-                      handleEditChange(e);
-                      if (editErrors.vehicle_number)
-                        setEditErrors((prev) => ({
-                          ...prev,
-                          vehicle_number: undefined,
-                        }));
-                    }}
-                    className={
-                      editErrors.vehicle_number
-                        ? "border-red-500 focus-visible:ring-red-500"
-                        : ""
-                    }
-                  />
-                  {editErrors.vehicle_number && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {editErrors.vehicle_number}
-                    </p>
-                  )}
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="vehicle_type">
-                    Vehicle Type <span className="text-red-500">*</span>
-                  </Label>
-                  <Select disabled={isSaving}
-                    value={editFormData.vehicle_type}
-                    onValueChange={(value) => {
-                      handleEditSelectChange("vehicle_type", value);
-                      if (editErrors.vehicle_type)
-                        setEditErrors((prev) => ({
-                          ...prev,
-                          vehicle_type: undefined,
-                        }));
-                    }}
-                  >
-                    <SelectTrigger
-                      className={
-                        editErrors.vehicle_type
-                          ? "border-red-500 focus:ring-red-500"
-                          : ""
-                      }
-                    >
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bus">Bus</SelectItem>
-                      <SelectItem value="Car">Car</SelectItem>
-                      <SelectItem value="Tempo">Tempo Traveller</SelectItem>
-                      <SelectItem value="Truck">Truck</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="company">Company</Label>
-                  <Input disabled={isSaving}
-                    id="company"
-                    value={editFormData.company}
-                    onChange={handleEditChange}
-                  />
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="model">Model</Label>
-                  <Input disabled={isSaving}
-                    id="model"
-                    value={editFormData.model}
-                    onChange={handleEditChange}
-                  />
-                </div>
-              </div>
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="capacity">Capacity</Label>
-                  <Input disabled={isSaving}
-                    id="capacity"
-                    value={editFormData.capacity}
-                    onChange={handleEditChange}
-                  />
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="last_service_date">Last Service Date</Label>
-                  <Input disabled={isSaving}
-                    id="last_service_date"
-                    type="date"
-                    value={editFormData.last_service_date || ""}
-                    onChange={handleEditChange}
-                  />
-                </div>
-              </div>
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="status">Status</Label>
-                  <Select disabled={isSaving}
-                    value={editFormData.status}
-                    onValueChange={(value) =>
-                      handleEditSelectChange("status", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Maintenance">Maintenance</SelectItem>
-                      <SelectItem value="Idle">Idle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="fuel_type">Fuel Type</Label>
-                  <Select disabled={isSaving}
-                    value={editFormData.fuel_type || "Diesel"}
-                    onValueChange={(value) =>
-                      handleEditSelectChange("fuel_type", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Fuel Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Diesel">Diesel</SelectItem>
-                      <SelectItem value="Petrol">Petrol</SelectItem>
-                      <SelectItem value="CNG">CNG</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className={CA_MODAL_GRID}>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="expected_kml">Expected Km/L</Label>
-                  <Input disabled={isSaving}
-                    id="expected_kml"
-                    type="number"
-                    placeholder="e.g. 4.5"
-                    step="0.01"
-                    min="0"
-                    value={editFormData.expected_kml ?? ""}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        expected_kml: e.target.value
-                          ? parseFloat(e.target.value)
-                          : null,
-                      }))
-                    }
-                    onWheel={(e) => e.currentTarget.blur()}
-                  />
-                </div>
-                <div className={CA_MODAL_LABEL_SPACE}>
-                  <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-                  <Input disabled={isSaving}
-                    id="tank_capacity"
-                    type="number"
-                    placeholder="e.g. 200"
-                    step="0.01"
-                    min="0"
-                    value={editFormData.tank_capacity ?? ""}
-                    onChange={(e) =>
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        tank_capacity: e.target.value
-                          ? parseFloat(e.target.value)
-                          : null,
-                      }))
-                    }
-                    onWheel={(e) => e.currentTarget.blur()}
-                  />
-                </div>
-              </div>
-            </div>
-            <ModalFooter>
-              <Button
-                type="submit"
-                onClick={handleUpdateVehicle}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                ) : (
-                  <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
-                )}
-                {isSaving ? "Saving..." : "Save changes"}
-              </Button>
-            </ModalFooter>
-          </div>
-        </ModalContent>
-      </Modal>
+      <EditVehicleModal
+        isOpen={isEditOpen}
+        vehicle={editingVehicle}
+        onClose={() => setIsEditOpen(false)}
+        onSuccess={fetchVehiclesRefetch}
+      />
 
       {/* Delete Confirmation Modal */}
-      <Modal open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <ModalContent className="max-w-md rounded-xl sm:rounded-2xl">
-          <div className="flex flex-col items-center space-y-2 text-center">
+      <Modal
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!isDeleting) setIsDeleteOpen(open);
+        }}
+      >
+        <ModalContent className="max-w-md p-6 rounded-xl sm:rounded-2xl">
+          <div className="flex flex-col items-center space-y-4 text-center">
             <div className="rounded-full bg-red-100 p-3">
               <Trash2Icon size={24} className="text-red-600" />
             </div>
@@ -1142,6 +991,7 @@ export default function VehiclesPage() {
                 variant="outline"
                 className="flex-1"
                 onClick={() => setIsDeleteOpen(false)}
+                disabled={isDeleting}
               >
                 Cancel
               </Button>
@@ -1210,8 +1060,8 @@ export default function VehiclesPage() {
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               {VEHICLE_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t === "Tempo" ? "Tempo Traveller" : t}
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -1237,6 +1087,95 @@ export default function VehiclesPage() {
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Maintenance">Maintenance</SelectItem>
               <SelectItem value="Idle">Idle</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Fuel</Label>
+          <Select
+            value={drawerFilters.fuelType || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                fuelType: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Fuel Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Fuel Types</SelectItem>
+              {FUEL_TYPES.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Owner Type</Label>
+          <Select
+            value={drawerFilters.ownerType || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                ownerType: v === "all" ? "" : v,
+                // Clear a name that no longer belongs to the newly chosen type.
+                ownerName:
+                  v === "all"
+                    ? p.ownerName
+                    : owners.find((o) => o.name === p.ownerName)
+                          ?.owner_type === v
+                      ? p.ownerName
+                      : "",
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Owner Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Owner Types</SelectItem>
+              {OWNER_TYPES.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Owner Name</Label>
+          <Select
+            value={drawerFilters.ownerName || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                ownerName: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Owners" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Owners</SelectItem>
+              {owners
+                .filter(
+                  (o) =>
+                    drawerFilters.ownerType === "" ||
+                    o.owner_type === drawerFilters.ownerType,
+                )
+                .map((o) => (
+                  <SelectItem key={o.id} value={o.name}>
+                    {o.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

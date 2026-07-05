@@ -1,25 +1,17 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
 import { SaveIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { getDefaultVehicleFormData } from "@/app/admin/vehicles/vehicles.utils";
 import { Modal, ModalContent } from "@/components/ui/modal";
-import {
-  CA_MODAL_GRID,
-  CA_MODAL_LABEL_SPACE,
-} from "@/app/admin/vehicles/vehicles.styles";
+import { VehicleFormFields } from "@/components/vehicleFormFields";
+import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
+import { useVehicleForm } from "@/hooks/useVehicleForm";
+import { useVehicleOwners } from "@/hooks/useVehicleOwners";
+import { createVehicle } from "@/services/vehiclesService";
+import { VehicleOwner } from "@/app/admin/vehicles/vehicles.types";
 
 /**
  * Inner form component that mounts/unmounts with modal visibility.
@@ -29,82 +21,30 @@ const CreateVehicleForm: React.FC<{
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
 }> = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState(getDefaultVehicleFormData());
-  const [errors, setErrors] = useState<{
-    vehicle_number?: string;
-    vehicle_type?: string;
-  }>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { formData, errors, submitError, loading, handleChange, handleSelectChange, handleVehicleTypeChange, handleOwnerTypeChange, handleNumberChange, handleSubmit } =
+    useVehicleForm({
+      onSubmit: createVehicle,
+      onSuccess: async () => {
+        await onSuccess();
+        onClose();
+      },
+    });
+
+  const { owners, addOwner } = useVehicleOwners();
+  const [showAddOwner, setShowAddOwner] = useState(false);
+
+  const handleOwnerAdded = useCallback((newOwner: VehicleOwner) => {
+    addOwner(newOwner);
+    // Adopt the new owner's type too — it can be changed inside the add-owner
+    // modal, and syncing only the name would persist a mismatched pair.
+    handleSelectChange("owner_type", newOwner.owner_type);
+    handleSelectChange("owner_name", newOwner.name);
+    setShowAddOwner(false);
+  }, [addOwner, handleSelectChange]);
 
   const handleClose = useCallback(() => {
     if (!loading) onClose();
   }, [loading, onClose]);
-
-  // Escape key handling is delegated to Modal. Body scroll lock is not implemented.
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
-    const newErrors: { vehicle_number?: string; vehicle_type?: string } = {};
-    if (!formData.vehicle_number || formData.vehicle_number.trim() === "") {
-      newErrors.vehicle_number = "Vehicle Number is required";
-    }
-    if (!formData.vehicle_type || formData.vehicle_type.trim() === "") {
-      newErrors.vehicle_type = "Vehicle Type is required";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-    setErrors({});
-    setSubmitError(null);
-    setLoading(true);
-
-    const payload = {
-      ...formData,
-      last_service_date: formData.last_service_date
-        ? formData.last_service_date
-        : null,
-    };
-
-    try {
-      const response = await fetch("/api/vehicles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        await onSuccess();
-        setLoading(false);
-        onClose();
-      } else {
-        const errorData = await response.json();
-        setSubmitError(
-          `Failed to save vehicle: ${errorData.error || response.statusText}`,
-        );
-        setLoading(false);
-      }
-    } catch (error: unknown) {
-      setSubmitError(
-        `Error saving vehicle: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="w-full">
@@ -126,202 +66,27 @@ const CreateVehicleForm: React.FC<{
             {submitError}
           </div>
         )}
-        <div className="space-y-4">
-          <div className={CA_MODAL_GRID}>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="vehicle_number">
-                Vehicle Number <span className="text-red-500">*</span>
-              </Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-1"
-                id="vehicle_number"
-                placeholder="AP 02 AB 1234"
-                value={formData.vehicle_number}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (errors.vehicle_number)
-                    setErrors((prev) => ({
-                      ...prev,
-                      vehicle_number: undefined,
-                    }));
-                }}
-                className={
-                  errors.vehicle_number
-                    ? "border-red-500 focus-visible:ring-red-500"
-                    : ""
-                }
-              />
-              {errors.vehicle_number && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.vehicle_number}
-                </p>
-              )}
-            </div>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="vehicle_type">
-                Vehicle Type <span className="text-red-500">*</span>
-              </Label>
-              <Select disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-select-1"
-                value={formData.vehicle_type}
-                onValueChange={(val) => {
-                  handleSelectChange("vehicle_type", val);
-                  if (errors.vehicle_type)
-                    setErrors((prev) => ({ ...prev, vehicle_type: undefined }));
-                }}
-              >
-                <SelectTrigger
-                  className={
-                    errors.vehicle_type
-                      ? "border-red-500 focus:ring-red-500"
-                      : ""
-                  }
-                >
-                  <SelectValue placeholder="Select Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bus">Bus</SelectItem>
-                  <SelectItem value="Car">Car</SelectItem>
-                  <SelectItem value="Tempo">Tempo Traveller</SelectItem>
-                  <SelectItem value="Truck">Truck</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.vehicle_type && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.vehicle_type}
-                </p>
-              )}
-            </div>
-          </div>
 
-          <div className={CA_MODAL_GRID}>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="company">Company</Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-2"
-                id="company"
-                placeholder="e.g. Tata"
-                value={formData.company}
-                onChange={handleChange}
-              />
-            </div>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="model">Model</Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-3"
-                id="model"
-                placeholder="e.g. Starbus"
-                value={formData.model}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
+        <VehicleFormFields
+          formData={formData}
+          errors={errors}
+          disabled={loading}
+          owners={owners}
+          onChange={handleChange}
+          onSelectChange={handleSelectChange}
+          onVehicleTypeChange={handleVehicleTypeChange}
+          onOwnerTypeChange={handleOwnerTypeChange}
+          onNumberChange={handleNumberChange}
+          onAddOwnerClick={() => setShowAddOwner(true)}
+          testIdPrefix="components-createVehicleModal-createVehicleModal"
+        />
 
-          <div className={CA_MODAL_GRID}>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="capacity">Seating / Load Capacity</Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-4"
-                id="capacity"
-                placeholder="e.g. 40 Seater"
-                value={formData.capacity}
-                onChange={handleChange}
-              />
-            </div>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="last_service_date">Last Service Date</Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-5"
-                id="last_service_date"
-                type="date"
-                value={formData.last_service_date || ""}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div className={CA_MODAL_GRID}>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="status">Initial Status</Label>
-              <Select disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-select-2"
-                value={formData.status}
-                onValueChange={(val) => handleSelectChange("status", val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  <SelectItem value="Idle">Idle</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="fuel_type">Fuel Type</Label>
-              <Select disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-select-3"
-                value={formData.fuel_type || "Diesel"}
-                onValueChange={(val) => handleSelectChange("fuel_type", val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Fuel Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Diesel">Diesel</SelectItem>
-                  <SelectItem value="Petrol">Petrol</SelectItem>
-                  <SelectItem value="CNG">CNG</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className={CA_MODAL_GRID}>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="expected_kml">Expected Km/L</Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-6"
-                id="expected_kml"
-                type="number"
-                placeholder="e.g. 4.5"
-                step="0.01"
-                min="0"
-                value={formData.expected_kml ?? ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    expected_kml: e.target.value
-                      ? parseFloat(e.target.value)
-                      : null,
-                  }))
-                }
-                onWheel={(e) => e.currentTarget.blur()}
-              />
-            </div>
-            <div className={CA_MODAL_LABEL_SPACE}>
-              <Label htmlFor="tank_capacity">Tank Capacity (L)</Label>
-              <Input disabled={loading}
-                data-testid="components-createVehicleModal-createVehicleModal-input-7"
-                id="tank_capacity"
-                type="number"
-                placeholder="e.g. 200"
-                step="0.01"
-                min="0"
-                value={formData.tank_capacity ?? ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    tank_capacity: e.target.value
-                      ? parseFloat(e.target.value)
-                      : null,
-                  }))
-                }
-                onWheel={(e) => e.currentTarget.blur()}
-              />
-            </div>
-          </div>
-        </div>
+        <AddVehicleOwnerModal
+          isOpen={showAddOwner}
+          defaultOwnerType={formData.owner_type}
+          onClose={() => setShowAddOwner(false)}
+          onSuccess={handleOwnerAdded}
+        />
 
         <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mt-2">
           <strong>Note:</strong> You will be able to securely upload PDF and

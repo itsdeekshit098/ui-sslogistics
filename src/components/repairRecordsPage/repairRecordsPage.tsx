@@ -92,6 +92,9 @@ export function RepairRecordsPage() {
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const msgTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (msgTimeoutRef.current) clearTimeout(msgTimeoutRef.current); }, []);
 
   // Skip summary on page-only changes
   const skipSummaryRef = useRef(false);
@@ -337,9 +340,13 @@ export function RepairRecordsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      alert("Download completed successfully.");
+      if (msgTimeoutRef.current) clearTimeout(msgTimeoutRef.current);
+      setSuccessMsg("Download completed successfully.");
+      msgTimeoutRef.current = setTimeout(() => setSuccessMsg(null), 3000);
     } catch {
-      alert("Failed to download repair records.");
+      if (msgTimeoutRef.current) clearTimeout(msgTimeoutRef.current);
+      setError("Failed to download repair records.");
+      msgTimeoutRef.current = setTimeout(() => setError(null), 3000);
     } finally {
       setIsDownloading(false);
     }
@@ -443,6 +450,13 @@ export function RepairRecordsPage() {
       {error && (
         <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md text-sm border border-destructive/20">
           {error}
+        </div>
+      )}
+
+      {/* Success */}
+      {successMsg && (
+        <div className="bg-success/10 text-success px-4 py-3 rounded-md text-sm border border-success/20">
+          {successMsg}
         </div>
       )}
 

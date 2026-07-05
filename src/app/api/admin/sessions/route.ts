@@ -90,6 +90,7 @@ export async function GET(req: Request) {
       return {
         id: u.id,
         email: u.email || "unknown",
+        displayName: u.user_metadata?.display_name || u.email || "unknown",
         role: u.app_metadata?.role || null,
         lastSignInAt: u.last_sign_in_at || null,
         createdAt: u.created_at,
@@ -161,6 +162,7 @@ export async function PUT(req: Request) {
         action: "BAN_USER",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "auth.users",
         recordId: null,
         details: {
@@ -188,6 +190,7 @@ export async function PUT(req: Request) {
       action: "UNBAN_USER",
       userId: authUser.id,
       userEmail: authUser.email,
+      userDisplayName: authUser.displayName,
       tableName: "auth.users",
       recordId: null,
       details: {
@@ -244,6 +247,7 @@ export async function DELETE(req: Request) {
       action: "REVOKE_SESSIONS",
       userId: authUser.id,
       userEmail: authUser.email,
+      userDisplayName: authUser.displayName,
       tableName: "auth.sessions",
       recordId: null,
       details: {
@@ -318,6 +322,7 @@ export async function PATCH(req: Request) {
       action: "RESET_PASSWORD",
       userId: authUser.id,
       userEmail: authUser.email,
+      userDisplayName: authUser.displayName,
       tableName: "auth.users",
       recordId: null,
       details: {

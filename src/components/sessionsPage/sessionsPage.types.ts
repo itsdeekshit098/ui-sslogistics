@@ -9,6 +9,7 @@ export interface UserSession {
 export interface SessionUser {
   id: string;
   email: string;
+  displayName: string;
   role: string | null;
   lastSignInAt: string | null;
   createdAt: string;

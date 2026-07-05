@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
+import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import type { CreateDieselPayload } from "@/app/admin/diesel-records/dieselRecords.types";
 
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
     // ── 2. Fetch vehicle master (expected_kml, tank_capacity) ──
     const { data: vehicle, error: vErr } = await supabaseAdmin
       .from("vehicles")
-      .select("id, expected_kml, tank_capacity")
+      .select("id, vehicle_number, expected_kml, tank_capacity")
       .eq("id", vehicleId)
       .single();
 
@@ -302,6 +303,7 @@ export async function POST(req: Request) {
         action: "CREATE_DIESEL_RECORD",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "diesel_records",
         recordId: newRecord?.id || null,
         details: {
@@ -313,6 +315,19 @@ export async function POST(req: Request) {
           cycle_status: cycleStatus,
           kml,
         },
+      }),
+    );
+
+    // ── 10. Notify admin/staff so they can review the record ──
+    after(() =>
+      notifyRoles({
+        roles: ["admin", "staff"],
+        type: "diesel_record_created",
+        title: "New diesel record",
+        body: `${authUser.displayName} logged a diesel fill for vehicle ${vehicle.vehicle_number}`,
+        linkPath: `/admin/diesel-records?vehicle_id=${vehicleId}`,
+        metadata: { record_id: newRecord?.id, vehicle_id: vehicleId },
+        excludeUserId: authUser.id,
       }),
     );
 
@@ -554,6 +569,7 @@ export async function PUT(req: Request) {
         action: "UPDATE_DIESEL_RECORD",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "diesel_records",
         recordId: Number(id),
         details: updatePayload,
@@ -620,6 +636,7 @@ export async function DELETE(req: Request) {
         action: "DELETE_DIESEL_RECORD",
         userId: authUser.id,
         userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
         tableName: "diesel_records",
         recordId: Number(id),
         details: {

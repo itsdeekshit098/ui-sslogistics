@@ -16,7 +16,7 @@ export const headerRow: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "16px 20px",
+  padding: "16px 56px 16px 20px", // 56px right padding prevents overlap with absolute close button
   borderBottom: "1px solid var(--border)",
   flexShrink: 0,
   gap: "12px",
