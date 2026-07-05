@@ -294,6 +294,54 @@
     0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
 }
 
+/* Pre-hydration fallback: mirrors .dark so the very first paint (before the
+   theme script can add the "dark" class) already matches system preference
+   instead of flashing light. Skipped when the user has explicitly picked
+   "light" (script always sets that class, never leaves it absent). */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: hsl(222 47% 11%);
+    --foreground: hsl(210 40% 98%);
+
+    --primary: hsl(217 91% 60%);
+    --primary-foreground: hsl(222 47% 11%);
+
+    --secondary: hsl(217 33% 17%);
+    --secondary-foreground: hsl(210 40% 98%);
+
+    --muted: hsl(217 33% 17%);
+    --muted-foreground: hsl(215 20% 65%);
+
+    --accent: hsl(217 33% 17%);
+    --accent-foreground: hsl(210 40% 98%);
+
+    --destructive: hsl(0 63% 31%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --success: hsl(149 65.1% 30.2%);
+    --success-foreground: hsl(0 0% 98%);
+
+    --warning: hsl(48 96.6% 40.8%);
+    --warning-foreground: hsl(0 0% 98%);
+
+    --info: hsl(217.2 91.2% 59.8%);
+    --info-foreground: hsl(0 0% 98%);
+
+    --card: hsl(217 33% 14%);
+    --card-foreground: hsl(210 40% 98%);
+
+    --popover: hsl(217 33% 14%);
+    --popover-foreground: hsl(210 40% 98%);
+
+    --border: hsl(217 33% 17%);
+    --input: hsl(217 33% 17%);
+    --ring: hsl(213 31% 91%);
+
+    --brand: hsl(0 72% 56%);
+    --brand-foreground: hsl(0 0% 100%);
+  }
+}
+
 /* ─── Global Modern Scrollbar ─── */
 
 * {
