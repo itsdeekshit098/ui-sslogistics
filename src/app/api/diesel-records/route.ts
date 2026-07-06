@@ -140,7 +140,7 @@ export async function POST(req: Request) {
     // ── 4. Get last entry for this vehicle (prev odo + cycle context) ──
     const { data: lastEntry, error: lastEntryErr } = await supabaseAdmin
       .from("diesel_records")
-      .select("id, current_odo, cycle_id, fill_type, cycle_status")
+      .select("id, current_odo, cycle_id, fill_type, cycle_status, fill_date")
       .eq("vehicle_id", vehicleId)
       .order("fill_date", { ascending: false })
       .order("id", { ascending: false })
@@ -159,6 +159,18 @@ export async function POST(req: Request) {
         `Odometer must be greater than previous reading (${lastEntry.current_odo} km)`,
         400,
       );
+    }
+
+    // ── 5b. Validate fill_date is not older than the previous record's ──
+    if (lastEntry) {
+      const newFillDate = new Date(body.fill_date || Date.now());
+      const lastFillDate = new Date(lastEntry.fill_date);
+      if (newFillDate.getTime() < lastFillDate.getTime()) {
+        return apiError(
+          `Fill date cannot be earlier than the previous entry's date (${lastEntry.fill_date})`,
+          400,
+        );
+      }
     }
 
     // ── 6. First fill must be a full fill ──
