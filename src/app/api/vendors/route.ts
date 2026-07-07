@@ -1,8 +1,7 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -39,8 +38,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query.range(from, to);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0 });
@@ -86,8 +84,7 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("A vendor with this name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

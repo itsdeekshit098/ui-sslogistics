@@ -1,8 +1,7 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { computeWarrantyExpiry } from "@/utils/warrantyExpiry";
 import { logActivity } from "@/lib/activityLog";
 
@@ -84,8 +83,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     const rows = (data ?? []).map((row) => {
@@ -222,8 +220,7 @@ export async function POST(req: Request) {
       .single();
 
     if (insertErr) {
-      logger.error("Database error", { error: insertErr.message, code: insertErr?.code, hint: insertErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(insertErr);
     }
 
     after(async () => {
@@ -276,8 +273,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (delErr) {
-      logger.error("Database error", { error: delErr.message, code: delErr?.code, hint: delErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(delErr);
     }
 
     after(async () => {
@@ -362,8 +358,7 @@ export async function PUT(req: Request) {
       if (existingErr.code === "PGRST116") {
         return apiError("Part not found", 404);
       }
-      logger.error("Database error", { error: existingErr.message, code: existingErr?.code, hint: existingErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(existingErr);
     }
 
     // 2. Security guard: Cannot change vehicle on repair-linked parts
@@ -402,8 +397,7 @@ export async function PUT(req: Request) {
       .single();
 
     if (updateErr) {
-      logger.error("Database error", { error: updateErr.message, code: updateErr?.code, hint: updateErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(updateErr);
     }
 
     after(async () => {

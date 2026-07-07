@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
@@ -11,7 +12,10 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Optionally log to an error reporting service (e.g. Sentry)
+    // Next.js renders this boundary for errors thrown during render in
+    // this route segment. It doesn't go through handleApiError (that's
+    // API-route only), so it needs its own explicit capture here.
+    Sentry.captureException(error);
   }, [error]);
 
   return (

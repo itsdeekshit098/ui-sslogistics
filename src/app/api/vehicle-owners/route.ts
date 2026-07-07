@@ -1,6 +1,5 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
@@ -32,8 +31,7 @@ export async function GET(req: Request) {
     const { data, error } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess(data);
@@ -66,8 +64,7 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("An owner with this name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -150,8 +147,7 @@ export async function PUT(req: Request) {
       if (error.code === "23505") {
         return apiError("An owner with this name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     const data = rpcRows?.[0];
@@ -210,8 +206,7 @@ export async function DELETE(req: Request) {
       .eq("owner_name", owner.name);
 
     if (countErr) {
-      logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(countErr);
     }
 
     if ((count ?? 0) > 0) {
@@ -227,8 +222,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

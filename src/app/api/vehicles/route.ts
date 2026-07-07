@@ -1,10 +1,11 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 
 /** Allowed columns for vehicle insert/update — prevents mass assignment */
 const ALLOWED_VEHICLE_FIELDS = [
@@ -54,8 +55,7 @@ async function validateOwnerFields(body: Record<string, unknown>): Promise<Respo
       .eq("name", ownerName)
       .maybeSingle();
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
     if (!owner) {
       return apiError("Unknown Owner Name — add the owner first", 400);
@@ -138,8 +138,7 @@ async function validateDateRequiresDocument(
         .eq("id", vehicleId)
         .maybeSingle();
       if (error) {
-        logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-        return apiError("Internal server error", 500);
+        return serverError(error);
       }
       hasDoc = hasValue((data as Record<string, unknown> | null)?.[urlKey]);
     }
@@ -232,8 +231,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // Stats — get aggregated counts via RPC for optimization. Requires
@@ -257,7 +255,13 @@ export async function GET(req: Request) {
     // of a hard error so the vehicle list itself stays usable.
     const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
     if (statsError) {
+      // Capture-only: the list already succeeded, so we degrade to zeroed
+      // tiles rather than return 500 — but a broken/unapplied stats RPC is a
+      // real defect worth seeing in Sentry, not just the logs.
       logger.error("Database error fetching vehicle stats", { error: statsError.message, code: statsError?.code, hint: statsError?.hint });
+      Sentry.captureException(new Error(statsError.message), {
+        extra: { error: statsError.message, code: statsError?.code, hint: statsError?.hint },
+      });
     } else if (statsData && statsData.length > 0) {
       const row = statsData[0];
       stats.total = Number(row.total_count || 0);
@@ -324,8 +328,7 @@ export async function POST(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>
@@ -418,8 +421,7 @@ export async function PUT(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>
@@ -497,8 +499,7 @@ export async function DELETE(req: Request) {
         .eq("vehicle_id", id);
 
       if (countErr) {
-        logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint, table });
-        return apiError("Internal server error", 500);
+        return serverError(countErr, { table });
       }
 
       if ((count ?? 0) > 0) {
@@ -515,8 +516,7 @@ export async function DELETE(req: Request) {
       .eq("id", id);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>

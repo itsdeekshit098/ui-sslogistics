@@ -1,7 +1,6 @@
-import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth } from "@/lib/auth";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 
 const VALID_PLATFORMS = ["android", "ios"] as const;
 
@@ -34,8 +33,7 @@ export async function POST(req: Request) {
       .neq("user_id", authUser.id);
 
     if (reassignError) {
-      logger.error("Database error", { error: reassignError.message, code: reassignError?.code });
-      return apiError("Internal server error", 500);
+      return serverError(reassignError);
     }
 
     const { error: upsertError } = await supabaseAdmin
@@ -51,8 +49,7 @@ export async function POST(req: Request) {
       );
 
     if (upsertError) {
-      logger.error("Database error", { error: upsertError.message, code: upsertError?.code });
-      return apiError("Internal server error", 500);
+      return serverError(upsertError);
     }
 
     return apiSuccess(null, "Device registered");
@@ -80,8 +77,7 @@ export async function DELETE(req: Request) {
       .eq("user_id", authUser.id);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess(null, "Device unregistered");

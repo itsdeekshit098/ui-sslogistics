@@ -14,6 +14,9 @@ const MAINTENANCE_EXEMPT_PATHS = new Set([
   "/api/auth/session",
   "/api/auth/signout",
   "/api/system/maintenance-stream",
+  // Sentry's tunnel route (next.config.ts tunnelRoute) — must stay reachable
+  // so client-side error reports aren't redirected to /maintenance.
+  "/monitoring",
 ]);
 
 export async function updateSession(request: NextRequest) {

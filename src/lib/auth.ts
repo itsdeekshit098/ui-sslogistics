@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { setSentryUser } from "@/lib/sentry/setUser";
 
 export interface AuthUser {
   id: string;
@@ -25,11 +26,16 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     if (!user) return null;
 
     const email = user.email || "unknown";
+    const role = user.app_metadata?.role || null;
+
+    // id + role only — never email/PII — so captured errors carry safe
+    // attribution without violating the logger's no-PII contract.
+    setSentryUser({ id: user.id, role });
 
     return {
       id: user.id,
       email,
-      role: user.app_metadata?.role || null,
+      role,
       displayName: user.user_metadata?.display_name || email,
     };
   } catch {

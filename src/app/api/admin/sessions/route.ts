@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireStrictAdminAuth } from "@/lib/auth";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 
 // ─── Helpers ───
@@ -61,8 +61,7 @@ export async function GET(req: Request) {
       });
 
     if (usersError) {
-      logger.error("Failed to list users", { message: usersError.message, code: usersError.code });
-      return apiError("Failed to load users", 500);
+      return serverError(usersError, { op: "list users" }, "Failed to load users");
     }
 
     const allUsers = usersData.users || [];
@@ -154,8 +153,7 @@ export async function PUT(req: Request) {
         });
 
       if (banError) {
-        logger.error("Failed to ban user", { userId, message: banError.message, code: banError.code });
-        return apiError("Failed to ban user", 500);
+        return serverError(banError, { op: "ban user", userId }, "Failed to ban user");
       }
 
       await logActivity({
@@ -182,8 +180,7 @@ export async function PUT(req: Request) {
       });
 
     if (unbanError) {
-      logger.error("Failed to unban user", { userId, message: unbanError.message, code: unbanError.code });
-      return apiError("Failed to unban user", 500);
+      return serverError(unbanError, { op: "unban user", userId }, "Failed to unban user");
     }
 
     await logActivity({
@@ -239,8 +236,7 @@ export async function DELETE(req: Request) {
     );
 
     if (revokeError) {
-      logger.error("Failed to revoke user sessions", { userId, message: revokeError.message, code: revokeError.code });
-      return apiError("Failed to revoke sessions", 500);
+      return serverError(revokeError, { op: "revoke user sessions", userId }, "Failed to revoke sessions");
     }
 
     await logActivity({
@@ -304,8 +300,7 @@ export async function PATCH(req: Request) {
       });
 
     if (updateError) {
-      logger.error("Failed to reset user password", { userId, message: updateError.message, code: updateError.code });
-      return apiError("Failed to reset password", 500);
+      return serverError(updateError, { op: "reset user password", userId }, "Failed to reset password");
     }
 
     // Revoke all sessions for the user (force re-login with new password)

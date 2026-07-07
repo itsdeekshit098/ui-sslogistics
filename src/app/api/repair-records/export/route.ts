@@ -1,7 +1,6 @@
-import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth } from "@/lib/auth";
-import { apiError, handleApiError } from "@/lib/apiResponse";
+import { apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import type { RepairCategory } from "@/components/repairRecordsPage";
 
 const VALID_CATEGORIES: RepairCategory[] = ["electrical", "mechanical"];
@@ -71,8 +70,7 @@ export async function GET(req: Request) {
     const { data, error } = await query.limit(10000);
 
     if (error) {
-      logger.error("Database error during export", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // PostgREST returns to-one embeds as objects at runtime, but without FK

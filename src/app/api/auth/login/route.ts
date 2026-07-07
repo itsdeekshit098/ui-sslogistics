@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { createClient } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 
 /**
  * POST /api/auth/login
@@ -42,7 +42,11 @@ export async function POST(req: Request) {
 
     const userId = data.user?.id;
     if (!userId) {
-      return apiError("Authentication failed", 500);
+      return serverError(
+        new Error("signInWithPassword succeeded but returned no user id"),
+        undefined,
+        "Authentication failed",
+      );
     }
 
     // ── Step 2: Session-cap enforcement ──

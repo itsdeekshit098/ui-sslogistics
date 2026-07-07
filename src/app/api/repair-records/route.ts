@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { computeWarrantyExpiry } from "@/utils/warrantyExpiry";
 import type {
   CreateRepairPayload,
@@ -339,8 +339,7 @@ export async function GET(req: Request) {
       );
 
       if (summaryError) {
-        logger.error("Database error", { error: summaryError.message, code: summaryError?.code, hint: summaryError?.hint });
-        return apiError("Internal server error", 500);
+        return serverError(summaryError);
       }
 
       const row = summaryRow?.[0];
@@ -390,8 +389,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // ── Attach parts to each record ──
@@ -542,8 +540,7 @@ export async function POST(req: Request) {
       .single();
 
     if (insertErr) {
-      logger.error("Database error", { error: insertErr.message, code: insertErr?.code, hint: insertErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(insertErr);
     }
 
     // ── Insert parts if provided ──
@@ -686,8 +683,7 @@ export async function PUT(req: Request) {
       .eq("id", Number(id));
 
     if (updateErr) {
-      logger.error("Database error", { error: updateErr.message, code: updateErr?.code, hint: updateErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(updateErr);
     }
 
     // ── Sync parts if provided ──
@@ -759,8 +755,7 @@ export async function DELETE(req: Request) {
       if (!record && !recordErr) {
         return apiError("Record not found", 404);
       }
-      logger.error("Database error", { error: recordErr!.message, code: recordErr?.code, hint: recordErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(recordErr);
     }
 
     const { error: deleteErr } = await supabaseAdmin
@@ -769,8 +764,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (deleteErr) {
-      logger.error("Database error", { error: deleteErr.message, code: deleteErr?.code, hint: deleteErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(deleteErr);
     }
 
     // ── after(): sync vehicle status + audit log ──
