@@ -99,11 +99,11 @@ const AddVehicleOwnerForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div className="flex flex-col gap-4 mt-2">
           <div className="flex flex-col gap-2">
             <Label htmlFor="owner_type">
-              Owner Type <span className="text-red-500">*</span>
+              Owner Type <span className="text-destructive">*</span>
             </Label>
             <Select
               disabled={loading}
@@ -114,7 +114,7 @@ const AddVehicleOwnerForm: React.FC<{
               }}
             >
               <SelectTrigger
-                className={fieldErrors.owner_type ? "border-red-500" : ""}
+                className={fieldErrors.owner_type ? "border-destructive" : ""}
               >
                 <SelectValue placeholder="Select Owner Type" />
               </SelectTrigger>
@@ -127,7 +127,7 @@ const AddVehicleOwnerForm: React.FC<{
               </SelectContent>
             </Select>
             {fieldErrors.owner_type && (
-              <span className="text-xs text-red-500">
+              <span className="text-xs text-destructive">
                 {fieldErrors.owner_type}
               </span>
             )}
@@ -135,7 +135,7 @@ const AddVehicleOwnerForm: React.FC<{
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="name">
-              Owner Name <span className="text-red-500">*</span>
+              Owner Name <span className="text-destructive">*</span>
             </Label>
             <Input
               disabled={loading}
@@ -146,16 +146,16 @@ const AddVehicleOwnerForm: React.FC<{
                 setName(e.target.value);
                 setFieldErrors((prev) => ({ ...prev, name: "" }));
               }}
-              className={fieldErrors.name ? "border-red-500" : ""}
+              className={fieldErrors.name ? "border-destructive" : ""}
             />
             {fieldErrors.name && (
-              <span className="text-xs text-red-500">{fieldErrors.name}</span>
+              <span className="text-xs text-destructive">{fieldErrors.name}</span>
             )}
           </div>
         </div>
 
         {submitError && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mt-4 border border-red-100">
+          <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm mt-4 border border-destructive/20">
             {submitError}
           </div>
         )}

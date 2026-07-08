@@ -17,7 +17,6 @@ export {
   errorBannerWithMargin,
   addVendorFooterBtn as addVendorFooterButton,
   addVendorFooterBtn,
-  modalBodyPadding,
   readOnlyBadge,
   readOnlyInput,
   saveIconStyle,

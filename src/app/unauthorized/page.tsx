@@ -36,8 +36,8 @@ function UnauthorizedContent() {
   };
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-red-100 p-8 text-center">
-      <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[#DC2626]">
+    <div className="w-full max-w-md bg-card rounded-2xl shadow-sm border border-destructive/20 p-8 text-center">
+      <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6 text-destructive">
         <svg
           className="w-8 h-8"
           fill="none"
@@ -54,24 +54,24 @@ function UnauthorizedContent() {
         </svg>
       </div>
 
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h1>
-      <p className="text-slate-600 mb-6">
-        The account <span className="font-medium text-slate-900">{email || "you're using"}</span> does not have administration privileges to access the Operations Portal.
+      <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+      <p className="text-muted-foreground mb-6">
+        The account <span className="font-medium text-foreground">{email || "you're using"}</span> does not have administration privileges to access the Operations Portal.
       </p>
 
       <div className="space-y-3">
         <Button
           onClick={handleSignOut}
           disabled={isSigningOut}
-          className="w-full py-2.5 px-4 bg-[#DC2626] hover:bg-red-700 text-white rounded-full font-medium transition-colors disabled:opacity-70 h-auto"
+          className="w-full py-2.5 px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full font-medium transition-colors disabled:opacity-70 h-auto"
         >
           {isSigningOut ? "Signing out..." : "Sign out"}
         </Button>
-        
+
         <Button
           variant="outline"
           onClick={handleGoHome}
-          className="w-full py-2.5 px-4 bg-transparent border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-full font-medium transition-colors h-auto"
+          className="w-full py-2.5 px-4 bg-transparent border border-border text-foreground hover:bg-muted rounded-full font-medium transition-colors h-auto"
         >
           Return to Home
         </Button>
@@ -82,8 +82,8 @@ function UnauthorizedContent() {
 
 export default function UnauthorizedPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F0F4FF] p-4">
-      <Suspense fallback={<div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-red-100 p-8 text-center text-slate-500">Checking authorization...</div>}>
+    <div className="min-h-screen flex items-center justify-center bg-muted p-4">
+      <Suspense fallback={<div className="w-full max-w-md bg-card rounded-2xl shadow-sm border border-destructive/20 p-8 text-center text-muted-foreground">Checking authorization...</div>}>
         <UnauthorizedContent />
       </Suspense>
     </div>

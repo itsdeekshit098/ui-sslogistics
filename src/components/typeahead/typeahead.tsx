@@ -256,7 +256,7 @@ const Typeahead = <TOption,>({
         onKeyDown={handleKeyDown}
         className={cn(
           "h-[var(--input-height)] pl-9 pr-16",
-          invalid && "border-red-500 focus-visible:ring-red-500",
+          invalid && "border-destructive focus-visible:ring-destructive",
           inputClassName,
         )}
       />

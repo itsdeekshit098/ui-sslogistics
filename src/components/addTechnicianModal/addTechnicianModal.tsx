@@ -184,7 +184,7 @@ const AddTechnicianForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div style={styles.formSection}>
         <div style={styles.fieldGroup}>
           <Label htmlFor="name">
@@ -196,7 +196,7 @@ const AddTechnicianForm: React.FC<{
             value={formData.name}
             onChange={handleChange}
             style={
-              fieldErrors.name ? { borderColor: "#ef4444" } : undefined
+              fieldErrors.name ? { borderColor: "var(--destructive)" } : undefined
             }
           />
           {fieldErrors.name && (
@@ -208,11 +208,13 @@ const AddTechnicianForm: React.FC<{
           <Label htmlFor="phone">Phone Number</Label>
           <Input disabled={loading}
             id="phone"
+            type="tel"
+            autoComplete="tel"
             placeholder="10-digit mobile number"
             value={formData.phone}
             onChange={handleChange}
             style={
-              fieldErrors.phone ? { borderColor: "#ef4444" } : undefined
+              fieldErrors.phone ? { borderColor: "var(--destructive)" } : undefined
             }
           />
           {fieldErrors.phone && (

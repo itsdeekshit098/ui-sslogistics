@@ -35,7 +35,7 @@ export default function NewClientPage() {
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
         <Button data-testid="app-admin-clients-new-button-1" variant="ghost" size="icon" asChild>
-          <Link data-testid="app-admin-clients-new-link-1" href="/admin/clients">
+          <Link data-testid="app-admin-clients-new-link-1" href="/admin/clients" aria-label="Back to clients">
             <ChevronLeftIcon size={16} />
           </Link>
         </Button>

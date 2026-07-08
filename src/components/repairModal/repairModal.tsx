@@ -539,7 +539,7 @@ const RepairForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div style={styles.formSection}>
           {/* ── Vehicle ── */}
           <div style={styles.fieldGroup}>
@@ -617,7 +617,7 @@ const RepairForm: React.FC<{
                   value={formData.date}
                   onChange={handleChange}
                   style={
-                    fieldErrors.date ? { borderColor: "#ef4444" } : undefined
+                    fieldErrors.date ? { borderColor: "var(--destructive)" } : undefined
                   }
                 />
                 {fieldErrors.date && (
@@ -893,7 +893,7 @@ const RepairForm: React.FC<{
                 onChange={handleChange}
                 onWheel={(e) => e.currentTarget.blur()}
                 style={
-                  fieldErrors.cost ? { borderColor: "#ef4444" } : undefined
+                  fieldErrors.cost ? { borderColor: "var(--destructive)" } : undefined
                 }
               />
               {fieldErrors.cost && (

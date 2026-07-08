@@ -17,7 +17,7 @@ export const DM_ACTIVE_DOC_WRAPPER =
 export const DM_BUTTON_VIEW =
   "flex-1 text-green-700 bg-white dark:bg-black hover:bg-green-100";
 export const DM_BUTTON_DELETE =
-  "text-red-500 hover:text-red-600 hover:bg-red-50";
+  "text-destructive hover:text-destructive hover:bg-destructive/10";
 
 // Upload Missing State Styles
 export const DM_UPLOAD_WRAPPER = "mt-auto";
@@ -29,8 +29,8 @@ export const DM_UPLOAD_ICON_CONTAINER =
   "h-6 w-6 text-muted-foreground mb-1";
 export const DM_UPLOAD_SUBTITLE = "text-xs text-muted-foreground";
 
-export const DM_ERROR_WRAPPER = "bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4 border border-red-200 flex justify-between items-center";
-export const DM_ERROR_CLOSE = "text-red-400 hover:text-red-600 text-lg font-bold leading-none cursor-pointer";
+export const DM_ERROR_WRAPPER = "bg-destructive/10 text-destructive px-4 py-3 rounded-lg text-sm mb-4 border border-destructive/20 flex justify-between items-center";
+export const DM_ERROR_CLOSE = "text-destructive/70 hover:text-destructive text-lg font-bold leading-none cursor-pointer";
 
 export const DM_LOADER_ICON = "h-4 w-4 animate-spin text-muted-foreground";
 

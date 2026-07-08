@@ -217,7 +217,7 @@ export function SessionsPage() {
           title: "Ban User",
           description: `Are you sure you want to ban ${identity}? They will be unable to log in until unbanned.`,
           confirmText: "Ban User",
-          icon: <ShieldIcon size={24} className="text-red-500" />,
+          icon: <ShieldIcon size={24} className="text-destructive" />,
         };
       case "unban":
         return {

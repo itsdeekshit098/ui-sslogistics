@@ -173,7 +173,7 @@ export default function NewDieselRecordPage() {
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/diesel-records">
+          <Link href="/admin/diesel-records" aria-label="Back to diesel records">
             <ChevronLeftIcon size={16} />
           </Link>
         </Button>

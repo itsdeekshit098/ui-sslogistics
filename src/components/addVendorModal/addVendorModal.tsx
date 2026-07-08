@@ -99,7 +99,7 @@ const AddVendorForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div style={styles.formSection}>
           <div style={styles.fieldGroup}>
             <Label htmlFor="name">
@@ -110,7 +110,7 @@ const AddVendorForm: React.FC<{
               placeholder="e.g. AutoParts India"
               value={formData.name}
               onChange={handleChange}
-              style={fieldErrors.name ? { borderColor: "#ef4444" } : undefined}
+              style={fieldErrors.name ? { borderColor: "var(--destructive)" } : undefined}
             />
             {fieldErrors.name && (
               <span style={styles.fieldError}>{fieldErrors.name}</span>
@@ -121,11 +121,13 @@ const AddVendorForm: React.FC<{
             <Label htmlFor="phone">Phone</Label>
             <Input disabled={loading}
               id="phone"
+              type="tel"
+              autoComplete="tel"
               placeholder="e.g. 9876543210"
               value={formData.phone}
               onChange={handleChange}
               maxLength={10}
-              style={fieldErrors.phone ? { borderColor: "#ef4444" } : undefined}
+              style={fieldErrors.phone ? { borderColor: "var(--destructive)" } : undefined}
             />
             {fieldErrors.phone && (
               <span style={styles.fieldError}>{fieldErrors.phone}</span>

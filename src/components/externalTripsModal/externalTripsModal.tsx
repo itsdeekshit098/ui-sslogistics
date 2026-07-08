@@ -300,7 +300,7 @@ const ExternalTripsForm: React.FC<{
     return {
       ...(extra || {}),
       // Use shorthand to avoid mixing with class shorthand
-      border: hasError ? "1px solid #ef4444" : "1px solid var(--border)",
+      border: hasError ? "1px solid var(--destructive)" : "1px solid var(--border)",
     };
   };
 
@@ -315,7 +315,7 @@ const ExternalTripsForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div style={styles.formSection}>
             {/* ── Vehicle ── */}
             <div style={styles.fieldGroup}>
@@ -597,7 +597,7 @@ const ExternalTripsForm: React.FC<{
                     fontSize: "0.75rem",
                     color:
                       formData.notes.length > NOTES_MAX_LENGTH * 0.9
-                        ? "#ef4444"
+                        ? "var(--destructive)"
                         : "var(--muted-foreground)",
                   }}
                 >

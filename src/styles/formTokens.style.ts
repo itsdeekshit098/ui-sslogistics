@@ -39,10 +39,6 @@ export const fieldGroup: CSSProperties = {
   gap: "0.5rem",
 };
 
-export const modalBodyPadding: CSSProperties = {
-  padding: "1.5rem",
-};
-
 // ─── Labels ───
 
 export const fieldLabel: CSSProperties = {
@@ -51,7 +47,7 @@ export const fieldLabel: CSSProperties = {
 };
 
 export const requiredStar: CSSProperties = {
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginLeft: "0.125rem",
 };
 
@@ -59,21 +55,21 @@ export const requiredStar: CSSProperties = {
 
 export const fieldError: CSSProperties = {
   fontSize: "0.75rem",
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginTop: "0.125rem",
 };
 
 export const inputError: CSSProperties = {
-  borderColor: "#ef4444",
+  borderColor: "var(--destructive)",
 };
 
 export const errorBanner: CSSProperties = {
   padding: "0.75rem",
   borderRadius: "var(--input-radius, 0.5rem)",
-  border: "1px solid rgba(239, 68, 68, 0.2)",
-  backgroundColor: "rgba(239, 68, 68, 0.05)",
+  border: "1px solid color-mix(in srgb, var(--destructive) 20%, transparent)",
+  backgroundColor: "color-mix(in srgb, var(--destructive) 8%, transparent)",
   fontSize: "0.875rem",
-  color: "#dc2626",
+  color: "var(--destructive)",
 };
 
 export const errorBannerWithMargin: CSSProperties = {

@@ -19,12 +19,12 @@ export const fieldLabel: CSSProperties = {
 };
 
 export const requiredStar: CSSProperties = {
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginLeft: "0.125rem",
 };
 
 export const fieldError: CSSProperties = {
-  color: "#ef4444",
+  color: "var(--destructive)",
   fontSize: "0.75rem",
   marginTop: "0.25rem",
 };

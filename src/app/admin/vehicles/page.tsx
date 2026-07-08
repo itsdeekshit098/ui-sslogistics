@@ -576,6 +576,7 @@ export default function VehiclesPage() {
                     size="icon"
                     data-testid="vehicles-search-clear-btn"
                     type="button"
+                    aria-label="Clear search"
                     onClick={() => {
                       setSearchQuery("");
                       fetchVehicles({ overrideSearch: "", overridePage: 1 });
@@ -953,35 +954,35 @@ export default function VehiclesPage() {
       >
         <ModalContent className="max-w-md p-6 rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-4 text-center">
-            <div className="rounded-full bg-red-100 p-3">
-              <Trash2Icon size={24} className="text-red-600" />
+            <div className="rounded-full bg-destructive/10 p-3">
+              <Trash2Icon size={24} className="text-destructive" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 Delete Vehicle
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Are you sure you want to delete this vehicle? This action cannot
                 be undone.
               </p>
             </div>
             {deletingVehicle && (
-              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md w-full">
+              <div className="text-sm text-foreground bg-muted p-3 rounded-md w-full">
                 <p className="font-medium">{deletingVehicle.vehicle_number}</p>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   {deletingVehicle.company} {deletingVehicle.model}
                 </p>
               </div>
             )}
             {deleteError && (
-              <div className="bg-red-50 text-red-600 p-2 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
+              <div className="bg-destructive/10 text-destructive p-2 rounded-md text-sm w-full border border-destructive/20 text-left flex justify-between items-start gap-2">
                 <span className="flex-1">{deleteError}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   type="button"
                   onClick={() => setDeleteError(null)}
-                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 self-center cursor-pointer h-auto w-auto p-1"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/20 focus:outline-none flex-shrink-0 self-center cursor-pointer h-auto w-auto p-1"
                 >
                   <XIcon size={16} />
                 </Button>
