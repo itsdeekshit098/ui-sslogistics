@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
@@ -368,7 +368,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id } = body;
 
@@ -458,11 +458,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
 
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete vehicles", 403);
-    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

@@ -43,7 +43,8 @@ export type AuditAction =
   | "DELETE_REPAIR_PART"
   // System / Maintenance mode
   | "ENABLE_MAINTENANCE_MODE"
-  | "DISABLE_MAINTENANCE_MODE";
+  | "DISABLE_MAINTENANCE_MODE"
+  | "SET_MIN_APP_VERSION";
 
 interface LogActivityParams {
   action: AuditAction;

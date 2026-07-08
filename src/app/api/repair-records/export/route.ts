@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth } from "@/lib/auth";
 import { apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import type { RepairCategory } from "@/components/repairRecordsPage";
 
@@ -24,7 +24,7 @@ function escapeCsvValue(value: unknown): string {
 
 export async function GET(req: Request) {
   try {
-    await requireUserAuth();
+    await requireAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const vehicleId = searchParams.get("vehicle_id");

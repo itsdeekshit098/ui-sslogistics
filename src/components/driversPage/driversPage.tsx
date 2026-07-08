@@ -11,6 +11,7 @@ import {
   XIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import { AddDriverModal } from "@/components/addDriverModal";
 import type { Driver } from "./driversPage.types";
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,9 @@ const DEFAULT_PAGE_SIZE = 10;
 
 export function DriversPage() {
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = isAdmin || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete/status-toggle are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -199,7 +201,7 @@ export function DriversPage() {
             Manage your fleet drivers and their details
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Driver
           </Button>
@@ -340,6 +342,7 @@ export function DriversPage() {
                       icon={SearchIcon}
                     />
                   }
+                  showActions={canManage}
                   rowActions={[
                     {
                       key: "toggle",
@@ -355,14 +358,14 @@ export function DriversPage() {
                           />
                         ),
                       onClick: (row) => toggleStatus(row),
-                      hidden: () => !canWrite,
+                      hidden: () => !canManage,
                     },
                     {
                       key: "edit",
                       label: "Edit",
                       icon: <PencilIcon size={14} />,
                       onClick: (row) => handleEdit(row),
-                      hidden: () => !canWrite,
+                      hidden: () => !canManage,
                     },
                     {
                       key: "delete",
@@ -370,7 +373,7 @@ export function DriversPage() {
                       icon: <Trash2Icon size={14} />,
                       variant: "danger",
                       onClick: (row) => setDeleteTarget(row),
-                      hidden: () => !isAdmin,
+                      hidden: () => !canManage,
                     },
                   ]}
                 />
@@ -420,7 +423,7 @@ export function DriversPage() {
                       </div>
 
                       <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {canWrite && (
+                        {canManage && (
                           <>
                             <Button
                               variant="outline"
@@ -436,17 +439,15 @@ export function DriversPage() {
                             >
                               Edit
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteTarget(driver)}
+                            >
+                              Delete
+                            </Button>
                           </>
-                        )}
-                        {isAdmin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(driver)}
-                          >
-                            Delete
-                          </Button>
                         )}
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { computeWarrantyExpiry } from "@/utils/warrantyExpiry";
@@ -588,7 +588,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -730,12 +730,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    // Only admin can delete, not staff
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete repair records", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

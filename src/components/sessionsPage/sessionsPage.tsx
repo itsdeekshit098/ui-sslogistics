@@ -14,6 +14,7 @@ import {
   EyeOffIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
+import { isSuperAdmin } from "@/lib/routePermissions";
 import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
@@ -57,7 +58,7 @@ type ActionType = "ban" | "unban" | "revoke" | "resetPassword";
 
 export function SessionsPage() {
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
+  const isAdmin = isSuperAdmin(userRole);
 
   const [users, setUsers] = useState<SessionUser[]>([]);
   const [loading, setLoading] = useState(true);

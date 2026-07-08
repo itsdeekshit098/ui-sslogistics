@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "staff" | "driver";
+export type UserRole = "admin" | "staff" | "driver" | "superadmin";
 
 /**
  * Defines which roles can access each /admin/* page.
@@ -6,18 +6,21 @@ export type UserRole = "admin" | "staff" | "driver";
  *
  * Matching logic: longest prefix match wins.
  * e.g. "/admin/sessions" matches before "/admin".
+ *
+ * "/admin/sessions" and "/admin/settings" are superadmin-exclusive — even
+ * "admin" is locked out of those two, unlike every other admin-restricted page.
  */
 export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
-  "/admin/sessions": ["admin"],
-  "/admin/settings": ["admin"],
-  "/admin/warranty": ["admin"],
-  "/admin/vehicles": ["admin", "staff"],
-  "/admin/activity-log": ["admin", "staff"],
-  "/admin/repair-records": ["admin", "staff"],
-  "/admin/technicians": ["admin", "staff"],
-  "/admin/drivers": ["admin", "staff"],
-  "/admin/vehicle-owners": ["admin", "staff"],
-  "/admin/external-trips": ["admin", "staff"],
+  "/admin/sessions": ["superadmin"],
+  "/admin/settings": ["superadmin"],
+  "/admin/warranty": ["admin", "superadmin"],
+  "/admin/vehicles": ["admin", "staff", "superadmin"],
+  "/admin/activity-log": ["admin", "staff", "superadmin"],
+  "/admin/repair-records": ["admin", "staff", "superadmin"],
+  "/admin/technicians": ["admin", "staff", "superadmin"],
+  "/admin/drivers": ["admin", "staff", "superadmin"],
+  "/admin/vehicle-owners": ["admin", "staff", "superadmin"],
+  "/admin/external-trips": ["admin", "staff", "superadmin"],
   // Pages accessible to ALL authenticated roles (including driver):
   // /admin              → Dashboard
   // /admin/diesel-records
@@ -37,4 +40,30 @@ export function canRoleAccessPage(pathname: string, role: UserRole): boolean {
 
   if (!matchedKey) return true; // not restricted
   return PAGE_ROLE_MAP[matchedKey].includes(role);
+}
+
+export const ALL_ROLES: UserRole[] = ["admin", "staff", "driver", "superadmin"];
+
+/**
+ * Single source of truth for role predicates — used by both server guards
+ * (src/lib/auth.ts, middleware) and client components (via AuthContext), so
+ * a new role only ever needs to be wired up in one place.
+ */
+export function isValidRole(role: string | null | undefined): role is UserRole {
+  return ALL_ROLES.includes(role as UserRole);
+}
+
+/** Admin-equivalent: "admin" or "superadmin". Superadmin is admin-equivalent
+ * everywhere except the superadmin-exclusive settings/sessions pages. */
+export function isAdmin(role: string | null | undefined): boolean {
+  return role === "admin" || role === "superadmin";
+}
+
+/** Can create/edit records: elevated admin or staff. */
+export function canEdit(role: string | null | undefined): boolean {
+  return isAdmin(role) || role === "staff";
+}
+
+export function isSuperAdmin(role: string | null | undefined): boolean {
+  return role === "superadmin";
 }

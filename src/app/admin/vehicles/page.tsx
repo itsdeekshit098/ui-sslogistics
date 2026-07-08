@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import {
   Select,
@@ -76,8 +77,9 @@ export default function VehiclesPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = isAdmin || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   // ─── Consolidated filter state ───
   const [pageSize, setPageSize] = useState(
@@ -448,7 +450,7 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button
             data-testid="vehicles-add-btn"
             className="w-full md:w-auto"
@@ -730,7 +732,7 @@ export default function VehiclesPage() {
                           />{" "}
                           Docs
                         </Button>
-                        {canWrite && (
+                        {canManage && (
                           <>
                             <Button
                               data-testid={`mobile-edit-btn-${vehicle.id}`}
@@ -741,20 +743,18 @@ export default function VehiclesPage() {
                             >
                               Edit
                             </Button>
-                            {isAdmin && (
-                              <Button
-                                data-testid={`mobile-delete-btn-${vehicle.id}`}
-                                variant="destructive"
-                                size="sm"
-                                className="text-xs h-8 px-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteClick(vehicle);
-                                }}
-                              >
-                                <Trash2Icon size={14} />
-                              </Button>
-                            )}
+                            <Button
+                              data-testid={`mobile-delete-btn-${vehicle.id}`}
+                              variant="destructive"
+                              size="sm"
+                              className="text-xs h-8 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(vehicle);
+                              }}
+                            >
+                              <Trash2Icon size={14} />
+                            </Button>
                           </>
                         )}
                       </div>
@@ -901,13 +901,14 @@ export default function VehiclesPage() {
                   />
                 )
               }
+              showActions={canManage}
               rowActions={[
                 {
                   key: "edit",
                   label: "Edit",
                   icon: <PencilIcon size={14} />,
                   onClick: (row) => handleEditClick(row),
-                  hidden: () => !canWrite,
+                  hidden: () => !canManage,
                 },
                 {
                   key: "delete",
@@ -915,7 +916,7 @@ export default function VehiclesPage() {
                   icon: <Trash2Icon size={14} />,
                   variant: "danger",
                   onClick: (row) => handleDeleteClick(row),
-                  hidden: () => !isAdmin,
+                  hidden: () => !canManage,
                 },
               ]}
             />

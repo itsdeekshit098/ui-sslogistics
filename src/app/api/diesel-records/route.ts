@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
@@ -358,11 +358,7 @@ export async function POST(req: Request) {
 // ─── PUT — Update diesel record (admin only) with cycle recalculation ───
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can edit diesel records", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const body = await req.json();
     const {
@@ -594,11 +590,7 @@ function round1(n: number): number {
 // ─── DELETE — Delete diesel record (admin only) ───
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete diesel records", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

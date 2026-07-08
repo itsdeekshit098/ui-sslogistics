@@ -86,3 +86,53 @@ export async function setMaintenanceMode(
   // next request already reflects the change, instead of waiting out the TTL.
   cached = null;
 }
+
+export interface AppVersionConfig {
+  minAndroidVersionCode: number | null;
+  forceUpdateMessage: string | null;
+}
+
+const DEFAULT_APP_VERSION_CONFIG: AppVersionConfig = {
+  minAndroidVersionCode: null,
+  forceUpdateMessage: null,
+};
+
+/**
+ * Read only, no caching — unlike maintenance mode this isn't checked on
+ * every request via middleware, only once per mobile app-session on
+ * startup/resume, so a DB round trip per call is fine.
+ */
+export async function getAppVersionConfigUncached(): Promise<AppVersionConfig> {
+  const { data, error } = await supabaseAdmin
+    .from("system_settings")
+    .select("min_android_version_code, force_update_message")
+    .eq("singleton", true)
+    .maybeSingle();
+
+  return !error && data
+    ? {
+        minAndroidVersionCode: data.min_android_version_code ?? null,
+        forceUpdateMessage: data.force_update_message ?? null,
+      }
+    : DEFAULT_APP_VERSION_CONFIG;
+}
+
+export async function setMinAndroidVersionCode(
+  versionCode: number | null,
+  message: string | null,
+  updatedBy: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("system_settings")
+    .update({
+      min_android_version_code: versionCode,
+      force_update_message: message,
+      updated_by: updatedBy,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("singleton", true);
+
+  if (error) {
+    throw new Error(`Failed to update minimum app version: ${error.message}`);
+  }
+}

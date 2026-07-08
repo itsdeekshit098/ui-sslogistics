@@ -1,6 +1,6 @@
 import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireStrictAdminAuth } from "@/lib/auth";
+import { requireSuperAdminAuth } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 
@@ -47,7 +47,7 @@ function parseDevice(ua: string | null): string {
 
 export async function GET(req: Request) {
   try {
-    await requireStrictAdminAuth();
+    await requireSuperAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireStrictAdminAuth();
+    const authUser = await requireSuperAdminAuth();
 
     const body = await req.json();
     const { userId, action } = body;
@@ -207,7 +207,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireStrictAdminAuth();
+    const authUser = await requireSuperAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
@@ -263,7 +263,7 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const authUser = await requireStrictAdminAuth();
+    const authUser = await requireSuperAdminAuth();
 
     const body = await req.json();
     const { userId, newPassword } = body;

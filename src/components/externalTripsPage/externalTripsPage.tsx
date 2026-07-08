@@ -9,6 +9,7 @@ import {
   SlidersHorizontalIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import {
   TRIP_TYPE_LABELS,
   getDefaultExternalTripFilters,
@@ -45,8 +46,9 @@ import * as styles from "./externalTripsPage.style";
 
 export function ExternalTripsPage() {
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = isAdmin || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   const [trips, setTrips] = useState<ExternalTripWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -333,7 +335,7 @@ export function ExternalTripsPage() {
       key: "edit",
       label: "Edit",
       icon: <PencilIcon size={14} />,
-      hidden: () => !canWrite,
+      hidden: () => !canManage,
       onClick: handleEdit,
     },
     {
@@ -341,7 +343,7 @@ export function ExternalTripsPage() {
       label: "Delete",
       icon: <Trash2Icon size={14} />,
       variant: "danger",
-      hidden: () => !isAdmin,
+      hidden: () => !canManage,
       onClick: (trip) => setDeleteTarget(trip),
     },
   ];
@@ -369,7 +371,7 @@ export function ExternalTripsPage() {
             Track every vehicle trip, expenses, and revenue
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Trip
           </Button>
@@ -480,6 +482,7 @@ export function ExternalTripsPage() {
                   data={displayData}
                   rowKey={(t) => String(t.id)}
                   loading={fetching}
+                  showActions={canManage}
                   rowActions={rowActions}
                 />
               </div>
@@ -570,24 +573,24 @@ export function ExternalTripsPage() {
                           </div>
                         </div>
                         <div className="flex items-center justify-end gap-2 border-t pt-3">
-                          {canWrite && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(trip)}
-                            >
-                              Edit
-                            </Button>
-                          )}
-                          {isAdmin && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteTarget(trip)}
-                            >
-                              Delete
-                            </Button>
+                          {canManage && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(trip)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteTarget(trip)}
+                              >
+                                Delete
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>

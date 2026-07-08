@@ -19,6 +19,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { Pagination } from "@/components/pagination";
 import { Typeahead } from "@/components/typeahead";
 import { useAuth } from "@/context/AuthContext";
+import { isAdmin as isAdminRole } from "@/lib/routePermissions";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
 import { RefreshCwIcon, FuelIcon } from "@/components/ui/icon";
 import { DataTable } from "@/components/ui/dataTable";
@@ -53,6 +54,7 @@ export default function DieselRecordsPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { userRole, loading: authLoading } = useAuth();
+  const canManage = isAdminRole(userRole);
   const [deleteTarget, setDeleteTarget] =
     useState<DieselRecordWithVehicle | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -261,27 +263,22 @@ export default function DieselRecordsPage() {
               Track fuel consumption, cycles, and efficiency for all vehicles.
             </p>
           </div>
-          {(userRole === "admin" ||
-            userRole === "driver" ||
-            userRole === "staff") && (
-            <Button
-              data-testid="admin-diesel-add-btn"
-              className="w-full md:w-auto"
-              onClick={() => setIsCreateOpen(true)}
-              disabled={vehiclesLoading || !!vehiclesError}
-            >
-              {vehiclesLoading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
-              )}
-              {vehiclesLoading ? "Loading Vehicles..." : "Add Diesel Entry"}
-            </Button>
-          )}
+          <Button
+            data-testid="admin-diesel-add-btn"
+            className="w-full md:w-auto"
+            onClick={() => setIsCreateOpen(true)}
+            disabled={vehiclesLoading || !!vehiclesError}
+          >
+            {vehiclesLoading ? (
+              <LoadingSpinner size="sm" className="mr-2" />
+            ) : (
+              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
+            )}
+            {vehiclesLoading ? "Loading Vehicles..." : "Add Diesel Entry"}
+          </Button>
         </div>
 
-        {(userRole === "admin" || userRole === "staff") && (
-          <>
+        <>
             <div className="flex items-center gap-4">
               <Typeahead
                 id="diesel-records-vehicle"
@@ -333,8 +330,7 @@ export default function DieselRecordsPage() {
               />
             )}
 
-            {(userRole === "admin" || userRole === "staff") &&
-              selectedVehicleId && (
+            {selectedVehicleId && (
                 <Card>
                   <CardHeader className="p-3 md:p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -571,7 +567,7 @@ export default function DieselRecordsPage() {
                                   </div>
                                 );
                               })()}
-                              {userRole === "admin" && (
+                              {canManage && (
                                 <div className="pt-1 flex justify-end gap-2">
                                   <Button
                                     data-testid={`admin-diesel-mobile-edit-${record.id}`}
@@ -839,13 +835,14 @@ export default function DieselRecordsPage() {
                             onAction={() => setIsCreateOpen(true)}
                           />
                         }
+                        showActions={canManage}
                         rowActions={[
                           {
                             key: "edit",
                             label: "Edit",
                             icon: <PencilIcon size={14} />,
                             onClick: (row) => setEditTarget(row),
-                            hidden: () => userRole !== "admin",
+                            hidden: () => !canManage,
                           },
                           {
                             key: "delete",
@@ -853,7 +850,7 @@ export default function DieselRecordsPage() {
                             icon: <Trash2Icon size={14} />,
                             variant: "danger",
                             onClick: (row) => handleDeleteClick(row),
-                            hidden: () => userRole !== "admin",
+                            hidden: () => !canManage,
                           },
                         ]}
                       />
@@ -876,7 +873,6 @@ export default function DieselRecordsPage() {
                 </Card>
               )}
           </>
-        )}
 
         <CreateDieselModal
           isOpen={isCreateOpen}
