@@ -23,6 +23,7 @@ import {
   PackageIcon,
   UserIcon,
   SettingsIcon,
+  ClockIcon,
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
@@ -83,6 +84,12 @@ const sidebarItems = [
     enabled: true,
   },
   {
+    name: "Trip Bookings",
+    href: "/admin/trip-bookings",
+    icon: ClockIcon,
+    enabled: true,
+  },
+  {
     name: "Clients",
     href: "/admin/clients",
     icon: Building2Icon,
@@ -131,10 +138,14 @@ export function Sidebar({
   const isMobile = !!onClose;
   const { user, userRole, loading: authLoading } = useAuth();
 
-  const filteredItems = sidebarItems.filter((item) => {
-    if (authLoading || !userRole) return false;
-    return canRoleAccessPage(item.href, userRole as UserRole);
-  });
+  const filteredItems = sidebarItems
+    .filter((item) => {
+      if (authLoading || !userRole) return false;
+      return canRoleAccessPage(item.href, userRole as UserRole);
+    })
+    // Keep "coming soon" items out of the way at the end, without disturbing
+    // relative order within the enabled/disabled groups (stable sort).
+    .sort((a, b) => Number(b.enabled) - Number(a.enabled));
 
   return (
     <div

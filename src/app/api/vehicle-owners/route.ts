@@ -13,12 +13,15 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const ownerType = searchParams.get("owner_type")?.trim() ?? "";
     const search = searchParams.get("search")?.trim() ?? "";
+    // page is opt-in: omitting it preserves the legacy bare-array response
+    // (existing web callers — the owner dropdowns and the owners table page —
+    // expect `.data` to be VehicleOwner[], not a {data, total} envelope).
+    const pageParam = searchParams.get("page");
 
     let query = supabaseAdmin
       .from("vehicle_owners")
-      .select("id, name, owner_type")
-      .order("name", { ascending: true })
-      .limit(1000);
+      .select("id, name, owner_type", pageParam ? { count: "exact" } : undefined)
+      .order("name", { ascending: true });
 
     if (ownerType) {
       query = query.eq("owner_type", ownerType);
@@ -28,6 +31,24 @@ export async function GET(req: Request) {
       query = query.ilike("name", `%${escaped}%`);
     }
 
+    if (pageParam) {
+      const page = Math.max(1, Number(pageParam) || 1);
+      const pageSize = Math.min(
+        100,
+        Math.max(1, Number(searchParams.get("pageSize")) || 20),
+      );
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) {
+        return serverError(error);
+      }
+      return apiSuccess({ data: data ?? [], total: count ?? 0 });
+    }
+
+    query = query.limit(1000);
     const { data, error } = await query;
 
     if (error) {

@@ -5,22 +5,22 @@
 export const DM_DIALOG_CONTENT =
   "w-[95vw] max-w-[44rem] p-0 overflow-hidden rounded-xl sm:rounded-2xl";
 export const DM_GRID_CONTAINER =
-  "grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 py-4";
+  "grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 py-4 items-start";
 export const DM_CARD_CONTAINER =
-  "border rounded-lg p-3 md:p-4 flex flex-col justify-between space-y-3 shadow-sm bg-card";
+  "border rounded-lg p-3 md:p-4 flex flex-col space-y-3 shadow-sm bg-card";
 export const DM_CARD_HEADER =
   "font-medium text-sm md:text-base flex items-center justify-between";
 
 // Active Document View Styles
 export const DM_ACTIVE_DOC_WRAPPER =
-  "flex bg-green-50/50 dark:bg-green-950/20 px-3 rounded-lg items-center justify-center gap-3 mt-auto h-[88px]";
+  "flex border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/30 px-3 rounded-lg items-center justify-center gap-3 h-[88px]";
 export const DM_BUTTON_VIEW =
-  "flex-1 text-green-700 bg-white dark:bg-black hover:bg-green-100";
+  "text-green-700 dark:text-green-400 bg-white dark:bg-black border-green-200 dark:border-green-900/50 hover:bg-green-100 dark:hover:bg-green-900/40";
 export const DM_BUTTON_DELETE =
-  "text-destructive hover:text-destructive hover:bg-destructive/10";
+  "text-destructive bg-white dark:bg-black border-destructive/30 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50";
 
 // Upload Missing State Styles
-export const DM_UPLOAD_WRAPPER = "mt-auto";
+export const DM_UPLOAD_WRAPPER = "";
 export const DM_UPLOAD_DROPZONE =
   "relative border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center h-[88px] hover:bg-muted/50 transition-colors cursor-pointer w-full";
 export const DM_UPLOAD_INPUT_FIELD =

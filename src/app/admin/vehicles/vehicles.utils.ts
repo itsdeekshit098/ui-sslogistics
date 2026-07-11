@@ -8,6 +8,7 @@ import {
   CONTAINER_BODY_TYPES,
   SEATING_CAPACITY_TYPES,
   OWNER_TYPES,
+  DocExpiryStatus,
 } from "./vehicles.types";
 
 /** Strips spaces and lowercases for case-insensitive matching. */
@@ -86,6 +87,34 @@ export const getStatusBadgeVariant = (status: string) => {
     default:
       return "outline";
   }
+};
+
+/** Maps FC/insurance expiry status to a Badge variant; null when there's no date to show. */
+export const getDocExpiryBadgeVariant = (
+  status: DocExpiryStatus | null | undefined,
+): "destructive" | "warning" | "success" | null => {
+  switch (status) {
+    case "expired":
+      return "destructive";
+    case "expiring_soon":
+      return "warning";
+    case "active":
+      return "success";
+    default:
+      return null;
+  }
+};
+
+/** Formats a YYYY-MM-DD date as "12 Jan 2026"; returns "—" when absent/invalid. */
+export const formatDocDate = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 /** Returns the display label for a given vehicle type value. */

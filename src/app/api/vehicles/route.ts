@@ -6,6 +6,7 @@ import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { computeExpiryStatus, getStatusDates, type ExpiryStatus } from "@/utils/expiryStatus";
 
 /** Allowed columns for vehicle insert/update — prevents mass assignment */
 const ALLOWED_VEHICLE_FIELDS = [
@@ -196,9 +197,12 @@ export async function GET(req: Request) {
     const ownerType = searchParams.get("ownerType")?.trim() ?? "";
     const ownerName = searchParams.get("ownerName")?.trim() ?? "";
     const fuelType = searchParams.get("fuelType")?.trim() ?? "";
+    const fcStatus = searchParams.get("fcStatus") as ExpiryStatus | null;
+    const insuranceStatus = searchParams.get("insuranceStatus") as ExpiryStatus | null;
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const { today, cutoff } = getStatusDates();
 
     let query = supabaseAdmin
       .from("vehicles")
@@ -224,6 +228,20 @@ export async function GET(req: Request) {
     }
     if (fuelType) {
       query = query.eq("fuel_type", fuelType);
+    }
+    if (fcStatus === "expired") {
+      query = query.lt("fc_end_date", today);
+    } else if (fcStatus === "expiring_soon") {
+      query = query.gte("fc_end_date", today).lte("fc_end_date", cutoff);
+    } else if (fcStatus === "active") {
+      query = query.gt("fc_end_date", cutoff);
+    }
+    if (insuranceStatus === "expired") {
+      query = query.lt("insurance_end_date", today);
+    } else if (insuranceStatus === "expiring_soon") {
+      query = query.gte("insurance_end_date", today).lte("insurance_end_date", cutoff);
+    } else if (insuranceStatus === "active") {
+      query = query.gt("insurance_end_date", cutoff);
     }
 
     query = query.range(from, to);
@@ -270,7 +288,13 @@ export async function GET(req: Request) {
       stats.idle = Number(row.idle_count || 0);
     }
 
-    return apiSuccess({ data: data ?? [], total: count ?? 0, stats });
+    const rows = (data ?? []).map((row) => ({
+      ...row,
+      fc_status: computeExpiryStatus(row.fc_end_date, today, cutoff),
+      insurance_status: computeExpiryStatus(row.insurance_end_date, today, cutoff),
+    }));
+
+    return apiSuccess({ data: rows, total: count ?? 0, stats });
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -487,6 +511,7 @@ export async function DELETE(req: Request) {
       ["warranty", "warranty claim(s)"],
       ["external_trips", "external trip(s)"],
       ["diesel_records", "diesel record(s)"],
+      ["trip_bookings", "trip booking(s)"],
     ];
 
     for (const [table, label] of dependentChecks) {

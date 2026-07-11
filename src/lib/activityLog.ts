@@ -29,6 +29,10 @@ export type AuditAction =
   | "CREATE_EXTERNAL_TRIP"
   | "UPDATE_EXTERNAL_TRIP"
   | "DELETE_EXTERNAL_TRIP"
+  // Trip Bookings
+  | "CREATE_TRIP_BOOKING"
+  | "UPDATE_TRIP_BOOKING"
+  | "DELETE_TRIP_BOOKING"
   // Session Management
   | "BAN_USER"
   | "UNBAN_USER"

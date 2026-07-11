@@ -57,6 +57,8 @@ export interface CreateExternalTripPayload {
   notes?: string;
   cost_items: CostItem[];
   amount_received: number;
+  /** Set when this trip is created from a confirmed trip booking — marks that booking completed. */
+  booking_id?: number;
 }
 
 export interface UpdateExternalTripPayload {

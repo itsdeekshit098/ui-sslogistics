@@ -3,23 +3,10 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { computeWarrantyExpiry } from "@/utils/warrantyExpiry";
+import { getStatusDates, type ExpiryStatus } from "@/utils/expiryStatus";
 import { logActivity } from "@/lib/activityLog";
 
-type WarrantyStatus = "active" | "expiring_soon" | "expired";
-
-function toDateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function getStatusDates(): { today: string; cutoff: string } {
-  const now = new Date();
-  const todayUtc = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const cutoffUtc = new Date(todayUtc);
-  cutoffUtc.setUTCDate(cutoffUtc.getUTCDate() + 30);
-  return { today: toDateString(todayUtc), cutoff: toDateString(cutoffUtc) };
-}
+type WarrantyStatus = ExpiryStatus;
 
 // ─── GET — Warranty items (admin only) ───
 

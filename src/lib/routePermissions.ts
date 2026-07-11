@@ -21,6 +21,7 @@ export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
   "/admin/drivers": ["admin", "staff", "superadmin"],
   "/admin/vehicle-owners": ["admin", "staff", "superadmin"],
   "/admin/external-trips": ["admin", "staff", "superadmin"],
+  "/admin/trip-bookings": ["admin", "staff", "superadmin"],
   // Pages accessible to ALL authenticated roles (including driver):
   // /admin              → Dashboard
   // /admin/diesel-records

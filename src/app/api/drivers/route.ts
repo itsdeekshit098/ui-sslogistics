@@ -202,20 +202,27 @@ export async function DELETE(req: Request) {
       return apiError("Missing driver ID", 400);
     }
 
-    const { count, error: countErr } = await supabaseAdmin
-      .from("external_trips")
-      .select("id", { count: "exact", head: true })
-      .eq("driver_id", Number(id));
+    const dependentChecks: [string, string][] = [
+      ["external_trips", "external trip(s)"],
+      ["trip_bookings", "trip booking(s)"],
+    ];
 
-    if (countErr) {
-      return serverError(countErr);
-    }
+    for (const [table, label] of dependentChecks) {
+      const { count, error: countErr } = await supabaseAdmin
+        .from(table)
+        .select("id", { count: "exact", head: true })
+        .eq("driver_id", Number(id));
 
-    if ((count ?? 0) > 0) {
-      return apiError(
-        "Cannot delete driver because they are linked to existing external_trips. Deactivate them instead.",
-        400,
-      );
+      if (countErr) {
+        return serverError(countErr, { table });
+      }
+
+      if ((count ?? 0) > 0) {
+        return apiError(
+          `Cannot delete driver because they are linked to ${count} ${label}. Deactivate them instead.`,
+          400,
+        );
+      }
     }
 
     const { error } = await supabaseAdmin

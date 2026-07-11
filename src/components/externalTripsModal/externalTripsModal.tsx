@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { XIcon, SaveIcon, PlusIcon, UserPlusIcon, Building2Icon, UserIcon } from "@/components/ui/icon";
-import type { ExternalTripsModalProps } from "./externalTripsModal.types";
+import type { ExternalTripsModalProps, ExternalTripPrefill } from "./externalTripsModal.types";
 import {
   getDefaultExternalTripFormData,
   PRESET_COST_LABELS,
@@ -44,7 +44,9 @@ const ExternalTripsForm: React.FC<{
   onClose: () => void;
   onSuccess: () => Promise<void>;
   vehicles: Vehicle[];
-}> = ({ mode, record, onClose, onSuccess, vehicles }) => {
+  bookingId?: number;
+  prefill?: ExternalTripPrefill;
+}> = ({ mode, record, onClose, onSuccess, vehicles, bookingId, prefill }) => {
   const isEdit = mode === "edit";
 
   // ─── Drivers state ───
@@ -73,6 +75,21 @@ const ExternalTripsForm: React.FC<{
           ),
         })),
         amountReceived: String(record.amount_received ?? ""),
+      };
+    }
+    if (prefill) {
+      const base = getDefaultExternalTripFormData();
+      return {
+        ...base,
+        vehicleId: prefill.vehicleId ? String(prefill.vehicleId) : "",
+        customerName: prefill.customerName || "",
+        customerPhone: prefill.customerPhone || "",
+        fromLocation: prefill.fromLocation || "",
+        toLocation: prefill.toLocation || "",
+        startDate: prefill.startDate || "",
+        endDate: prefill.endDate || "",
+        driverId: prefill.driverId ? String(prefill.driverId) : "",
+        amountReceived: prefill.advanceAmount ? String(prefill.advanceAmount) : base.amountReceived,
       };
     }
     return getDefaultExternalTripFormData();
@@ -269,6 +286,7 @@ const ExternalTripsForm: React.FC<{
             notes: formData.notes.trim() || undefined,
             cost_items: costItems,
             amount_received: Number(formData.amountReceived),
+            booking_id: bookingId,
           }),
         });
       }
@@ -308,14 +326,29 @@ const ExternalTripsForm: React.FC<{
     <>
       <ModalHeader>
         <ModalTitle>
-          {isEdit ? "Edit Trip" : "New External Trip"}
+          {isEdit ? "Edit Trip" : bookingId ? "Complete Trip Booking" : "New External Trip"}
         </ModalTitle>
         <ModalDescription>
-          {isEdit ? "Update trip details." : "Record a new external trip."}
+          {isEdit
+            ? "Update trip details."
+            : bookingId
+              ? "Enter the actual costs to record this trip and mark the booking completed."
+              : "Record a new external trip."}
         </ModalDescription>
       </ModalHeader>
 
       <ModalBody>
+        {bookingId && (prefill?.quotedAmount != null || prefill?.advanceAmount) && (
+          <div style={styles.readOnlyBadge}>
+            {prefill?.quotedAmount != null && (
+              <>Quoted: ₹{Number(prefill.quotedAmount).toLocaleString("en-IN")}</>
+            )}
+            {prefill?.quotedAmount != null && prefill?.advanceAmount ? " · " : ""}
+            {!!prefill?.advanceAmount && (
+              <>Advance received: ₹{Number(prefill.advanceAmount).toLocaleString("en-IN")}</>
+            )}
+          </div>
+        )}
         <div style={styles.formSection}>
             {/* ── Vehicle ── */}
             <div style={styles.fieldGroup}>
@@ -762,6 +795,8 @@ export const ExternalTripsModal: React.FC<ExternalTripsModalProps> = (
             onClose={props.onClose}
             onSuccess={props.onSuccess}
             vehicles={props.vehicles}
+            bookingId={props.bookingId}
+            prefill={props.prefill}
           />
         )}
       </ModalContent>

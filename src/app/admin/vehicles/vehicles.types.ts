@@ -1,5 +1,15 @@
 export type VehicleStatus = "Active" | "Maintenance" | "Idle";
 
+/** active/expiring_soon/expired for FC & insurance, computed server-side (see /api/vehicles GET) */
+export type DocExpiryStatus = "active" | "expiring_soon" | "expired";
+
+export const DOC_EXPIRY_STATUS_OPTIONS: { value: DocExpiryStatus | ""; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "expiring_soon", label: "Expiring Soon" },
+  { value: "expired", label: "Expired" },
+];
+
 export const VEHICLE_TYPES = [
   { value: "CAR", label: "Car" },
   { value: "BUS", label: "Bus" },
@@ -105,6 +115,9 @@ export interface Vehicle {
   insurance_end_date?: string | null;
   fc_start_date?: string | null;
   fc_end_date?: string | null;
+  /** Server-computed from insurance_end_date/fc_end_date — null when no date is set */
+  insurance_status?: DocExpiryStatus | null;
+  fc_status?: DocExpiryStatus | null;
   // Fuel / performance
   expected_kml?: number | null;
   tank_capacity?: number | null;
