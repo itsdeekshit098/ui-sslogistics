@@ -17,6 +17,7 @@
 
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-placeholder-foreground: var(--placeholder-foreground);
 
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
@@ -165,6 +166,7 @@
 
   --muted: hsl(210 40% 96%);
   --muted-foreground: hsl(215 16% 47%);
+  --placeholder-foreground: hsl(215 16% 60%);
 
   --accent: hsl(210 40% 96%);
   --accent-foreground: hsl(222 47% 11%);
@@ -257,6 +259,7 @@
 
   --muted: hsl(217 33% 17%);
   --muted-foreground: hsl(215 20% 65%);
+  --placeholder-foreground: hsl(215 15% 42%);
 
   --accent: hsl(217 33% 17%);
   --accent-foreground: hsl(210 40% 98%);
@@ -316,6 +319,7 @@
 
     --muted: hsl(217 33% 17%);
     --muted-foreground: hsl(215 20% 65%);
+    --placeholder-foreground: hsl(215 15% 42%);
 
     --accent: hsl(217 33% 17%);
     --accent-foreground: hsl(210 40% 98%);
