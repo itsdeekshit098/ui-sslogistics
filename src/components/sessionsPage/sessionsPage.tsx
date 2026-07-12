@@ -13,9 +13,9 @@ import {
   EyeIcon,
   EyeOffIcon,
 } from "@/components/ui/icon";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdmin } from "@/lib/routePermissions";
-import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -24,6 +24,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import * as styles from "./sessionsPage.style";
+
+// Lazy-loaded: only needed once a user opens it, so it shouldn't bloat the
+// initial page chunk that has to load before anything (including the
+// skeleton) can paint.
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 /** Format a date string to a short, readable form. */
 function formatDate(dateStr: string | null): string {

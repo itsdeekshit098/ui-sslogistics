@@ -24,8 +24,7 @@ import type {
   TripBookingSummary,
 } from "./tripBookingsPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import { TripBookingsModal } from "../tripBookingsModal";
-import { ExternalTripsModal } from "../externalTripsModal";
+import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
-import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -46,6 +44,22 @@ import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./tripBookingsPage.style";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const TripBookingsModal = dynamic(
+  () => import("../tripBookingsModal").then((m) => m.TripBookingsModal),
+  { ssr: false },
+);
+const ExternalTripsModal = dynamic(
+  () => import("../externalTripsModal").then((m) => m.ExternalTripsModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -78,8 +92,7 @@ export function TripBookingsPage() {
 
   const [bookings, setBookings] = useState<TripBookingWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<TripBookingFilters>(getDefaultTripBookingFilters);
@@ -125,12 +138,11 @@ export function TripBookingsPage() {
   const fetchBookings = useCallback(
     async (
       f: TripBookingFilters,
-      opts: { isInitial?: boolean; includeSummary?: boolean } = {},
+      opts: { includeSummary?: boolean } = {},
     ) => {
-      const { isInitial = false, includeSummary = true } = opts;
+      const { includeSummary = true } = opts;
       try {
-        if (isInitial) setInitialLoading(true);
-        else setFetching(true);
+        setFetching(true);
         setError(null);
         const res = await fetch(buildApiUrl(f, includeSummary));
         if (!res.ok) throw new Error("Failed to fetch trip bookings");
@@ -147,7 +159,6 @@ export function TripBookingsPage() {
         setBookings([]);
         setTotalRecords(0);
       } finally {
-        setInitialLoading(false);
         setFetching(false);
       }
     },
@@ -184,7 +195,7 @@ export function TripBookingsPage() {
       const initial = bookingIdParam
         ? { ...getDefaultTripBookingFilters(), status: "all" as const }
         : getDefaultTripBookingFilters();
-      fetchBookings(initial, { isInitial: true });
+      fetchBookings(initial);
       fetchVehicles();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -370,13 +381,13 @@ export function TripBookingsPage() {
     },
   ];
 
-  if (authLoading || initialLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && bookings.length === 0)
     return (
       <ErrorState
         title="Error"
         description={error}
-        onRetry={() => fetchBookings(filters, { isInitial: true })}
+        onRetry={() => fetchBookings(filters)}
       />
     );
 

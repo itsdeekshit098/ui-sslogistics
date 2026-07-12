@@ -17,6 +17,7 @@ import type {
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Typeahead } from "@/components/typeahead";
+import { LocationAutocomplete } from "@/components/locationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -492,28 +493,30 @@ const ExternalTripsForm: React.FC<{
             <div style={styles.formGrid}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="fromLocation">From Location</Label>
-                <Input disabled={loading}
+                <LocationAutocomplete
+                  disabled={loading}
                   id="fromLocation"
                   placeholder="Origin"
                   value={formData.fromLocation}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setFormData((prev) => ({
                       ...prev,
-                      fromLocation: e.target.value,
+                      fromLocation: v,
                     }))
                   }
                 />
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="toLocation">To Location</Label>
-                <Input disabled={loading}
+                <LocationAutocomplete
+                  disabled={loading}
                   id="toLocation"
                   placeholder="Destination"
                   value={formData.toLocation}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setFormData((prev) => ({
                       ...prev,
-                      toLocation: e.target.value,
+                      toLocation: v,
                     }))
                   }
                 />

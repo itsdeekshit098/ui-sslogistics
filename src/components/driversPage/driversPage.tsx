@@ -12,17 +12,28 @@ import {
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { AddDriverModal } from "@/components/addDriverModal";
+import dynamic from "next/dynamic";
 import type { Driver } from "./driversPage.types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DataTable } from "@/components/ui/dataTable";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const AddDriverModal = dynamic(
+  () => import("@/components/addDriverModal").then((m) => m.AddDriverModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -33,8 +44,7 @@ export function DriversPage() {
   const canManage = isAdminRole(userRole);
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
 
@@ -102,7 +112,6 @@ export function DriversPage() {
         setError(err instanceof Error ? err.message : "Network error");
       } finally {
         setFetching(false);
-        setInitialLoading(false);
       }
     },
     [page, pageSize, debouncedSearch],
@@ -184,8 +193,7 @@ export function DriversPage() {
     }
   };
 
-  if (authLoading || initialLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && drivers.length === 0)
     return <ErrorState title="Error" description={error} onRetry={fetchData} />;
 

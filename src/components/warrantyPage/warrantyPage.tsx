@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,12 +29,22 @@ import {
   fieldLabel as filterFieldLabel,
 } from "@/components/ui/filterDrawer";
 import { Tooltip } from "@/components/ui/tooltip";
-import { PartModal } from "@/components/partModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { ConfirmModal } from "@/components/confirmModal";
 import type { WarrantyItem, WarrantyStatusFilter } from "./warrantyPage.types";
 import type { VehicleOption, Vendor } from "@/components/partModal";
 import * as styles from "./warrantyPage.style";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const PartModal = dynamic(
+  () => import("@/components/partModal").then((m) => m.PartModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal").then((m) => m.ConfirmModal),
+  { ssr: false },
+);
 
 const STATUS_OPTIONS: { value: WarrantyStatusFilter; label: string }[] = [
   { value: "all", label: "All" },

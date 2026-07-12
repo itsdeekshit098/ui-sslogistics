@@ -15,6 +15,7 @@ import { VEHICLE_TYPES, SEATING_CAPACITY_TYPES } from "@/app/admin/vehicles/vehi
 import type { Vehicle, VehicleType } from "@/app/admin/vehicles/vehicles.types";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import { Typeahead } from "@/components/typeahead";
+import { LocationAutocomplete } from "@/components/locationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -319,15 +320,15 @@ const TripBookingsForm: React.FC<{
                 From Location
                 <span style={styles.requiredStar}>*</span>
               </Label>
-              <Input
+              <LocationAutocomplete
                 disabled={loading}
                 placeholder="Origin"
                 value={formData.fromLocation}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, fromLocation: e.target.value }));
+                onChange={(v) => {
+                  setFormData((prev) => ({ ...prev, fromLocation: v }));
                   setFieldErrors((prev) => ({ ...prev, fromLocation: "" }));
                 }}
-                style={getErrorStyle("fromLocation")}
+                invalid={!!fieldErrors.fromLocation}
               />
               {fieldErrors.fromLocation && (
                 <span style={styles.fieldError}>{fieldErrors.fromLocation}</span>
@@ -338,15 +339,15 @@ const TripBookingsForm: React.FC<{
                 To Location
                 <span style={styles.requiredStar}>*</span>
               </Label>
-              <Input
+              <LocationAutocomplete
                 disabled={loading}
                 placeholder="Destination"
                 value={formData.toLocation}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, toLocation: e.target.value }));
+                onChange={(v) => {
+                  setFormData((prev) => ({ ...prev, toLocation: v }));
                   setFieldErrors((prev) => ({ ...prev, toLocation: "" }));
                 }}
-                style={getErrorStyle("toLocation")}
+                invalid={!!fieldErrors.toLocation}
               />
               {fieldErrors.toLocation && (
                 <span style={styles.fieldError}>{fieldErrors.toLocation}</span>

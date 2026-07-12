@@ -53,3 +53,9 @@ Schema changes are recorded as SQL files in `sql/` (e.g. `sql/2026-07-02_restore
 - Capture happens at the app's existing error funnels rather than scattered call sites: the generic-500 branch of `handleApiError` (`src/lib/apiResponse.ts`, skips the expected `UNAUTHORIZED`/`FORBIDDEN`/`MAINTENANCE` cases) and the `error.tsx` / `admin/error.tsx` / `global-error.tsx` boundaries.
 - Required env vars (see `.env.local`): `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT`. `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` are build-time only (source-map upload) — the build succeeds without them, just with unminified stack traces missing in Sentry.
 - The Sentry tunnel route (`/monitoring`, set via `tunnelRoute` in `next.config.ts`) is listed in `MAINTENANCE_EXEMPT_PATHS` (`src/utils/supabase/middleware.ts`) so client error reports aren't blocked during maintenance mode.
+
+## Location suggestions (trip bookings / external trips)
+
+- The free-text From/To location fields on `tripBookingsModal.tsx` and `externalTripsModal.tsx` use `src/components/locationAutocomplete/` for live address suggestions as the user types — the underlying value stays a plain string; a suggestion is a convenience, never a required selection.
+- Suggestions come from LocationIQ's free-tier autocomplete API via `src/lib/geocoding.ts`, proxied server-side through `GET /api/locations/autocomplete` so the API key never reaches the client.
+- Required env var: `LOCATIONIQ_API_KEY` (see `.env.local`). If unset, suggestions are silently skipped (logged as a warning) and the fields behave as plain text inputs — this must never block typing or submission.

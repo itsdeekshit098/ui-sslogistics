@@ -17,6 +17,7 @@ import {
   SlidersHorizontalIcon,
 } from "@/components/ui/icon";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -55,12 +56,26 @@ import {
   CA_VEHICLES_HEADER_TITLE,
   CA_VEHICLES_HEADER_DESC,
 } from "./vehicles.styles";
-import { DocumentModal } from "@/components/documentModal";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { CreateVehicleModal } from "@/components/createVehicleModal";
-import { EditVehicleModal } from "@/components/editVehicleModal";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const DocumentModal = dynamic(
+  () => import("@/components/documentModal").then((m) => m.DocumentModal),
+  { ssr: false },
+);
+const CreateVehicleModal = dynamic(
+  () =>
+    import("@/components/createVehicleModal").then((m) => m.CreateVehicleModal),
+  { ssr: false },
+);
+const EditVehicleModal = dynamic(
+  () => import("@/components/editVehicleModal").then((m) => m.EditVehicleModal),
+  { ssr: false },
+);
 import { ErrorState } from "@/components/errorState";
 import { deleteVehicle } from "@/services/vehiclesService";
 import { EmptyState } from "@/components/emptyState";
@@ -136,7 +151,6 @@ export default function VehiclesPage() {
   const searchParams = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const { userRole, loading: authLoading } = useAuth();
   const canEdit = canEditRole(userRole);
@@ -329,7 +343,6 @@ export default function VehiclesPage() {
       } finally {
         if (requestIdRef.current === requestId) {
           setLoading(false);
-          setInitialLoading(false);
         }
       }
     },
@@ -521,8 +534,7 @@ export default function VehiclesPage() {
     }
   };
 
-  if (authLoading || initialLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (fetchError && vehicles.length === 0)
     return (
       <ErrorState

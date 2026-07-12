@@ -14,7 +14,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   return (
     <span
       className={cn(
-        "inline-block animate-pulse rounded-md bg-slate-300/60 dark:bg-muted",
+        "inline-block animate-pulse rounded-md bg-slate-300/60 dark:bg-white/10",
         className,
       )}
       style={{
