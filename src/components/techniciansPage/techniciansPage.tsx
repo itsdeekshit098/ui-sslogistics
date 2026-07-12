@@ -49,8 +49,7 @@ export function TechniciansPage() {
     SpecializationOption[]
   >([]);
   const [total, setTotal] = useState(0);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,7 +126,6 @@ export function TechniciansPage() {
         setError(err instanceof Error ? err.message : "Network error");
       } finally {
         setFetching(false);
-        setInitialLoading(false);
       }
     },
     [page, pageSize, debouncedSearch],
@@ -319,9 +317,7 @@ export function TechniciansPage() {
     return action;
   }) as RowAction<Technician>[];
 
-  // Initial full-page skeleton
-  if (authLoading || initialLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
   // Fatal error with no data
   if (error && technicians.length === 0) {

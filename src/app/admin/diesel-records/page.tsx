@@ -245,8 +245,7 @@ export default function DieselRecordsPage() {
     return w;
   };
 
-  if (authLoading || vehiclesLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (vehiclesError && vehicles.length === 0)
     return (
       <ErrorState

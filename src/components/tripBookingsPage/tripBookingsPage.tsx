@@ -92,8 +92,7 @@ export function TripBookingsPage() {
 
   const [bookings, setBookings] = useState<TripBookingWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<TripBookingFilters>(getDefaultTripBookingFilters);
@@ -139,12 +138,11 @@ export function TripBookingsPage() {
   const fetchBookings = useCallback(
     async (
       f: TripBookingFilters,
-      opts: { isInitial?: boolean; includeSummary?: boolean } = {},
+      opts: { includeSummary?: boolean } = {},
     ) => {
-      const { isInitial = false, includeSummary = true } = opts;
+      const { includeSummary = true } = opts;
       try {
-        if (isInitial) setInitialLoading(true);
-        else setFetching(true);
+        setFetching(true);
         setError(null);
         const res = await fetch(buildApiUrl(f, includeSummary));
         if (!res.ok) throw new Error("Failed to fetch trip bookings");
@@ -161,7 +159,6 @@ export function TripBookingsPage() {
         setBookings([]);
         setTotalRecords(0);
       } finally {
-        setInitialLoading(false);
         setFetching(false);
       }
     },
@@ -198,7 +195,7 @@ export function TripBookingsPage() {
       const initial = bookingIdParam
         ? { ...getDefaultTripBookingFilters(), status: "all" as const }
         : getDefaultTripBookingFilters();
-      fetchBookings(initial, { isInitial: true });
+      fetchBookings(initial);
       fetchVehicles();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -384,13 +381,13 @@ export function TripBookingsPage() {
     },
   ];
 
-  if (authLoading || initialLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && bookings.length === 0)
     return (
       <ErrorState
         title="Error"
         description={error}
-        onRetry={() => fetchBookings(filters, { isInitial: true })}
+        onRetry={() => fetchBookings(filters)}
       />
     );
 

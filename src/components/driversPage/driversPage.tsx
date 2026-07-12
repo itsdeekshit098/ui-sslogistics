@@ -44,8 +44,7 @@ export function DriversPage() {
   const canManage = isAdminRole(userRole);
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
 
@@ -113,7 +112,6 @@ export function DriversPage() {
         setError(err instanceof Error ? err.message : "Network error");
       } finally {
         setFetching(false);
-        setInitialLoading(false);
       }
     },
     [page, pageSize, debouncedSearch],
@@ -195,8 +193,7 @@ export function DriversPage() {
     }
   };
 
-  if (authLoading || initialLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && drivers.length === 0)
     return <ErrorState title="Error" description={error} onRetry={fetchData} />;
 

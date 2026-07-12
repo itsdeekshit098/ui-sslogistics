@@ -102,7 +102,7 @@ export function RepairRecordsPage() {
 
   // ─── Loading / Error ───
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
-  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -424,8 +424,7 @@ export function RepairRecordsPage() {
     (v) => v.id.toString() === selectedVehicleId,
   );
 
-  if (authLoading || vehiclesLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && vehicles.length === 0)
     return <ErrorState title="Error" description={error} />;
 

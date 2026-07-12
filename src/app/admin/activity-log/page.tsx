@@ -86,7 +86,6 @@ export default function ActivityLogPage() {
   const { loading: authLoading } = useAuth();
   const [entries, setEntries] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -116,7 +115,6 @@ export default function ActivityLogPage() {
       } finally {
         setLoading(false);
         setRefreshing(false);
-        setInitialLoading(false);
       }
     },
     [pageSize],
@@ -130,7 +128,7 @@ export default function ActivityLogPage() {
     fetchLogs(page, true);
   };
 
-  if (authLoading || initialLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
   return (
     <div className={AL_CONTAINER}>

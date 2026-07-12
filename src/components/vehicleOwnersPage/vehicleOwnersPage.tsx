@@ -37,8 +37,7 @@ export function VehicleOwnersPage() {
   const canManage = isAdminRole(userRole);
 
   const [owners, setOwners] = useState<VehicleOwner[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,7 +70,6 @@ export function VehicleOwnersPage() {
       setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setFetching(false);
-      setInitialLoading(false);
     }
   }, [debouncedSearch]);
 
@@ -177,7 +175,7 @@ export function VehicleOwnersPage() {
     },
   ];
 
-  if (authLoading || initialLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
   if (error && owners.length === 0) {
     return <ErrorState title="Error" description={error} onRetry={fetchOwners} />;

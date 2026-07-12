@@ -151,7 +151,6 @@ export default function VehiclesPage() {
   const searchParams = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const { userRole, loading: authLoading } = useAuth();
   const canEdit = canEditRole(userRole);
@@ -344,7 +343,6 @@ export default function VehiclesPage() {
       } finally {
         if (requestIdRef.current === requestId) {
           setLoading(false);
-          setInitialLoading(false);
         }
       }
     },
@@ -536,8 +534,7 @@ export default function VehiclesPage() {
     }
   };
 
-  if (authLoading || initialLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (fetchError && vehicles.length === 0)
     return (
       <ErrorState

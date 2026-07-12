@@ -63,8 +63,7 @@ export function ExternalTripsPage() {
 
   const [trips, setTrips] = useState<ExternalTripWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<ExternalTripFilters>(
@@ -113,12 +112,11 @@ export function ExternalTripsPage() {
   const fetchTrips = useCallback(
     async (
       f: ExternalTripFilters,
-      opts: { isInitial?: boolean; includeSummary?: boolean } = {}
+      opts: { includeSummary?: boolean } = {}
     ) => {
-      const { isInitial = false, includeSummary = true } = opts;
+      const { includeSummary = true } = opts;
       try {
-        if (isInitial) setInitialLoading(true);
-        else setFetching(true);
+        setFetching(true);
         setError(null);
         const res = await fetch(buildApiUrl(f, includeSummary));
         if (!res.ok) throw new Error("Failed to fetch trips");
@@ -135,7 +133,6 @@ export function ExternalTripsPage() {
         setTrips([]);
         setTotalRecords(0);
       } finally {
-        setInitialLoading(false);
         setFetching(false);
       }
     },
@@ -156,7 +153,7 @@ export function ExternalTripsPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      fetchTrips(filters, { isInitial: true });
+      fetchTrips(filters);
       fetchVehicles();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -359,14 +356,13 @@ export function ExternalTripsPage() {
     },
   ];
 
-  if (authLoading || initialLoading)
-    return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && trips.length === 0)
     return (
       <ErrorState
         title="Error"
         description={error}
-        onRetry={() => fetchTrips(filters, { isInitial: true })}
+        onRetry={() => fetchTrips(filters)}
       />
     );
 
