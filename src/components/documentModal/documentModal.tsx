@@ -105,6 +105,11 @@ export function DocumentModal({
       if (!res.ok) {
         throw new Error(json.error || "Failed to save date");
       }
+
+      // fc_status/insurance_status are computed server-side from these
+      // dates, so a plain local patch of the raw date can't refresh them —
+      // tell the parent to refetch.
+      onUpdate(field, value || null);
     } catch (error: unknown) {
       setErrorMsg(
         `Failed to save date: ${error instanceof Error ? error.message : String(error)}`,

@@ -1,7 +1,6 @@
-import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth } from "@/lib/auth";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 
 // ─── PUT — Mark all of the caller's unread notifications read ───
 export async function PUT() {
@@ -15,8 +14,7 @@ export async function PUT() {
       .is("read_at", null);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess(null, "All notifications marked read");

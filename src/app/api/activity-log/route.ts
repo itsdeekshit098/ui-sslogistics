@@ -1,6 +1,5 @@
-import { logger } from "@/lib/logger";
 import { NextRequest } from "next/server";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
 
@@ -21,8 +20,7 @@ export async function GET(req: NextRequest) {
       .select("id", { count: "exact", head: true });
 
     if (countErr) {
-      logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(countErr);
     }
 
     // Fetch paginated data
@@ -33,8 +31,7 @@ export async function GET(req: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({

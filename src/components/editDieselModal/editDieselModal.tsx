@@ -16,7 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Modal, ModalContent } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalBody,
+} from "@/components/ui/modal";
 import { AddDriverModal } from "@/components/addDriverModal";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { PaymentMethod } from "@/app/admin/diesel-records/dieselRecords.types";
@@ -151,18 +158,15 @@ const EditDieselForm: React.FC<{
   };
 
   return (
-    <div className="w-full">
-      <div className="space-y-6 sm:mt-2">
-        {/* Header */}
-        <div className="mb-2 pr-8">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Edit Diesel Entry
-          </h2>
-          <p className="text-sm text-muted-foreground hidden sm:block mt-1">
-            Update editable fields for this record.
-          </p>
-        </div>
-
+    <>
+      <ModalHeader>
+        <ModalTitle>Edit Diesel Entry</ModalTitle>
+        <ModalDescription className="hidden sm:block">
+          Update editable fields for this record.
+        </ModalDescription>
+      </ModalHeader>
+      <ModalBody>
+        <div className="space-y-6">
         {/* Read-only info */}
         <div className="bg-muted/50 p-3 rounded-md text-sm space-y-1">
           <p>
@@ -183,7 +187,7 @@ const EditDieselForm: React.FC<{
 
         {/* Error */}
         {submitError && (
-          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm border border-red-100 dark:border-red-800">
+          <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm border border-destructive/20">
             {submitError}
           </div>
         )}
@@ -193,7 +197,7 @@ const EditDieselForm: React.FC<{
           {/* Driver */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="driverName">
-              Driver Name <span className="text-red-500">*</span>
+              Driver Name <span className="text-destructive">*</span>
             </Label>
             <Typeahead disabled={loading}
               id="driverName"
@@ -238,7 +242,7 @@ const EditDieselForm: React.FC<{
               }
             />
             {fieldErrors.driverName && (
-              <p className="text-xs text-red-500">{fieldErrors.driverName}</p>
+              <p className="text-xs text-destructive">{fieldErrors.driverName}</p>
             )}
           </div>
 
@@ -246,7 +250,7 @@ const EditDieselForm: React.FC<{
           <div className={MODAL_GRID}>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="fuelLitres">
-                Fuel Added (Litres) <span className="text-red-500">*</span>
+                Fuel Added (Litres) <span className="text-destructive">*</span>
               </Label>
               <Input disabled={loading}
                 data-testid="components-editDieselModal-editDieselModal-input-2"
@@ -260,12 +264,12 @@ const EditDieselForm: React.FC<{
                 onWheel={(e) => e.currentTarget.blur()}
                 className={
                   fieldErrors.fuelLitres
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.fuelLitres && (
-                <p className="text-xs text-red-500">{fieldErrors.fuelLitres}</p>
+                <p className="text-xs text-destructive">{fieldErrors.fuelLitres}</p>
               )}
             </div>
             <div className={MODAL_LABEL_SPACE}>
@@ -282,12 +286,12 @@ const EditDieselForm: React.FC<{
                 onWheel={(e) => e.currentTarget.blur()}
                 className={
                   fieldErrors.pricePerL
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.pricePerL && (
-                <p className="text-xs text-red-500">{fieldErrors.pricePerL}</p>
+                <p className="text-xs text-destructive">{fieldErrors.pricePerL}</p>
               )}
             </div>
           </div>
@@ -386,7 +390,8 @@ const EditDieselForm: React.FC<{
             {loading ? "Updating..." : "Update Record"}
           </Button>
         </div>
-      </div>
+        </div>
+      </ModalBody>
 
       {/* ── Stacked Add Driver Modal ── */}
       <AddDriverModal
@@ -395,7 +400,7 @@ const EditDieselForm: React.FC<{
         onSuccess={handleDriverAdded}
         mode="nested"
       />
-    </div>
+    </>
   );
 };
 
@@ -406,16 +411,14 @@ const EditDieselModal: React.FC<EditDieselModalProps> = ({
 }) => {
   return (
     <Modal open={!!record} onOpenChange={(open) => !open && onClose()}>
-      <ModalContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
-        <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
-          {record && (
-            <EditDieselForm
-              record={record}
-              onClose={onClose}
-              onSuccess={onSuccess}
-            />
-          )}
-        </div>
+      <ModalContent className="w-[95vw] sm:max-w-2xl rounded-xl sm:rounded-2xl scrollbar-custom">
+        {record && (
+          <EditDieselForm
+            record={record}
+            onClose={onClose}
+            onSuccess={onSuccess}
+          />
+        )}
       </ModalContent>
     </Modal>
   );

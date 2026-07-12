@@ -33,6 +33,12 @@ interface TripSheet {
   status: string;
 }
 
+function getTripStatusVariant(status: string): "default" | "secondary" | "outline" {
+  if (status === "Completed") return "default";
+  if (status === "In Progress") return "secondary";
+  return "outline";
+}
+
 const mockTripSheets: TripSheet[] = [
   {
     id: "TS-2024-001",
@@ -194,15 +200,7 @@ export default function TripSheetsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm">{trip.id}</span>
-                      <Badge
-                        variant={
-                          trip.status === "Completed"
-                            ? "default"
-                            : trip.status === "In Progress"
-                              ? "secondary"
-                              : "outline"
-                        }
-                      >
+                      <Badge variant={getTripStatusVariant(trip.status)}>
                         {trip.status}
                       </Badge>
                     </div>
@@ -217,6 +215,8 @@ export default function TripSheetsPage() {
                         variant="ghost"
                         size="sm"
                         className="text-xs h-7"
+                        disabled
+                        title="Coming soon"
                       >
                         View
                       </Button>
@@ -254,15 +254,7 @@ export default function TripSheetsPage() {
                     key: "status",
                     header: "Status",
                     cell: (row) => (
-                      <Badge
-                        variant={
-                          row.status === "Completed"
-                            ? "default"
-                            : row.status === "In Progress"
-                              ? "secondary"
-                              : "outline"
-                        }
-                      >
+                      <Badge variant={getTripStatusVariant(row.status)}>
                         {row.status}
                       </Badge>
                     ),
@@ -282,6 +274,8 @@ export default function TripSheetsPage() {
                     label: "View",
                     icon: <EyeIcon size={14} />,
                     onClick: () => {},
+                    disabled: () => true,
+                    disabledTooltip: "Coming soon",
                   },
                 ]}
               />

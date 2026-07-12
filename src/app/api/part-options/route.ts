@@ -1,8 +1,7 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 
 // ─── GET — List/search part options (typeahead) ───
@@ -32,8 +31,7 @@ export async function GET(req: Request) {
     const { data, error } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({ data: data ?? [] });
@@ -64,8 +62,7 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("This part name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

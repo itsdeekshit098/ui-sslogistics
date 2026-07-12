@@ -1,10 +1,12 @@
+import * as Sentry from "@sentry/nextjs";
 import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { computeExpiryStatus, getStatusDates, type ExpiryStatus } from "@/utils/expiryStatus";
 
 /** Allowed columns for vehicle insert/update — prevents mass assignment */
 const ALLOWED_VEHICLE_FIELDS = [
@@ -54,8 +56,7 @@ async function validateOwnerFields(body: Record<string, unknown>): Promise<Respo
       .eq("name", ownerName)
       .maybeSingle();
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
     if (!owner) {
       return apiError("Unknown Owner Name — add the owner first", 400);
@@ -138,8 +139,7 @@ async function validateDateRequiresDocument(
         .eq("id", vehicleId)
         .maybeSingle();
       if (error) {
-        logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-        return apiError("Internal server error", 500);
+        return serverError(error);
       }
       hasDoc = hasValue((data as Record<string, unknown> | null)?.[urlKey]);
     }
@@ -197,9 +197,12 @@ export async function GET(req: Request) {
     const ownerType = searchParams.get("ownerType")?.trim() ?? "";
     const ownerName = searchParams.get("ownerName")?.trim() ?? "";
     const fuelType = searchParams.get("fuelType")?.trim() ?? "";
+    const fcStatus = searchParams.get("fcStatus") as ExpiryStatus | null;
+    const insuranceStatus = searchParams.get("insuranceStatus") as ExpiryStatus | null;
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const { today, cutoff } = getStatusDates();
 
     let query = supabaseAdmin
       .from("vehicles")
@@ -226,14 +229,27 @@ export async function GET(req: Request) {
     if (fuelType) {
       query = query.eq("fuel_type", fuelType);
     }
+    if (fcStatus === "expired") {
+      query = query.lt("fc_end_date", today);
+    } else if (fcStatus === "expiring_soon") {
+      query = query.gte("fc_end_date", today).lte("fc_end_date", cutoff);
+    } else if (fcStatus === "active") {
+      query = query.gt("fc_end_date", cutoff);
+    }
+    if (insuranceStatus === "expired") {
+      query = query.lt("insurance_end_date", today);
+    } else if (insuranceStatus === "expiring_soon") {
+      query = query.gte("insurance_end_date", today).lte("insurance_end_date", cutoff);
+    } else if (insuranceStatus === "active") {
+      query = query.gt("insurance_end_date", cutoff);
+    }
 
     query = query.range(from, to);
 
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // Stats — get aggregated counts via RPC for optimization. Requires
@@ -257,7 +273,13 @@ export async function GET(req: Request) {
     // of a hard error so the vehicle list itself stays usable.
     const stats = { total: 0, active: 0, maintenance: 0, idle: 0 };
     if (statsError) {
+      // Capture-only: the list already succeeded, so we degrade to zeroed
+      // tiles rather than return 500 — but a broken/unapplied stats RPC is a
+      // real defect worth seeing in Sentry, not just the logs.
       logger.error("Database error fetching vehicle stats", { error: statsError.message, code: statsError?.code, hint: statsError?.hint });
+      Sentry.captureException(new Error(statsError.message), {
+        extra: { error: statsError.message, code: statsError?.code, hint: statsError?.hint },
+      });
     } else if (statsData && statsData.length > 0) {
       const row = statsData[0];
       stats.total = Number(row.total_count || 0);
@@ -266,7 +288,13 @@ export async function GET(req: Request) {
       stats.idle = Number(row.idle_count || 0);
     }
 
-    return apiSuccess({ data: data ?? [], total: count ?? 0, stats });
+    const rows = (data ?? []).map((row) => ({
+      ...row,
+      fc_status: computeExpiryStatus(row.fc_end_date, today, cutoff),
+      insurance_status: computeExpiryStatus(row.insurance_end_date, today, cutoff),
+    }));
+
+    return apiSuccess({ data: rows, total: count ?? 0, stats });
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -324,8 +352,7 @@ export async function POST(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>
@@ -365,7 +392,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id } = body;
 
@@ -418,8 +445,7 @@ export async function PUT(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>
@@ -456,11 +482,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
 
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete vehicles", 403);
-    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -488,6 +511,7 @@ export async function DELETE(req: Request) {
       ["warranty", "warranty claim(s)"],
       ["external_trips", "external trip(s)"],
       ["diesel_records", "diesel record(s)"],
+      ["trip_bookings", "trip booking(s)"],
     ];
 
     for (const [table, label] of dependentChecks) {
@@ -497,8 +521,7 @@ export async function DELETE(req: Request) {
         .eq("vehicle_id", id);
 
       if (countErr) {
-        logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint, table });
-        return apiError("Internal server error", 500);
+        return serverError(countErr, { table });
       }
 
       if ((count ?? 0) > 0) {
@@ -515,8 +538,7 @@ export async function DELETE(req: Request) {
       .eq("id", id);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>

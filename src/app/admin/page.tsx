@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,6 +19,8 @@ import {
   ShieldIcon,
   ShieldCheckIcon,
   UserCogIcon,
+  AlertTriangleIcon,
+  ClockIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
@@ -87,6 +90,15 @@ const menuItems = [
     enabled: true,
   },
   {
+    title: "Trip Bookings",
+    description: "Advance bookings for external trips",
+    href: "/admin/trip-bookings",
+    icon: ClockIcon,
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-50 dark:bg-amber-500/10",
+    enabled: true,
+  },
+  {
     title: "Trip Sheets",
     description: "Daily trip entries",
     href: "/admin/trip-sheets",
@@ -136,10 +148,45 @@ const menuItems = [
 export default function DashboardPage() {
   const { userRole, loading: authLoading } = useAuth();
 
-  const visibleMenuItems = menuItems.filter((item) => {
-    if (authLoading || !userRole) return false;
-    return canRoleAccessPage(item.href, userRole as UserRole);
-  });
+  const visibleMenuItems = menuItems
+    .filter((item) => {
+      if (authLoading || !userRole) return false;
+      return canRoleAccessPage(item.href, userRole as UserRole);
+    })
+    // Keep "Coming Soon" tiles out of the way at the end, without disturbing
+    // relative order within the enabled/disabled groups (stable sort).
+    .sort((a, b) => Number(b.enabled) - Number(a.enabled));
+
+  const canSeeVehicles =
+    !authLoading && !!userRole && canRoleAccessPage("/admin/vehicles", userRole as UserRole);
+
+  const [expiringCounts, setExpiringCounts] = useState<{ fc: number; insurance: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!canSeeVehicles) return;
+    let cancelled = false;
+
+    Promise.all([
+      fetch("/api/vehicles?fcStatus=expiring_soon&pageSize=1").then((r) => r.json()),
+      fetch("/api/vehicles?insuranceStatus=expiring_soon&pageSize=1").then((r) => r.json()),
+    ])
+      .then(([fcRes, insuranceRes]) => {
+        if (cancelled) return;
+        setExpiringCounts({
+          fc: fcRes?.data?.total ?? 0,
+          insurance: insuranceRes?.data?.total ?? 0,
+        });
+      })
+      .catch(() => {
+        // Non-critical widget — fail silently, dashboard tiles still work
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canSeeVehicles]);
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
@@ -164,6 +211,37 @@ export default function DashboardPage() {
           Select a module to manage operations.
         </p>
       </div>
+
+      {expiringCounts && (expiringCounts.fc > 0 || expiringCounts.insurance > 0) && (
+        <Card className="border-amber-300/60 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5">
+          <CardContent className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
+            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-500/10 w-fit">
+              <AlertTriangleIcon size={20} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 text-sm text-foreground">
+              {expiringCounts.fc > 0 && (
+                <Link
+                  href="/admin/vehicles?fcStatus=expiring_soon"
+                  className="font-medium hover:underline"
+                >
+                  {expiringCounts.fc} vehicle{expiringCounts.fc === 1 ? "" : "s"} with FC expiring within 30 days
+                </Link>
+              )}
+              {expiringCounts.fc > 0 && expiringCounts.insurance > 0 && (
+                <span className="text-muted-foreground"> · </span>
+              )}
+              {expiringCounts.insurance > 0 && (
+                <Link
+                  href="/admin/vehicles?insuranceStatus=expiring_soon"
+                  className="font-medium hover:underline"
+                >
+                  {expiringCounts.insurance} vehicle{expiringCounts.insurance === 1 ? "" : "s"} with insurance expiring within 30 days
+                </Link>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {authLoading ? (
         /* ── Skeleton grid shown while auth resolves ── */

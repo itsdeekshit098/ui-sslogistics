@@ -29,6 +29,10 @@ export type AuditAction =
   | "CREATE_EXTERNAL_TRIP"
   | "UPDATE_EXTERNAL_TRIP"
   | "DELETE_EXTERNAL_TRIP"
+  // Trip Bookings
+  | "CREATE_TRIP_BOOKING"
+  | "UPDATE_TRIP_BOOKING"
+  | "DELETE_TRIP_BOOKING"
   // Session Management
   | "BAN_USER"
   | "UNBAN_USER"
@@ -43,7 +47,8 @@ export type AuditAction =
   | "DELETE_REPAIR_PART"
   // System / Maintenance mode
   | "ENABLE_MAINTENANCE_MODE"
-  | "DISABLE_MAINTENANCE_MODE";
+  | "DISABLE_MAINTENANCE_MODE"
+  | "SET_MIN_APP_VERSION";
 
 interface LogActivityParams {
   action: AuditAction;

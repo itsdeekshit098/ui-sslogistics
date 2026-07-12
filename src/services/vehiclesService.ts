@@ -81,6 +81,7 @@ export async function deleteVehicle(
 ): Promise<VehicleServiceResult> {
   try {
     const res = await fetch(`/api/vehicles?id=${id}`, { method: "DELETE" });
+    console.log("i cam into asyn deletee fucnitn");
 
     if (!res.ok) {
       return {

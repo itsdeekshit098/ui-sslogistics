@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useMaintenance } from "@/context/MaintenanceContext";
 import { MaintenanceScreen } from "@/components/maintenanceScreen";
+import { isAdmin } from "@/lib/routePermissions";
 
 /**
  * Blocks the whole app in place the instant maintenance mode turns on,
@@ -15,7 +16,7 @@ export function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { maintenanceMode, message } = useMaintenance();
   const { userRole, loading } = useAuth();
 
-  if (!loading && maintenanceMode && userRole !== "admin") {
+  if (!loading && maintenanceMode && !isAdmin(userRole)) {
     return <MaintenanceScreen message={message} />;
   }
 

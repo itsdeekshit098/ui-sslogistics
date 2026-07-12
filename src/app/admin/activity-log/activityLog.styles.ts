@@ -24,9 +24,9 @@ export const ACTION_STYLES: Record<
     icon: "text-blue-500 dark:text-blue-400",
   },
   DELETE_VEHICLE: {
-    bg: "bg-red-50 dark:bg-red-500/10",
-    text: "text-red-700 dark:text-red-400",
-    icon: "text-red-500 dark:text-red-400",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    icon: "text-destructive",
   },
   UPLOAD_DOCUMENT: {
     bg: "bg-violet-50 dark:bg-violet-500/10",

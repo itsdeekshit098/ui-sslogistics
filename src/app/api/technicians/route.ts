@@ -1,7 +1,6 @@
-import { logger } from "@/lib/logger";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { after } from "next/server";
 import type { CreateTechnicianPayload } from "@/components/techniciansPage";
@@ -46,8 +45,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0 });
@@ -94,8 +92,7 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("A technician with this name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -118,7 +115,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -168,8 +165,7 @@ export async function PUT(req: Request) {
       .single();
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -192,12 +188,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    // Only admin can delete
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete technicians", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -213,8 +204,7 @@ export async function DELETE(req: Request) {
       .eq("technician_id", Number(id));
 
     if (countErr) {
-      logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(countErr);
     }
 
     if ((count ?? 0) > 0) {
@@ -230,8 +220,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

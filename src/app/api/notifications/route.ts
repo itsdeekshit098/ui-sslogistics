@@ -1,7 +1,6 @@
-import { logger } from "@/lib/logger";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth } from "@/lib/auth";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 
 // ─── GET — List the caller's notifications (paginated) + unread count ───
 export async function GET(req: Request) {
@@ -26,8 +25,7 @@ export async function GET(req: Request) {
       .range(from, to);
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     const { count: unreadCount, error: unreadError } = await supabaseAdmin
@@ -37,8 +35,7 @@ export async function GET(req: Request) {
       .is("read_at", null);
 
     if (unreadError) {
-      logger.error("Database error", { error: unreadError.message, code: unreadError?.code });
-      return apiError("Internal server error", 500);
+      return serverError(unreadError);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0, unreadCount: unreadCount ?? 0 });

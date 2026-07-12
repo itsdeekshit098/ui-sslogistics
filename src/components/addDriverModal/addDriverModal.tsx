@@ -123,7 +123,7 @@ const AddDriverForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div style={styles.formSection}>
         {/* Name */}
         <div style={styles.fieldGroup}>
@@ -135,7 +135,7 @@ const AddDriverForm: React.FC<{
             placeholder="Driver name"
             value={formData.name}
             onChange={handleChange}
-            style={fieldErrors.name ? { borderColor: "#ef4444" } : undefined}
+            style={fieldErrors.name ? { borderColor: "var(--destructive)" } : undefined}
           />
           {fieldErrors.name && (
             <span style={styles.fieldError}>{fieldErrors.name}</span>
@@ -147,10 +147,12 @@ const AddDriverForm: React.FC<{
           <Label htmlFor="phone">Phone Number</Label>
           <Input disabled={loading}
             id="phone"
+            type="tel"
+            autoComplete="tel"
             placeholder="10-digit mobile number"
             value={formData.phone}
             onChange={handleChange}
-            style={fieldErrors.phone ? { borderColor: "#ef4444" } : undefined}
+            style={fieldErrors.phone ? { borderColor: "var(--destructive)" } : undefined}
           />
           {fieldErrors.phone && (
             <span style={styles.fieldError}>{fieldErrors.phone}</span>

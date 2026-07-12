@@ -14,13 +14,13 @@ export const fieldGroup: CSSProperties = {
 };
 
 export const requiredStar: CSSProperties = {
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginLeft: "0.125rem",
 };
 
 export const fieldError: CSSProperties = {
   fontSize: "0.75rem",
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginTop: "0.125rem",
 };
 

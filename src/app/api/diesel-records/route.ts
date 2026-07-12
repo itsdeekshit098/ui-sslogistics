@@ -1,10 +1,9 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import type { CreateDieselPayload } from "@/app/admin/diesel-records/dieselRecords.types";
 
 const isBlankString = (value: unknown): value is string =>
@@ -52,8 +51,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0 });
@@ -140,7 +138,7 @@ export async function POST(req: Request) {
     // ── 4. Get last entry for this vehicle (prev odo + cycle context) ──
     const { data: lastEntry, error: lastEntryErr } = await supabaseAdmin
       .from("diesel_records")
-      .select("id, current_odo, cycle_id, fill_type, cycle_status")
+      .select("id, current_odo, cycle_id, fill_type, cycle_status, fill_date")
       .eq("vehicle_id", vehicleId)
       .order("fill_date", { ascending: false })
       .order("id", { ascending: false })
@@ -148,8 +146,7 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (lastEntryErr) {
-      logger.error("Database error", { error: lastEntryErr.message, code: lastEntryErr?.code, hint: lastEntryErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(lastEntryErr);
     }
 
     // ── 5. Validate odometer is increasing (also catches duplicates) ──
@@ -159,6 +156,18 @@ export async function POST(req: Request) {
         `Odometer must be greater than previous reading (${lastEntry.current_odo} km)`,
         400,
       );
+    }
+
+    // ── 5b. Validate fill_date is not older than the previous record's ──
+    if (lastEntry) {
+      const newFillDate = new Date(body.fill_date || Date.now());
+      const lastFillDate = new Date(lastEntry.fill_date);
+      if (newFillDate.getTime() < lastFillDate.getTime()) {
+        return apiError(
+          `Fill date cannot be earlier than the previous entry's date (${lastEntry.fill_date})`,
+          400,
+        );
+      }
     }
 
     // ── 6. First fill must be a full fill ──
@@ -205,8 +214,7 @@ export async function POST(req: Request) {
           .maybeSingle();
 
         if (lastFullErr) {
-          logger.error("Database error", { error: lastFullErr.message, code: lastFullErr?.code, hint: lastFullErr?.hint });
-      return apiError("Internal server error", 500);
+          return serverError(lastFullErr);
         }
 
         if (lastFullFill) {
@@ -223,8 +231,7 @@ export async function POST(req: Request) {
               .order("id", { ascending: true });
 
           if (cycleEntriesErr) {
-            logger.error("Database error", { error: cycleEntriesErr.message, code: cycleEntriesErr?.code, hint: cycleEntriesErr?.hint });
-      return apiError("Internal server error", 500);
+            return serverError(cycleEntriesErr);
           }
 
           const intermediateLitres = cycleEntries
@@ -293,8 +300,7 @@ export async function POST(req: Request) {
       .single();
 
     if (insertErr) {
-      logger.error("Database error", { error: insertErr.message, code: insertErr?.code, hint: insertErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(insertErr);
     }
 
     // ── 9. Audit log ──
@@ -352,11 +358,7 @@ export async function POST(req: Request) {
 // ─── PUT — Update diesel record (admin only) with cycle recalculation ───
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can edit diesel records", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const body = await req.json();
     const {
@@ -388,7 +390,7 @@ export async function PUT(req: Request) {
     if (existingErr || !existing) {
       return !existing && !existingErr
         ? apiError("Record not found", 404)
-        : apiError(existingErr!.message, 500);
+        : serverError(existingErr);
     }
 
     const fuelLitres = Number(fuel_litres);
@@ -425,8 +427,7 @@ export async function PUT(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // ── 3. Recalculate cycle if fuel or price changed ──
@@ -459,8 +460,7 @@ export async function PUT(req: Request) {
           .maybeSingle();
 
         if (nextClosedErr) {
-          logger.error("Database error", { error: nextClosedErr.message, code: nextClosedErr?.code, hint: nextClosedErr?.hint });
-      return apiError("Internal server error", 500);
+          return serverError(nextClosedErr);
         }
 
         if (nextClosed) {
@@ -485,8 +485,7 @@ export async function PUT(req: Request) {
           .maybeSingle();
 
         if (openingErr) {
-          logger.error("Database error", { error: openingErr.message, code: openingErr?.code, hint: openingErr?.hint });
-      return apiError("Internal server error", 500);
+          return serverError(openingErr);
         }
 
         if (openingFull) {
@@ -503,8 +502,7 @@ export async function PUT(req: Request) {
               .order("id", { ascending: true });
 
           if (intermediatesErr) {
-            logger.error("Database error", { error: intermediatesErr.message, code: intermediatesErr?.code, hint: intermediatesErr?.hint });
-      return apiError("Internal server error", 500);
+            return serverError(intermediatesErr);
           }
 
           const intermediateLitres = intermediates
@@ -525,8 +523,7 @@ export async function PUT(req: Request) {
             .single();
 
           if (vehicleErr) {
-            logger.error("Database error", { error: vehicleErr.message, code: vehicleErr?.code, hint: vehicleErr?.hint });
-      return apiError("Internal server error", 500);
+            return serverError(vehicleErr);
           }
 
           const expectedKml = vehicle?.expected_kml ?? null;
@@ -557,8 +554,7 @@ export async function PUT(req: Request) {
             .eq("id", closingRecordId);
 
           if (updateMetricsErr) {
-            logger.error("Database error", { error: updateMetricsErr.message, code: updateMetricsErr?.code, hint: updateMetricsErr?.hint });
-      return apiError("Internal server error", 500);
+            return serverError(updateMetricsErr);
           }
         }
       }
@@ -594,11 +590,7 @@ function round1(n: number): number {
 // ─── DELETE — Delete diesel record (admin only) ───
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete diesel records", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -618,7 +610,7 @@ export async function DELETE(req: Request) {
     if (recordErr || !record) {
       return !record && !recordErr
         ? apiError("Record not found", 404)
-        : apiError(recordErr!.message, 500);
+        : serverError(recordErr);
     }
 
     const { error } = await supabaseAdmin
@@ -627,8 +619,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(() =>

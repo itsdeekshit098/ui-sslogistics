@@ -137,7 +137,7 @@ export default function AdminLayout({
           data-testid="admin-layout"
         >
           {/* Desktop Header */}
-          <header className="hidden md:flex h-14 shrink-0 items-center justify-end gap-3 bg-white dark:bg-background px-6 z-30 border-b border-border shadow-sm">
+          <header className="hidden md:flex h-14 shrink-0 items-center justify-end gap-3 bg-card px-6 z-30 border-b border-border shadow-sm">
             <NotificationBell />
             <ThemeToggle />
             <div className="h-6 w-px bg-border" />
@@ -181,7 +181,7 @@ export default function AdminLayout({
           </header>
 
           <main
-            className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f3f3f3] dark:bg-[#0c1521] transition-colors duration-300 scrollbar-custom"
+            className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted transition-colors duration-300 scrollbar-custom"
             data-testid="admin-main"
           >
             {children}

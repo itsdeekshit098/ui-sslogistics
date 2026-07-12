@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,9 +28,9 @@ import {
 import { VehicleFormFieldsProps } from "./vehicleFormFields.types";
 
 const errorInputClass = (hasError?: string) =>
-  hasError ? "border-red-500 focus-visible:ring-red-500" : "";
+  hasError ? "border-destructive focus-visible:ring-destructive" : "";
 const errorTriggerClass = (hasError?: string) =>
-  hasError ? "border-red-500 focus:ring-red-500" : "";
+  hasError ? "border-destructive focus:ring-destructive" : "";
 
 /**
  * Pure presentational field set for the vehicle form — no fetch calls, no
@@ -62,7 +63,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
       <div className={CA_MODAL_GRID}>
         <div className={CA_MODAL_LABEL_SPACE}>
           <Label htmlFor="owner_type">
-            Owner Type <span className="text-red-500">*</span>
+            Owner Type <span className="text-destructive">*</span>
           </Label>
           <Select
             disabled={disabled}
@@ -82,12 +83,12 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
             </SelectContent>
           </Select>
           {errors.owner_type && (
-            <p className="text-xs text-red-500 mt-1">{errors.owner_type}</p>
+            <p className="text-xs text-destructive mt-1">{errors.owner_type}</p>
           )}
         </div>
         <div className={CA_MODAL_LABEL_SPACE}>
           <Label htmlFor="owner_name">
-            Owner Name <span className="text-red-500">*</span>
+            Owner Name <span className="text-destructive">*</span>
           </Label>
           <Select
             disabled={disabled || !formData.owner_type}
@@ -113,18 +114,20 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
             </SelectContent>
           </Select>
           {errors.owner_name && (
-            <p className="text-xs text-red-500 mt-1">{errors.owner_name}</p>
+            <p className="text-xs text-destructive mt-1">{errors.owner_name}</p>
           )}
           {formData.owner_type && (
-            <button
+            <Button
               type="button"
+              variant="link"
+              size="sm"
               data-testid={`${testIdPrefix}-button-add-owner`}
               disabled={disabled}
               onClick={onAddOwnerClick}
-              className="text-xs text-primary hover:underline text-left mt-1 w-fit"
+              className="text-xs h-auto p-0 justify-start w-fit"
             >
               + Add New Owner
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -133,7 +136,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
       <div className={CA_MODAL_GRID}>
         <div className={CA_MODAL_LABEL_SPACE}>
           <Label htmlFor="vehicle_number">
-            Vehicle Number <span className="text-red-500">*</span>
+            Vehicle Number <span className="text-destructive">*</span>
           </Label>
           <Input
             disabled={disabled}
@@ -145,14 +148,14 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
             className={errorInputClass(errors.vehicle_number)}
           />
           {errors.vehicle_number && (
-            <p className="text-xs text-red-500 mt-1">
+            <p className="text-xs text-destructive mt-1">
               {errors.vehicle_number}
             </p>
           )}
         </div>
         <div className={CA_MODAL_LABEL_SPACE}>
           <Label htmlFor="vehicle_type">
-            Vehicle Type <span className="text-red-500">*</span>
+            Vehicle Type <span className="text-destructive">*</span>
           </Label>
           <Select
             disabled={disabled}
@@ -172,7 +175,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
             </SelectContent>
           </Select>
           {errors.vehicle_type && (
-            <p className="text-xs text-red-500 mt-1">{errors.vehicle_type}</p>
+            <p className="text-xs text-destructive mt-1">{errors.vehicle_type}</p>
           )}
         </div>
       </div>
@@ -181,7 +184,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
       {isTruck && (
         <div className={CA_MODAL_LABEL_SPACE}>
           <Label htmlFor="truck_type">
-            Truck Type <span className="text-red-500">*</span>
+            Truck Type <span className="text-destructive">*</span>
           </Label>
           <Select
             disabled={disabled}
@@ -201,7 +204,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
             </SelectContent>
           </Select>
           {errors.truck_type && (
-            <p className="text-xs text-red-500 mt-1">{errors.truck_type}</p>
+            <p className="text-xs text-destructive mt-1">{errors.truck_type}</p>
           )}
         </div>
       )}
@@ -212,7 +215,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           <div className={CA_MODAL_GRID}>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="container_length">
-                Container Length <span className="text-red-500">*</span>
+                Container Length <span className="text-destructive">*</span>
               </Label>
               <Select
                 disabled={disabled}
@@ -236,14 +239,14 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
                 </SelectContent>
               </Select>
               {errors.container_length && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-destructive mt-1">
                   {errors.container_length}
                 </p>
               )}
             </div>
             <div className={CA_MODAL_LABEL_SPACE}>
               <Label htmlFor="axle_type">
-                Axle Type <span className="text-red-500">*</span>
+                Axle Type <span className="text-destructive">*</span>
               </Label>
               <Select
                 disabled={disabled}
@@ -263,7 +266,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
                 </SelectContent>
               </Select>
               {errors.axle_type && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-destructive mt-1">
                   {errors.axle_type}
                 </p>
               )}
@@ -271,7 +274,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           </div>
           <div className={CA_MODAL_LABEL_SPACE}>
             <Label htmlFor="container_body_type">
-              Body Type <span className="text-red-500">*</span>
+              Body Type <span className="text-destructive">*</span>
             </Label>
             <Select
               disabled={disabled}
@@ -295,7 +298,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
               </SelectContent>
             </Select>
             {errors.container_body_type && (
-              <p className="text-xs text-red-500 mt-1">
+              <p className="text-xs text-destructive mt-1">
                 {errors.container_body_type}
               </p>
             )}
@@ -334,7 +337,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
         <div className={CA_MODAL_GRID}>
           <div className={CA_MODAL_LABEL_SPACE}>
             <Label htmlFor="seating_capacity">
-              Seating Capacity <span className="text-red-500">*</span>
+              Seating Capacity <span className="text-destructive">*</span>
             </Label>
             <Input
               disabled={disabled}
@@ -351,7 +354,7 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
               className={errorInputClass(errors.seating_capacity)}
             />
             {errors.seating_capacity && (
-              <p className="text-xs text-red-500 mt-1">
+              <p className="text-xs text-destructive mt-1">
                 {errors.seating_capacity}
               </p>
             )}

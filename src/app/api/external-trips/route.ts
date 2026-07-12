@@ -1,9 +1,8 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import type {
   CreateExternalTripPayload,
   CostItem,
@@ -105,8 +104,7 @@ export async function GET(req: Request) {
       );
 
       if (summaryError) {
-        logger.error("Database error", { error: summaryError.message, code: summaryError?.code, hint: summaryError?.hint });
-        return apiError("Internal server error", 500);
+        return serverError(summaryError);
       }
 
       totalCount = Number(summaryRow?.[0]?.total_count ?? 0);
@@ -146,8 +144,7 @@ export async function GET(req: Request) {
     const { data, error, count: pageCount } = await dataQuery;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // Use summary count if available, otherwise fall back to paginated count
@@ -245,6 +242,23 @@ export async function POST(req: Request) {
       return apiError("Notes must be 500 characters or fewer", 400);
     }
 
+    let booking: { id: number } | null = null;
+    if (body.booking_id) {
+      const { data: bookingRow, error: bErr } = await supabaseAdmin
+        .from("trip_bookings")
+        .select("id, status")
+        .eq("id", Number(body.booking_id))
+        .single();
+
+      if (bErr || !bookingRow) {
+        return apiError("Trip booking not found", 400);
+      }
+      if (bookingRow.status !== "confirmed") {
+        return apiError("Trip booking is not confirmed", 400);
+      }
+      booking = bookingRow;
+    }
+
     const totalCost = sumCostItems(costValidation.parsed);
 
     const insertPayload = {
@@ -272,8 +286,34 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
+    }
+
+    if (booking) {
+      const { data: completedRows, error: completeErr } = await supabaseAdmin
+        .from("trip_bookings")
+        .update({
+          status: "completed",
+          external_trip_id: newTrip.id,
+          updated_by: authUser.id,
+        })
+        .eq("id", booking.id)
+        .eq("status", "confirmed")
+        .select("id");
+
+      // The .eq("status", "confirmed") guard means a concurrent completion/
+      // cancellation between our read above and this write updates zero
+      // rows without erroring — check the row count, not just the error.
+      if (completeErr || !completedRows || completedRows.length === 0) {
+        // Compensate: don't leave an orphaned trip if the booking couldn't
+        // be marked completed.
+        await supabaseAdmin.from("external_trips").delete().eq("id", newTrip.id);
+        return serverError(
+          completeErr ?? new Error("Booking was already completed or cancelled"),
+          undefined,
+          "Failed to complete trip booking",
+        );
+      }
     }
 
     after(async () => {
@@ -289,6 +329,7 @@ export async function POST(req: Request) {
           trip_type: insertPayload.trip_type,
           total_cost: totalCost,
           amount_received: amountReceived,
+          booking_id: booking?.id,
         },
       });
     });
@@ -303,7 +344,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -407,8 +448,7 @@ export async function PUT(req: Request) {
       .single();
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -433,11 +473,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete external_trips", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -446,14 +482,43 @@ export async function DELETE(req: Request) {
       return apiError("Missing trip ID", 400);
     }
 
+    // If this trip was created by completing a booking, reopen the booking
+    // first — otherwise the FK on trip_bookings.external_trip_id blocks the
+    // delete outright, and even if it didn't, deleting the trip would leave
+    // a "completed" booking with no way to redo it (PUT rejects edits to
+    // completed bookings).
+    const { data: linkedBooking, error: bookingLookupErr } = await supabaseAdmin
+      .from("trip_bookings")
+      .select("id")
+      .eq("external_trip_id", Number(id))
+      .maybeSingle();
+
+    if (bookingLookupErr) {
+      return serverError(bookingLookupErr);
+    }
+
+    if (linkedBooking) {
+      const { error: reopenErr } = await supabaseAdmin
+        .from("trip_bookings")
+        .update({
+          status: "confirmed",
+          external_trip_id: null,
+          updated_by: authUser.id,
+        })
+        .eq("id", linkedBooking.id);
+
+      if (reopenErr) {
+        return serverError(reopenErr, undefined, "Failed to reopen the linked trip booking");
+      }
+    }
+
     const { error } = await supabaseAdmin
       .from("external_trips")
       .delete()
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

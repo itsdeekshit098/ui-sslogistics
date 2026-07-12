@@ -13,7 +13,6 @@ export {
   errorBanner,
   errorBannerWithMargin,
   addVendorFooterBtn,
-  modalBodyPadding,
   warrantyInputRow,
   warrantyInputFlex,
   selectTriggerStyle,

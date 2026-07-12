@@ -34,6 +34,7 @@ import { RepairModal } from "@/components/repairModal";
 import { Typeahead } from "@/components/typeahead";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import { Label } from "@/components/ui/label";
 import { StatCard } from "@/components/ui/statCard";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
@@ -56,8 +57,9 @@ const fmtCurrency = (n: number) =>
 
 export function RepairRecordsPage() {
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = userRole === "admin" || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   // ─── Data State ───
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -428,7 +430,7 @@ export function RepairRecordsPage() {
             View and manage vehicle repair history.
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button
             className="w-full md:w-auto"
             onClick={openCreate}
@@ -615,7 +617,7 @@ export function RepairRecordsPage() {
                   <div
                     key={record.id}
                     className="border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => canWrite && openEdit(record)}
+                    onClick={() => canManage && openEdit(record)}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -662,7 +664,7 @@ export function RepairRecordsPage() {
                       {record.technicians?.name &&
                         ` • Tech: ${record.technicians.name}`}
                     </div>
-                    {isAdmin && (
+                    {canManage && (
                       <div className="flex justify-end pt-1">
                         <Button
                           variant="ghost"
@@ -796,15 +798,16 @@ export function RepairRecordsPage() {
                 data={filteredRecords}
                 rowKey={(row) => row.id.toString()}
                 loading={recordsLoading}
-                rowClickable={canWrite}
-                onRowClick={(row) => canWrite && openEdit(row)}
+                rowClickable={canManage}
+                onRowClick={(row) => canManage && openEdit(row)}
+                showActions={canManage}
                 rowActions={[
                   {
                     key: "edit",
                     label: "Edit",
                     icon: <PencilIcon size={14} />,
                     onClick: (row) => openEdit(row),
-                    hidden: () => !canWrite,
+                    hidden: () => !canManage,
                   },
                   {
                     key: "delete",
@@ -812,7 +815,7 @@ export function RepairRecordsPage() {
                     icon: <Trash2Icon size={14} />,
                     variant: "danger",
                     onClick: (row) => setDeleteTarget(row),
-                    hidden: () => !isAdmin,
+                    hidden: () => !canManage,
                   },
                 ]}
               />

@@ -42,7 +42,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
       >
         <BellIcon size={18} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -50,7 +50,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close notifications"
+            className="fixed inset-0 z-[9998] cursor-default appearance-none border-0 bg-transparent p-0"
+            onClick={() => setIsOpen(false)}
+          />
           <div className="absolute top-full right-0 pt-2 z-[9999] animate-in fade-in-0 zoom-in-95 duration-100">
             <div className="absolute top-[3px] right-[13px] w-2.5 h-2.5 bg-card border-l border-t border-border rotate-45 z-30" />
 
@@ -63,7 +68,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   <button
                     type="button"
                     onClick={() => markAllRead()}
-                    className="text-xs font-medium text-primary hover:underline"
+                    className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                   >
                     Mark all read
                   </button>
@@ -82,7 +87,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                     key={n.id}
                     type="button"
                     onClick={() => handleClick(n)}
-                    className={`text-left px-2 py-2 rounded-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                    className={`text-left px-2 py-2 rounded-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       !n.read_at ? "bg-slate-50 dark:bg-slate-900/50" : ""
                     }`}
                   >

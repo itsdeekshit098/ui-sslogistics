@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import {
   Select,
@@ -35,6 +36,8 @@ import {
   VEHICLE_TYPES,
   FUEL_TYPES,
   OWNER_TYPES,
+  DocExpiryStatus,
+  DOC_EXPIRY_STATUS_OPTIONS,
 } from "./vehicles.types";
 import { useVehicleOwners } from "@/hooks/useVehicleOwners";
 import {
@@ -42,6 +45,8 @@ import {
   getVehicleTypeLabel,
   getVehicleSubDetail,
   getOwnerTypeLabel,
+  getDocExpiryBadgeVariant,
+  formatDocDate,
 } from "./vehicles.utils";
 import HighlightMatch from "./highlightMatch";
 import * as styles from "./vehiclesPage.style";
@@ -68,6 +73,64 @@ import {
   fieldLabel as filterFieldLabel,
 } from "@/components/ui/filterDrawer";
 
+/** Renders one document type's expiry badge + validity date range (used per-column on desktop, stacked on mobile). */
+function DocExpiryCell({
+  label,
+  status,
+  start,
+  end,
+}: {
+  label: string;
+  status: DocExpiryStatus | null | undefined;
+  start: string | null | undefined;
+  end: string | null | undefined;
+}) {
+  if (!start && !end) return <span className="text-muted-foreground text-xs">—</span>;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {status && (
+        <Badge variant={getDocExpiryBadgeVariant(status) ?? "outline"}>{label}</Badge>
+      )}
+      <span className="text-xs text-muted-foreground whitespace-nowrap">
+        {start ? formatDocDate(start) : "No Start Date"} –{" "}
+        {end ? formatDocDate(end) : "No End Date"}
+      </span>
+    </div>
+  );
+}
+
+/** Stacks FC + Insurance cells together — used on the mobile card where there's only one slot for both. */
+function hasAnyDocDates(vehicle: Vehicle): boolean {
+  return Boolean(
+    vehicle.fc_start_date ||
+      vehicle.fc_end_date ||
+      vehicle.insurance_start_date ||
+      vehicle.insurance_end_date,
+  );
+}
+
+function DocExpiryBadges({ vehicle }: { vehicle: Vehicle }) {
+  if (!hasAnyDocDates(vehicle)) return null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <DocExpiryCell
+        label="FC"
+        status={vehicle.fc_status}
+        start={vehicle.fc_start_date}
+        end={vehicle.fc_end_date}
+      />
+      <DocExpiryCell
+        label="Insurance"
+        status={vehicle.insurance_status}
+        start={vehicle.insurance_start_date}
+        end={vehicle.insurance_end_date}
+      />
+    </div>
+  );
+}
+
 export default function VehiclesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,8 +139,9 @@ export default function VehiclesPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = isAdmin || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   // ─── Consolidated filter state ───
   const [pageSize, setPageSize] = useState(
@@ -114,18 +178,28 @@ export default function VehiclesPage() {
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string>(
     searchParams.get("fuelType") || "",
   );
+  const [fcStatusFilter, setFcStatusFilter] = useState<string>(
+    searchParams.get("fcStatus") || "",
+  );
+  const [insuranceStatusFilter, setInsuranceStatusFilter] = useState<string>(
+    searchParams.get("insuranceStatus") || "",
+  );
   const [drawerFilters, setDrawerFilters] = useState<{
     type: VehicleType | "all";
     status: string;
     ownerType: string;
     ownerName: string;
     fuelType: string;
+    fcStatus: string;
+    insuranceStatus: string;
   }>({
     type: (searchParams.get("type") as VehicleType | "all") || "all",
     status: searchParams.get("status") || "",
     ownerType: searchParams.get("ownerType") || "",
     ownerName: searchParams.get("ownerName") || "",
     fuelType: searchParams.get("fuelType") || "",
+    fcStatus: searchParams.get("fcStatus") || "",
+    insuranceStatus: searchParams.get("insuranceStatus") || "",
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { owners } = useVehicleOwners();
@@ -138,7 +212,9 @@ export default function VehiclesPage() {
     statusFilter !== "" ||
     ownerTypeFilter !== "" ||
     ownerNameFilter !== "" ||
-    fuelTypeFilter !== "";
+    fuelTypeFilter !== "" ||
+    fcStatusFilter !== "" ||
+    insuranceStatusFilter !== "";
 
   // ─── URL sync ───
   const syncUrl = useCallback(
@@ -151,6 +227,8 @@ export default function VehiclesPage() {
       ownerType: string,
       ownerName: string,
       fuelType: string,
+      fcStatus: string,
+      insuranceStatus: string,
     ) => {
       const params = new URLSearchParams();
       if (p > 1) params.set("page", String(p));
@@ -161,6 +239,8 @@ export default function VehiclesPage() {
       if (ownerType) params.set("ownerType", ownerType);
       if (ownerName) params.set("ownerName", ownerName);
       if (fuelType) params.set("fuelType", fuelType);
+      if (fcStatus) params.set("fcStatus", fcStatus);
+      if (insuranceStatus) params.set("insuranceStatus", insuranceStatus);
       const qs = params.toString();
       router.replace(`/admin/vehicles${qs ? `?${qs}` : ""}`, {
         scroll: false,
@@ -184,6 +264,8 @@ export default function VehiclesPage() {
       overrideOwnerType?: string;
       overrideOwnerName?: string;
       overrideFuelType?: string;
+      overrideFcStatus?: string;
+      overrideInsuranceStatus?: string;
     }) => {
       const p = opts?.overridePage ?? page;
       const ps = opts?.overridePageSize ?? pageSize;
@@ -193,13 +275,15 @@ export default function VehiclesPage() {
       const ot = opts?.overrideOwnerType ?? ownerTypeFilter;
       const on = opts?.overrideOwnerName ?? ownerNameFilter;
       const ft = opts?.overrideFuelType ?? fuelTypeFilter;
+      const fcs = opts?.overrideFcStatus ?? fcStatusFilter;
+      const ins = opts?.overrideInsuranceStatus ?? insuranceStatusFilter;
 
       const requestId = ++requestIdRef.current;
 
       setLoading(true);
       setFetchError(null);
       // Optimistic URL sync
-      syncUrl(p, ps, search, type, st, ot, on, ft);
+      syncUrl(p, ps, search, type, st, ot, on, ft, fcs, ins);
 
       try {
         const params = new URLSearchParams({
@@ -212,6 +296,8 @@ export default function VehiclesPage() {
         if (ot) params.set("ownerType", ot);
         if (on) params.set("ownerName", on);
         if (ft) params.set("fuelType", ft);
+        if (fcs) params.set("fcStatus", fcs);
+        if (ins) params.set("insuranceStatus", ins);
 
         const res = await fetch(`/api/vehicles?${params}`);
         if (!res.ok) throw new Error("Failed to fetch");
@@ -233,6 +319,8 @@ export default function VehiclesPage() {
         setOwnerTypeFilter(ot);
         setOwnerNameFilter(on);
         setFuelTypeFilter(ft);
+        setFcStatusFilter(fcs);
+        setInsuranceStatusFilter(ins);
       } catch {
         if (requestIdRef.current !== requestId) return;
         setFetchError(
@@ -254,6 +342,8 @@ export default function VehiclesPage() {
       ownerTypeFilter,
       ownerNameFilter,
       fuelTypeFilter,
+      fcStatusFilter,
+      insuranceStatusFilter,
       syncUrl,
     ],
   );
@@ -290,6 +380,8 @@ export default function VehiclesPage() {
       ownerType: ownerTypeFilter,
       ownerName: ownerNameFilter,
       fuelType: fuelTypeFilter,
+      fcStatus: fcStatusFilter,
+      insuranceStatus: insuranceStatusFilter,
     });
     setIsDrawerOpen(true);
   };
@@ -300,6 +392,8 @@ export default function VehiclesPage() {
     setOwnerTypeFilter(drawerFilters.ownerType);
     setOwnerNameFilter(drawerFilters.ownerName);
     setFuelTypeFilter(drawerFilters.fuelType);
+    setFcStatusFilter(drawerFilters.fcStatus);
+    setInsuranceStatusFilter(drawerFilters.insuranceStatus);
     setPage(1);
     setIsDrawerOpen(false);
     fetchVehicles({
@@ -308,6 +402,8 @@ export default function VehiclesPage() {
       overrideOwnerType: drawerFilters.ownerType,
       overrideOwnerName: drawerFilters.ownerName,
       overrideFuelType: drawerFilters.fuelType,
+      overrideFcStatus: drawerFilters.fcStatus,
+      overrideInsuranceStatus: drawerFilters.insuranceStatus,
       overridePage: 1,
     });
   };
@@ -319,12 +415,16 @@ export default function VehiclesPage() {
     setOwnerTypeFilter("");
     setOwnerNameFilter("");
     setFuelTypeFilter("");
+    setFcStatusFilter("");
+    setInsuranceStatusFilter("");
     setDrawerFilters({
       type: "all",
       status: "",
       ownerType: "",
       ownerName: "",
       fuelType: "",
+      fcStatus: "",
+      insuranceStatus: "",
     });
     setIsDrawerOpen(false);
     setPage(1);
@@ -335,6 +435,8 @@ export default function VehiclesPage() {
       overrideOwnerType: "",
       overrideOwnerName: "",
       overrideFuelType: "",
+      overrideFcStatus: "",
+      overrideInsuranceStatus: "",
       overridePage: 1,
     });
   }, [fetchVehicles]);
@@ -448,7 +550,7 @@ export default function VehiclesPage() {
             Manage your fleet of buses, cars, and trucks.
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button
             data-testid="vehicles-add-btn"
             className="w-full md:w-auto"
@@ -574,6 +676,7 @@ export default function VehiclesPage() {
                     size="icon"
                     data-testid="vehicles-search-clear-btn"
                     type="button"
+                    aria-label="Clear search"
                     onClick={() => {
                       setSearchQuery("");
                       fetchVehicles({ overrideSearch: "", overridePage: 1 });
@@ -595,13 +698,17 @@ export default function VehiclesPage() {
                   statusFilter !== "" ||
                   ownerTypeFilter !== "" ||
                   ownerNameFilter !== "" ||
-                  fuelTypeFilter !== "") && (
+                  fuelTypeFilter !== "" ||
+                  fcStatusFilter !== "" ||
+                  insuranceStatusFilter !== "") && (
                   <span style={styles.activeFilterBadge}>
                     {(typeFilter !== "all" ? 1 : 0) +
                       (statusFilter !== "" ? 1 : 0) +
                       (ownerTypeFilter !== "" ? 1 : 0) +
                       (ownerNameFilter !== "" ? 1 : 0) +
-                      (fuelTypeFilter !== "" ? 1 : 0)}
+                      (fuelTypeFilter !== "" ? 1 : 0) +
+                      (fcStatusFilter !== "" ? 1 : 0) +
+                      (insuranceStatusFilter !== "" ? 1 : 0)}
                   </span>
                 )}
               </Button>
@@ -713,6 +820,7 @@ export default function VehiclesPage() {
                         )}
                         <div>Service: {vehicle.last_service_date || "N/A"}</div>
                       </div>
+                      <DocExpiryBadges vehicle={vehicle} />
                       <div className="flex gap-2 pt-1">
                         <Button
                           data-testid={`mobile-doc-btn-${vehicle.id}`}
@@ -730,7 +838,7 @@ export default function VehiclesPage() {
                           />{" "}
                           Docs
                         </Button>
-                        {canWrite && (
+                        {canManage && (
                           <>
                             <Button
                               data-testid={`mobile-edit-btn-${vehicle.id}`}
@@ -741,20 +849,18 @@ export default function VehiclesPage() {
                             >
                               Edit
                             </Button>
-                            {isAdmin && (
-                              <Button
-                                data-testid={`mobile-delete-btn-${vehicle.id}`}
-                                variant="destructive"
-                                size="sm"
-                                className="text-xs h-8 px-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteClick(vehicle);
-                                }}
-                              >
-                                <Trash2Icon size={14} />
-                              </Button>
-                            )}
+                            <Button
+                              data-testid={`mobile-delete-btn-${vehicle.id}`}
+                              variant="destructive"
+                              size="sm"
+                              className="text-xs h-8 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(vehicle);
+                              }}
+                            >
+                              <Trash2Icon size={14} />
+                            </Button>
                           </>
                         )}
                       </div>
@@ -816,9 +922,31 @@ export default function VehiclesPage() {
                   ),
                 },
                 {
+                  key: "documents",
+                  header: "Documents",
+                  cell: (row) => (
+                    <Button
+                      data-testid={`desktop-doc-btn-${row.id}`}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setDocVehicle(row);
+                        setIsDocOpen(true);
+                      }}
+                    >
+                      <FolderOpenIcon
+                        size={16}
+                        style={{ marginRight: "0.5rem" }}
+                      />{" "}
+                      Manage Docs
+                    </Button>
+                  ),
+                },
+                {
                   key: "model",
                   header: "Model",
-                  cell: (row) => `${row.company} ${row.model}`,
+                  cell: (row) =>
+                    [row.company, row.model].filter(Boolean).join(" ") || "—",
                 },
                 {
                   key: "owner_type",
@@ -833,6 +961,7 @@ export default function VehiclesPage() {
                 {
                   key: "details",
                   header: "Details",
+                  className: "whitespace-nowrap",
                   cell: (row) => getVehicleSubDetail(row),
                 },
                 {
@@ -858,24 +987,27 @@ export default function VehiclesPage() {
                   cell: (row) => row.last_service_date || "N/A",
                 },
                 {
-                  key: "documents",
-                  header: "Documents",
+                  key: "fc_status",
+                  header: "FC",
                   cell: (row) => (
-                    <Button
-                      data-testid={`desktop-doc-btn-${row.id}`}
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setDocVehicle(row);
-                        setIsDocOpen(true);
-                      }}
-                    >
-                      <FolderOpenIcon
-                        size={16}
-                        style={{ marginRight: "0.5rem" }}
-                      />{" "}
-                      Manage Docs
-                    </Button>
+                    <DocExpiryCell
+                      label="FC"
+                      status={row.fc_status}
+                      start={row.fc_start_date}
+                      end={row.fc_end_date}
+                    />
+                  ),
+                },
+                {
+                  key: "insurance_status",
+                  header: "Insurance",
+                  cell: (row) => (
+                    <DocExpiryCell
+                      label="Insurance"
+                      status={row.insurance_status}
+                      start={row.insurance_start_date}
+                      end={row.insurance_end_date}
+                    />
                   ),
                 },
               ]}
@@ -901,13 +1033,14 @@ export default function VehiclesPage() {
                   />
                 )
               }
+              showActions={canManage}
               rowActions={[
                 {
                   key: "edit",
                   label: "Edit",
                   icon: <PencilIcon size={14} />,
                   onClick: (row) => handleEditClick(row),
-                  hidden: () => !canWrite,
+                  hidden: () => !canManage,
                 },
                 {
                   key: "delete",
@@ -915,7 +1048,7 @@ export default function VehiclesPage() {
                   icon: <Trash2Icon size={14} />,
                   variant: "danger",
                   onClick: (row) => handleDeleteClick(row),
-                  hidden: () => !isAdmin,
+                  hidden: () => !canManage,
                 },
               ]}
             />
@@ -952,35 +1085,35 @@ export default function VehiclesPage() {
       >
         <ModalContent className="max-w-md p-6 rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-4 text-center">
-            <div className="rounded-full bg-red-100 p-3">
-              <Trash2Icon size={24} className="text-red-600" />
+            <div className="rounded-full bg-destructive/10 p-3">
+              <Trash2Icon size={24} className="text-destructive" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 Delete Vehicle
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Are you sure you want to delete this vehicle? This action cannot
                 be undone.
               </p>
             </div>
             {deletingVehicle && (
-              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md w-full">
+              <div className="text-sm text-foreground bg-muted p-3 rounded-md w-full">
                 <p className="font-medium">{deletingVehicle.vehicle_number}</p>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   {deletingVehicle.company} {deletingVehicle.model}
                 </p>
               </div>
             )}
             {deleteError && (
-              <div className="bg-red-50 text-red-600 p-2 rounded-md text-sm w-full border border-red-100 text-left flex justify-between items-start gap-2">
+              <div className="bg-destructive/10 text-destructive p-2 rounded-md text-sm w-full border border-destructive/20 text-left flex justify-between items-start gap-2">
                 <span className="flex-1">{deleteError}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   type="button"
                   onClick={() => setDeleteError(null)}
-                  className="text-red-600 hover:text-red-800 hover:bg-red-100 focus:outline-none flex-shrink-0 self-center cursor-pointer h-auto w-auto p-1"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/20 focus:outline-none flex-shrink-0 self-center cursor-pointer h-auto w-auto p-1"
                 >
                   <XIcon size={16} />
                 </Button>
@@ -1015,7 +1148,15 @@ export default function VehiclesPage() {
         onClose={() => setIsDocOpen(false)}
         vehicle={docVehicle}
         onUpdate={(documentType, newUrl) => {
-          if (documentType && docVehicle) {
+          // fc_status/insurance_status are computed server-side from these
+          // date columns — a local patch can't refresh them, so refetch.
+          const isExpiryDateField =
+            documentType === "fc_start_date" ||
+            documentType === "fc_end_date" ||
+            documentType === "insurance_start_date" ||
+            documentType === "insurance_end_date";
+
+          if (documentType && docVehicle && !isExpiryDateField) {
             const value = newUrl || null;
             setVehicles((prev) =>
               prev.map((v) =>
@@ -1110,6 +1251,54 @@ export default function VehiclesPage() {
               {FUEL_TYPES.map((f) => (
                 <SelectItem key={f.value} value={f.value}>
                   {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>FC Status</Label>
+          <Select
+            value={drawerFilters.fcStatus || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                fcStatus: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              {DOC_EXPIRY_STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value || "all"} value={o.value || "all"}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div style={filterFieldGroup}>
+          <Label style={filterFieldLabel}>Insurance Status</Label>
+          <Select
+            value={drawerFilters.insuranceStatus || "all"}
+            onValueChange={(v) =>
+              setDrawerFilters((p) => ({
+                ...p,
+                insuranceStatus: v === "all" ? "" : v,
+              }))
+            }
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              {DOC_EXPIRY_STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value || "all"} value={o.value || "all"}>
+                  {o.label}
                 </SelectItem>
               ))}
             </SelectContent>

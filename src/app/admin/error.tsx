@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 
 export default function AdminError({
@@ -11,7 +12,9 @@ export default function AdminError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Optionally log to an error reporting service (e.g. Sentry)
+    // Same reasoning as src/app/error.tsx: this boundary only covers the
+    // /admin segment, so it needs its own capture call too.
+    Sentry.captureException(error);
   }, [error]);
 
   return (

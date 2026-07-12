@@ -6,7 +6,14 @@ import { Vehicle, VehicleOwner } from "@/app/admin/vehicles/vehicles.types";
 import { SaveIcon } from "@/components/ui/icon";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { Button } from "@/components/ui/button";
-import { Modal, ModalContent } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalBody,
+} from "@/components/ui/modal";
 import { VehicleFormFields } from "@/components/vehicleFormFields";
 import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
 import { useVehicleForm } from "@/hooks/useVehicleForm";
@@ -49,21 +56,17 @@ const EditVehicleForm: React.FC<{
   }, [loading, onClose]);
 
   return (
-    <div className="w-full">
-      <div className="space-y-6 sm:mt-2">
-        <div className="mb-2 pr-8">
-          <h2
-            id="edit-vehicle-title"
-            className="text-xl sm:text-2xl font-bold tracking-tight"
-          >
-            Edit Vehicle
-          </h2>
-          <p className="text-sm text-muted-foreground hidden sm:block mt-1">
-            Make changes to the vehicle details here.
-          </p>
-        </div>
+    <>
+      <ModalHeader>
+        <ModalTitle>Edit Vehicle</ModalTitle>
+        <ModalDescription className="hidden sm:block">
+          Make changes to the vehicle details here.
+        </ModalDescription>
+      </ModalHeader>
+      <ModalBody>
+        <div className="space-y-6">
         {submitError && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-2 border border-red-100">
+          <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm mb-2 border border-destructive/20">
             {submitError}
           </div>
         )}
@@ -114,8 +117,9 @@ const EditVehicleForm: React.FC<{
             {loading ? "Saving..." : "Save changes"}
           </Button>
         </div>
-      </div>
-    </div>
+        </div>
+      </ModalBody>
+    </>
   );
 };
 
@@ -133,16 +137,14 @@ const EditVehicleModal: React.FC<EditVehicleModalProps> = ({
 }) => {
   return (
     <Modal open={isOpen && !!vehicle} onOpenChange={(open) => !open && onClose()}>
-      <ModalContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
-        <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
-          {vehicle && (
-            <EditVehicleForm
-              vehicle={vehicle}
-              onClose={onClose}
-              onSuccess={onSuccess}
-            />
-          )}
-        </div>
+      <ModalContent className="w-[95vw] sm:max-w-2xl rounded-xl sm:rounded-2xl scrollbar-custom">
+        {vehicle && (
+          <EditVehicleForm
+            vehicle={vehicle}
+            onClose={onClose}
+            onSuccess={onSuccess}
+          />
+        )}
       </ModalContent>
     </Modal>
   );

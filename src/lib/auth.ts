@@ -1,4 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
+import { setSentryUser } from "@/lib/sentry/setUser";
+import { canEdit, isAdmin, isValidRole } from "@/lib/routePermissions";
+
+// Re-exported so existing call sites importing isAdmin from "@/lib/auth" keep working.
+export { isAdmin };
 
 export interface AuthUser {
   id: string;
@@ -25,11 +30,16 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     if (!user) return null;
 
     const email = user.email || "unknown";
+    const role = user.app_metadata?.role || null;
+
+    // id + role only — never email/PII — so captured errors carry safe
+    // attribution without violating the logger's no-PII contract.
+    setSentryUser({ id: user.id, role });
 
     return {
       id: user.id,
       email,
-      role: user.app_metadata?.role || null,
+      role,
       displayName: user.user_metadata?.display_name || email,
     };
   } catch {
@@ -38,21 +48,21 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 }
 
 /**
- * Strongly enforces that the user must be authenticated (admin, staff, or driver).
+ * Strongly enforces that the user must be authenticated (admin, staff, driver, or superadmin).
  */
 export async function requireUserAuth(): Promise<AuthUser> {
   const user = await getAuthUser();
   if (!user) {
     throw new Error("UNAUTHORIZED: Missing authentication instance");
   }
-  if (user.role !== "admin" && user.role !== "staff" && user.role !== "driver") {
+  if (!isValidRole(user.role)) {
     throw new Error("FORBIDDEN: Insufficient role privileges");
   }
   return user;
 }
 
 /**
- * Strongly enforces that the user must be authenticated AND have the 'admin' or 'staff' role.
+ * Strongly enforces that the user must be authenticated AND have the 'admin', 'staff', or 'superadmin' role.
  * Throws an error if they don't, ensuring API operations halt immediately.
  */
 export async function requireAdminAuth(): Promise<AuthUser> {
@@ -60,22 +70,38 @@ export async function requireAdminAuth(): Promise<AuthUser> {
   if (!user) {
     throw new Error("UNAUTHORIZED: Missing authentication instance");
   }
-  if (user.role !== "admin" && user.role !== "staff") {
+  if (!canEdit(user.role)) {
     throw new Error("FORBIDDEN: Insufficient role privileges");
   }
   return user;
 }
 
 /**
- * Strongly enforces that the user must be authenticated AND have the 'admin' role only.
- * Use this for sensitive operations like session management, banning users, etc.
+ * Strongly enforces that the user must be authenticated AND have the 'admin' or 'superadmin' role.
+ * Use this for admin-only features (not the superadmin-exclusive ones — see requireSuperAdminAuth).
  */
 export async function requireStrictAdminAuth(): Promise<AuthUser> {
   const user = await getAuthUser();
   if (!user) {
     throw new Error("UNAUTHORIZED: Missing authentication instance");
   }
-  if (user.role !== "admin") {
+  if (!isAdmin(user.role)) {
+    throw new Error("FORBIDDEN: Insufficient role privileges");
+  }
+  return user;
+}
+
+/**
+ * Strongly enforces that the user must be authenticated AND have the 'superadmin' role only.
+ * Use this for the superadmin-exclusive settings/sessions management endpoints,
+ * which even a regular 'admin' cannot access.
+ */
+export async function requireSuperAdminAuth(): Promise<AuthUser> {
+  const user = await getAuthUser();
+  if (!user) {
+    throw new Error("UNAUTHORIZED: Missing authentication instance");
+  }
+  if (user.role !== "superadmin") {
     throw new Error("FORBIDDEN: Insufficient role privileges");
   }
   return user;

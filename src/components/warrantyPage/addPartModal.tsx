@@ -59,13 +59,13 @@ const formCol: CSSProperties = {
 };
 
 const requiredStar: CSSProperties = {
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginLeft: "0.125rem",
 };
 
 const fieldError: CSSProperties = {
   fontSize: "0.75rem",
-  color: "#ef4444",
+  color: "var(--destructive)",
   marginTop: "0.125rem",
 };
 
@@ -214,7 +214,7 @@ const AddPartForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={{ padding: "1.5rem" }}>
+      <ModalBody>
         <div style={formSection}>
           {/* Vehicle */}
           <div style={fieldGroup}>
@@ -449,7 +449,7 @@ const AddPartForm: React.FC<{
                 }}
                 onWheel={(e) => e.currentTarget.blur()}
                 style={
-                  fieldErrors.cost ? { borderColor: "#ef4444" } : undefined
+                  fieldErrors.cost ? { borderColor: "var(--destructive)" } : undefined
                 }
               />
               {fieldErrors.cost && (
@@ -480,7 +480,7 @@ const AddPartForm: React.FC<{
                 }}
                 style={
                   fieldErrors.purchaseDate
-                    ? { borderColor: "#ef4444" }
+                    ? { borderColor: "var(--destructive)" }
                     : undefined
                 }
               />
@@ -520,7 +520,7 @@ const AddPartForm: React.FC<{
                   style={{
                     flex: 1,
                     ...(fieldErrors.warrantyDuration
-                      ? { borderColor: "#ef4444" }
+                      ? { borderColor: "var(--destructive)" }
                       : {}),
                   }}
                 />

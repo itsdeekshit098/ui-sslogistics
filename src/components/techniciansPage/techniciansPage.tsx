@@ -11,6 +11,7 @@ import {
   XIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import { AddTechnicianModal } from "@/components/addTechnicianModal";
 import type { Technician, SpecializationOption } from "./techniciansPage.types";
 import { Input } from "@/components/ui/input";
@@ -28,8 +29,9 @@ const DEFAULT_PAGE_SIZE = 10;
 
 export function TechniciansPage() {
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = isAdmin || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete/status-toggle are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [specializations, setSpecializations] = useState<
@@ -269,14 +271,14 @@ export function TechniciansPage() {
       key: "status",
       label: "Toggle Status",
       icon: null, // Computed inside cell or we render dynamic icon
-      hidden: () => !canWrite,
+      hidden: () => !canManage,
       onClick: toggleStatus,
     },
     {
       key: "edit",
       label: "Edit",
       icon: <PencilIcon size={14} />,
-      hidden: () => !canWrite,
+      hidden: () => !canManage,
       onClick: handleEdit,
     },
     {
@@ -284,7 +286,7 @@ export function TechniciansPage() {
       label: "Delete",
       icon: <Trash2Icon size={14} />,
       variant: "danger",
-      hidden: () => !isAdmin,
+      hidden: () => !canManage,
       onClick: (tech) => setDeleteTarget(tech),
     },
   ];
@@ -333,7 +335,7 @@ export function TechniciansPage() {
             Manage your workshop technicians and their specializations
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Technician
           </Button>
@@ -406,6 +408,7 @@ export function TechniciansPage() {
                   data={technicians}
                   rowKey={(t) => String(t.id)}
                   loading={fetching}
+                  showActions={canManage}
                   rowActions={formattedRowActions}
                   rowClassName={(tech) => (!tech.is_active ? "opacity-60 bg-muted/10" : "")}
                 />
@@ -459,7 +462,7 @@ export function TechniciansPage() {
                       </div>
 
                       <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {canWrite && (
+                        {canManage && (
                           <>
                             <Button
                               variant="outline"
@@ -475,17 +478,15 @@ export function TechniciansPage() {
                             >
                               Edit
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteTarget(tech)}
+                            >
+                              Delete
+                            </Button>
                           </>
-                        )}
-                        {isAdmin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(tech)}
-                          >
-                            Delete
-                          </Button>
                         )}
                       </div>
                     </div>

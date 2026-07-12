@@ -1,0 +1,30 @@
+name: Daily Trip Booking Reminder Check
+
+on:
+  schedule:
+    # Once daily, 3 AM UTC (~8:30 AM IST)
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Enable manual triggering from GitHub UI
+
+jobs:
+  check-trip-bookings:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Node Dependencies
+        run: npm install @supabase/supabase-js firebase-admin
+
+      - name: Run Trip Booking Reminder Check & Retention Cleanup
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/check-trip-bookings.js

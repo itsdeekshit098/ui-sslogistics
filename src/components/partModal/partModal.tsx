@@ -179,7 +179,7 @@ const PartForm: React.FC<{
         </ModalDescription>
       </ModalHeader>
 
-      <ModalBody style={styles.modalBodyPadding}>
+      <ModalBody>
         <div style={styles.formSection}>
           {/* Vehicle */}
           <div style={styles.fieldGroup}>

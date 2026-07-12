@@ -1,9 +1,8 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import type { CreateDriverPayload } from "@/components/driversPage";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -48,8 +47,7 @@ export async function GET(req: Request) {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({ data: data ?? [], total: count ?? 0 });
@@ -93,8 +91,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -119,7 +116,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -171,8 +168,7 @@ export async function PUT(req: Request) {
       .single();
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -197,11 +193,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete drivers", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -210,21 +202,27 @@ export async function DELETE(req: Request) {
       return apiError("Missing driver ID", 400);
     }
 
-    const { count, error: countErr } = await supabaseAdmin
-      .from("external_trips")
-      .select("id", { count: "exact", head: true })
-      .eq("driver_id", Number(id));
+    const dependentChecks: [string, string][] = [
+      ["external_trips", "external trip(s)"],
+      ["trip_bookings", "trip booking(s)"],
+    ];
 
-    if (countErr) {
-      logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint });
-      return apiError("Internal server error", 500);
-    }
+    for (const [table, label] of dependentChecks) {
+      const { count, error: countErr } = await supabaseAdmin
+        .from(table)
+        .select("id", { count: "exact", head: true })
+        .eq("driver_id", Number(id));
 
-    if ((count ?? 0) > 0) {
-      return apiError(
-        "Cannot delete driver because they are linked to existing external_trips. Deactivate them instead.",
-        400,
-      );
+      if (countErr) {
+        return serverError(countErr, { table });
+      }
+
+      if ((count ?? 0) > 0) {
+        return apiError(
+          `Cannot delete driver because they are linked to ${count} ${label}. Deactivate them instead.`,
+          400,
+        );
+      }
     }
 
     const { error } = await supabaseAdmin
@@ -233,8 +231,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

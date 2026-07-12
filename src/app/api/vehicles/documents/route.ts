@@ -1,9 +1,8 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 
 const BUCKET_NAME = "vehicle-documents";
 
@@ -103,12 +102,7 @@ export async function POST(req: Request) {
       });
 
     if (uploadError) {
-      logger.error("Database error", { 
-        error: uploadError.message, 
-        code: (uploadError as unknown as Record<string, unknown>)?.code, 
-        hint: (uploadError as unknown as Record<string, unknown>)?.hint 
-      });
-      return apiError("Internal server error", 500);
+      return serverError(uploadError);
     }
 
     const updatePayload: Record<string, unknown> = { [documentType]: filePath };
@@ -120,8 +114,7 @@ export async function POST(req: Request) {
       .eq("id", vehicleId);
 
     if (dbError) {
-      logger.error("Database error", { error: dbError.message, code: dbError?.code, hint: dbError?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(dbError);
     }
 
     after(() =>
@@ -169,12 +162,7 @@ export async function DELETE(req: Request) {
       .from(BUCKET_NAME)
       .remove([filePath]);
     if (deleteError) {
-      logger.error("Database error", { 
-        error: deleteError.message, 
-        code: (deleteError as unknown as Record<string, unknown>)?.code, 
-        hint: (deleteError as unknown as Record<string, unknown>)?.hint 
-      });
-      return apiError("Internal server error", 500);
+      return serverError(deleteError);
     }
 
     const updatePayload: Record<string, unknown> = { [documentType]: null };
@@ -192,8 +180,7 @@ export async function DELETE(req: Request) {
       .eq("id", vehicleId);
 
     if (dbError) {
-      logger.error("Database error", { error: dbError.message, code: dbError?.code, hint: dbError?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(dbError);
     }
 
     after(() =>

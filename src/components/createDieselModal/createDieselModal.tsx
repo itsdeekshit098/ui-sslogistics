@@ -16,7 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Modal, ModalContent } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalBody,
+} from "@/components/ui/modal";
 import { AddDriverModal } from "@/components/addDriverModal";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type {
@@ -197,25 +204,22 @@ const CreateDieselForm: React.FC<{
       : null;
 
   return (
-    <div className="w-full">
-      <div className="space-y-6 sm:mt-2">
-        {/* Header */}
-        <div className="mb-2 pr-8">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            New Diesel Entry
-          </h2>
-          <p className="text-sm text-muted-foreground hidden sm:block mt-1">
-            Record fuel consumption for a vehicle.
-          </p>
-        </div>
-
+    <>
+      <ModalHeader>
+        <ModalTitle>New Diesel Entry</ModalTitle>
+        <ModalDescription className="hidden sm:block">
+          Record fuel consumption for a vehicle.
+        </ModalDescription>
+      </ModalHeader>
+      <ModalBody>
+        <div className="space-y-6">
         {/* Warnings */}
         {warnings.length > 0 && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3 rounded-md space-y-1">
+          <div className="bg-warning/10 border border-warning/20 px-4 py-3 rounded-md space-y-1">
             {warnings.map((w, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200"
+                className="flex items-center gap-2 text-sm text-warning"
               >
                 <AlertTriangleIcon size={16} className="shrink-0" />
                 {w}
@@ -230,7 +234,7 @@ const CreateDieselForm: React.FC<{
           <div className={MODAL_GRID}>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="date">
-                Date <span className="text-red-500">*</span>
+                Date <span className="text-destructive">*</span>
               </Label>
               <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-1"
@@ -240,17 +244,17 @@ const CreateDieselForm: React.FC<{
                 onChange={handleChange}
                 className={
                   fieldErrors.date
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.date && (
-                <p className="text-xs text-red-500">{fieldErrors.date}</p>
+                <p className="text-xs text-destructive">{fieldErrors.date}</p>
               )}
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="time">
-                Time <span className="text-red-500">*</span>
+                Time <span className="text-destructive">*</span>
               </Label>
               <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-2"
@@ -260,12 +264,12 @@ const CreateDieselForm: React.FC<{
                 onChange={handleChange}
                 className={
                   fieldErrors.time
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.time && (
-                <p className="text-xs text-red-500">{fieldErrors.time}</p>
+                <p className="text-xs text-destructive">{fieldErrors.time}</p>
               )}
             </div>
           </div>
@@ -273,7 +277,7 @@ const CreateDieselForm: React.FC<{
           {/* Vehicle */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="vehicleId">
-              Vehicle <span className="text-red-500">*</span>
+              Vehicle <span className="text-destructive">*</span>
             </Label>
             <Typeahead disabled={loading}
               id="vehicleId"
@@ -299,7 +303,7 @@ const CreateDieselForm: React.FC<{
               invalid={Boolean(fieldErrors.vehicleId)}
             />
             {fieldErrors.vehicleId && (
-              <p className="text-xs text-red-500">{fieldErrors.vehicleId}</p>
+              <p className="text-xs text-destructive">{fieldErrors.vehicleId}</p>
             )}
             {selectedVehicle && (
               <p className="text-xs text-muted-foreground">
@@ -312,7 +316,7 @@ const CreateDieselForm: React.FC<{
           {/* Driver */}
           <div className={MODAL_LABEL_SPACE}>
             <Label htmlFor="driverName">
-              Driver Name <span className="text-red-500">*</span>
+              Driver Name <span className="text-destructive">*</span>
             </Label>
             <Typeahead disabled={loading}
               id="driverName"
@@ -357,7 +361,7 @@ const CreateDieselForm: React.FC<{
               }
             />
             {fieldErrors.driverName && (
-              <p className="text-xs text-red-500">{fieldErrors.driverName}</p>
+              <p className="text-xs text-destructive">{fieldErrors.driverName}</p>
             )}
           </div>
 
@@ -365,7 +369,7 @@ const CreateDieselForm: React.FC<{
           <div className={MODAL_GRID}>
             <div className={MODAL_LABEL_SPACE}>
               <Label>
-                Fill Type <span className="text-red-500">*</span>
+                Fill Type <span className="text-destructive">*</span>
               </Label>
               <div className="flex gap-2">
                 <Button
@@ -398,7 +402,7 @@ const CreateDieselForm: React.FC<{
             </div>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="currentOdo">
-                Current Odometer (km) <span className="text-red-500">*</span>
+                Current Odometer (km) <span className="text-destructive">*</span>
               </Label>
               <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-4"
@@ -411,12 +415,12 @@ const CreateDieselForm: React.FC<{
                 onWheel={(e) => e.currentTarget.blur()}
                 className={
                   fieldErrors.currentOdo
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.currentOdo && (
-                <p className="text-xs text-red-500">{fieldErrors.currentOdo}</p>
+                <p className="text-xs text-destructive">{fieldErrors.currentOdo}</p>
               )}
             </div>
           </div>
@@ -425,7 +429,7 @@ const CreateDieselForm: React.FC<{
           <div className={MODAL_GRID}>
             <div className={MODAL_LABEL_SPACE}>
               <Label htmlFor="fuelLitres">
-                Fuel Added (Litres) <span className="text-red-500">*</span>
+                Fuel Added (Litres) <span className="text-destructive">*</span>
               </Label>
               <Input disabled={loading}
                 data-testid="components-createDieselModal-createDieselModal-input-5"
@@ -439,12 +443,12 @@ const CreateDieselForm: React.FC<{
                 onWheel={(e) => e.currentTarget.blur()}
                 className={
                   fieldErrors.fuelLitres
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.fuelLitres && (
-                <p className="text-xs text-red-500">{fieldErrors.fuelLitres}</p>
+                <p className="text-xs text-destructive">{fieldErrors.fuelLitres}</p>
               )}
             </div>
             <div className={MODAL_LABEL_SPACE}>
@@ -461,12 +465,12 @@ const CreateDieselForm: React.FC<{
                 onWheel={(e) => e.currentTarget.blur()}
                 className={
                   fieldErrors.pricePerL
-                    ? "border-red-500 focus-visible:ring-red-500"
+                    ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
               />
               {fieldErrors.pricePerL && (
-                <p className="text-xs text-red-500">{fieldErrors.pricePerL}</p>
+                <p className="text-xs text-destructive">{fieldErrors.pricePerL}</p>
               )}
             </div>
           </div>
@@ -542,7 +546,7 @@ const CreateDieselForm: React.FC<{
 
         {/* Footer */}
         {submitError && (
-          <div className="rounded-md border border-red-100 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
             {submitError}
           </div>
         )}
@@ -570,7 +574,8 @@ const CreateDieselForm: React.FC<{
             {loading ? "Saving..." : "Save Record"}
           </Button>
         </div>
-      </div>
+        </div>
+      </ModalBody>
 
       {/* ── Stacked Add Driver Modal ── */}
       <AddDriverModal
@@ -579,7 +584,7 @@ const CreateDieselForm: React.FC<{
         onSuccess={handleDriverAdded}
         mode="nested"
       />
-    </div>
+    </>
   );
 };
 
@@ -595,15 +600,13 @@ const CreateDieselModal: React.FC<CreateDieselModalProps> = ({
 }) => {
   return (
     <Modal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ModalContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden rounded-xl sm:rounded-2xl">
-        <div className="max-h-[85vh] overflow-y-auto p-4 sm:p-6 scrollbar-custom">
-          <CreateDieselForm
-            onClose={onClose}
-            onSuccess={onSuccess}
-            vehicles={vehicles}
-            defaultVehicleId={defaultVehicleId}
-          />
-        </div>
+      <ModalContent className="w-[95vw] sm:max-w-2xl rounded-xl sm:rounded-2xl scrollbar-custom">
+        <CreateDieselForm
+          onClose={onClose}
+          onSuccess={onSuccess}
+          vehicles={vehicles}
+          defaultVehicleId={defaultVehicleId}
+        />
       </ModalContent>
     </Modal>
   );

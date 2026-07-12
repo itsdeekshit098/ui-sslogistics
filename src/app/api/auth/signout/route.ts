@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, serverError, handleApiError } from "@/lib/apiResponse";
 
 /**
  * POST /api/auth/signout
@@ -13,7 +13,7 @@ export async function POST() {
     const { error: signOutError } = await supabase.auth.signOut();
 
     if (signOutError) {
-      return apiError("Failed to sign out", 500);
+      return serverError(signOutError, undefined, "Failed to sign out");
     }
 
     return apiSuccess(null, "Signed out successfully");

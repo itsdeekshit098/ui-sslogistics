@@ -1,8 +1,7 @@
-import { logger } from "@/lib/logger";
 import { after } from "next/server";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
-import { requireAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 
 const VALID_OWNER_TYPES = ["OWN", "EXTERNAL"] as const;
@@ -14,12 +13,15 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const ownerType = searchParams.get("owner_type")?.trim() ?? "";
     const search = searchParams.get("search")?.trim() ?? "";
+    // page is opt-in: omitting it preserves the legacy bare-array response
+    // (existing web callers — the owner dropdowns and the owners table page —
+    // expect `.data` to be VehicleOwner[], not a {data, total} envelope).
+    const pageParam = searchParams.get("page");
 
     let query = supabaseAdmin
       .from("vehicle_owners")
-      .select("id, name, owner_type")
-      .order("name", { ascending: true })
-      .limit(1000);
+      .select("id, name, owner_type", pageParam ? { count: "exact" } : undefined)
+      .order("name", { ascending: true });
 
     if (ownerType) {
       query = query.eq("owner_type", ownerType);
@@ -29,11 +31,28 @@ export async function GET(req: Request) {
       query = query.ilike("name", `%${escaped}%`);
     }
 
+    if (pageParam) {
+      const page = Math.max(1, Number(pageParam) || 1);
+      const pageSize = Math.min(
+        100,
+        Math.max(1, Number(searchParams.get("pageSize")) || 20),
+      );
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) {
+        return serverError(error);
+      }
+      return apiSuccess({ data: data ?? [], total: count ?? 0 });
+    }
+
+    query = query.limit(1000);
     const { data, error } = await query;
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess(data);
@@ -66,8 +85,7 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("An owner with this name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {
@@ -90,7 +108,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
+    const authUser = await requireStrictAdminAuth();
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -150,8 +168,7 @@ export async function PUT(req: Request) {
       if (error.code === "23505") {
         return apiError("An owner with this name already exists", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     const data = rpcRows?.[0];
@@ -179,11 +196,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authUser = await requireAdminAuth();
-
-    if (authUser.role !== "admin") {
-      return apiError("Only admins can delete owners", 403);
-    }
+    const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -210,8 +223,7 @@ export async function DELETE(req: Request) {
       .eq("owner_name", owner.name);
 
     if (countErr) {
-      logger.error("Database error", { error: countErr.message, code: countErr?.code, hint: countErr?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(countErr);
     }
 
     if ((count ?? 0) > 0) {
@@ -227,8 +239,7 @@ export async function DELETE(req: Request) {
       .eq("id", Number(id));
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     after(async () => {

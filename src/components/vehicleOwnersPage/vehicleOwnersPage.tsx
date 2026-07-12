@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PlusIcon, SearchIcon, PencilIcon, Trash2Icon, XIcon } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
+import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
 import { VehicleOwner } from "@/app/admin/vehicles/vehicles.types";
 import { getOwnerTypeLabel } from "@/app/admin/vehicles/vehicles.utils";
@@ -20,8 +21,9 @@ import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.t
 
 export function VehicleOwnersPage() {
   const { userRole, loading: authLoading } = useAuth();
-  const isAdmin = userRole === "admin";
-  const canWrite = isAdmin || userRole === "staff";
+  const canEdit = canEditRole(userRole);
+  // Edit/delete are admin-tier only (staff can add but not modify existing records).
+  const canManage = isAdminRole(userRole);
 
   const [owners, setOwners] = useState<VehicleOwner[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -151,7 +153,7 @@ export function VehicleOwnersPage() {
       key: "edit",
       label: "Edit",
       icon: <PencilIcon size={14} />,
-      hidden: () => !canWrite,
+      hidden: () => !canManage,
       onClick: handleEdit,
     },
     {
@@ -159,7 +161,7 @@ export function VehicleOwnersPage() {
       label: "Delete",
       icon: <Trash2Icon size={14} />,
       variant: "danger",
-      hidden: () => !isAdmin,
+      hidden: () => !canManage,
       onClick: (owner) => setDeleteTarget(owner),
     },
   ];
@@ -182,7 +184,7 @@ export function VehicleOwnersPage() {
             Manage the owners (own proprietorships or external parties) vehicles can be assigned to
           </p>
         </div>
-        {canWrite && (
+        {canEdit && (
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Owner
           </Button>
@@ -251,6 +253,7 @@ export function VehicleOwnersPage() {
                   data={owners}
                   rowKey={(o) => String(o.id)}
                   loading={fetching}
+                  showActions={canManage}
                   rowActions={rowActions}
                 />
               </div>
@@ -272,20 +275,20 @@ export function VehicleOwnersPage() {
                       </div>
 
                       <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {canWrite && (
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(owner)}>
-                            Edit
-                          </Button>
-                        )}
-                        {isAdmin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(owner)}
-                          >
-                            Delete
-                          </Button>
+                        {canManage && (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(owner)}>
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteTarget(owner)}
+                            >
+                              Delete
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>

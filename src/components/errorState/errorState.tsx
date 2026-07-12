@@ -22,8 +22,8 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         className,
       )}
     >
-      <div className="rounded-full bg-red-50 dark:bg-red-900/20 p-4 mb-4">
-        <AlertCircleIcon size={32} style={{ color: "#ef4444" }} />
+      <div className="rounded-full bg-destructive/10 p-4 mb-4">
+        <AlertCircleIcon size={32} style={{ color: "var(--destructive)" }} />
       </div>
       <h3
         data-testid="error-state-title"

@@ -9,7 +9,7 @@ export const overlay: CSSProperties = {
   justifyContent: "center",
   backgroundColor: "rgba(0, 0, 0, 0.6)",
   backdropFilter: "blur(4px)",
-  padding: "16px", // Ensure modal doesn't touch screen edges on small screens
+  padding: "var(--space-4)", // Ensure modal doesn't touch screen edges on small screens
 };
 
 export const modalContainer: CSSProperties = {
@@ -31,14 +31,14 @@ export const modalContainer: CSSProperties = {
 
 export const closeButton: CSSProperties = {
   position: "absolute",
-  right: "16px", // 1rem = 16px
-  top: "16px", // 1rem = 16px
+  right: "var(--space-4)",
+  top: "var(--space-4)",
   background: "none",
   border: "none",
   cursor: "pointer",
   opacity: 0.7,
-  padding: "4px", // 0.25rem = 4px
-  borderRadius: "4px", // 0.25rem = 4px
+  padding: "var(--space-1)",
+  borderRadius: "var(--radius-xs)",
   color: "var(--foreground)",
   display: "flex",
   alignItems: "center",
@@ -50,8 +50,8 @@ export const closeButton: CSSProperties = {
 export const header: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "6px", // 0.375rem = 6px
-  padding: "24px 24px 8px", // 1.5rem = 24px, 0.5rem = 8px (balanced bottom padding)
+  gap: "var(--space-1-5)",
+  padding: "var(--space-6) var(--space-6) var(--space-2)", // balanced bottom padding
   textAlign: "left",
   flexShrink: 0,
 };
@@ -75,13 +75,14 @@ export const body: CSSProperties = {
   flex: 1,
   overflowY: "auto",
   minHeight: 0, // Required for flex child to shrink below content size
+  padding: "var(--space-2) var(--space-6) var(--space-6)",
 };
 
 export const footer: CSSProperties = {
   display: "flex",
   flexDirection: "row",
   justifyContent: "flex-end",
-  gap: "12px", // 0.75rem = 12px
-  padding: "16px 12px 12px", // 1rem = 16px, 1.5rem = 24px
+  gap: "var(--space-3)",
+  padding: "var(--space-4) var(--space-3) var(--space-3)",
   flexShrink: 0,
 };

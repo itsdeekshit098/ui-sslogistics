@@ -19,8 +19,8 @@ function AdminSkeleton() {
 
 function LoginSkeleton() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F0F4FF] p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+      <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] shadow-[var(--card-shadow)] border border-border p-8 space-y-6">
         {/* Logo placeholder */}
         <div className="text-center space-y-2">
           <div className="h-9 w-40 rounded-md bg-slate-300/60 dark:bg-muted animate-pulse mx-auto" />

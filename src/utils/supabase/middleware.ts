@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
+import { canRoleAccessPage, isAdmin, isValidRole } from "@/lib/routePermissions";
 import { getMaintenanceStatus } from "@/lib/systemSettings";
 
 // Routes that must stay reachable even while maintenance mode is on, so
@@ -14,6 +14,18 @@ const MAINTENANCE_EXEMPT_PATHS = new Set([
   "/api/auth/session",
   "/api/auth/signout",
   "/api/system/maintenance-stream",
+  "/api/system/app-version",
+  // Sentry's tunnel route (next.config.ts tunnelRoute) — must stay reachable
+  // so client-side error reports aren't redirected to /maintenance.
+  "/monitoring",
+]);
+
+// API routes reachable without a session at all (no auth gate below).
+const PUBLIC_API_PATHS = new Set([
+  "/api/auth/login",
+  // Force-update check must work pre-login — a user stuck on a build too
+  // old to log in at all still needs to find out they must update.
+  "/api/system/app-version",
 ]);
 
 export async function updateSession(request: NextRequest) {
@@ -57,8 +69,7 @@ export async function updateSession(request: NextRequest) {
   // If hitting a protected route
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  // Only the login endpoint needs to be publicly reachable without a session
-  const isPublicAuthRoute = request.nextUrl.pathname === "/api/auth/login";
+  const isPublicAuthRoute = PUBLIC_API_PATHS.has(request.nextUrl.pathname);
 
   // ── Maintenance mode ──────────────────────────────────────
   // Blocks everyone except admins the moment it's turned on. This runs
@@ -70,7 +81,7 @@ export async function updateSession(request: NextRequest) {
   if (!MAINTENANCE_EXEMPT_PATHS.has(request.nextUrl.pathname)) {
     const { maintenanceMode, message } = await getMaintenanceStatus();
     const role = user?.app_metadata?.role;
-    if (maintenanceMode && role !== "admin") {
+    if (maintenanceMode && !isAdmin(role)) {
       if (isApiRoute) {
         return NextResponse.json(
           {
@@ -106,7 +117,7 @@ export async function updateSession(request: NextRequest) {
     // Role check logic — MUST use app_metadata (server-only, tamper-proof)
     // Never use user_metadata for RBAC — users can modify it themselves via SDK
     const role = user.app_metadata?.role;
-    if (role !== "admin" && role !== "staff" && role !== "driver") {
+    if (!isValidRole(role)) {
       if (isApiRoute) {
         return NextResponse.json(
           { error: "Forbidden - Insufficient permissions" },
@@ -125,7 +136,7 @@ export async function updateSession(request: NextRequest) {
     // allowed to view this specific page. Redirect to dashboard.
     if (
       isAdminRoute &&
-      !canRoleAccessPage(request.nextUrl.pathname, role as UserRole)
+      !canRoleAccessPage(request.nextUrl.pathname, role)
     ) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin";

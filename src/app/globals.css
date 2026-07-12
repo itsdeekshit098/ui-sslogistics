@@ -190,6 +190,11 @@
   --brand: hsl(0 72% 46%);
   --brand-foreground: hsl(0 0% 100%);
 
+  /* ─── Sidebar Chrome (fixed navy, independent of light/dark theme) ─── */
+  --sidebar-background: #12203d;
+  --sidebar-border: #263762;
+  --sidebar-active: #2563eb;
+
   --border: hsl(214 32% 91%);
   --input: hsl(214 32% 91%);
   --ring: hsl(222 84% 5%);

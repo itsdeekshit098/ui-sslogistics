@@ -1,11 +1,11 @@
-import { requireStrictAdminAuth } from "@/lib/auth";
+import { requireSuperAdminAuth } from "@/lib/auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
 import { getMaintenanceStatusUncached, setMaintenanceMode } from "@/lib/systemSettings";
 import { logActivity } from "@/lib/activityLog";
 
 export async function GET() {
   try {
-    await requireStrictAdminAuth();
+    await requireSuperAdminAuth();
     const status = await getMaintenanceStatusUncached();
     return apiSuccess(status);
   } catch (err: unknown) {
@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const authUser = await requireStrictAdminAuth();
+    const authUser = await requireSuperAdminAuth();
 
     const body = await req.json();
     const { maintenanceMode, message } = body;

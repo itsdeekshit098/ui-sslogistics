@@ -70,8 +70,8 @@ export const confirmBtn: CSSProperties = {
   padding: "0.5rem 1rem",
   fontSize: "0.875rem",
   fontWeight: 500,
-  color: "white",
-  backgroundColor: "#dc2626", // red-600
+  color: "var(--destructive-foreground)",
+  backgroundColor: "var(--destructive)",
   borderRadius: "0.375rem",
   border: "none",
   transition: "background-color 0.2s",

@@ -45,3 +45,11 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 ## Database
 
 Schema changes are recorded as SQL files in `sql/` (e.g. `sql/2026-07-02_restore_get_vehicles_summary.sql`) and applied to Supabase manually — there is no migration runner.
+
+## Error tracking (Sentry)
+
+- `@sentry/nextjs` is initialized via `instrumentation.ts` (server/edge) and `instrumentation-client.ts` (browser), sharing options from `src/lib/sentry/options.ts`. `next.config.ts` is wrapped with `withSentryConfig` for source-map upload.
+- **PII-safe by design**: `sendDefaultPii: false` plus a `beforeSend` scrubber strip cookies, auth headers, and request bodies before events leave the process — mirroring the no-PII contract in `src/lib/logger.ts`. User context attached via `src/lib/sentry/setUser.ts` is **id + role only**, never email.
+- Capture happens at the app's existing error funnels rather than scattered call sites: the generic-500 branch of `handleApiError` (`src/lib/apiResponse.ts`, skips the expected `UNAUTHORIZED`/`FORBIDDEN`/`MAINTENANCE` cases) and the `error.tsx` / `admin/error.tsx` / `global-error.tsx` boundaries.
+- Required env vars (see `.env.local`): `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT`. `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` are build-time only (source-map upload) — the build succeeds without them, just with unminified stack traces missing in Sentry.
+- The Sentry tunnel route (`/monitoring`, set via `tunnelRoute` in `next.config.ts`) is listed in `MAINTENANCE_EXEMPT_PATHS` (`src/utils/supabase/middleware.ts`) so client error reports aren't blocked during maintenance mode.

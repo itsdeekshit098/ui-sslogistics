@@ -1,5 +1,4 @@
-import { logger } from "@/lib/logger";
-import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth, requireAdminAuth } from "@/lib/auth";
 
@@ -13,8 +12,7 @@ export async function GET() {
       .order("name", { ascending: true });
 
     if (error) {
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     // Group by category
@@ -64,8 +62,7 @@ export async function POST(req: Request) {
       if (error.code === "23505") {
         return apiError("A similar issue already exists in this category.", 409);
       }
-      logger.error("Database error", { error: error.message, code: error?.code, hint: error?.hint });
-      return apiError("Internal server error", 500);
+      return serverError(error);
     }
 
     return apiSuccess({ issue: data }, "Issue option added", 201);
