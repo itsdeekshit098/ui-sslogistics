@@ -11,9 +11,8 @@ import {
 } from "@/components/ui/icon";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Tooltip } from "@/components/ui/tooltip";
-import { CreateDieselModal } from "@/components/createDieselModal";
-import { EditDieselModal } from "@/components/editDieselModal";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { Pagination } from "@/components/pagination";
@@ -26,7 +25,22 @@ import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
-import { ConfirmModal } from "@/components/confirmModal";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const CreateDieselModal = dynamic(
+  () => import("@/components/createDieselModal").then((m) => m.CreateDieselModal),
+  { ssr: false },
+);
+const EditDieselModal = dynamic(
+  () => import("@/components/editDieselModal").then((m) => m.EditDieselModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal").then((m) => m.ConfirmModal),
+  { ssr: false },
+);
 
 interface VehicleOption {
   id: number;

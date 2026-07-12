@@ -12,11 +12,10 @@ import {
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { AddTechnicianModal } from "@/components/addTechnicianModal";
+import dynamic from "next/dynamic";
 import type { Technician, SpecializationOption } from "./techniciansPage.types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -24,6 +23,18 @@ import { Pagination } from "@/components/pagination";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const AddTechnicianModal = dynamic(
+  () => import("@/components/addTechnicianModal").then((m) => m.AddTechnicianModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 const DEFAULT_PAGE_SIZE = 10;
 

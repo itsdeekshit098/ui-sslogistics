@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/dataTable";
+import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { useAuth } from "@/context/AuthContext";
 import * as cellStyles from "./clientsPage.style";
 
 interface Client {
@@ -63,6 +65,7 @@ const mockClients: Client[] = [
 ];
 
 export default function ClientsPage() {
+  const { loading: authLoading } = useAuth();
   const [clients, setClients] = useState<Client[]>(mockClients);
 
   // Edit Modal State
@@ -107,6 +110,8 @@ export default function ClientsPage() {
     );
     setIsEditOpen(false);
   };
+
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">

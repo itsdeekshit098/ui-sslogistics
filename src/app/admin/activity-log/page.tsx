@@ -22,6 +22,8 @@ import { Pagination } from "@/components/pagination";
 import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
+import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { useAuth } from "@/context/AuthContext";
 import {
   AL_CONTAINER,
   AL_HEADER_TITLE,
@@ -81,8 +83,10 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function ActivityLogPage() {
   const router = useRouter();
+  const { loading: authLoading } = useAuth();
   const [entries, setEntries] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -112,6 +116,7 @@ export default function ActivityLogPage() {
       } finally {
         setLoading(false);
         setRefreshing(false);
+        setInitialLoading(false);
       }
     },
     [pageSize],
@@ -124,6 +129,8 @@ export default function ActivityLogPage() {
   const handleRefresh = () => {
     fetchLogs(page, true);
   };
+
+  if (authLoading || initialLoading) return <PageLoadingSkeleton variant="admin" />;
 
   return (
     <div className={AL_CONTAINER}>

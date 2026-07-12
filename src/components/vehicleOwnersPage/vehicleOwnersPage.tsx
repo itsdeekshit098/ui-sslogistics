@@ -4,20 +4,31 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PlusIcon, SearchIcon, PencilIcon, Trash2Icon, XIcon } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
+import dynamic from "next/dynamic";
 import { VehicleOwner } from "@/app/admin/vehicles/vehicles.types";
 import { getOwnerTypeLabel } from "@/app/admin/vehicles/vehicles.utils";
 import { invalidateVehicleOwnersCache } from "@/hooks/useVehicleOwners";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const AddVehicleOwnerModal = dynamic(
+  () => import("@/components/addVehicleOwnerModal").then((m) => m.AddVehicleOwnerModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 export function VehicleOwnersPage() {
   const { userRole, loading: authLoading } = useAuth();

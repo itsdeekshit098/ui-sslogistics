@@ -21,7 +21,7 @@ import type {
   ExternalTripSummary,
 } from "./externalTripsPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import { ExternalTripsModal } from "../externalTripsModal";
+import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { Typeahead } from "@/components/typeahead";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
-import ConfirmModal from "@/components/confirmModal/confirmModal";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -43,6 +42,18 @@ import { LoadingSpinner } from "@/components/loadingSpinner";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./externalTripsPage.style";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const ExternalTripsModal = dynamic(
+  () => import("../externalTripsModal").then((m) => m.ExternalTripsModal),
+  { ssr: false },
+);
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 export function ExternalTripsPage() {
   const { userRole, loading: authLoading } = useAuth();

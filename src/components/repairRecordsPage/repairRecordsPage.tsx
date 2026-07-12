@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import {
   PlusIcon,
   ZapIcon,
@@ -29,8 +30,6 @@ import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { Pagination } from "@/components/pagination";
-import { ConfirmModal } from "@/components/confirmModal";
-import { RepairModal } from "@/components/repairModal";
 import { Typeahead } from "@/components/typeahead";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +48,18 @@ import type {
   RepairStatus,
 } from "./repairRecordsPage.types";
 import * as styles from "./repairRecordsPage.style";
+
+// Lazy-loaded: only needed once a user opens one of these modals, so they
+// shouldn't bloat the initial page chunk that has to load before anything
+// (including the skeleton) can paint.
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal").then((m) => m.ConfirmModal),
+  { ssr: false },
+);
+const RepairModal = dynamic(
+  () => import("@/components/repairModal").then((m) => m.RepairModal),
+  { ssr: false },
+);
 
 const DEFAULT_PAGE_SIZE = 10;
 

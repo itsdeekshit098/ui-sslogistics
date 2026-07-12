@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/dataTable";
+import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { useAuth } from "@/context/AuthContext";
 
 interface MockVehicle {
   id: number;
@@ -70,6 +72,7 @@ const mockTripSheets: TripSheet[] = [
 ];
 
 export default function TripSheetsPage() {
+  const { loading: authLoading } = useAuth();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [records, setRecords] = useState<TripSheet[]>([]);
   const [loading, setLoading] = useState(false);
@@ -115,6 +118,8 @@ export default function TripSheetsPage() {
     setLoading(true);
     setSelectedVehicleId(id);
   };
+
+  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
