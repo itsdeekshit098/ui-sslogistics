@@ -20,7 +20,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 
@@ -379,9 +379,7 @@ export function TechniciansPage() {
 
         {/* Content */}
         <div className="p-4 pb-2 sm:p-6 sm:pb-4">
-          {fetching && technicians.length === 0 ? (
-            <LoadingSpinner size="md" centered label="Loading technicians..." />
-          ) : error ? (
+          {error ? (
             <ErrorState
               title="Couldn't load technicians"
               description={error}
@@ -424,7 +422,7 @@ export function TechniciansPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner size="md" centered label="Loading technicians..." />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   technicians.map((tech) => (
                     <div

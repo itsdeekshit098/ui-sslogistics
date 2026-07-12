@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 
@@ -230,9 +230,7 @@ export function VehicleOwnersPage() {
 
         {/* Content */}
         <div className="p-4 pb-2 sm:p-6 sm:pb-4">
-          {fetching && owners.length === 0 ? (
-            <LoadingSpinner size="md" centered label="Loading owners..." />
-          ) : error ? (
+          {error ? (
             <ErrorState title="Couldn't load owners" description={error} onRetry={fetchOwners} />
           ) : !fetching && owners.length === 0 ? (
             <EmptyState
@@ -270,7 +268,7 @@ export function VehicleOwnersPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner size="md" centered label="Loading owners..." />
+                  <CardListSkeleton count={5} lines={1} />
                 ) : (
                   owners.map((owner) => (
                     <div key={owner.id} className="rounded-lg border bg-card p-4 shadow-sm">

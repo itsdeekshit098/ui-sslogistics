@@ -14,6 +14,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Tooltip } from "@/components/ui/tooltip";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { Pagination } from "@/components/pagination";
 import { Typeahead } from "@/components/typeahead";
@@ -360,11 +361,7 @@ export default function DieselRecordsPage() {
                     {/* Mobile Card View */}
                     <div className="block lg:hidden space-y-2">
                       {loading ? (
-                        <LoadingSpinner
-                          size="md"
-                          centered
-                          label="Loading records..."
-                        />
+                        <CardListSkeleton count={5} lines={4} />
                       ) : recordsError ? (
                         <ErrorState
                           title="Couldn’t load records"

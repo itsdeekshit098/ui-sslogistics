@@ -10,6 +10,7 @@ export {
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowUpRightIcon,
+  ArrowUpDownIcon,
 
   // Actions
   PlusIcon,

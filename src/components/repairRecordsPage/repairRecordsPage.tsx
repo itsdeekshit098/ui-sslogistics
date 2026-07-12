@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { Pagination } from "@/components/pagination";
@@ -617,7 +618,7 @@ export function RepairRecordsPage() {
             {/* ─── Mobile Card View ─── */}
             <div className="block md:hidden space-y-3">
               {recordsLoading ? (
-                <LoadingSpinner size="md" centered label="Loading records..." />
+                <CardListSkeleton count={5} lines={3} />
               ) : filteredRecords.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   No records found.

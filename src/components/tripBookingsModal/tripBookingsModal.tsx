@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { SaveIcon, UserPlusIcon } from "@/components/ui/icon";
+import { SaveIcon, UserPlusIcon, ArrowUpDownIcon } from "@/components/ui/icon";
 import type { TripBookingsModalProps } from "./tripBookingsModal.types";
 import {
   getDefaultTripBookingFormData,
@@ -80,6 +80,15 @@ const TripBookingsForm: React.FC<{
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const swapLocations = () => {
+    setFormData((prev) => ({
+      ...prev,
+      fromLocation: prev.toLocation,
+      toLocation: prev.fromLocation,
+    }));
+    setFieldErrors((prev) => ({ ...prev, fromLocation: "", toLocation: "" }));
+  };
 
   const fetchDrivers = () => {
     fetch("/api/drivers?include_inactive=true")
@@ -314,7 +323,7 @@ const TripBookingsForm: React.FC<{
           </div>
 
           {/* ── Route ── */}
-          <div style={styles.formGrid}>
+          <div style={styles.routeSection}>
             <div style={styles.fieldGroup}>
               <Label style={styles.fieldLabel}>
                 From Location
@@ -333,6 +342,18 @@ const TripBookingsForm: React.FC<{
               {fieldErrors.fromLocation && (
                 <span style={styles.fieldError}>{fieldErrors.fromLocation}</span>
               )}
+            </div>
+            <div style={styles.routeSwapRow}>
+              <button
+                type="button"
+                onClick={swapLocations}
+                disabled={loading}
+                style={styles.routeSwapButton}
+                title="Swap From/To"
+                aria-label="Swap From and To locations"
+              >
+                <ArrowUpDownIcon size={14} />
+              </button>
             </div>
             <div style={styles.fieldGroup}>
               <Label style={styles.fieldLabel}>

@@ -40,7 +40,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./tripBookingsPage.style";
@@ -515,7 +515,7 @@ export function TripBookingsPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner size="md" centered label="Loading bookings..." />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   displayData.map((b) => {
                     const route = [b.from_location, b.to_location].filter(Boolean).join(" → ");

@@ -20,7 +20,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
@@ -249,9 +249,7 @@ export function DriversPage() {
 
         {/* Content */}
         <div className="p-4 pb-2 sm:p-6 sm:pb-4">
-          {fetching && drivers.length === 0 ? (
-            <LoadingSpinner size="md" centered label="Loading drivers..." />
-          ) : error ? (
+          {error ? (
             <ErrorState
               title="Couldn't load drivers"
               description={error}
@@ -390,11 +388,7 @@ export function DriversPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner
-                    size="md"
-                    centered
-                    label="Loading drivers..."
-                  />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   drivers.map((driver) => (
                     <div

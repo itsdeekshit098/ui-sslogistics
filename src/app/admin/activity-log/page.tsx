@@ -17,7 +17,7 @@ import {
   ClockIcon,
 } from "@/components/ui/icon";
 import { useRouter } from "next/navigation";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { FeedSkeleton } from "@/components/skeletonLoader";
 import { Pagination } from "@/components/pagination";
 import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";
 import { ErrorState } from "@/components/errorState";
@@ -181,9 +181,7 @@ export default function ActivityLogPage() {
         <CardContent className="flex flex-col p-0">
           <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0 animate-in fade-in duration-200">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-24">
-                <LoadingSpinner size="lg" centered label="Loading activity logs..." />
-              </div>
+              <FeedSkeleton count={8} />
             ) : fetchError ? (
               <ErrorState
                 title="Couldn\u2019t load activity log"

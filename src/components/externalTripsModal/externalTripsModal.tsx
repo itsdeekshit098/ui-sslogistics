@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { XIcon, SaveIcon, PlusIcon, UserPlusIcon, Building2Icon, UserIcon } from "@/components/ui/icon";
+import {
+  XIcon,
+  SaveIcon,
+  PlusIcon,
+  UserPlusIcon,
+  Building2Icon,
+  UserIcon,
+  ArrowUpDownIcon,
+} from "@/components/ui/icon";
 import type { ExternalTripsModalProps, ExternalTripPrefill } from "./externalTripsModal.types";
 import {
   getDefaultExternalTripFormData,
@@ -99,6 +107,14 @@ const ExternalTripsForm: React.FC<{
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const swapLocations = () => {
+    setFormData((prev) => ({
+      ...prev,
+      fromLocation: prev.toLocation,
+      toLocation: prev.fromLocation,
+    }));
+  };
 
   // ─── Fetch drivers ───
   const fetchDrivers = () => {
@@ -490,7 +506,7 @@ const ExternalTripsForm: React.FC<{
             </div>
 
             {/* ── Route ── */}
-            <div style={styles.formGrid}>
+            <div style={styles.routeSection}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="fromLocation">From Location</Label>
                 <LocationAutocomplete
@@ -505,6 +521,18 @@ const ExternalTripsForm: React.FC<{
                     }))
                   }
                 />
+              </div>
+              <div style={styles.routeSwapRow}>
+                <button
+                  type="button"
+                  onClick={swapLocations}
+                  disabled={loading}
+                  style={styles.routeSwapButton}
+                  title="Swap From/To"
+                  aria-label="Swap From and To locations"
+                >
+                  <ArrowUpDownIcon size={14} />
+                </button>
               </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="toLocation">To Location</Label>
