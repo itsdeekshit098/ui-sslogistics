@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { canRoleAccessPage, isAdmin, isValidRole } from "@/lib/routePermissions";
 import { getMaintenanceStatus } from "@/lib/systemSettings";
+import { getCachedUser } from "@/utils/supabase/userCache";
 
 // Routes that must stay reachable even while maintenance mode is on, so
 // admins can still log in and turn it back off, and clients can still find
@@ -62,9 +63,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   // Automatically refresh the session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser(request, supabase);
 
   // If hitting a protected route
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");

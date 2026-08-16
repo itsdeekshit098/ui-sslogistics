@@ -1,5 +1,5 @@
-import { ExternalTripsPage } from "@/components/externalTripsPage";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <ExternalTripsPage />;
+  redirect("/admin/trip-bookings");
 }

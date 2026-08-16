@@ -852,6 +852,7 @@ export default function DieselRecordsPage() {
                             icon: <PencilIcon size={14} />,
                             onClick: (row) => setEditTarget(row),
                             hidden: () => !canManage,
+                            testId: (row) => `diesel-desktop-edit-btn-${row.id}`,
                           },
                           {
                             key: "delete",
@@ -860,6 +861,7 @@ export default function DieselRecordsPage() {
                             variant: "danger",
                             onClick: (row) => handleDeleteClick(row),
                             hidden: () => !canManage,
+                            testId: (row) => `diesel-desktop-delete-btn-${row.id}`,
                           },
                         ]}
                       />

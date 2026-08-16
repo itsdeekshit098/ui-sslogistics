@@ -181,7 +181,7 @@ export default function AdminLayout({
           </header>
 
           <main
-            className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted transition-colors duration-300 scrollbar-custom"
+            className="flex-1 overflow-y-auto p-4 md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
             data-testid="admin-main"
           >
             {children}

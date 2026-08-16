@@ -50,6 +50,14 @@ export interface RowAction<TData> {
   disabled?: (row: TData) => boolean;
   /** Tooltip to show when disabled */
   disabledTooltip?: string | ((row: TData) => string);
+  /**
+   * `data-testid` for this action's button, per row. A plain `aria-label`
+   * (already set from `label`) is enough for a single instance, but a table
+   * has one of these per row — a function keyed by the row's own id (e.g.
+   * `` (row) => `edit-btn-${row.id}` ``) is what a spec needs to target one
+   * specific row's action instead of the first match.
+   */
+  testId?: string | ((row: TData) => string);
 }
 
 // ─── DataTable Props ─────────────────────────────────────────────────────────

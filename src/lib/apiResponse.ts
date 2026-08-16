@@ -91,7 +91,6 @@ export function handleApiError(err: unknown): NextResponse {
   // Sentry.captureException at every call site. Only unexpected errors
   // reach here — expected auth/maintenance cases returned above, so
   // Sentry only sees real bugs, not routine 401s.
-  console.log('did i came here');
   Sentry.captureException(err);
 
   // Never expose internal error details to the client

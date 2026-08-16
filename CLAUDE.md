@@ -11,7 +11,7 @@ npm run lint       # eslint
 npm run typecheck  # tsc --noEmit
 ```
 
-There is no test suite. Verify changes with `npm run typecheck` and `npm run lint`.
+There is no automated test suite. Verify changes with `npm run typecheck` and `npm run lint`.
 
 ## What this app is
 
@@ -44,7 +44,27 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 
 ## Database
 
-Schema changes are recorded as SQL files in `sql/` (e.g. `sql/2026-07-02_restore_get_vehicles_summary.sql`) and applied to Supabase manually — there is no migration runner.
+Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `39_activity_log_created_at_index.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
+
+### Money modules (loans, fundings, clients)
+
+Three rules hold across all of them, and breaking any one reintroduces a bug the current design exists to prevent:
+
+- **Derived money is never stored.** Loan outstanding comes from the `loan_balances` view, installment status from `loan_installment_state`, client receivables from `client_balances`. Funding interest is computed per request by `src/app/api/fundings/fundings.utils.ts`. Neither web nor mobile may recompute these — they display what the server returns. (`loans.outstanding_override` is the one exception, and only to match a lender's own statement.)
+- **Ledgers are append-only.** `loan_payments`, `funding_entries` and `client_ledger_entries` are never edited or deleted. A mistake is corrected by inserting a row whose `reverses_*_id` points at the original; the views exclude *both* rows, so the pair nets to zero and the history stays auditable. A partial unique index on `reverses_*_id` makes a double-reversal a 409.
+- **Every method is `requireStrictAdminAuth()`, GET included** — unlike most feature routes, which let staff read.
+
+`entities` is the single master of firms and people. It replaced `vehicle_owners`; `vehicles.owner_entity_id` is the real FK, while `owner_name` / `owner_type` survive as trigger-maintained mirrors so existing readers (the vehicles API, `get_vehicles_summary`, the Flutter app) keep working. `/api/vehicle-owners` is now a thin adapter over `entities`.
+
+Label-only dropdown lists (loan types, client types, contact roles, payment methods) live in `lookup_options` and are edited at runtime through `<LookupSelect>`'s "+ Add new" footer or Settings → Dropdown Lists. **Do not add new Postgres enums for these** — `vehicle_type` and friends already demonstrate the cost (defined in the DB, in `vehicles.types.ts`, and in the API validation array, all needing a coordinated deploy).
+
+### Activity log retention
+
+`activity_log` is append-only except for one path: `DELETE /api/activity-log?before=<iso>`, superadmin-only, driven by the "Clear Old Logs" button on `/admin/activity-log`. The server refuses any cutoff newer than `MIN_RETENTION_DAYS` (60), the UI runs a `?dryRun=true` count before the real delete, and the purge writes its own `PURGE_ACTIVITY_LOG` entry *after* deleting so the record of it survives. Deleting here does not break the money audit trail — `loan_payments`, `funding_entries` and `client_ledger_entries` each carry their own `created_by`, and reversals stay on the ledger permanently.
+
+## Scheduled jobs
+
+Daily GitHub Actions in `.github/workflows/`, each running a standalone CommonJS script from `scripts/` that talks to Supabase directly with the service-role key (they do not go through Next.js). `check-loan-emis.js` warns a day before each EMI, nags at 1/7/15/30 days overdue, and flags a loan reaching its final installment; it dedupes against the `notifications` table by `type` + metadata before sending, so a re-run can't double-notify.
 
 ## Error tracking (Sentry)
 
@@ -54,8 +74,3 @@ Schema changes are recorded as SQL files in `sql/` (e.g. `sql/2026-07-02_restore
 - Required env vars (see `.env.local`): `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT`. `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` are build-time only (source-map upload) — the build succeeds without them, just with unminified stack traces missing in Sentry.
 - The Sentry tunnel route (`/monitoring`, set via `tunnelRoute` in `next.config.ts`) is listed in `MAINTENANCE_EXEMPT_PATHS` (`src/utils/supabase/middleware.ts`) so client error reports aren't blocked during maintenance mode.
 
-## Location suggestions (trip bookings / external trips)
-
-- The free-text From/To location fields on `tripBookingsModal.tsx` and `externalTripsModal.tsx` use `src/components/locationAutocomplete/` for live address suggestions as the user types — the underlying value stays a plain string; a suggestion is a convenience, never a required selection.
-- Suggestions come from LocationIQ's free-tier autocomplete API via `src/lib/geocoding.ts`, proxied server-side through `GET /api/locations/autocomplete` so the API key never reaches the client.
-- Required env var: `LOCATIONIQ_API_KEY` (see `.env.local`). If unset, suggestions are silently skipped (logged as a warning) and the fields behave as plain text inputs — this must never block typing or submission.

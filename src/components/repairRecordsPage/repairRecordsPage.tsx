@@ -30,6 +30,7 @@ import { LoadingSpinner } from "@/components/loadingSpinner";
 import { CardListSkeleton } from "@/components/skeletonLoader";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
+import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { Typeahead } from "@/components/typeahead";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
@@ -427,7 +428,7 @@ export function RepairRecordsPage() {
 
   if (authLoading) return <PageLoadingSkeleton variant="admin" />;
   if (error && vehicles.length === 0)
-    return <ErrorState title="Error" description={error} />;
+    return <ErrorState title="Error" description={error} onRetry={fetchRecords} />;
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
@@ -443,6 +444,7 @@ export function RepairRecordsPage() {
         </div>
         {canEdit && (
           <Button
+            data-testid="repair-records-add-btn"
             className="w-full md:w-auto"
             onClick={openCreate}
             disabled={vehiclesLoading || !!error}
@@ -589,6 +591,7 @@ export function RepairRecordsPage() {
                   )}
                 </Button>
                 <Button
+                  data-testid="repair-records-export-btn"
                   variant="outline"
                   onClick={handleDownload}
                   disabled={isDownloading || recordsLoading}
@@ -620,9 +623,13 @@ export function RepairRecordsPage() {
               {recordsLoading ? (
                 <CardListSkeleton count={5} lines={3} />
               ) : filteredRecords.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No records found.
-                </p>
+                <EmptyState
+                  icon={InboxIcon}
+                  title="No Repair Records"
+                  description="No repair records found for the selected filters."
+                  actionLabel={canManage ? "Add Repair Record" : undefined}
+                  onAction={canManage ? openCreate : undefined}
+                />
               ) : (
                 filteredRecords.map((record) => (
                   <div
@@ -809,6 +816,15 @@ export function RepairRecordsPage() {
                 data={filteredRecords}
                 rowKey={(row) => row.id.toString()}
                 loading={recordsLoading}
+                emptyNode={
+                  <EmptyState
+                    icon={InboxIcon}
+                    title="No Repair Records"
+                    description="No repair records found for the selected filters."
+                    actionLabel={canManage ? "Add Repair Record" : undefined}
+                    onAction={canManage ? openCreate : undefined}
+                  />
+                }
                 rowClickable={canManage}
                 onRowClick={(row) => canManage && openEdit(row)}
                 showActions={canManage}
@@ -819,6 +835,7 @@ export function RepairRecordsPage() {
                     icon: <PencilIcon size={14} />,
                     onClick: (row) => openEdit(row),
                     hidden: () => !canManage,
+                    testId: (row) => `repair-records-edit-btn-${row.id}`,
                   },
                   {
                     key: "delete",
@@ -827,6 +844,7 @@ export function RepairRecordsPage() {
                     variant: "danger",
                     onClick: (row) => setDeleteTarget(row),
                     hidden: () => !canManage,
+                    testId: (row) => `repair-records-delete-btn-${row.id}`,
                   },
                 ]}
               />

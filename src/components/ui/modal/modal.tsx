@@ -68,7 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         style={{
           ...styles.overlay,
-          zIndex: nested ? 10000 : styles.overlay.zIndex,
+          zIndex: nested ? "var(--z-modal-nested-overlay)" : styles.overlay.zIndex,
         }}
         onClick={handleOverlayClick}
       >
@@ -77,7 +77,7 @@ export const Modal: React.FC<ModalProps> = ({
     </ModalContext.Provider>
   );
 
-  if (nested && typeof document !== "undefined") {
+  if (typeof document !== "undefined") {
     return createPortal(modalNode, document.body);
   }
 

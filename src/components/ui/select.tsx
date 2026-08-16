@@ -69,13 +69,19 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
     React.ElementRef<typeof SelectPrimitive.Content>,
-    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+        /** Override for the inner viewport's padding/item-gap (default
+         * "p-1 [&>*+*]:mt-1") — for a small, few-item popover where the
+         * default 4px inset around the selected row's highlight reads as a
+         * loose gap rather than intentional breathing room. */
+        viewportClassName?: string;
+    }
+>(({ className, children, position = "popper", viewportClassName, ...props }, ref) => (
     <SelectPrimitive.Portal>
         <SelectPrimitive.Content
             ref={ref}
             className={cn(
-                "relative z-[9999] max-h-96 min-w-[8rem] overflow-hidden rounded-[calc(var(--input-radius)+4px)] border border-border bg-background text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+                "relative z-[var(--z-popover)] max-h-96 min-w-[8rem] overflow-hidden rounded-[calc(var(--input-radius)+4px)] border border-border bg-background text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
                 position === "popper" &&
                 "data-[side=bottom]:translate-y-1.5 data-[side=left]:-translate-x-1.5 data-[side=right]:translate-x-1.5 data-[side=top]:-translate-y-1.5",
                 className
@@ -88,7 +94,7 @@ const SelectContent = React.forwardRef<
             <SelectScrollUpButton />
             <SelectPrimitive.Viewport
                 className={cn(
-                    "p-1 [&>*+*]:mt-1",
+                    viewportClassName ?? "p-1 [&>*+*]:mt-1",
                     position === "popper" &&
                     "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
                 )}
@@ -115,22 +121,32 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName
 
 const SelectItem = React.forwardRef<
     React.ElementRef<typeof SelectPrimitive.Item>,
-    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
+    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
+        /** Drops the checkmark, relying on the checked background/weight
+         * alone — for short, self-explanatory option lists (e.g. a page-size
+         * picker) where a checkmark plus its reserved gutter just adds width
+         * for no real gain in clarity. Off by default; every other dropdown
+         * keeps the checkmark. */
+        hideIndicator?: boolean;
+    }
+>(({ className, children, hideIndicator, ...props }, ref) => (
     <SelectPrimitive.Item
         ref={ref}
         className={cn(
-            "relative flex min-h-11 w-full cursor-default select-none items-center rounded-[calc(var(--input-radius)-1px)] py-2 pl-3 pr-9 text-sm text-foreground outline-none transition-colors focus:bg-secondary focus:text-foreground data-[highlighted]:bg-secondary data-[highlighted]:text-foreground data-[state=checked]:bg-secondary data-[state=checked]:font-semibold data-[state=checked]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+            "relative flex min-h-11 w-full cursor-default select-none items-center rounded-[calc(var(--input-radius)-1px)] py-2 pl-3 text-sm text-foreground outline-none transition-colors focus:bg-secondary focus:text-foreground data-[highlighted]:bg-secondary data-[highlighted]:text-foreground data-[state=checked]:bg-secondary data-[state=checked]:font-semibold data-[state=checked]:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+            hideIndicator ? "pr-3" : "pr-9",
             className
         )}
         {...props}
     >
         <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-        <span className="absolute right-3 flex h-4 w-4 items-center justify-center text-primary">
-            <SelectPrimitive.ItemIndicator>
-                <CheckIcon size={16} />
-            </SelectPrimitive.ItemIndicator>
-        </span>
+        {!hideIndicator && (
+            <span className="absolute right-3 flex h-4 w-4 items-center justify-center text-primary">
+                <SelectPrimitive.ItemIndicator>
+                    <CheckIcon size={16} />
+                </SelectPrimitive.ItemIndicator>
+            </span>
+        )}
     </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName

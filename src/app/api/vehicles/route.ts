@@ -26,6 +26,7 @@ const ALLOWED_VEHICLE_FIELDS = [
   "container_body_type",
   "owner_type",
   "owner_name",
+  "owner_entity_id",
   "insurance_start_date",
   "insurance_end_date",
   "fc_start_date",
@@ -39,33 +40,58 @@ const VALID_OWNER_TYPES = ["OWN", "EXTERNAL"] as const;
 /**
  * Owner fields are optional at the API level so older mobile builds and
  * legacy vehicle rows (NULL owner columns) keep working; the web/mobile forms
- * enforce them as required. When an owner_name IS supplied it must exist in
- * vehicle_owners, and owner_type is derived from that row so the pair can
- * never be persisted inconsistently. Returns an error response or null,
- * normalizing body.owner_type / body.owner_name in place.
+ * enforce them as required.
+ *
+ * Owners live in `entities` now (sql/28_add_entities.sql). The real link is
+ * owner_entity_id — owner_name / owner_type remain only as mirrors kept in
+ * step by the trg_vehicles_owner_mirror trigger, so callers may keep sending
+ * a name (the mobile app does) and we resolve it to the id here. Setting
+ * owner_type from the entity means the pair can never be persisted
+ * inconsistently. Returns an error response or null, normalizing
+ * body.owner_entity_id / owner_name / owner_type in place.
  */
 async function validateOwnerFields(body: Record<string, unknown>): Promise<Response | null> {
-  if (body.owner_name !== undefined && body.owner_name !== null) {
-    const ownerName = String(body.owner_name).trim();
-    if (ownerName === "") {
-      return apiError("Owner Name cannot be empty", 400);
+  const hasEntityId = body.owner_entity_id !== undefined && body.owner_entity_id !== null;
+  const hasName = body.owner_name !== undefined && body.owner_name !== null;
+
+  if (hasEntityId || hasName) {
+    let ownerName = "";
+    if (hasName) {
+      ownerName = String(body.owner_name).trim();
+      if (ownerName === "" && !hasEntityId) {
+        return apiError("Owner Name cannot be empty", 400);
+      }
     }
-    const { data: owner, error } = await supabaseAdmin
-      .from("vehicle_owners")
-      .select("owner_type")
-      .eq("name", ownerName)
-      .maybeSingle();
+
+    // Prefer the id when supplied; fall back to a name lookup for callers that
+    // only know the name (older mobile builds, the legacy owner dropdowns).
+    let ownerQuery = supabaseAdmin.from("entities").select("id, name, relationship");
+    if (hasEntityId) {
+      const entityId = Number(body.owner_entity_id);
+      if (!Number.isFinite(entityId)) {
+        return apiError("Invalid owner", 400);
+      }
+      ownerQuery = ownerQuery.eq("id", entityId);
+    } else {
+      ownerQuery = ownerQuery.eq("name", ownerName);
+    }
+
+    const { data: owner, error } = await ownerQuery.maybeSingle();
     if (error) {
       return serverError(error);
     }
     if (!owner) {
-      return apiError("Unknown Owner Name — add the owner first", 400);
+      return apiError("Unknown Owner — add the owner first", 400);
     }
-    if (body.owner_type != null && body.owner_type !== owner.owner_type) {
+
+    const derivedOwnerType = owner.relationship === "INTERNAL" ? "OWN" : "EXTERNAL";
+    if (body.owner_type != null && body.owner_type !== derivedOwnerType) {
       return apiError("Owner Type does not match the selected owner", 400);
     }
-    body.owner_name = ownerName;
-    body.owner_type = owner.owner_type;
+
+    body.owner_entity_id = owner.id;
+    body.owner_name = owner.name;
+    body.owner_type = derivedOwnerType;
   } else if (
     body.owner_type != null &&
     !(VALID_OWNER_TYPES as readonly string[]).includes(String(body.owner_type))
@@ -491,10 +517,13 @@ export async function DELETE(req: Request) {
       return apiError("Missing vehicle ID", 400);
     }
 
-    // Fetch vehicle details before deleting (for the audit log)
+    // Fetch vehicle details before deleting (for the audit log, and the
+    // document columns so their storage objects can be cleaned up below).
     const { data: vehicle, error: fetchErr } = await supabaseAdmin
       .from("vehicles")
-      .select("vehicle_number, vehicle_type, company, model")
+      .select(
+        "vehicle_number, vehicle_type, company, model, rc_url, fc_url, insurance_url, permit_url, pollution_url, tax_url",
+      )
       .eq("id", id)
       .single();
 
@@ -530,6 +559,31 @@ export async function DELETE(req: Request) {
           400,
         );
       }
+    }
+
+    // Deleting the row cascades the `attachments` rows via their FK, but the
+    // storage objects themselves are not touched by a cascade — they must be
+    // removed explicitly, in both buckets, or they orphan in storage forever.
+    const documentPaths = [
+      vehicle.rc_url,
+      vehicle.fc_url,
+      vehicle.insurance_url,
+      vehicle.permit_url,
+      vehicle.pollution_url,
+      vehicle.tax_url,
+    ].filter((path): path is string => !!path);
+
+    const { data: images } = await supabaseAdmin
+      .from("attachments")
+      .select("storage_path")
+      .eq("vehicle_id", id);
+    const imagePaths = (images ?? []).map((row) => row.storage_path as string);
+
+    if (documentPaths.length > 0) {
+      await supabaseAdmin.storage.from("vehicle-documents").remove(documentPaths);
+    }
+    if (imagePaths.length > 0) {
+      await supabaseAdmin.storage.from("attachments").remove(imagePaths);
     }
 
     const { error } = await supabaseAdmin

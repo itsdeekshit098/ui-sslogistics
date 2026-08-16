@@ -67,6 +67,10 @@ const DocumentModal = dynamic(
   () => import("@/components/documentModal").then((m) => m.DocumentModal),
   { ssr: false },
 );
+const VehicleImagesModal = dynamic(
+  () => import("@/components/vehicleImagesModal").then((m) => m.VehicleImagesModal),
+  { ssr: false },
+);
 const CreateVehicleModal = dynamic(
   () =>
     import("@/components/createVehicleModal").then((m) => m.CreateVehicleModal),
@@ -472,6 +476,8 @@ export default function VehiclesPage() {
   // Document Modal State
   const [isDocOpen, setIsDocOpen] = useState(false);
   const [docVehicle, setDocVehicle] = useState<Vehicle | null>(null);
+  const [isImagesOpen, setIsImagesOpen] = useState(false);
+  const [imagesVehicle, setImagesVehicle] = useState<Vehicle | null>(null);
 
   // Delete Modal State
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -850,6 +856,18 @@ export default function VehiclesPage() {
                           />{" "}
                           Docs
                         </Button>
+                        <Button
+                          data-testid={`mobile-images-btn-${vehicle.id}`}
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1 text-xs h-8"
+                          onClick={() => {
+                            setImagesVehicle(vehicle);
+                            setIsImagesOpen(true);
+                          }}
+                        >
+                          Images
+                        </Button>
                         {canManage && (
                           <>
                             <Button
@@ -937,21 +955,34 @@ export default function VehiclesPage() {
                   key: "documents",
                   header: "Documents",
                   cell: (row) => (
-                    <Button
-                      data-testid={`desktop-doc-btn-${row.id}`}
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setDocVehicle(row);
-                        setIsDocOpen(true);
-                      }}
-                    >
-                      <FolderOpenIcon
-                        size={16}
-                        style={{ marginRight: "0.5rem" }}
-                      />{" "}
-                      Manage Docs
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        data-testid={`desktop-doc-btn-${row.id}`}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setDocVehicle(row);
+                          setIsDocOpen(true);
+                        }}
+                      >
+                        <FolderOpenIcon
+                          size={16}
+                          style={{ marginRight: "0.5rem" }}
+                        />{" "}
+                        Manage Docs
+                      </Button>
+                      <Button
+                        data-testid={`desktop-images-btn-${row.id}`}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setImagesVehicle(row);
+                          setIsImagesOpen(true);
+                        }}
+                      >
+                        Images
+                      </Button>
+                    </div>
                   ),
                 },
                 {
@@ -1141,6 +1172,7 @@ export default function VehiclesPage() {
                 Cancel
               </Button>
               <Button
+                data-testid="vehicles-delete-confirm-btn"
                 variant="destructive"
                 className="flex-1"
                 onClick={handleDeleteVehicle}
@@ -1183,6 +1215,17 @@ export default function VehiclesPage() {
           }
         }}
       />
+
+      {/* Vehicle Images Modal */}
+      {imagesVehicle && (
+        <VehicleImagesModal
+          isOpen={isImagesOpen}
+          onClose={() => setIsImagesOpen(false)}
+          vehicleId={imagesVehicle.id}
+          vehicleNumber={imagesVehicle.vehicle_number}
+          canManage={canManage}
+        />
+      )}
 
       {/* Create Vehicle Modal */}
       <CreateVehicleModal

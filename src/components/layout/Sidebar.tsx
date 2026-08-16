@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -18,12 +19,13 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   UserCogIcon,
-  RouteIcon,
   ShieldIcon,
   PackageIcon,
   UserIcon,
   SettingsIcon,
   ClockIcon,
+  LandmarkIcon,
+  WalletIcon,
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
@@ -32,92 +34,48 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
-const sidebarItems = [
+type SidebarItem = {
+  name: string;
+  href: string;
+  icon: typeof LayoutDashboardIcon;
+  enabled: boolean;
+};
+
+// Grouped rather than one flat 17-item list — now that Loans/Clients/Firms
+// & Owners sit alongside fleet operations, giving them their own labeled
+// section makes that distinction visible instead of just another row.
+const sidebarSections: { label: string; items: SidebarItem[] }[] = [
   {
-    name: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboardIcon,
-    enabled: true,
-  },
-  { name: "Vehicles", href: "/admin/vehicles", icon: TruckIcon, enabled: true },
-  {
-    name: "Trip Sheets",
-    href: "/admin/trip-sheets",
-    icon: FileTextIcon,
-    enabled: false,
-  },
-  {
-    name: "Diesel Records",
-    href: "/admin/diesel-records",
-    icon: FuelIcon,
-    enabled: true,
-  },
-  {
-    name: "Repair Records",
-    href: "/admin/repair-records",
-    icon: WrenchIcon,
-    enabled: true,
-  },
-  {
-    name: "Warranty",
-    href: "/admin/warranty",
-    icon: PackageIcon,
-    enabled: true,
+    label: "Operations",
+    items: [
+      { name: "Dashboard", href: "/admin", icon: LayoutDashboardIcon, enabled: true },
+      { name: "Vehicles", href: "/admin/vehicles", icon: TruckIcon, enabled: true },
+      { name: "Trip Sheets", href: "/admin/trip-sheets", icon: FileTextIcon, enabled: false },
+      { name: "Diesel Records", href: "/admin/diesel-records", icon: FuelIcon, enabled: true },
+      { name: "Repair Records", href: "/admin/repair-records", icon: WrenchIcon, enabled: true },
+      { name: "Warranty", href: "/admin/warranty", icon: PackageIcon, enabled: true },
+      { name: "Technicians", href: "/admin/technicians", icon: UserCogIcon, enabled: true },
+      { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
+      { name: "Trips", href: "/admin/trip-bookings", icon: ClockIcon, enabled: true },
+    ],
   },
   {
-    name: "Technicians",
-    href: "/admin/technicians",
-    icon: UserCogIcon,
-    enabled: true,
-  },
-  { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
-  {
-    name: "Vehicle Owners",
-    href: "/admin/vehicle-owners",
-    icon: UserIcon,
-    enabled: true,
+    label: "Money",
+    items: [
+      { name: "Loans", href: "/admin/loans", icon: LandmarkIcon, enabled: true },
+      { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: true },
+      { name: "Firms & Owners", href: "/admin/entities", icon: UserIcon, enabled: true },
+      { name: "Bank Accounts", href: "/admin/bank-accounts", icon: WalletIcon, enabled: true },
+    ],
   },
   {
-    name: "External Trips",
-    href: "/admin/external-trips",
-    icon: RouteIcon,
-    enabled: true,
-  },
-  {
-    name: "Trip Bookings",
-    href: "/admin/trip-bookings",
-    icon: ClockIcon,
-    enabled: true,
-  },
-  {
-    name: "Clients",
-    href: "/admin/clients",
-    icon: Building2Icon,
-    enabled: false,
-  },
-  {
-    name: "Reports",
-    href: "/admin/reports",
-    icon: BarChart3Icon,
-    enabled: false,
-  },
-  {
-    name: "Activity Log",
-    href: "/admin/activity-log",
-    icon: ActivityIcon,
-    enabled: true,
-  },
-  {
-    name: "Sessions",
-    href: "/admin/sessions",
-    icon: ShieldIcon,
-    enabled: true,
-  },
-  {
-    name: "Settings",
-    href: "/admin/settings",
-    icon: SettingsIcon,
-    enabled: true,
+    label: "Administration",
+    items: [
+      { name: "Reports", href: "/admin/reports", icon: BarChart3Icon, enabled: false },
+      { name: "Activity Log", href: "/admin/activity-log", icon: ActivityIcon, enabled: true },
+      { name: "Sessions", href: "/admin/sessions", icon: ShieldIcon, enabled: true },
+      { name: "Settings", href: "/admin/settings", icon: SettingsIcon, enabled: true },
+    ],
   },
 ];
 
@@ -138,14 +96,19 @@ export function Sidebar({
   const isMobile = !!onClose;
   const { user, userRole, loading: authLoading } = useAuth();
 
-  const filteredItems = sidebarItems
-    .filter((item) => {
-      if (authLoading || !userRole) return false;
-      return canRoleAccessPage(item.href, userRole as UserRole);
-    })
-    // Keep "coming soon" items out of the way at the end, without disturbing
-    // relative order within the enabled/disabled groups (stable sort).
-    .sort((a, b) => Number(b.enabled) - Number(a.enabled));
+  const filteredSections = sidebarSections
+    .map((section) => ({
+      label: section.label,
+      items: section.items
+        .filter((item) => {
+          if (authLoading || !userRole) return false;
+          return canRoleAccessPage(item.href, userRole as UserRole);
+        })
+        // "Coming soon" items sink to the end of their own section, rather
+        // than the end of the whole list — keeps the group boundary clean.
+        .sort((a, b) => Number(b.enabled) - Number(a.enabled)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <div
@@ -207,94 +170,111 @@ export function Sidebar({
                     )}
                   />
                 ))
-              : filteredItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  const isEnabled = item.enabled;
-
-                  const iconEl = (
-                    <item.icon size={18} className="shrink-0 text-white" />
-                  );
-
-                  if (isEnabled) {
-                    const link = (
-                      <Link
-                        data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
-                        key={item.href}
-                        href={item.href}
-                        onClick={onClose}
+              : filteredSections.map((section, sectionIndex) => (
+                  <Fragment key={section.label}>
+                    {collapsed && !isMobile ? (
+                      sectionIndex > 0 && <div className="my-2 h-px bg-white/10" />
+                    ) : (
+                      <div
                         className={cn(
-                          "flex items-center rounded-lg text-sm font-semibold text-white transition-all w-full",
-                          collapsed && !isMobile
-                            ? "justify-center px-2 py-2"
-                            : "gap-3 px-3 py-2",
-                          isActive
-                            ? "bg-[var(--sidebar-active)] shadow-md"
-                            : "hover:bg-[var(--sidebar-border)]",
+                          "px-3 pb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-white/40",
+                          sectionIndex > 0 && "mt-4",
                         )}
                       >
-                        {iconEl}
-                        {(!collapsed || isMobile) && (
-                          <span className="truncate">{item.name}</span>
-                        )}
-                      </Link>
-                    );
+                        {section.label}
+                      </div>
+                    )}
 
-                    if (collapsed && !isMobile) {
-                      return (
-                        <Tooltip
-                          key={item.href}
-                          content={item.name}
-                          position="right"
-                        >
-                          {link}
-                        </Tooltip>
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.href;
+                      const isEnabled = item.enabled;
+
+                      const iconEl = (
+                        <item.icon size={18} className="shrink-0 text-white" />
                       );
-                    }
 
-                    return link;
-                  }
+                      if (isEnabled) {
+                        const link = (
+                          <Link
+                            data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                            key={item.href}
+                            href={item.href}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center rounded-lg text-sm text-white transition-all w-full",
+                              collapsed && !isMobile
+                                ? "justify-center px-2 py-2"
+                                : "gap-3 px-3 py-2",
+                              isActive
+                                ? "bg-[var(--sidebar-active)] font-semibold shadow-md"
+                                : "font-medium hover:bg-[var(--sidebar-border)]",
+                            )}
+                          >
+                            {iconEl}
+                            {(!collapsed || isMobile) && (
+                              <span className="truncate">{item.name}</span>
+                            )}
+                          </Link>
+                        );
 
-                  const disabledItem = (
-                    <div
-                      key={item.href}
-                      className={cn(
-                        "flex items-center rounded-lg text-sm font-semibold text-white/40 cursor-not-allowed w-full",
-                        collapsed && !isMobile
-                          ? "justify-center px-2 py-2"
-                          : "gap-3 px-3 py-2",
-                      )}
-                    >
-                      {iconEl}
-                      {(!collapsed || isMobile) && (
-                        <>
-                          <span className="truncate">{item.name}</span>
-                          <LockIcon
-                            size={12}
-                            className="ml-auto shrink-0 opacity-50"
-                          />
-                        </>
-                      )}
-                    </div>
-                  );
-
-                  if (collapsed && !isMobile) {
-                    return (
-                      <Tooltip
-                        key={item.href}
-                        content={
-                          <span className="text-muted-foreground">
-                            {item.name} (coming soon)
-                          </span>
+                        if (collapsed && !isMobile) {
+                          return (
+                            <Tooltip
+                              key={item.href}
+                              content={item.name}
+                              position="right"
+                            >
+                              {link}
+                            </Tooltip>
+                          );
                         }
-                        position="right"
-                      >
-                        {disabledItem}
-                      </Tooltip>
-                    );
-                  }
 
-                  return disabledItem;
-                })}
+                        return link;
+                      }
+
+                      const disabledItem = (
+                        <div
+                          key={item.href}
+                          className={cn(
+                            "flex items-center rounded-lg text-sm font-medium text-white/40 cursor-not-allowed w-full",
+                            collapsed && !isMobile
+                              ? "justify-center px-2 py-2"
+                              : "gap-3 px-3 py-2",
+                          )}
+                        >
+                          {iconEl}
+                          {(!collapsed || isMobile) && (
+                            <>
+                              <span className="truncate">{item.name}</span>
+                              <LockIcon
+                                size={12}
+                                className="ml-auto shrink-0 opacity-50"
+                              />
+                            </>
+                          )}
+                        </div>
+                      );
+
+                      if (collapsed && !isMobile) {
+                        return (
+                          <Tooltip
+                            key={item.href}
+                            content={
+                              <span className="text-muted-foreground">
+                                {item.name} (coming soon)
+                              </span>
+                            }
+                            position="right"
+                          >
+                            {disabledItem}
+                          </Tooltip>
+                        );
+                      }
+
+                      return disabledItem;
+                    })}
+                  </Fragment>
+                ))}
           </nav>
         </div>
 

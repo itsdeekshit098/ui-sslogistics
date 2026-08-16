@@ -58,24 +58,18 @@ export function DocumentPreviewModal({
     <Modal open={isOpen} onOpenChange={handleOpenChange} nested>
       <ModalContent style={styles.previewContainer}>
         {/* ── Header ── */}
-        <div style={styles.headerRow}>
-          <h3 style={styles.headerTitle}>{label}</h3>
-          <div style={styles.headerActions}>
+        <div className={styles.headerWrapper}>
+          <h3 className={styles.headerTitle}>{label}</h3>
+          <div className={styles.downloadButtonWrapper}>
             <a
               href={downloadUrl}
               download
-              style={styles.downloadLink}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.backgroundColor =
-                  "var(--muted)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.backgroundColor =
-                  "transparent";
-              }}
+              className={styles.downloadLink}
+              aria-label="Download document"
+              title="Download"
             >
               <DownloadIcon size={14} />
-              Download
+              <span className={styles.downloadLabel}>Download</span>
             </a>
           </div>
         </div>
@@ -85,8 +79,7 @@ export function DocumentPreviewModal({
           {/* Loading overlay (shown while iframe/image is loading) */}
           {isLoading && !hasError && (
             <div style={styles.loadingContainer}>
-              <LoadingSpinner size="md" />
-              <span>Loading document…</span>
+              <LoadingSpinner size="md" centered label="Loading preview" />
             </div>
           )}
 

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import type { KeyboardEvent, CSSProperties } from "react";
+import { useCallback } from "react";
+import type { KeyboardEvent } from "react";
 import {
   ChevronUpIcon,
   ChevronDownIcon,
   ChevronsUpDownIcon,
+  ChevronRightIcon,
   InboxIcon,
 } from "@/components/ui/icon";
 import { Tooltip } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { DataTableProps, RowAction } from "./dataTable.types";
-import * as styles from "./dataTable.style";
 
 const SKELETON_ROWS = 10;
 
@@ -23,16 +24,16 @@ function SortIcon({
   active: boolean;
   direction?: "asc" | "desc";
 }) {
-  if (!active) {
-    return (
-      <span style={styles.sortIconWrapper(false)}>
-        <ChevronsUpDownIcon size={14} />
-      </span>
-    );
-  }
   return (
-    <span style={styles.sortIconWrapper(true)}>
-      {direction === "asc" ? (
+    <span
+      className={cn(
+        "inline-flex flex-col gap-px transition-opacity",
+        active ? "text-primary opacity-100" : "text-muted-foreground opacity-30",
+      )}
+    >
+      {!active ? (
+        <ChevronsUpDownIcon size={14} />
+      ) : direction === "asc" ? (
         <ChevronUpIcon size={14} />
       ) : (
         <ChevronDownIcon size={14} />
@@ -47,13 +48,12 @@ function SkeletonRows({ colCount }: { colCount: number }) {
   return (
     <>
       {Array.from({ length: SKELETON_ROWS }).map((_, rowIdx) => (
-        <tr key={rowIdx} style={styles.skeletonRow}>
+        <tr key={rowIdx} className="border-b border-border">
           {Array.from({ length: colCount }).map((_, colIdx) => (
-            <td key={colIdx} style={styles.skeletonCell}>
+            <td key={colIdx} className="px-4 py-3.5">
               <div
-                style={styles.skeletonBar(
-                  colIdx === 0 ? "45%" : colIdx % 3 === 0 ? "70%" : "55%",
-                )}
+                className="h-3.5 animate-pulse rounded-md bg-muted"
+                style={{ width: colIdx === 0 ? "45%" : colIdx % 3 === 0 ? "70%" : "55%" }}
               />
             </td>
           ))}
@@ -65,6 +65,9 @@ function SkeletonRows({ colCount }: { colCount: number }) {
 
 // ─── Action Button ────────────────────────────────────────────────────────────
 
+const actionBtnBase =
+  "inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-40";
+
 function ActionButton<TData>({
   action,
   row,
@@ -72,43 +75,29 @@ function ActionButton<TData>({
   action: RowAction<TData>;
   row: TData;
 }) {
-  const [hovered, setHovered] = useState(false);
   const isDisabled = action.disabled?.(row) ?? false;
-
-  const baseStyle = styles.actionBtn(action.variant);
-  const hoveredStyle: CSSProperties =
-    hovered && !isDisabled
-      ? {
-          backgroundColor:
-            action.variant === "danger"
-              ? "rgba(239, 68, 68, 0.18)"
-              : "var(--accent, var(--muted))",
-          transform: "scale(1.08)",
-          boxShadow:
-            action.variant === "danger"
-              ? "0 0 0 1px rgba(239, 68, 68, 0.15)"
-              : "0 0 0 1px var(--border)",
-        }
-      : {};
-
   const label = typeof action.label === "function" ? action.label(row) : action.label;
   const icon = typeof action.icon === "function" ? action.icon(row) : action.icon;
-  const disabledTooltip = typeof action.disabledTooltip === "function" ? action.disabledTooltip(row) : action.disabledTooltip;
+  const disabledTooltip =
+    typeof action.disabledTooltip === "function"
+      ? action.disabledTooltip(row)
+      : action.disabledTooltip;
+  const testId = typeof action.testId === "function" ? action.testId(row) : action.testId;
 
   const buttonNode = (
     <button
       type="button"
       title={label}
       aria-label={label}
+      data-testid={testId}
       disabled={isDisabled}
-      style={{
-        ...baseStyle,
-        ...hoveredStyle,
-        opacity: isDisabled ? 0.4 : 1,
-        cursor: isDisabled ? "not-allowed" : "pointer",
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className={cn(
+        actionBtnBase,
+        action.variant === "danger"
+          ? "bg-destructive-subtle text-destructive hover:bg-destructive/20"
+          : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        !isDisabled && "hover:scale-105",
+      )}
       onClick={(e) => {
         e.stopPropagation();
         if (!isDisabled) action.onClick(row);
@@ -121,10 +110,8 @@ function ActionButton<TData>({
   if (isDisabled && disabledTooltip) {
     return (
       <Tooltip content={disabledTooltip} position="left">
-        <span style={{ cursor: "not-allowed", display: "inline-block" }}>
-          <span style={{ pointerEvents: "none", display: "inline-flex" }}>
-            {buttonNode}
-          </span>
+        <span className="inline-block cursor-not-allowed">
+          <span className="pointer-events-none inline-flex">{buttonNode}</span>
         </span>
       </Tooltip>
     );
@@ -158,7 +145,13 @@ export function DataTable<TData>({
   maxHeight,
 }: DataTableProps<TData>) {
   const hasActions = showActions && rowActions && rowActions.length > 0;
-  const totalCols = columns.length + (hasActions ? 1 : 0);
+  const clickable = rowClickable || !!onRowClick;
+  // A clickable row always gets a visible chevron — relying on a hover-only
+  // cursor change to signal "this opens something" isn't discoverable, and
+  // when there are no rowActions at all there was previously no affordance
+  // whatsoever that the row led anywhere.
+  const hasTrailingColumn = hasActions || clickable;
+  const totalCols = columns.length + (hasTrailingColumn ? 1 : 0);
 
   const handleHeaderClick = useCallback(
     (key: string, sortable?: boolean) => {
@@ -171,11 +164,7 @@ export function DataTable<TData>({
   );
 
   const handleHeaderKeyDown = useCallback(
-    (
-      e: KeyboardEvent<HTMLTableCellElement>,
-      key: string,
-      sortable?: boolean,
-    ) => {
+    (e: KeyboardEvent<HTMLTableCellElement>, key: string, sortable?: boolean) => {
       if (!sortable) return;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -204,14 +193,17 @@ export function DataTable<TData>({
 
   return (
     <div
-      style={styles.tableWrapper(maxHeight)}
-      className={className}
+      className={cn(
+        "w-full overflow-hidden rounded-xl border border-border bg-card shadow-card",
+        className,
+      )}
+      style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
     >
-      <div style={styles.tableScrollContainer}>
-        <table style={styles.table} role="table">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse text-sm" role="table">
           {/* ── Head ── */}
-          <thead style={styles.thead(stickyHeader)}>
-            <tr style={styles.theadRow}>
+          <thead className={cn(stickyHeader && "sticky top-0 z-[2]")}>
+            <tr className="border-b border-border bg-muted">
               {columns.map((col) => {
                 const isActive = sortState?.key === col.key;
                 return (
@@ -230,38 +222,46 @@ export function DataTable<TData>({
                     }
                     tabIndex={col.sortable ? 0 : undefined}
                     title={col.tooltip}
-                    style={styles.th(
-                      col.align,
-                      col.sortable,
-                      col.width,
-                      col.minWidth,
+                    className={cn(
+                      "whitespace-nowrap bg-muted px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground select-none",
+                      col.align === "right"
+                        ? "text-right"
+                        : col.align === "center"
+                          ? "text-center"
+                          : "text-left",
+                      col.sortable && "cursor-pointer",
                     )}
+                    style={{
+                      ...(col.width !== undefined && {
+                        width: typeof col.width === "number" ? `${col.width}px` : col.width,
+                      }),
+                      ...(col.minWidth !== undefined && {
+                        minWidth:
+                          typeof col.minWidth === "number" ? `${col.minWidth}px` : col.minWidth,
+                      }),
+                    }}
                     onClick={() => handleHeaderClick(col.key, col.sortable)}
-                    onKeyDown={(e) =>
-                      handleHeaderKeyDown(e, col.key, col.sortable)
-                    }
+                    onKeyDown={(e) => handleHeaderKeyDown(e, col.key, col.sortable)}
                   >
-                    <span style={styles.thInner}>
+                    <span className="inline-flex items-center gap-1.5">
                       {col.header}
                       {col.sortable && (
                         <SortIcon
                           active={isActive}
-                          direction={
-                            isActive ? sortState?.direction : undefined
-                          }
+                          direction={isActive ? sortState?.direction : undefined}
                         />
                       )}
                     </span>
                   </th>
                 );
               })}
-              {hasActions && (
+              {hasTrailingColumn && (
                 <th
                   scope="col"
-                  style={styles.th("right")}
-                  aria-label={actionsLabel}
+                  className="bg-muted px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  aria-label={hasActions ? actionsLabel : "Open"}
                 >
-                  {actionsLabel}
+                  {hasActions ? actionsLabel : ""}
                 </th>
               )}
             </tr>
@@ -274,11 +274,11 @@ export function DataTable<TData>({
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={totalCols}>
-                  <div style={styles.emptyRow}>
+                  <div className="p-12 text-center">
                     {emptyNode ?? (
-                      <div style={styles.emptyIconWrapper}>
+                      <div className="flex flex-col items-center gap-3 text-muted-foreground">
                         <InboxIcon size={40} />
-                        <p style={styles.emptyText}>{emptyMessage}</p>
+                        <p className="text-[0.9rem] font-medium">{emptyMessage}</p>
                       </div>
                     )}
                   </div>
@@ -286,65 +286,67 @@ export function DataTable<TData>({
               </tr>
             ) : (
               data.map((row, index) => {
-                const isClickable = rowClickable || !!onRowClick;
-                const baseStyle = styles.tbodyRow(isClickable, striped, index);
-                const extra = rowStyle?.(row) ?? {};
-                const extraClass = rowClassName?.(row) ?? "";
+                const extraStyle = rowStyle?.(row);
+                const extraClass = rowClassName?.(row);
 
                 return (
                   <tr
                     key={rowKey(row)}
-                    role={isClickable ? "button" : "row"}
-                    tabIndex={isClickable ? 0 : undefined}
-                    className={extraClass}
-                    style={{ ...baseStyle, ...extra }}
-                    onClick={() => isClickable && handleRowClick(row)}
-                    onKeyDown={(e) => isClickable && handleRowKeyDown(e, row)}
-                    onMouseEnter={(e) => {
-                      if (isClickable) {
-                        (
-                          e.currentTarget as HTMLTableRowElement
-                        ).style.backgroundColor = "var(--muted)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (isClickable) {
-                        (
-                          e.currentTarget as HTMLTableRowElement
-                        ).style.backgroundColor =
-                          striped && index % 2 === 0
-                            ? "var(--muted)"
-                            : "transparent";
-                      }
-                    }}
+                    role={clickable ? "button" : "row"}
+                    tabIndex={clickable ? 0 : undefined}
+                    className={cn(
+                      "group border-b border-border transition-colors",
+                      clickable && "cursor-pointer hover:bg-muted",
+                      striped && index % 2 === 0 && "bg-muted",
+                      extraClass,
+                    )}
+                    style={extraStyle}
+                    onClick={() => clickable && handleRowClick(row)}
+                    onKeyDown={(e) => clickable && handleRowKeyDown(e, row)}
                   >
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        style={{
-                          ...styles.td(col.align, dense),
-                          ...(col.style ?? {}),
-                        }}
-                        className={col.className}
+                        className={cn(
+                          dense ? "py-2" : "py-3.5",
+                          "px-4 align-middle leading-relaxed text-foreground",
+                          col.align === "right"
+                            ? "text-right"
+                            : col.align === "center"
+                              ? "text-center"
+                              : "text-left",
+                          col.className,
+                        )}
+                        style={col.style}
                       >
                         {col.cell(row, index)}
                       </td>
                     ))}
-                    {hasActions && (
-                      <td style={{ ...styles.td("right", dense) }}>
-                        <div
-                          style={styles.actionsCell}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {rowActions!
-                            .filter((a) => !a.hidden?.(row))
-                            .map((action) => (
-                              <ActionButton
-                                key={action.key}
-                                action={action}
-                                row={row}
-                              />
-                            ))}
+                    {hasTrailingColumn && (
+                      <td className={cn(dense ? "py-2" : "py-3.5", "px-4 text-right")}>
+                        <div className="flex items-center justify-end gap-2">
+                          {hasActions && (
+                            <div
+                              className="flex items-center gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {rowActions!
+                                .filter((a) => !a.hidden?.(row))
+                                .map((action) => (
+                                  <ActionButton key={action.key} action={action} row={row} />
+                                ))}
+                            </div>
+                          )}
+                          {clickable && (
+                            // Unlike the actions above, this is never
+                            // hover-gated — it's the only signal some rows
+                            // have that clicking them navigates somewhere.
+                            <ChevronRightIcon
+                              size={16}
+                              className="shrink-0 text-muted-foreground/60"
+                              aria-hidden="true"
+                            />
+                          )}
                         </div>
                       </td>
                     )}

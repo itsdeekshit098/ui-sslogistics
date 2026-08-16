@@ -67,11 +67,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           </Label>
           <Select
             disabled={disabled}
-            data-testid={`${testIdPrefix}-select-owner-type`}
             value={formData.owner_type ?? ""}
             onValueChange={onOwnerTypeChange}
           >
-            <SelectTrigger className={errorTriggerClass(errors.owner_type)}>
+            <SelectTrigger
+              data-testid={`${testIdPrefix}-select-owner-type`}
+              className={errorTriggerClass(errors.owner_type)}
+            >
               <SelectValue placeholder="Select Owner Type" />
             </SelectTrigger>
             <SelectContent>
@@ -92,11 +94,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           </Label>
           <Select
             disabled={disabled || !formData.owner_type}
-            data-testid={`${testIdPrefix}-select-owner-name`}
             value={formData.owner_name ?? ""}
             onValueChange={(val) => onSelectChange("owner_name", val)}
           >
-            <SelectTrigger className={errorTriggerClass(errors.owner_name)}>
+            <SelectTrigger
+              data-testid={`${testIdPrefix}-select-owner-name`}
+              className={errorTriggerClass(errors.owner_name)}
+            >
               <SelectValue
                 placeholder={
                   formData.owner_type
@@ -159,11 +163,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           </Label>
           <Select
             disabled={disabled}
-            data-testid={`${testIdPrefix}-select-vehicle-type`}
             value={formData.vehicle_type}
             onValueChange={onVehicleTypeChange}
           >
-            <SelectTrigger className={errorTriggerClass(errors.vehicle_type)}>
+            <SelectTrigger
+              data-testid={`${testIdPrefix}-select-vehicle-type`}
+              className={errorTriggerClass(errors.vehicle_type)}
+            >
               <SelectValue placeholder="Select Type" />
             </SelectTrigger>
             <SelectContent>
@@ -188,11 +194,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           </Label>
           <Select
             disabled={disabled}
-            data-testid={`${testIdPrefix}-select-truck-type`}
             value={formData.truck_type ?? ""}
             onValueChange={(val) => onSelectChange("truck_type", val)}
           >
-            <SelectTrigger className={errorTriggerClass(errors.truck_type)}>
+            <SelectTrigger
+              data-testid={`${testIdPrefix}-select-truck-type`}
+              className={errorTriggerClass(errors.truck_type)}
+            >
               <SelectValue placeholder="Select Truck Type" />
             </SelectTrigger>
             <SelectContent>
@@ -219,13 +227,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
               </Label>
               <Select
                 disabled={disabled}
-                data-testid={`${testIdPrefix}-select-container-length`}
                 value={formData.container_length ?? ""}
                 onValueChange={(val) =>
                   onSelectChange("container_length", val)
                 }
               >
                 <SelectTrigger
+                  data-testid={`${testIdPrefix}-select-container-length`}
                   className={errorTriggerClass(errors.container_length)}
                 >
                   <SelectValue placeholder="Select Length" />
@@ -250,11 +258,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
               </Label>
               <Select
                 disabled={disabled}
-                data-testid={`${testIdPrefix}-select-axle-type`}
                 value={formData.axle_type ?? ""}
                 onValueChange={(val) => onSelectChange("axle_type", val)}
               >
-                <SelectTrigger className={errorTriggerClass(errors.axle_type)}>
+                <SelectTrigger
+                  data-testid={`${testIdPrefix}-select-axle-type`}
+                  className={errorTriggerClass(errors.axle_type)}
+                >
                   <SelectValue placeholder="Select Axle Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -278,13 +288,13 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
             </Label>
             <Select
               disabled={disabled}
-              data-testid={`${testIdPrefix}-select-container-body-type`}
               value={formData.container_body_type ?? ""}
               onValueChange={(val) =>
                 onSelectChange("container_body_type", val)
               }
             >
               <SelectTrigger
+                data-testid={`${testIdPrefix}-select-container-body-type`}
                 className={errorTriggerClass(errors.container_body_type)}
               >
                 <SelectValue placeholder="Select Body Type" />
@@ -396,11 +406,10 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           <Label htmlFor="status">Status</Label>
           <Select
             disabled={disabled}
-            data-testid={`${testIdPrefix}-select-status`}
             value={formData.status}
             onValueChange={(val) => onSelectChange("status", val)}
           >
-            <SelectTrigger>
+            <SelectTrigger data-testid={`${testIdPrefix}-select-status`}>
               <SelectValue placeholder="Select Status" />
             </SelectTrigger>
             <SelectContent>
@@ -414,11 +423,10 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
           <Label htmlFor="fuel_type">Fuel Type</Label>
           <Select
             disabled={disabled}
-            data-testid={`${testIdPrefix}-select-fuel-type`}
             value={formData.fuel_type || "DIESEL"}
             onValueChange={(val) => onSelectChange("fuel_type", val)}
           >
-            <SelectTrigger>
+            <SelectTrigger data-testid={`${testIdPrefix}-select-fuel-type`}>
               <SelectValue placeholder="Select Fuel Type" />
             </SelectTrigger>
             <SelectContent>

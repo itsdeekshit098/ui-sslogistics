@@ -3,11 +3,13 @@ import { CSSProperties } from "react";
 export const overlay: CSSProperties = {
   position: "fixed",
   inset: 0,
-  zIndex: 50,
+  zIndex: "var(--z-modal-overlay)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  // Dark mode uses a darker overlay (0.75 vs 0.6) — dimming an already-dark
+  // page by the light-mode amount barely reads as "this is now background."
+  backgroundColor: "var(--overlay-background)",
   backdropFilter: "blur(4px)",
   padding: "var(--space-4)", // Ensure modal doesn't touch screen edges on small screens
 };

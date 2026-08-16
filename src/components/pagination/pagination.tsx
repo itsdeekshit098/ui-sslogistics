@@ -67,20 +67,37 @@ export default function Pagination({
         <span>
           {startItem} - {endItem} of {totalCount}
         </span>
+        {/*
+          Plain <Select> primitive, no one-off overrides — the previous
+          version replaced the item padding with a value meant for a
+          left-side checkmark (this primitive's checkmark sits on the
+          right), which pushed the popover wider than its 80px trigger, and
+          swapped in a 1.5rem corner radius no other dropdown in the app
+          uses. Popper-mode positioning already matches the popover to (at
+          least) the trigger's width on its own.
+        */}
         <Select
           data-testid="components-pagination-pagination-select-1"
           value={String(pageSize)}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger className="h-10 w-[80px] rounded-md border-border bg-background px-4 text-sm text-foreground shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] hover:border-border/80 focus:border-border data-[state=open]:border-border cursor-pointer">
-            <SelectValue placeholder={`${pageSize}`} />
+          <SelectTrigger className="w-[4.5rem]">
+            <SelectValue />
           </SelectTrigger>
-          <SelectContent className="min-w-[80px] rounded-[1.5rem] border border-border bg-background text-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.32)]">
+          {/* Pinned to the trigger's own width (not just min-width, which is
+              all the base component guarantees) via Radix's own
+              --radix-select-trigger-width — so "10"/"20"/"50"/"100" don't
+              force the popover wider than the 4.5rem trigger it opens from. */}
+          <SelectContent
+            className="w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]"
+            viewportClassName="px-0 py-0.5 [&>*+*]:mt-0.5"
+          >
             {pageSizeOptions.map((size) => (
               <SelectItem
                 key={size}
                 value={String(size)}
-                className="rounded-xl py-2.5 pl-8 pr-2 cursor-pointer"
+                className="mx-0.5 !w-[calc(100%-6px)] !rounded-[calc(var(--input-radius)+1px)]"
+                hideIndicator
               >
                 {size}
               </SelectItem>

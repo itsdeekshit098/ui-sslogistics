@@ -8,7 +8,7 @@ export const tooltipWrapper: CSSProperties = {
 
 export const tooltipPortal: CSSProperties = {
   position: "fixed",
-  zIndex: 9999,
+  zIndex: "var(--z-popover)",
   backgroundColor: "var(--foreground)",
   color: "var(--background)",
   padding: "0.5rem 0.75rem",

@@ -345,6 +345,7 @@ export function ExternalTripsPage() {
       icon: <PencilIcon size={14} />,
       hidden: () => !canManage,
       onClick: handleEdit,
+      testId: (trip) => `external-trips-edit-btn-${trip.id}`,
     },
     {
       key: "delete",
@@ -353,6 +354,7 @@ export function ExternalTripsPage() {
       variant: "danger",
       hidden: () => !canManage,
       onClick: (trip) => setDeleteTarget(trip),
+      testId: (trip) => `external-trips-delete-btn-${trip.id}`,
     },
   ];
 
@@ -379,7 +381,7 @@ export function ExternalTripsPage() {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+          <Button data-testid="external-trips-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Trip
           </Button>
         )}

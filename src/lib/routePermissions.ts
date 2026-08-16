@@ -20,7 +20,13 @@ export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
   "/admin/technicians": ["admin", "staff", "superadmin"],
   "/admin/drivers": ["admin", "staff", "superadmin"],
   "/admin/vehicle-owners": ["admin", "staff", "superadmin"],
-  "/admin/external-trips": ["admin", "staff", "superadmin"],
+  "/admin/entities": ["admin", "staff", "superadmin"],
+  // Loans and receivables are the app's most sensitive data — EMIs, personal
+  // borrowings in family names, what every client owes. Staff are locked out.
+  "/admin/loans": ["admin", "superadmin"],
+  "/admin/fundings": ["admin", "superadmin"],
+  "/admin/clients": ["admin", "superadmin"],
+  "/admin/bank-accounts": ["admin", "superadmin"],
   "/admin/trip-bookings": ["admin", "staff", "superadmin"],
   // Pages accessible to ALL authenticated roles (including driver):
   // /admin              → Dashboard

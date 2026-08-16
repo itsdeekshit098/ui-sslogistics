@@ -234,6 +234,17 @@ export const readOnlyBadge: CSSProperties = {
   color: "var(--foreground)",
 };
 
+export const receiptSummary: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "0.75rem",
+  padding: "0.75rem",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--input-radius, 0.5rem)",
+  backgroundColor: "var(--background)",
+  fontSize: "0.875rem",
+};
+
 /* ─── Read-only ─── */
 
 /* ─── Error Banner ─── */

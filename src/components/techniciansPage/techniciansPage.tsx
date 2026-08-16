@@ -282,6 +282,7 @@ export function TechniciansPage() {
       icon: null, // Computed inside cell or we render dynamic icon
       hidden: () => !canManage,
       onClick: toggleStatus,
+      testId: (tech) => `technicians-toggle-status-btn-${tech.id}`,
     },
     {
       key: "edit",
@@ -289,6 +290,7 @@ export function TechniciansPage() {
       icon: <PencilIcon size={14} />,
       hidden: () => !canManage,
       onClick: handleEdit,
+      testId: (tech) => `technicians-edit-btn-${tech.id}`,
     },
     {
       key: "delete",
@@ -297,6 +299,7 @@ export function TechniciansPage() {
       variant: "danger",
       hidden: () => !canManage,
       onClick: (tech) => setDeleteTarget(tech),
+      testId: (tech) => `technicians-delete-btn-${tech.id}`,
     },
   ];
 
@@ -343,7 +346,7 @@ export function TechniciansPage() {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+          <Button data-testid="technicians-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Technician
           </Button>
         )}
@@ -355,6 +358,7 @@ export function TechniciansPage() {
           <div className="relative w-full max-w-sm">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
+              data-testid="technicians-search-input"
               placeholder="Search by name, phone or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
