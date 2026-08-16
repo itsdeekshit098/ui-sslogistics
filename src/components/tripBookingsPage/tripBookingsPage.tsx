@@ -475,21 +475,23 @@ export function TripBookingsPage() {
               <span style={styles.summaryLabel}>Cancelled</span>
               <span style={styles.summaryValue}>{summary.cancelledCount}</span>
             </div>
-            if (showFinancials) ...[
-              <div style={styles.summaryCard}>
-                <span style={styles.summaryLabel}>Completed Revenue</span>
-                <span style={styles.summaryValue}>{fmtCurrency(summary.totalReceived)}</span>
-              </div>
-              <div style={styles.summaryCard}>
-                <span style={styles.summaryLabel}>Completed Profit</span>
-                <span style={{
-                  ...styles.summaryValue,
-                  color: summary.totalProfit >= 0 ? "#16a34a" : "#dc2626",
-                }}>
-                  {fmtCurrency(summary.totalProfit)}
-                </span>
-              </div>
-            ]
+            {showFinancials && (
+              <>
+                <div style={styles.summaryCard}>
+                  <span style={styles.summaryLabel}>Completed Revenue</span>
+                  <span style={styles.summaryValue}>{fmtCurrency(summary.totalReceived)}</span>
+                </div>
+                <div style={styles.summaryCard}>
+                  <span style={styles.summaryLabel}>Completed Profit</span>
+                  <span style={{
+                    ...styles.summaryValue,
+                    color: summary.totalProfit >= 0 ? "#16a34a" : "#dc2626",
+                  }}>
+                    {fmtCurrency(summary.totalProfit)}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
