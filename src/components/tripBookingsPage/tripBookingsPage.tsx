@@ -8,6 +8,8 @@ import {
   XIcon,
   CheckCircleIcon,
   ClockIcon,
+  EyeIcon,
+  EyeOffIcon,
   SlidersHorizontalIcon,
   SearchIcon,
 } from "@/components/ui/icon";
@@ -40,7 +42,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./tripBookingsPage.style";
@@ -101,6 +103,9 @@ export function TripBookingsPage() {
     overdueCount: 0,
     completedCount: 0,
     cancelledCount: 0,
+    totalCost: 0,
+    totalReceived: 0,
+    totalProfit: 0,
   });
   const [totalRecords, setTotalRecords] = useState(0);
 
@@ -112,9 +117,11 @@ export function TripBookingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editRecord, setEditRecord] = useState<TripBookingWithDetails | null>(null);
   const [completeTarget, setCompleteTarget] = useState<TripBookingWithDetails | null>(null);
+  const [showDirectComplete, setShowDirectComplete] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<TripBookingWithDetails | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showFinancials, setShowFinancials] = useState(false);
 
   const buildApiUrl = useCallback(
     (f: TripBookingFilters, includeSummary = true) => {
@@ -282,6 +289,8 @@ export function TripBookingsPage() {
   const hasActiveFilters = activeFilterCount > 0;
 
   const fmtCurrency = (v: number) => `₹${Number(v).toLocaleString("en-IN")}`;
+  const financialValue = (value: number) =>
+    showFinancials ? fmtCurrency(value) : "•••••";
 
   const columns: ColumnDef<TripBookingWithDetails>[] = [
     {
@@ -338,14 +347,24 @@ export function TripBookingsPage() {
     },
     {
       key: "amounts",
-      header: "Quoted / Advance",
+      header: "Payment / Result",
       align: "right",
-      cell: (b) => (
-        <span className="text-foreground whitespace-nowrap">
-          {b.quoted_amount != null ? fmtCurrency(b.quoted_amount) : "—"} /{" "}
-          {fmtCurrency(b.advance_amount || 0)}
-        </span>
-      ),
+      cell: (b) =>
+        b.status === "completed" &&
+        b.amount_received != null &&
+        b.total_cost != null ? (
+          <div className="text-right whitespace-nowrap">
+            <div className="text-foreground">Received {financialValue(b.amount_received)}</div>
+            <div className={b.amount_received - b.total_cost >= 0 ? "text-xs text-emerald-600" : "text-xs text-destructive"}>
+              Profit {financialValue(b.amount_received - b.total_cost)}
+            </div>
+          </div>
+        ) : (
+          <span className="text-foreground whitespace-nowrap">
+            {b.quoted_amount != null ? financialValue(b.quoted_amount) : "—"} /{" "}
+            {financialValue(b.advance_amount || 0)}
+          </span>
+        ),
     },
     {
       key: "status",
@@ -363,6 +382,7 @@ export function TripBookingsPage() {
       icon: <CheckCircleIcon size={14} />,
       hidden: (b) => !canEdit || b.status !== "confirmed",
       onClick: (b) => setCompleteTarget(b),
+      testId: (b) => `trip-bookings-complete-btn-${b.id}`,
     },
     {
       key: "edit",
@@ -370,6 +390,7 @@ export function TripBookingsPage() {
       icon: <PencilIcon size={14} />,
       hidden: (b) => !canManage || b.status !== "confirmed",
       onClick: handleEdit,
+      testId: (b) => `trip-bookings-edit-btn-${b.id}`,
     },
     {
       key: "cancel",
@@ -378,6 +399,7 @@ export function TripBookingsPage() {
       variant: "danger",
       hidden: (b) => !canManage || b.status !== "confirmed",
       onClick: (b) => setCancelTarget(b),
+      testId: (b) => `trip-bookings-cancel-btn-${b.id}`,
     },
   ];
 
@@ -396,15 +418,32 @@ export function TripBookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Trip Bookings</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Trips</h1>
           <p className="text-muted-foreground mt-1">
-            Advance bookings taken over the phone — confirmed, upcoming, and completed.
+            Plan trips, complete them, and review final costs and profit in one place.
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
-            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Booking
-          </Button>
+          <div className="flex w-full sm:w-auto gap-2">
+            {canManage && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowFinancials((visible) => !visible)}
+                title={showFinancials ? "Hide financial values" : "Show financial values"}
+                aria-label={showFinancials ? "Hide financial values" : "Show financial values"}
+              >
+                {showFinancials ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setShowDirectComplete(true)} className="flex-1 sm:flex-none">
+              <CheckCircleIcon size={16} style={{ marginRight: "0.5rem" }} /> Record Completed Trip
+            </Button>
+            <Button data-testid="trip-bookings-add-btn" onClick={handleAddNew} className="flex-1 sm:flex-none">
+              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Booking
+            </Button>
+          </div>
         )}
       </div>
 
@@ -436,6 +475,21 @@ export function TripBookingsPage() {
               <span style={styles.summaryLabel}>Cancelled</span>
               <span style={styles.summaryValue}>{summary.cancelledCount}</span>
             </div>
+            if (showFinancials) ...[
+              <div style={styles.summaryCard}>
+                <span style={styles.summaryLabel}>Completed Revenue</span>
+                <span style={styles.summaryValue}>{fmtCurrency(summary.totalReceived)}</span>
+              </div>
+              <div style={styles.summaryCard}>
+                <span style={styles.summaryLabel}>Completed Profit</span>
+                <span style={{
+                  ...styles.summaryValue,
+                  color: summary.totalProfit >= 0 ? "#16a34a" : "#dc2626",
+                }}>
+                  {fmtCurrency(summary.totalProfit)}
+                </span>
+              </div>
+            ]
           </div>
         </div>
 
@@ -448,6 +502,7 @@ export function TripBookingsPage() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
               <Input
+                data-testid="trip-bookings-search-input"
                 placeholder="Search customer name or phone..."
                 defaultValue={filters.search}
                 onKeyDown={(e) => {
@@ -515,7 +570,7 @@ export function TripBookingsPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner size="md" centered label="Loading bookings..." />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   displayData.map((b) => {
                     const route = [b.from_location, b.to_location].filter(Boolean).join(" → ");
@@ -724,6 +779,17 @@ export function TripBookingsPage() {
             quotedAmount: completeTarget.quoted_amount,
             advanceAmount: completeTarget.advance_amount,
           }}
+        />
+      )}
+
+      {showDirectComplete && (
+        <ExternalTripsModal
+          mode="create"
+          isOpen={showDirectComplete}
+          onClose={() => setShowDirectComplete(false)}
+          onSuccess={handleSuccess}
+          vehicles={vehicles}
+          unifiedTrip
         />
       )}
 

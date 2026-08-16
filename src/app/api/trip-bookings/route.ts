@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     if (includeSummary) {
       const today = todayStr();
 
-      const [upcomingRes, overdueRes, completedRes, cancelledRes] = await Promise.all([
+      const [upcomingRes, overdueRes, completedRes, cancelledRes, completedFinanceRes] = await Promise.all([
         supabaseAdmin
           .from("trip_bookings")
           .select("id", { count: "exact", head: true })
@@ -64,19 +64,34 @@ export async function GET(req: Request) {
           .from("trip_bookings")
           .select("id", { count: "exact", head: true })
           .eq("status", "cancelled"),
+        supabaseAdmin
+          .from("trip_bookings")
+          .select("total_cost, amount_received")
+          .eq("status", "completed"),
       ]);
 
-      for (const res of [upcomingRes, overdueRes, completedRes, cancelledRes]) {
+      for (const res of [upcomingRes, overdueRes, completedRes, cancelledRes, completedFinanceRes]) {
         if (res.error) {
           return serverError(res.error);
         }
       }
 
+      const totalCost = (completedFinanceRes.data ?? []).reduce(
+        (sum, trip) => sum + Number(trip.total_cost ?? 0),
+        0,
+      );
+      const totalReceived = (completedFinanceRes.data ?? []).reduce(
+        (sum, trip) => sum + Number(trip.amount_received ?? 0),
+        0,
+      );
       summary = {
         upcomingCount: upcomingRes.count ?? 0,
         overdueCount: overdueRes.count ?? 0,
         completedCount: completedRes.count ?? 0,
         cancelledCount: cancelledRes.count ?? 0,
+        totalCost,
+        totalReceived,
+        totalProfit: totalReceived - totalCost,
       };
     }
 
@@ -94,13 +109,21 @@ export async function GET(req: Request) {
       )
       .range(offset, offset + pageSize - 1);
 
+    // Completed/cancelled are history views — most recent first. Everything
+    // else (confirmed, including overdue/upcoming) is soonest-first so the
+    // most urgent booking surfaces at the top.
+    const sortAscending = !(status === "completed" || status === "cancelled");
+
     if (upcoming) {
       dataQuery = dataQuery
         .eq("status", "confirmed")
         .gte("start_date", todayStr())
-        .order("start_date", { ascending: true });
+        .order("start_date", { ascending: true })
+        .order("id", { ascending: true });
     } else {
-      dataQuery = dataQuery.order("start_date", { ascending: true });
+      dataQuery = dataQuery
+        .order("start_date", { ascending: sortAscending })
+        .order("id", { ascending: sortAscending });
     }
 
     if (status && VALID_STATUSES.includes(status as TripBookingStatus)) {

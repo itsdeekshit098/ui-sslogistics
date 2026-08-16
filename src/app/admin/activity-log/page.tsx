@@ -1,9 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeftIcon,
   RefreshCwIcon,
@@ -15,11 +25,16 @@ import {
   ActivityIcon,
   UserIcon,
   ClockIcon,
+  AlertTriangleIcon,
 } from "@/components/ui/icon";
 import { useRouter } from "next/navigation";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { FeedSkeleton } from "@/components/skeletonLoader";
 import { Pagination } from "@/components/pagination";
-import { ActivityLogEntry, ActivityLogResponse } from "./activityLog.types";
+import {
+  ActivityLogEntry,
+  ActivityLogPurgeResponse,
+  ActivityLogResponse,
+} from "./activityLog.types";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
@@ -31,6 +46,19 @@ import {
   ACTION_STYLES,
   ACTION_LABELS,
 } from "./activityLog.styles";
+import {
+  DEFAULT_RETENTION_MONTHS,
+  PURGE_CONFIRM_PHRASE,
+  RETENTION_OPTIONS,
+  retentionCutoff,
+} from "./activityLog.constants";
+
+// Lazy-loaded: superadmin-only, and opened rarely even by them — it has no
+// business in the chunk that has to land before the feed can paint.
+const ConfirmModal = dynamic(
+  () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
 
 const ACTION_ICONS: Record<string, React.ElementType> = {
   CREATE_VEHICLE: TruckIcon,
@@ -83,7 +111,7 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function ActivityLogPage() {
   const router = useRouter();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, userRole } = useAuth();
   const [entries, setEntries] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,6 +119,16 @@ export default function ActivityLogPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+
+  // Purge (superadmin only)
+  const isSuperAdmin = userRole === "superadmin";
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purgeMonths, setPurgeMonths] = useState(DEFAULT_RETENTION_MONTHS);
+  const [purgePreview, setPurgePreview] = useState<number | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [purgeLoading, setPurgeLoading] = useState(false);
+  const [purgeError, setPurgeError] = useState<string | null>(null);
+  const [confirmPhrase, setConfirmPhrase] = useState("");
 
   const fetchLogs = useCallback(
     async (pageNum: number, isRefresh = false) => {
@@ -126,6 +164,87 @@ export default function ActivityLogPage() {
 
   const handleRefresh = () => {
     fetchLogs(page, true);
+  };
+
+  const openPurge = () => {
+    setConfirmPhrase("");
+    setPurgeError(null);
+    setPurgeMonths(DEFAULT_RETENTION_MONTHS);
+    setPurgeOpen(true);
+  };
+
+  const closePurge = () => {
+    if (purgeLoading) return;
+    setPurgeOpen(false);
+  };
+
+  // Dry run: shows exactly how many entries the chosen window would remove
+  // before anything is deleted. Re-runs whenever the window changes.
+  useEffect(() => {
+    if (!purgeOpen) return;
+    let cancelled = false;
+
+    const loadPreview = async () => {
+      setPreviewLoading(true);
+      setPurgePreview(null);
+      setPurgeError(null);
+      try {
+        const before = retentionCutoff(purgeMonths).toISOString();
+        const res = await fetch(
+          `/api/activity-log?before=${encodeURIComponent(before)}&dryRun=true`,
+          { method: "DELETE" },
+        );
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || "Failed to check");
+        }
+        const result: ActivityLogPurgeResponse = json.data ?? {};
+        setPurgePreview(result.count ?? 0);
+      } catch {
+        if (!cancelled) {
+          setPurgeError(
+            "We couldn’t check how many entries would be removed. Please try again.",
+          );
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+
+    loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [purgeOpen, purgeMonths]);
+
+  const handlePurge = async () => {
+    setPurgeLoading(true);
+    setPurgeError(null);
+    try {
+      const before = retentionCutoff(purgeMonths).toISOString();
+      const res = await fetch(
+        `/api/activity-log?before=${encodeURIComponent(before)}`,
+        { method: "DELETE" },
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to clear entries");
+      }
+      setPurgeOpen(false);
+      setConfirmPhrase("");
+      // Back to page 1 — the page the user was on may no longer exist.
+      setPage(1);
+      fetchLogs(1, true);
+    } catch (err: unknown) {
+      setPurgeError(
+        err instanceof Error
+          ? err.message
+          : "We couldn’t clear the entries. Please try again.",
+      );
+    } finally {
+      setPurgeLoading(false);
+    }
   };
 
   if (authLoading) return <PageLoadingSkeleton variant="admin" />;
@@ -167,6 +286,18 @@ export default function ActivityLogPage() {
             />
             Refresh
           </Button>
+          {isSuperAdmin && (
+            <Button
+              data-testid="app-admin-activity-log-button-3"
+              variant="outline"
+              size="sm"
+              onClick={openPurge}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2Icon size={16} className="mr-2" />
+              Clear Old Logs
+            </Button>
+          )}
         </div>
       </div>
 
@@ -181,9 +312,7 @@ export default function ActivityLogPage() {
         <CardContent className="flex flex-col p-0">
           <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0 animate-in fade-in duration-200">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-24">
-                <LoadingSpinner size="lg" centered label="Loading activity logs..." />
-              </div>
+              <FeedSkeleton count={8} />
             ) : fetchError ? (
               <ErrorState
                 title="Couldn\u2019t load activity log"
@@ -319,6 +448,91 @@ export default function ActivityLogPage() {
           )}
         </CardContent>
       </Card>
+
+      {isSuperAdmin && purgeOpen && (
+        <ConfirmModal
+          isOpen={purgeOpen}
+          onClose={closePurge}
+          onConfirm={handlePurge}
+          title="Clear Old Activity Log"
+          description="Deleted entries cannot be recovered. Records themselves are untouched — only the log of who changed what is removed."
+          confirmText={
+            purgePreview !== null && purgePreview > 0
+              ? `Delete ${purgePreview} ${purgePreview === 1 ? "Entry" : "Entries"}`
+              : "Delete Entries"
+          }
+          isLoading={purgeLoading}
+          confirmDisabled={
+            previewLoading ||
+            purgePreview === null ||
+            purgePreview === 0 ||
+            confirmPhrase !== PURGE_CONFIRM_PHRASE
+          }
+          error={purgeError}
+          icon={<AlertTriangleIcon size={24} style={{ color: "#dc2626" }} />}
+        >
+          <div className="flex w-full flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="purge-window">Delete entries</Label>
+              <Select
+                data-testid="app-admin-activity-log-select-1"
+                value={String(purgeMonths)}
+                onValueChange={(v) => setPurgeMonths(Number(v))}
+              >
+                <SelectTrigger id="purge-window" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RETENTION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.months} value={String(opt.months)}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Nothing from the last 60 days can be deleted.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+              {previewLoading ? (
+                <span className="text-muted-foreground">Checking…</span>
+              ) : purgePreview === null ? (
+                <span className="text-muted-foreground">—</span>
+              ) : purgePreview === 0 ? (
+                <span className="text-muted-foreground">
+                  No entries are older than this. Nothing to delete.
+                </span>
+              ) : (
+                <span>
+                  <span className="font-semibold text-destructive">
+                    {purgePreview}
+                  </span>{" "}
+                  of {total} entries will be permanently deleted, leaving{" "}
+                  {total - purgePreview}.
+                </span>
+              )}
+            </div>
+
+            {purgePreview !== null && purgePreview > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="purge-confirm">
+                  Type {PURGE_CONFIRM_PHRASE} to confirm
+                </Label>
+                <Input
+                  id="purge-confirm"
+                  value={confirmPhrase}
+                  autoComplete="off"
+                  disabled={purgeLoading}
+                  onChange={(e) => setConfirmPhrase(e.target.value)}
+                  placeholder={PURGE_CONFIRM_PHRASE}
+                />
+              </div>
+            )}
+          </div>
+        </ConfirmModal>
+      )}
     </div>
   );
 }

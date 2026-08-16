@@ -10,6 +10,7 @@ export {
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowUpRightIcon,
+  ArrowUpDownIcon,
 
   // Actions
   PlusIcon,
@@ -95,5 +96,13 @@ export {
 
   // Notifications
   BellIcon,
+
+  // Loans / Finance
+  LandmarkIcon,
+  WalletIcon,
+  CalendarIcon,
+  HandCoinsIcon,
+  ReceiptIcon,
+  UndoIcon,
 } from "./icon";
 export type { IconProps, ComponentIcon } from "./icon.types";

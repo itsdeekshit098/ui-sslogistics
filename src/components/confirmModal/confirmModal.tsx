@@ -20,6 +20,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     confirmText = "Confirm",
     cancelText = "Cancel",
     isLoading = false,
+    confirmDisabled = false,
     error = null,
     icon,
     children
@@ -56,7 +57,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         <Button data-testid="components-confirmModal-confirmModal-button-2"
                             variant="destructive"
                             onClick={onConfirm}
-                            disabled={isLoading}
+                            disabled={isLoading || confirmDisabled}
                             style={styles.actionButton}
                         >
                             {isLoading && <LoadingSpinner size="sm" className="mr-2" />}

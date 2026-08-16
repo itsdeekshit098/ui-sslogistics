@@ -34,12 +34,21 @@
   /* Semantic Variables added */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-subtle-foreground: var(--success-subtle-foreground);
 
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-subtle-foreground: var(--warning-subtle-foreground);
 
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-subtle-foreground: var(--info-subtle-foreground);
+
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-destructive-subtle-foreground: var(--destructive-subtle-foreground);
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -55,6 +64,24 @@
   --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+
+  /*
+    ─── Shadow Tokens ───
+    Without these, Tailwind's `shadow-sm`/`shadow-xl`/etc utilities fall
+    back to its own stock scale — fixed rgba(0,0,0,…) values that don't
+    adapt for dark mode — completely bypassing the theme-aware --shadow-*
+    variables defined below in :root/.dark. Routing the two together means
+    the 49 existing `shadow-*` classes across the app start picking up the
+    real theme automatically. `shadow-card`/`shadow-modal` are new utilities
+    for the component-specific shadows.
+  */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-card: var(--card-shadow);
+  --shadow-modal: var(--modal-shadow);
 
   /* ─── Animations ─── */
   --animate-accordion-down: accordion-down 0.2s ease-out;
@@ -76,6 +103,110 @@
     to {
       height: 0;
     }
+  }
+}
+
+/*
+  ─── Enter/Exit Motion Utilities ───
+  The app's JSX already composes classes like `animate-in fade-in-0
+  zoom-in-95 duration-100` and `data-[state=open]:animate-in` (see
+  select.tsx, the mobile sidebar drawer, notificationBell, filterDrawer) —
+  the pattern popularized by tailwindcss-animate. No such plugin is
+  installed, so every one of those classes was previously a no-op: dropdowns
+  popped in instantly, the drawer had no slide. Defined here by hand via
+  Tailwind v4's `@utility` (rather than a plain class) so they stay
+  composable with the `data-[state=]:`/`data-[side=]:` variants already
+  written into the JSX — only `@utility`-defined classes participate in
+  Tailwind's variant engine.
+  Respects prefers-reduced-motion by collapsing both keyframes to a no-op.
+*/
+@utility animate-in {
+  animation-name: ss-enter;
+  animation-duration: 150ms;
+  animation-fill-mode: both;
+}
+@utility animate-out {
+  animation-name: ss-exit;
+  animation-duration: 150ms;
+  animation-fill-mode: both;
+}
+@utility fade-in-0 {
+  --tw-enter-opacity: 0;
+}
+@utility fade-in {
+  --tw-enter-opacity: 0;
+}
+@utility fade-out-0 {
+  --tw-exit-opacity: 0;
+}
+@utility zoom-in-95 {
+  --tw-enter-scale: 0.95;
+}
+@utility zoom-out-95 {
+  --tw-exit-scale: 0.95;
+}
+@utility slide-in-from-left {
+  --tw-enter-translate-x: -100%;
+}
+@utility slide-in-from-right {
+  --tw-enter-translate-x: 100%;
+}
+@utility slide-in-from-top-2 {
+  --tw-enter-translate-y: -0.5rem;
+}
+@utility slide-in-from-bottom-2 {
+  --tw-enter-translate-y: 0.5rem;
+}
+@utility slide-in-from-left-2 {
+  --tw-enter-translate-x: -0.5rem;
+}
+@utility slide-in-from-right-2 {
+  --tw-enter-translate-x: 0.5rem;
+}
+
+@keyframes ss-enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+      scale3d(
+        var(--tw-enter-scale, 1),
+        var(--tw-enter-scale, 1),
+        var(--tw-enter-scale, 1)
+      );
+  }
+}
+
+@keyframes ss-exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+      scale3d(
+        var(--tw-exit-scale, 1),
+        var(--tw-exit-scale, 1),
+        var(--tw-exit-scale, 1)
+      );
+  }
+}
+
+/* Tailwind's own `duration-*` utilities only set `transition-duration`;
+   these add `animation-duration` under the same class names (a different
+   CSS property, so both declarations coexist without conflict) for the
+   exact durations the enter/exit classes above are combined with. */
+.duration-100 {
+  animation-duration: 100ms;
+}
+.duration-200 {
+  animation-duration: 200ms;
+}
+.duration-300 {
+  animation-duration: 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .animate-out {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
@@ -174,14 +305,27 @@
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
 
-  --success: hsl(142.1 76.2% 36.3%);
-  --success-foreground: hsl(355.7 100% 97.3%);
+  /* success/warning text on their solid fills must clear 4.5:1 (WCAG AA) —
+     the previous pairs measured 3.0:1 and 1.9:1 respectively. */
+  --success: hsl(142 71% 29%);
+  --success-foreground: hsl(0 0% 100%);
 
   --warning: hsl(38 92% 50%);
-  --warning-foreground: hsl(48 96% 89%);
+  --warning-foreground: hsl(26 60% 14%);
 
   --info: hsl(221.2 83.2% 53.3%);
   --info-foreground: hsl(210 40% 98%);
+
+  /* Soft tint pairs for badges/banners — tone conveyed by a tinted surface
+     instead of a solid fill, foreground is the saturated color itself. */
+  --success-subtle: hsl(142 60% 94%);
+  --success-subtle-foreground: hsl(142 71% 24%);
+  --warning-subtle: hsl(38 92% 94%);
+  --warning-subtle-foreground: hsl(26 70% 30%);
+  --destructive-subtle: hsl(0 84% 95%);
+  --destructive-subtle-foreground: hsl(0 70% 40%);
+  --info-subtle: hsl(221 83% 95%);
+  --info-subtle-foreground: hsl(221 83% 42%);
 
   --card: hsl(0 0% 100%); /* pure white */
   --card-foreground: hsl(222 47% 11%);
@@ -199,13 +343,19 @@
 
   --border: hsl(214 32% 91%);
   --input: hsl(214 32% 91%);
-  --ring: hsl(222 84% 5%);
+  /* Ring tracks the brand primary rather than a near-black neutral, so a
+     focus outline reads as "this app's blue," not an unrelated dark ring. */
+  --ring: var(--primary);
 
   /* ─── Base Radius ─── */
   --radius: 0.5rem;
 
   /* ─── Component-Specific Radius ─── */
-  --card-radius: var(--radius-lg);
+  /* radius-xl (12px), not radius-lg (10px): every page already builds its
+     cards with Tailwind's `rounded-xl`, so aligning the token here — rather
+     than rewriting rounded-xl on every page — is what makes the Card
+     primitive, StatCard and DataTable match what's already everywhere. */
+  --card-radius: var(--radius-xl);
   --modal-radius: var(--radius-xl);
   --input-radius: var(--radius-md);
   --badge-radius: 9999px;
@@ -224,6 +374,7 @@
   /* ─── Component Shadows ─── */
   --card-shadow: var(--shadow-sm);
   --modal-shadow: var(--shadow-xl);
+  --overlay-background: rgba(0, 0, 0, 0.6);
 
   /* ─── Spacing Scale (4px base) ─── */
   --space-0: 0;
@@ -244,48 +395,78 @@
   --input-height-sm: 2.25rem;
   --input-height: 2.5rem;
   --input-height-lg: 2.75rem;
+
+  /* ─── Z-Index Scale ───
+     Popovers/comboboxes/selects portal to document.body, same as modal
+     overlays, so painting order between them depends entirely on these
+     values (DOM order doesn't help — see modal/modal.tsx's `nested` prop).
+     --z-popover must stay above --z-modal-nested-overlay so a combobox
+     opened inside a nested modal (e.g. "Add new account" from within
+     another modal's dropdown) isn't painted underneath that modal's own
+     overlay. */
+  --z-modal-overlay: 50;
+  --z-modal-nested-overlay: 10000;
+  --z-popover: 10010;
 }
 
 .dark {
-  /* ─── Core Palette (Dark Slate) ─── */
-  --background: hsl(222 47% 11%); /* slate-900 canvas */
+  /*
+    ─── Core Palette (Dark Slate) ───
+    Elevation runs background(8%) < card(13%) < popover(16%), each step
+    strictly lighter than the last so a card visibly sits above the page and
+    a popover visibly floats above a card. Border sits at 30% — clearly
+    lighter than every surface it borders, so it stays visible instead of
+    blending into the canvas (the old scheme had border/muted both at 17%,
+    the same lightness as each other, which erased every card edge).
+  */
+  --background: hsl(222 47% 8%); /* darkest layer: the page canvas */
   --foreground: hsl(210 40% 98%);
 
   --primary: hsl(217 91% 60%);
   --primary-foreground: hsl(222 47% 11%);
 
-  --secondary: hsl(217 33% 17%);
+  --secondary: hsl(222 28% 18%);
   --secondary-foreground: hsl(210 40% 98%);
 
-  --muted: hsl(217 33% 17%);
+  --muted: hsl(222 28% 18%);
   --muted-foreground: hsl(215 20% 65%);
   --placeholder-foreground: hsl(215 15% 42%);
 
-  --accent: hsl(217 33% 17%);
+  --accent: hsl(222 28% 18%);
   --accent-foreground: hsl(210 40% 98%);
 
   --destructive: hsl(0 63% 31%);
   --destructive-foreground: hsl(210 40% 98%);
 
-  --success: hsl(149 65.1% 30.2%);
+  --success: hsl(149 60% 32%);
   --success-foreground: hsl(0 0% 98%);
 
-  --warning: hsl(48 96.6% 40.8%);
-  --warning-foreground: hsl(0 0% 98%);
+  /* --warning-foreground darkened from near-white — the previous pair
+     measured 2.25:1 against the amber fill, well under the 4.5:1 AA floor. */
+  --warning: hsl(42 94% 44%);
+  --warning-foreground: hsl(26 60% 12%);
 
   --info: hsl(217.2 91.2% 59.8%);
   --info-foreground: hsl(0 0% 98%);
 
-  /* Cards should be slightly lighter than background */
-  --card: hsl(217 33% 14%); /* slate-800ish */
+  --success-subtle: hsl(149 40% 16%);
+  --success-subtle-foreground: hsl(149 60% 65%);
+  --warning-subtle: hsl(42 60% 16%);
+  --warning-subtle-foreground: hsl(42 80% 65%);
+  --destructive-subtle: hsl(0 45% 18%);
+  --destructive-subtle-foreground: hsl(0 70% 72%);
+  --info-subtle: hsl(217 45% 18%);
+  --info-subtle-foreground: hsl(217 80% 72%);
+
+  --card: hsl(222 35% 13%); /* one step above background */
   --card-foreground: hsl(210 40% 98%);
 
-  --popover: hsl(217 33% 14%);
+  --popover: hsl(222 32% 16%); /* one step above card, floats above it */
   --popover-foreground: hsl(210 40% 98%);
 
-  --border: hsl(217 33% 17%);
-  --input: hsl(217 33% 17%);
-  --ring: hsl(213 31% 91%);
+  --border: hsl(222 18% 30%);
+  --input: hsl(222 18% 30%);
+  --ring: var(--primary);
 
   --brand: hsl(0 72% 56%);
   --brand-foreground: hsl(0 0% 100%);
@@ -300,6 +481,16 @@
     0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
   --shadow-xl:
     0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+
+  /* A black shadow reads as elevation against a light page; against a
+     blurred, already-dark overlay it's nearly invisible, which is why a
+     dialog can look "washed out" in dark mode even with a correct card
+     background. The 1px white-alpha ring is what actually separates the
+     dialog's edge from the backdrop; the black shadow underneath still
+     helps at the edges where blurred page content shows through. */
+  --modal-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --overlay-background: rgba(0, 0, 0, 0.75);
 }
 
 /* Pre-hydration fallback: mirrors .dark so the very first paint (before the
@@ -308,46 +499,59 @@
    "light" (script always sets that class, never leaves it absent). */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: hsl(222 47% 11%);
+    --background: hsl(222 47% 8%);
     --foreground: hsl(210 40% 98%);
 
     --primary: hsl(217 91% 60%);
     --primary-foreground: hsl(222 47% 11%);
 
-    --secondary: hsl(217 33% 17%);
+    --secondary: hsl(222 28% 18%);
     --secondary-foreground: hsl(210 40% 98%);
 
-    --muted: hsl(217 33% 17%);
+    --muted: hsl(222 28% 18%);
     --muted-foreground: hsl(215 20% 65%);
     --placeholder-foreground: hsl(215 15% 42%);
 
-    --accent: hsl(217 33% 17%);
+    --accent: hsl(222 28% 18%);
     --accent-foreground: hsl(210 40% 98%);
 
     --destructive: hsl(0 63% 31%);
     --destructive-foreground: hsl(210 40% 98%);
 
-    --success: hsl(149 65.1% 30.2%);
+    --success: hsl(149 60% 32%);
     --success-foreground: hsl(0 0% 98%);
 
-    --warning: hsl(48 96.6% 40.8%);
-    --warning-foreground: hsl(0 0% 98%);
+    --warning: hsl(42 94% 44%);
+    --warning-foreground: hsl(26 60% 12%);
 
     --info: hsl(217.2 91.2% 59.8%);
     --info-foreground: hsl(0 0% 98%);
 
-    --card: hsl(217 33% 14%);
+    --success-subtle: hsl(149 40% 16%);
+    --success-subtle-foreground: hsl(149 60% 65%);
+    --warning-subtle: hsl(42 60% 16%);
+    --warning-subtle-foreground: hsl(42 80% 65%);
+    --destructive-subtle: hsl(0 45% 18%);
+    --destructive-subtle-foreground: hsl(0 70% 72%);
+    --info-subtle: hsl(217 45% 18%);
+    --info-subtle-foreground: hsl(217 80% 72%);
+
+    --card: hsl(222 35% 13%);
     --card-foreground: hsl(210 40% 98%);
 
-    --popover: hsl(217 33% 14%);
+    --popover: hsl(222 32% 16%);
     --popover-foreground: hsl(210 40% 98%);
 
-    --border: hsl(217 33% 17%);
-    --input: hsl(217 33% 17%);
-    --ring: hsl(213 31% 91%);
+    --border: hsl(222 18% 30%);
+    --input: hsl(222 18% 30%);
+    --ring: var(--primary);
 
     --brand: hsl(0 72% 56%);
     --brand-foreground: hsl(0 0% 100%);
+
+    --modal-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --overlay-background: rgba(0, 0, 0, 0.75);
   }
 }
 

@@ -33,10 +33,18 @@ function getMimeType(filePath: string): string {
  * Sanitize a filename for use in Content-Disposition headers.
  * Strips control characters, quotes, backslashes, and non-ASCII to prevent
  * header injection vulnerabilities.
+ *
+ * The non-ASCII strip is not just a courtesy: Content-Disposition must be a
+ * valid HTTP header ByteString (every char <= 255), and header construction
+ * throws otherwise — e.g. macOS screenshot filenames embed U+202F (narrow
+ * no-break space) between the time and AM/PM.
  */
 function sanitizeFileName(raw: string): string {
-  // Remove control chars (0x00-0x1F, 0x7F), quotes, backslashes
-  const cleaned = raw.replace(/[\x00-\x1f\x7f"\\]/g, "");
+  // Remove control chars (0x00-0x1F, 0x7F), quotes, backslashes, and any
+  // character outside printable ASCII.
+  const cleaned = raw
+    .replace(/[\x00-\x1f\x7f"\\]/g, "")
+    .replace(/[^\x20-\x7e]/g, "_");
   // Fallback if the result is empty or only whitespace
   return cleaned.trim() || "document";
 }

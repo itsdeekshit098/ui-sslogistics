@@ -23,6 +23,11 @@ export interface TripBooking {
   status: TripBookingStatus;
   quoted_amount: number | null;
   advance_amount: number;
+  trip_type: "company_oncall" | "external_user" | null;
+  cost_items: { label: string; amount: number }[] | null;
+  total_cost: number | null;
+  amount_received: number | null;
+  completed_at: string | null;
   notes: string | null;
   external_trip_id: number | null;
   created_by: string | null;
@@ -144,6 +149,9 @@ export interface TripBookingSummary {
   overdueCount: number;
   completedCount: number;
   cancelledCount: number;
+  totalCost: number;
+  totalReceived: number;
+  totalProfit: number;
 }
 
 export interface TripBookingListResponse {

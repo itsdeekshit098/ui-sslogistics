@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/loadingSpinner";
 
 function LoginForm() {
   const router = useRouter();
@@ -148,6 +149,7 @@ function LoginForm() {
             disabled={isLoading}
             className="w-full rounded-full py-2.5 h-auto"
           >
+            {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
             {isLoading ? "Signing in..." : "Sign in to Operations Portal"}
           </Button>
         </form>

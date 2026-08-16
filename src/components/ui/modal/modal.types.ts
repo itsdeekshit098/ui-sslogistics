@@ -4,9 +4,9 @@ export interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
-  /** 
-   * Useful when rendering a modal inside another overlay component.
-   * If true, renders the modal using a React Portal on document.body and increases z-index to 10000.
+  /**
+   * Raises the modal above a parent modal for modal-on-modal flows.
+   * All modals render through a portal on document.body.
    */
   nested?: boolean;
   /**

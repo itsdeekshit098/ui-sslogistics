@@ -4,7 +4,44 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 
+// Compatibility adapter. The `vehicle_owners` table is gone — owners are now
+// rows in `entities` (see sql/28_add_entities.sql), which also carries loan
+// borrowers. This route survives unchanged in shape so existing callers — the
+// Flutter owners screen, the vehicle create/edit forms and their owner
+// dropdowns — keep working without a release. New UI should call
+// /api/entities, which exposes the full record (kind, proprietor, contact
+// details) instead of the two fields below.
+//
+// Mapping: entities.relationship INTERNAL <-> owner_type OWN, EXTERNAL both ways.
+
 const VALID_OWNER_TYPES = ["OWN", "EXTERNAL"] as const;
+
+type OwnerType = (typeof VALID_OWNER_TYPES)[number];
+
+function toOwnerType(relationship: string): OwnerType {
+  return relationship === "INTERNAL" ? "OWN" : "EXTERNAL";
+}
+
+function toRelationship(ownerType: string): "INTERNAL" | "EXTERNAL" {
+  return ownerType === "OWN" ? "INTERNAL" : "EXTERNAL";
+}
+
+interface EntityRow {
+  id: number;
+  name: string;
+  relationship: string;
+  created_at?: string;
+}
+
+/** Projects an entity down to the legacy vehicle_owners shape. */
+function toOwner(entity: EntityRow) {
+  return {
+    id: entity.id,
+    name: entity.name,
+    owner_type: toOwnerType(entity.relationship),
+    ...(entity.created_at ? { created_at: entity.created_at } : {}),
+  };
+}
 
 export async function GET(req: Request) {
   try {
@@ -19,12 +56,13 @@ export async function GET(req: Request) {
     const pageParam = searchParams.get("page");
 
     let query = supabaseAdmin
-      .from("vehicle_owners")
-      .select("id, name, owner_type", pageParam ? { count: "exact" } : undefined)
+      .from("entities")
+      .select("id, name, relationship, created_at", pageParam ? { count: "exact" } : undefined)
+      .eq("is_active", true)
       .order("name", { ascending: true });
 
     if (ownerType) {
-      query = query.eq("owner_type", ownerType);
+      query = query.eq("relationship", toRelationship(ownerType));
     }
     if (search) {
       const escaped = search.replace(/[%_]/g, "\\$&");
@@ -45,7 +83,7 @@ export async function GET(req: Request) {
       if (error) {
         return serverError(error);
       }
-      return apiSuccess({ data: data ?? [], total: count ?? 0 });
+      return apiSuccess({ data: (data ?? []).map(toOwner), total: count ?? 0 });
     }
 
     query = query.limit(1000);
@@ -55,7 +93,7 @@ export async function GET(req: Request) {
       return serverError(error);
     }
 
-    return apiSuccess(data);
+    return apiSuccess((data ?? []).map(toOwner));
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -66,19 +104,31 @@ export async function POST(req: Request) {
     const authUser = await requireAdminAuth();
     const body = await req.json();
 
-    if (!body.name || body.name.trim() === "") {
+    if (!body.name || String(body.name).trim() === "") {
       return apiError("Owner name is required", 400);
     }
     if (!(VALID_OWNER_TYPES as readonly string[]).includes(body.owner_type)) {
-      return apiError(`Invalid owner type. Allowed values: ${VALID_OWNER_TYPES.join(", ")}`, 400);
+      return apiError(
+        `Invalid owner type. Allowed values: ${VALID_OWNER_TYPES.join(", ")}`,
+        400,
+      );
     }
 
-    const insertPayload = { name: body.name.trim(), owner_type: body.owner_type };
+    const name = String(body.name).trim();
+    // entity_kind isn't expressible in the legacy payload; FIRM is the safer
+    // default (it matches how sql/28 backfilled existing owners) and the row
+    // can be re-tagged as a person from the Firms & Owners page.
+    const insertPayload = {
+      name,
+      entity_kind: "FIRM",
+      relationship: toRelationship(body.owner_type),
+      created_by: authUser.id,
+    };
 
     const { data, error } = await supabaseAdmin
-      .from("vehicle_owners")
+      .from("entities")
       .insert([insertPayload])
-      .select("*")
+      .select("id, name, relationship, created_at")
       .single();
 
     if (error) {
@@ -94,13 +144,13 @@ export async function POST(req: Request) {
         userId: authUser.id,
         userEmail: authUser.email,
         userDisplayName: authUser.displayName,
-        tableName: "vehicle_owners",
+        tableName: "entities",
         recordId: data.id,
-        details: insertPayload,
+        details: { name, owner_type: body.owner_type },
       });
     });
 
-    return apiSuccess({ owner: data }, "Owner added", 201);
+    return apiSuccess({ owner: toOwner(data) }, "Owner added", 201);
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -119,50 +169,38 @@ export async function PUT(req: Request) {
     const updatePayload: Record<string, unknown> = {};
 
     if (fields.name !== undefined) {
-      if (!fields.name || fields.name.trim() === "") {
+      if (!fields.name || String(fields.name).trim() === "") {
         return apiError("Owner name cannot be empty", 400);
       }
-      updatePayload.name = fields.name.trim();
+      updatePayload.name = String(fields.name).trim();
     }
 
     if (fields.owner_type !== undefined) {
       if (!(VALID_OWNER_TYPES as readonly string[]).includes(fields.owner_type)) {
-        return apiError(`Invalid owner type. Allowed values: ${VALID_OWNER_TYPES.join(", ")}`, 400);
+        return apiError(
+          `Invalid owner type. Allowed values: ${VALID_OWNER_TYPES.join(", ")}`,
+          400,
+        );
       }
-      updatePayload.owner_type = fields.owner_type;
+      updatePayload.relationship = toRelationship(fields.owner_type);
     }
 
     if (Object.keys(updatePayload).length === 0) {
       return apiError("No fields to update", 400);
     }
 
-    // Fetch the current row first: vehicles store the owner's name/type as
-    // denormalized plain text, so a rename must cascade to keep them in sync
-    // (and to keep the DELETE in-use check, which matches by name, reliable).
-    const { data: existing, error: fetchErr } = await supabaseAdmin
-      .from("vehicle_owners")
-      .select("id, name, owner_type")
+    updatePayload.updated_by = authUser.id;
+    updatePayload.updated_at = new Date().toISOString();
+
+    // The cascade onto vehicles.owner_name / owner_type is handled by
+    // trg_entities_cascade_rename (sql/28_add_entities.sql), which replaced the
+    // rename_vehicle_owner RPC this route used to call.
+    const { data, error } = await supabaseAdmin
+      .from("entities")
+      .update(updatePayload)
       .eq("id", Number(id))
-      .single();
-
-    if (fetchErr || !existing) {
-      return apiError("Owner not found", 404);
-    }
-
-    // Renaming the owner and cascading the new name/type onto every vehicle
-    // row that references it must be atomic — done via a single plpgsql
-    // function (sql/2026-07-04_atomic_vehicle_owner_rename.sql) rather than
-    // two separate updates, so a mid-flight failure can't leave vehicle_owners
-    // and vehicles out of sync with no rollback.
-    const { data: rpcRows, error } = await supabaseAdmin.rpc(
-      "rename_vehicle_owner",
-      {
-        p_id: Number(id),
-        p_name: (updatePayload.name as string | undefined) ?? existing.name,
-        p_owner_type:
-          (updatePayload.owner_type as string | undefined) ?? existing.owner_type,
-      },
-    );
+      .select("id, name, relationship, created_at")
+      .maybeSingle();
 
     if (error) {
       if (error.code === "23505") {
@@ -171,7 +209,6 @@ export async function PUT(req: Request) {
       return serverError(error);
     }
 
-    const data = rpcRows?.[0];
     if (!data) {
       return apiError("Owner not found", 404);
     }
@@ -182,13 +219,13 @@ export async function PUT(req: Request) {
         userId: authUser.id,
         userEmail: authUser.email,
         userDisplayName: authUser.displayName,
-        tableName: "vehicle_owners",
+        tableName: "entities",
         recordId: Number(id),
         details: updatePayload,
       });
     });
 
-    return apiSuccess({ owner: data }, "Owner updated", 200);
+    return apiSuccess({ owner: toOwner(data) }, "Owner updated", 200);
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -206,35 +243,96 @@ export async function DELETE(req: Request) {
     }
 
     const { data: owner, error: fetchErr } = await supabaseAdmin
-      .from("vehicle_owners")
-      .select("name")
+      .from("entities")
+      .select("id, name")
       .eq("id", Number(id))
-      .single();
+      .maybeSingle();
 
-    if (fetchErr || !owner) {
+    if (fetchErr) {
+      return serverError(fetchErr);
+    }
+    if (!owner) {
       return apiError("Owner not found", 404);
     }
 
-    // Owner names are copied onto vehicles as plain text (no FK), so check by
-    // name to warn before removing an owner that's still referenced.
-    const { count, error: countErr } = await supabaseAdmin
-      .from("vehicles")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_name", owner.name);
+    // Now a real foreign key rather than a name match, so this counts exactly
+    // what the DB itself would refuse to orphan. Same six directions as
+    // /api/entities DELETE — this route deletes the same underlying entities
+    // row, so it needs the same guards (an owner deleted out from under a
+    // loan/funding/firm/client/bank account would orphan it).
+    const ownerId = Number(id);
+    const [vehicles, loans, fundings, firms, clients, bankAccounts] = await Promise.all([
+      supabaseAdmin
+        .from("vehicles")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_entity_id", ownerId),
+      supabaseAdmin
+        .from("loans")
+        .select("id", { count: "exact", head: true })
+        .eq("borrower_entity_id", ownerId),
+      supabaseAdmin
+        .from("fundings")
+        .select("id", { count: "exact", head: true })
+        .or(`borrower_entity_id.eq.${ownerId},counterparty_entity_id.eq.${ownerId}`),
+      supabaseAdmin
+        .from("entities")
+        .select("id", { count: "exact", head: true })
+        .eq("proprietor_entity_id", ownerId),
+      supabaseAdmin
+        .from("clients")
+        .select("id", { count: "exact", head: true })
+        .eq("entity_id", ownerId),
+      supabaseAdmin
+        .from("bank_accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("holder_entity_id", ownerId),
+    ]);
 
-    if (countErr) {
-      return serverError(countErr);
+    for (const result of [vehicles, loans, fundings, firms, clients, bankAccounts]) {
+      if (result.error) return serverError(result.error);
     }
 
-    if ((count ?? 0) > 0) {
+    if ((vehicles.count ?? 0) > 0) {
       return apiError(
-        `Cannot delete "${owner.name}" because ${count} vehicle(s) are currently assigned to this owner. Reassign those vehicles first.`,
+        `Cannot delete "${owner.name}" because ${vehicles.count} vehicle(s) are currently assigned to this owner. Reassign those vehicles first.`,
+        400,
+      );
+    }
+
+    const blocking: string[] = [];
+    if (loans.count) blocking.push(`${loans.count} loan(s)`);
+    if (fundings.count) blocking.push(`${fundings.count} private funding(s)`);
+
+    if (blocking.length > 0) {
+      return apiError(
+        `Cannot delete "${owner.name}" because ${blocking.join(" and ")} are in its name.`,
+        400,
+      );
+    }
+
+    if ((firms.count ?? 0) > 0) {
+      return apiError(
+        `Cannot delete "${owner.name}" because ${firms.count} firm(s) list it as proprietor. Clear those first.`,
+        400,
+      );
+    }
+
+    if ((clients.count ?? 0) > 0) {
+      return apiError(
+        `Cannot delete "${owner.name}" because ${clients.count} client account(s) are linked to it. Unlink those first.`,
+        400,
+      );
+    }
+
+    if ((bankAccounts.count ?? 0) > 0) {
+      return apiError(
+        `Cannot delete "${owner.name}" because ${bankAccounts.count} bank account(s) are held in its name. Remove those first.`,
         400,
       );
     }
 
     const { error } = await supabaseAdmin
-      .from("vehicle_owners")
+      .from("entities")
       .delete()
       .eq("id", Number(id));
 
@@ -248,7 +346,7 @@ export async function DELETE(req: Request) {
         userId: authUser.id,
         userEmail: authUser.email,
         userDisplayName: authUser.displayName,
-        tableName: "vehicle_owners",
+        tableName: "entities",
         recordId: Number(id),
         details: { name: owner.name },
       });

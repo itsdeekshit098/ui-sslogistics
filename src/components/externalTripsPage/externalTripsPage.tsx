@@ -38,7 +38,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./externalTripsPage.style";
@@ -345,6 +345,7 @@ export function ExternalTripsPage() {
       icon: <PencilIcon size={14} />,
       hidden: () => !canManage,
       onClick: handleEdit,
+      testId: (trip) => `external-trips-edit-btn-${trip.id}`,
     },
     {
       key: "delete",
@@ -353,6 +354,7 @@ export function ExternalTripsPage() {
       variant: "danger",
       hidden: () => !canManage,
       onClick: (trip) => setDeleteTarget(trip),
+      testId: (trip) => `external-trips-delete-btn-${trip.id}`,
     },
   ];
 
@@ -379,7 +381,7 @@ export function ExternalTripsPage() {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+          <Button data-testid="external-trips-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Trip
           </Button>
         )}
@@ -497,7 +499,7 @@ export function ExternalTripsPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner size="md" centered label="Loading trips..." />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   displayData.map((trip) => {
                     const route = [trip.from_location, trip.to_location]

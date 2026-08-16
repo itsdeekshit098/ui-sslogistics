@@ -20,7 +20,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 
@@ -282,6 +282,7 @@ export function TechniciansPage() {
       icon: null, // Computed inside cell or we render dynamic icon
       hidden: () => !canManage,
       onClick: toggleStatus,
+      testId: (tech) => `technicians-toggle-status-btn-${tech.id}`,
     },
     {
       key: "edit",
@@ -289,6 +290,7 @@ export function TechniciansPage() {
       icon: <PencilIcon size={14} />,
       hidden: () => !canManage,
       onClick: handleEdit,
+      testId: (tech) => `technicians-edit-btn-${tech.id}`,
     },
     {
       key: "delete",
@@ -297,6 +299,7 @@ export function TechniciansPage() {
       variant: "danger",
       hidden: () => !canManage,
       onClick: (tech) => setDeleteTarget(tech),
+      testId: (tech) => `technicians-delete-btn-${tech.id}`,
     },
   ];
 
@@ -343,7 +346,7 @@ export function TechniciansPage() {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+          <Button data-testid="technicians-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Technician
           </Button>
         )}
@@ -355,6 +358,7 @@ export function TechniciansPage() {
           <div className="relative w-full max-w-sm">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
+              data-testid="technicians-search-input"
               placeholder="Search by name, phone or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -379,9 +383,7 @@ export function TechniciansPage() {
 
         {/* Content */}
         <div className="p-4 pb-2 sm:p-6 sm:pb-4">
-          {fetching && technicians.length === 0 ? (
-            <LoadingSpinner size="md" centered label="Loading technicians..." />
-          ) : error ? (
+          {error ? (
             <ErrorState
               title="Couldn't load technicians"
               description={error}
@@ -424,7 +426,7 @@ export function TechniciansPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner size="md" centered label="Loading technicians..." />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   technicians.map((tech) => (
                     <div

@@ -302,7 +302,7 @@ const Typeahead = <TOption,>({
               };
             })(),
           }}
-          className="z-[9999] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-background p-1 text-sm text-foreground shadow-2xl drop-shadow-sm"
+          className="z-[var(--z-popover)] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-background p-1 text-sm text-foreground shadow-2xl drop-shadow-sm"
         >
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option, index) => {

@@ -29,6 +29,8 @@ import {
   fieldLabel as filterFieldLabel,
 } from "@/components/ui/filterDrawer";
 import { Tooltip } from "@/components/ui/tooltip";
+import { ErrorState } from "@/components/errorState";
+import { EmptyState } from "@/components/emptyState";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { WarrantyItem, WarrantyStatusFilter } from "./warrantyPage.types";
 import type { VehicleOption, Vendor } from "@/components/partModal";
@@ -394,6 +396,7 @@ export function WarrantyPage() {
 
   const addPartBtn = (
     <Button
+      data-testid="warranty-add-btn"
       onClick={() => setShowAddPart(true)}
       disabled={refDataLoading || !!refDataError}
       style={refDataError ? { pointerEvents: "none" } : undefined}
@@ -456,6 +459,7 @@ export function WarrantyPage() {
             }}
           />
           <Input
+            data-testid="warranty-search-input"
             placeholder="Search by part name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -470,16 +474,15 @@ export function WarrantyPage() {
           {loading ? (
             <div style={styles.emptyContainer}>Loading warranty records...</div>
           ) : fetchError ? (
-            <div style={{ ...styles.emptyContainer, flexDirection: "column", gap: "1rem" }}>
-              <span style={{ color: "var(--destructive, #ef4444)" }}>{fetchError}</span>
-              <Button variant="outline" size="sm" onClick={() => fetchData()}>
-                Retry
-              </Button>
-            </div>
+            <ErrorState title="Error" description={fetchError} onRetry={() => fetchData()} />
           ) : items.length === 0 ? (
-            <div style={styles.emptyContainer}>
-              <span>No warranty records found</span>
-            </div>
+            <EmptyState
+              icon={PackageIcon}
+              title="No Warranty Records"
+              description="No warranty records found for the selected filters."
+              actionLabel="Add Warranty Part"
+              onAction={() => setShowAddPart(true)}
+            />
           ) : (
             <div style={styles.cardGrid}>
               {items.map((item) => (
@@ -504,13 +507,16 @@ export function WarrantyPage() {
             emptyMessage="No warranty records found"
             emptyNode={
               fetchError ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "2rem" }}>
-                  <span style={{ color: "var(--destructive, #ef4444)" }}>{fetchError}</span>
-                  <Button variant="outline" size="sm" onClick={() => fetchData()}>
-                    Retry
-                  </Button>
-                </div>
-              ) : undefined
+                <ErrorState title="Error" description={fetchError} onRetry={() => fetchData()} />
+              ) : (
+                <EmptyState
+                  icon={PackageIcon}
+                  title="No Warranty Records"
+                  description="No warranty records found for the selected filters."
+                  actionLabel="Add Warranty Part"
+                  onAction={() => setShowAddPart(true)}
+                />
+              )
             }
             striped
             stickyHeader
@@ -522,6 +528,7 @@ export function WarrantyPage() {
                 disabled: () => !!refDataError,
                 disabledTooltip: refDataError || undefined,
                 onClick: (row) => setEditItem(row),
+                testId: (row) => `warranty-edit-btn-${row.id}`,
               },
               {
                 key: "delete",
@@ -529,6 +536,7 @@ export function WarrantyPage() {
                 icon: <Trash2Icon size={14} />,
                 variant: "danger",
                 onClick: (row) => setDeleteItem(row),
+                testId: (row) => `warranty-delete-btn-${row.id}`,
               },
             ]}
           />

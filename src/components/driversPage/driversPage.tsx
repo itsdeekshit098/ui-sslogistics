@@ -20,7 +20,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
@@ -210,7 +210,7 @@ export function DriversPage() {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
+          <Button data-testid="drivers-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Driver
           </Button>
         )}
@@ -225,6 +225,7 @@ export function DriversPage() {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <Input
+              data-testid="drivers-search-input"
               placeholder="Search by name, phone, place or DL..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -249,9 +250,7 @@ export function DriversPage() {
 
         {/* Content */}
         <div className="p-4 pb-2 sm:p-6 sm:pb-4">
-          {fetching && drivers.length === 0 ? (
-            <LoadingSpinner size="md" centered label="Loading drivers..." />
-          ) : error ? (
+          {error ? (
             <ErrorState
               title="Couldn't load drivers"
               description={error}
@@ -367,6 +366,7 @@ export function DriversPage() {
                         ),
                       onClick: (row) => toggleStatus(row),
                       hidden: () => !canManage,
+                      testId: (row) => `drivers-toggle-status-btn-${row.id}`,
                     },
                     {
                       key: "edit",
@@ -374,6 +374,7 @@ export function DriversPage() {
                       icon: <PencilIcon size={14} />,
                       onClick: (row) => handleEdit(row),
                       hidden: () => !canManage,
+                      testId: (row) => `drivers-edit-btn-${row.id}`,
                     },
                     {
                       key: "delete",
@@ -382,6 +383,7 @@ export function DriversPage() {
                       variant: "danger",
                       onClick: (row) => setDeleteTarget(row),
                       hidden: () => !canManage,
+                      testId: (row) => `drivers-delete-btn-${row.id}`,
                     },
                   ]}
                 />
@@ -390,11 +392,7 @@ export function DriversPage() {
               {/* Mobile Cards */}
               <div className="md:hidden space-y-4">
                 {fetching ? (
-                  <LoadingSpinner
-                    size="md"
-                    centered
-                    label="Loading drivers..."
-                  />
+                  <CardListSkeleton count={5} lines={2} />
                 ) : (
                   drivers.map((driver) => (
                     <div

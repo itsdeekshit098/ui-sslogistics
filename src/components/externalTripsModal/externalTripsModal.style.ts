@@ -23,6 +23,39 @@ export const fieldGroup: CSSProperties = {
   gap: "0.5rem",
 };
 
+/* From/To location pair: stacked full-width fields (rather than a two-up
+   grid) so the autocomplete dropdown has the whole row's width to lay out
+   suggestions in, with a small swap affordance between them. */
+export const routeSection: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.375rem",
+};
+
+export const routeSwapRow: CSSProperties = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  margin: "-0.25rem 0",
+};
+
+export const routeSwapButton: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1.75rem",
+  height: "1.75rem",
+  padding: 0,
+  flexShrink: 0,
+  lineHeight: 1,
+  borderRadius: "50%",
+  border: "1px solid var(--border)",
+  backgroundColor: "var(--card)",
+  color: "var(--muted-foreground)",
+  cursor: "pointer",
+  transition: "all 0.15s",
+};
+
 export const fieldLabel: CSSProperties = {
   fontSize: "0.875rem",
   fontWeight: 500,
@@ -199,6 +232,17 @@ export const readOnlyBadge: CSSProperties = {
   fontSize: "0.875rem",
   fontWeight: 500,
   color: "var(--foreground)",
+};
+
+export const receiptSummary: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "0.75rem",
+  padding: "0.75rem",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--input-radius, 0.5rem)",
+  backgroundColor: "var(--background)",
+  fontSize: "0.875rem",
 };
 
 /* ─── Read-only ─── */

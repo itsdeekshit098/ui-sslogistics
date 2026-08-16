@@ -164,7 +164,7 @@ export async function POST(req: Request) {
       const lastFillDate = new Date(lastEntry.fill_date);
       if (newFillDate.getTime() < lastFillDate.getTime()) {
         return apiError(
-          `Fill date cannot be earlier than the previous entry's date (${lastEntry.fill_date})`,
+          `Fill date cannot be earlier than the previous entry's date (${formatDisplayDateTime(lastFillDate)})`,
           400,
         );
       }
@@ -585,6 +585,22 @@ function round2(n: number): number {
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+// Formats a date for user-facing error messages, e.g. "10 Jul 2026, 01:39 PM".
+// Explicit Asia/Kolkata timezone since this runs server-side (unlike the
+// client-side en-IN formatters elsewhere, which implicitly rely on the
+// browser being in IST) — this is a logistics company operating in India.
+function formatDisplayDateTime(date: Date): string {
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
 }
 
 // ─── DELETE — Delete diesel record (admin only) ───

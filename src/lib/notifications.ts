@@ -3,7 +3,7 @@ import { getMessaging } from "firebase-admin/messaging";
 import { supabaseAdmin } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
 
-export type NotificationRole = "admin" | "staff" | "driver";
+export type NotificationRole = "admin" | "staff" | "driver" | "superadmin";
 
 interface NotifyRolesParams {
   roles: NotificationRole[];

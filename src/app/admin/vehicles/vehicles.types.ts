@@ -71,7 +71,11 @@ export const SEATING_CAPACITY_TYPES: VehicleType[] = [
   "TEMPO_TRAVELLER",
 ];
 
-/** Matches the check constraint on `vehicles.owner_type` and `vehicle_owners.owner_type` */
+/**
+ * Matches the check constraint on `vehicles.owner_type`, which is now a
+ * trigger-maintained mirror of `entities.relationship`
+ * (INTERNAL -> OWN, EXTERNAL -> EXTERNAL) — see sql/28_add_entities.sql.
+ */
 export const OWNER_TYPES = [
   { value: "OWN", label: "Own" },
   { value: "EXTERNAL", label: "External" },
@@ -79,7 +83,12 @@ export const OWNER_TYPES = [
 
 export type OwnerType = (typeof OWNER_TYPES)[number]["value"];
 
-/** A row from the `vehicle_owners` lookup table, used to populate the Owner Name dropdown. */
+/**
+ * An owner as returned by the legacy `/api/vehicle-owners` endpoint, which
+ * projects `entities` down to these fields so the vehicle forms and the mobile
+ * app keep their existing contract. New UI should use `Entity` from
+ * `@/components/entitiesPage` instead.
+ */
 export interface VehicleOwner {
   id: number;
   name: string;

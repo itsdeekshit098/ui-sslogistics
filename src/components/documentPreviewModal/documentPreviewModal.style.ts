@@ -11,38 +11,21 @@ export const previewContainer: CSSProperties = {
   overflow: "hidden",
 };
 
-// ─── Header row ──────────────────────────────────────────────────────────
-export const headerRow: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "16px 56px 16px 20px", // 56px right padding prevents overlap with absolute close button
-  borderBottom: "1px solid var(--border)",
-  flexShrink: 0,
-  gap: "12px",
-};
+// ─── Header row (Tailwind strings: needs hover/focus-visible/breakpoints,
+// which CSSProperties objects can't express) ───────────────────────────────
+export const headerWrapper =
+  "flex min-w-0 items-center gap-3 border-b border-border p-3 pr-14 sm:px-5 sm:py-4 sm:pr-14";
 
-export const headerTitle: CSSProperties = {
-  fontSize: "16px",
-  fontWeight: 600,
-  color: "var(--foreground)",
-  margin: 0,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  flex: 1,
-};
+export const headerTitle = "min-w-0 flex-1 truncate text-sm font-semibold sm:text-base";
 
-export const headerActions: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  flexShrink: 0,
-};
+export const downloadButtonWrapper = "shrink-0";
+
+export const downloadLabel = "hidden sm:inline";
 
 // ─── Content area ────────────────────────────────────────────────────────
 export const contentArea: CSSProperties = {
   flex: 1,
+  minHeight: "288px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -65,13 +48,13 @@ export const previewImage: CSSProperties = {
 
 // ─── Loading / Error states ──────────────────────────────────────────────
 export const loadingContainer: CSSProperties = {
+  position: "absolute",
+  inset: 0,
   display: "flex",
-  flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: "12px",
+  backgroundColor: "var(--muted)",
   color: "var(--muted-foreground)",
-  fontSize: "14px",
 };
 
 export const errorContainer: CSSProperties = {
@@ -86,19 +69,5 @@ export const errorContainer: CSSProperties = {
   textAlign: "center",
 };
 
-// ─── Download button styling ─────────────────────────────────────────────
-export const downloadLink: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "6px 14px",
-  borderRadius: "6px",
-  fontSize: "13px",
-  fontWeight: 500,
-  color: "var(--foreground)",
-  backgroundColor: "transparent",
-  border: "1px solid var(--border)",
-  cursor: "pointer",
-  textDecoration: "none",
-  transition: "background-color 0.15s",
-};
+export const downloadLink =
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";

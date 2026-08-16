@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { XIcon, SaveIcon, PlusIcon, UserPlusIcon, Building2Icon, UserIcon } from "@/components/ui/icon";
+import {
+  XIcon,
+  SaveIcon,
+  PlusIcon,
+  UserPlusIcon,
+  Building2Icon,
+  UserIcon,
+  ArrowUpDownIcon,
+} from "@/components/ui/icon";
 import type { ExternalTripsModalProps, ExternalTripPrefill } from "./externalTripsModal.types";
 import {
   getDefaultExternalTripFormData,
@@ -17,7 +25,6 @@ import type {
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Typeahead } from "@/components/typeahead";
-import { LocationAutocomplete } from "@/components/locationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,7 +54,8 @@ const ExternalTripsForm: React.FC<{
   vehicles: Vehicle[];
   bookingId?: number;
   prefill?: ExternalTripPrefill;
-}> = ({ mode, record, onClose, onSuccess, vehicles, bookingId, prefill }) => {
+  unifiedTrip?: boolean;
+}> = ({ mode, record, onClose, onSuccess, vehicles, bookingId, prefill, unifiedTrip }) => {
   const isEdit = mode === "edit";
 
   // ─── Drivers state ───
@@ -90,7 +98,10 @@ const ExternalTripsForm: React.FC<{
         startDate: prefill.startDate || "",
         endDate: prefill.endDate || "",
         driverId: prefill.driverId ? String(prefill.driverId) : "",
-        amountReceived: prefill.advanceAmount ? String(prefill.advanceAmount) : base.amountReceived,
+        amountReceived:
+          prefill.quotedAmount != null
+            ? String(Math.max(prefill.quotedAmount - (prefill.advanceAmount ?? 0), 0))
+            : base.amountReceived,
       };
     }
     return getDefaultExternalTripFormData();
@@ -99,6 +110,14 @@ const ExternalTripsForm: React.FC<{
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const swapLocations = () => {
+    setFormData((prev) => ({
+      ...prev,
+      fromLocation: prev.toLocation,
+      toLocation: prev.fromLocation,
+    }));
+  };
 
   // ─── Fetch drivers ───
   const fetchDrivers = () => {
@@ -202,7 +221,9 @@ const ExternalTripsForm: React.FC<{
       !Number.isFinite(receivedVal) ||
       receivedVal < 0
     ) {
-      errors.amountReceived = "Amount received is required (non-negative)";
+      errors.amountReceived = bookingId
+        ? "Balance received is required (non-negative)"
+        : "Amount received is required (non-negative)";
     }
 
     // Validate notes length
@@ -269,7 +290,11 @@ const ExternalTripsForm: React.FC<{
           }),
         });
       } else {
-        response = await fetch("/api/external-trips", {
+        response = await fetch(
+          bookingId || unifiedTrip
+            ? "/api/trip-bookings/complete"
+            : "/api/external-trips",
+          {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -286,10 +311,12 @@ const ExternalTripsForm: React.FC<{
               : undefined,
             notes: formData.notes.trim() || undefined,
             cost_items: costItems,
-            amount_received: Number(formData.amountReceived),
+            amount_received:
+              Number(formData.amountReceived) + (prefill?.advanceAmount ?? 0),
             booking_id: bookingId,
           }),
-        });
+          },
+        );
       }
 
       const data = await response.json();
@@ -312,6 +339,13 @@ const ExternalTripsForm: React.FC<{
   const selectedVehicle = vehicles.find(
     (v) => v.id.toString() === formData.vehicleId,
   );
+  const advanceReceived = bookingId ? prefill?.advanceAmount ?? 0 : 0;
+  const totalReceived = Number(formData.amountReceived || 0) + advanceReceived;
+  const totalCost = formData.costItems.reduce(
+    (total, item) => total + (Number(item.amount) || 0),
+    0,
+  );
+  const profit = totalReceived - totalCost;
 
   // Helper to apply error styling consistently and avoid React shorthand conflicts
   const getErrorStyle = (errorKey: string, extra?: React.CSSProperties) => {
@@ -327,13 +361,15 @@ const ExternalTripsForm: React.FC<{
     <>
       <ModalHeader>
         <ModalTitle>
-          {isEdit ? "Edit Trip" : bookingId ? "Complete Trip Booking" : "New External Trip"}
+          {isEdit ? "Edit Trip" : bookingId ? "Complete Trip Booking" : unifiedTrip ? "Record Completed Trip" : "New External Trip"}
         </ModalTitle>
         <ModalDescription>
           {isEdit
             ? "Update trip details."
             : bookingId
               ? "Enter the actual costs to record this trip and mark the booking completed."
+              : unifiedTrip
+                ? "Record a trip that was completed without an advance booking."
               : "Record a new external trip."}
         </ModalDescription>
       </ModalHeader>
@@ -490,33 +526,45 @@ const ExternalTripsForm: React.FC<{
             </div>
 
             {/* ── Route ── */}
-            <div style={styles.formGrid}>
+            <div style={styles.routeSection}>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="fromLocation">From Location</Label>
-                <LocationAutocomplete
+                <Input
                   disabled={loading}
                   id="fromLocation"
                   placeholder="Origin"
                   value={formData.fromLocation}
-                  onChange={(v) =>
+                  onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      fromLocation: v,
+                      fromLocation: e.target.value,
                     }))
                   }
                 />
               </div>
+              <div style={styles.routeSwapRow}>
+                <button
+                  type="button"
+                  onClick={swapLocations}
+                  disabled={loading}
+                  style={styles.routeSwapButton}
+                  title="Swap From/To"
+                  aria-label="Swap From and To locations"
+                >
+                  <ArrowUpDownIcon size={14} />
+                </button>
+              </div>
               <div style={styles.fieldGroup}>
                 <Label htmlFor="toLocation">To Location</Label>
-                <LocationAutocomplete
+                <Input
                   disabled={loading}
                   id="toLocation"
                   placeholder="Destination"
                   value={formData.toLocation}
-                  onChange={(v) =>
+                  onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      toLocation: v,
+                      toLocation: e.target.value,
                     }))
                   }
                 />
@@ -642,15 +690,24 @@ const ExternalTripsForm: React.FC<{
               </div>
             </div>
 
-            {/* ── Amount Received ── */}
+            {bookingId && (
+              <div style={styles.fieldGroup}>
+                <Label style={styles.fieldLabel}>Advance Received (₹)</Label>
+                <div style={styles.readOnlyBadge}>
+                  ₹{advanceReceived.toLocaleString("en-IN")}
+                </div>
+              </div>
+            )}
+
+            {/* ── Receipt ── */}
             <div style={styles.fieldGroup}>
               <Label style={styles.fieldLabel}>
-                Amount Received (₹)
+                {bookingId ? "Balance Received Now (₹)" : "Amount Received (₹)"}
                 <span style={styles.requiredStar}>*</span>
               </Label>
               <Input disabled={loading}
                 id="amountReceived"
-                placeholder="Amount received from customer"
+                placeholder={bookingId ? "Balance collected now" : "Amount received from customer"}
                 type="number"
                 min="0"
                 value={formData.amountReceived}
@@ -672,6 +729,21 @@ const ExternalTripsForm: React.FC<{
                 </span>
               )}
             </div>
+
+            {bookingId && (
+              <div style={styles.receiptSummary}>
+                <div>
+                  <span>Total Received for Trip</span>
+                  <strong>₹{totalReceived.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div>
+                  <span>Profit</span>
+                  <strong style={{ color: profit >= 0 ? "var(--success, #16a34a)" : "var(--destructive)" }}>
+                    {profit >= 0 ? "+" : "-"}₹{Math.abs(profit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </strong>
+                </div>
+              </div>
+            )}
 
             {/* ── Cost Items ── */}
             <div style={styles.costSection}>
@@ -770,7 +842,7 @@ const ExternalTripsForm: React.FC<{
               style={{ marginRight: "0.5rem" }}
             />
           )}
-          {isEdit ? "Update Trip" : "Save Trip"}
+          {isEdit ? "Update Trip" : unifiedTrip ? "Record Completed Trip" : "Save Trip"}
         </Button>
       </ModalFooter>
 
@@ -800,6 +872,7 @@ export const ExternalTripsModal: React.FC<ExternalTripsModalProps> = (
             vehicles={props.vehicles}
             bookingId={props.bookingId}
             prefill={props.prefill}
+            unifiedTrip={props.unifiedTrip}
           />
         )}
       </ModalContent>

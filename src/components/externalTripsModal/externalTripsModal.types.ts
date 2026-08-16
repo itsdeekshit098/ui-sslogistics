@@ -27,6 +27,8 @@ export type ExternalTripsModalProps =
       /** When set, the created trip completes this booking (see /api/external-trips `booking_id`). */
       bookingId?: number;
       prefill?: ExternalTripPrefill;
+      /** Creates a completed unified trip without an advance booking. */
+      unifiedTrip?: boolean;
     }
   | {
       mode: "edit";
@@ -37,4 +39,5 @@ export type ExternalTripsModalProps =
       vehicles: Vehicle[];
       bookingId?: undefined;
       prefill?: undefined;
+      unifiedTrip?: undefined;
     };

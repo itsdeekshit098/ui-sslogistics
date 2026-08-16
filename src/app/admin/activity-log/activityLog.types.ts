@@ -17,3 +17,12 @@ export interface ActivityLogResponse {
   limit: number;
   totalPages: number;
 }
+
+/** Response from DELETE /api/activity-log — `count` on a dry run, `deleted`
+ * once entries are actually removed. */
+export interface ActivityLogPurgeResponse {
+  cutoff: string;
+  count?: number;
+  deleted?: number;
+  dryRun?: boolean;
+}

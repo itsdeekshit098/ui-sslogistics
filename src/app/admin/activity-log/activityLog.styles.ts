@@ -38,6 +38,11 @@ export const ACTION_STYLES: Record<
     text: "text-amber-700 dark:text-amber-400",
     icon: "text-amber-500 dark:text-amber-400",
   },
+  PURGE_ACTIVITY_LOG: {
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    icon: "text-destructive",
+  },
 };
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -46,4 +51,5 @@ export const ACTION_LABELS: Record<string, string> = {
   DELETE_VEHICLE: "Deleted Vehicle",
   UPLOAD_DOCUMENT: "Uploaded Document",
   DELETE_DOCUMENT: "Deleted Document",
+  PURGE_ACTIVITY_LOG: "Cleared Old Activity Log",
 };

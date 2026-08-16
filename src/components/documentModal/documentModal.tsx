@@ -63,8 +63,12 @@ export function DocumentModal({
     setLocalVehicle(vehicle);
   }, [vehicle]);
 
+  // FC and Insurance are the two document types with validity dates, which
+  // makes their cards taller (two date inputs, plus a helper line when
+  // empty) than the plain upload/view cards below. Ordered so those two
+  // share the first grid row instead of each being paired with a shorter
+  // card and leaving a gap underneath it.
   const docTypes = [
-    { key: "rc_url", label: "Registration (RC)" },
     {
       key: "fc_url",
       label: "Fitness Certificate (FC)",
@@ -78,6 +82,7 @@ export function DocumentModal({
         end: "insurance_end_date",
       } as const,
     },
+    { key: "rc_url", label: "Registration (RC)" },
     { key: "permit_url", label: "Permit" },
     { key: "pollution_url", label: "Pollution (PUC)" },
     { key: "tax_url", label: "Road Tax" },
