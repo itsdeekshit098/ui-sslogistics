@@ -5,6 +5,7 @@ import { requireAdminAuth, requireStrictAdminAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
 import { escapeLike } from "@/lib/escapeLike";
+import { normalizeName } from "@/lib/normalizeName";
 
 // Entities are the single master list of parties: our own proprietorships and
 // the family members behind them (FIRM / PERSON, INTERNAL), plus external
@@ -104,6 +105,25 @@ function validateEntityFields(
   }
 
   return errors;
+}
+
+/**
+ * Catches near-duplicate names ("SS LOGISTICS - SUKANYA" vs "SS LOGISTICS
+ * -SUKANYA") that the DB's exact-string unique constraint lets through as
+ * distinct rows — see sql/42_entities_normalized_name_unique.sql. Returns
+ * the conflicting row's actual name for a readable error message, or null.
+ */
+async function findNormalizedNameConflict(
+  name: string,
+  excludeId: number | null,
+): Promise<string | null> {
+  const target = normalizeName(name);
+  let query = supabaseAdmin.from("entities").select("id, name");
+  if (excludeId !== null) query = query.neq("id", excludeId);
+
+  const { data } = await query;
+  const match = (data ?? []).find((row) => normalizeName(row.name as string) === target);
+  return match ? (match.name as string) : null;
 }
 
 /**
@@ -272,6 +292,11 @@ export async function POST(req: Request) {
       return apiError(Object.values(fieldErrors)[0], 400);
     }
 
+    const nameConflict = await findNormalizedNameConflict(payload.name as string, null);
+    if (nameConflict) {
+      return apiError(`A similar entity already exists: "${nameConflict}"`, 409);
+    }
+
     const proprietorId =
       body.proprietor_entity_id == null || body.proprietor_entity_id === ""
         ? null
@@ -353,6 +378,13 @@ export async function PUT(req: Request) {
 
     if (Object.keys(fieldErrors).length > 0) {
       return apiError(Object.values(fieldErrors)[0], 400);
+    }
+
+    if (payload.name !== undefined) {
+      const nameConflict = await findNormalizedNameConflict(payload.name as string, id);
+      if (nameConflict) {
+        return apiError(`A similar entity already exists: "${nameConflict}"`, 409);
+      }
     }
 
     if (body.proprietor_entity_id !== undefined) {

@@ -1,14 +1,29 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-// Daily job: warns an admin the day before an EMI falls due, nags about EMIs
-// that came and went unpaid, and flags a loan approaching its final
-// installment. Mirrors scripts/check-document-expiry.js's structure (plain
-// CommonJS, talks to Supabase directly via the service-role key) rather than
-// depending on Next.js request context, since it runs as a standalone GitHub
-// Actions job, not an API route.
+// Daily job: auto-settles EMIs whose due date has passed with nothing logged
+// against them, warns an admin the day before an EMI falls due, nags about
+// anything still unpaid after that (bounced mandates, genuine partials), and
+// flags a loan approaching its final installment. Mirrors
+// scripts/check-document-expiry.js's structure (plain CommonJS, talks to
+// Supabase directly via the service-role key) rather than depending on
+// Next.js request context, since it runs as a standalone GitHub Actions job,
+// not an API route.
 //
 // Reads loan_installment_state (sql/31_add_loans.sql) rather than the raw
 // installments table, so "unpaid" means what the payment rows actually say —
 // not merely that the due date has passed.
+//
+// Auto-settlement (autoSettleOverdueEmis, below) inserts a real loan_payments
+// row for any OVERDUE/PARTIAL installment once its due date has passed — on
+// the assumption that the EMI mandate went through and just hasn't been
+// clicked "paid" yet. This is a deliberate trade: it stops the manual step
+// and the overdue nagging entirely, in exchange for occasionally recording a
+// payment that didn't actually happen. Recovery is manual and external (the
+// lender chases a real miss) — there is no automated un-settling. Every
+// auto-inserted row is tagged payment_method: 'AUTO' and logged to
+// activity_log so a real miss can be found and reversed via the normal
+// reversal endpoint. BOUNCED installments are left alone — that manual_status
+// already means a mandate is known to have failed, so assuming payment there
+// would paper over a confirmed problem, not a merely-unconfirmed one.
 const { createClient } = require("@supabase/supabase-js");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -221,6 +236,120 @@ function describeDebitAccount(loan) {
   return ` Debits from ${head}.`;
 }
 
+/**
+ * Records who/what made a ledger entry, mirroring src/lib/activityLog.ts's
+ * shape directly (that module is Next.js-only and can't be imported from a
+ * standalone script). Fire-and-forget, like its web counterpart — never
+ * blocks or fails the settlement it's describing.
+ */
+async function logActivity({ action, tableName, recordId, details }) {
+  const { error } = await supabase.from("activity_log").insert([
+    {
+      action,
+      user_id: null,
+      user_email: null,
+      user_display_name: "Scheduled job (auto EMI settlement)",
+      table_name: tableName,
+      record_id: recordId,
+      details,
+    },
+  ]);
+  if (error) console.error("Failed to write activity log:", error.message);
+}
+
+/**
+ * Auto-settles any EMI whose due date has passed with no payment logged
+ * against it yet, on the assumption the mandate went through. Runs before
+ * the reminder pass below, so an installment settled here never also
+ * generates an overdue nag in the same run. See the module header for the
+ * reasoning and the trade-off.
+ */
+async function autoSettleOverdueEmis(userIds) {
+  const today = dateStr(0);
+
+  const { data: overdue, error } = await supabase
+    .from("loan_installment_state")
+    .select("id, loan_id, installment_no, due_date, amount_remaining, status")
+    .lt("due_date", today)
+    .in("status", ["OVERDUE", "PARTIAL"]);
+
+  if (error) {
+    console.error("Failed to load installments to auto-settle:", error.message);
+    return 0;
+  }
+  if (!overdue || overdue.length === 0) return 0;
+
+  const loans = await loadLoanContext([...new Set(overdue.map((i) => i.loan_id))]);
+  let settled = 0;
+
+  for (const installment of overdue) {
+    const loan = loans.get(installment.loan_id);
+    // A closed loan's leftover schedule rows aren't owed any more.
+    if (!loan || loan.status !== "ACTIVE") continue;
+
+    const amount = Number(installment.amount_remaining);
+    if (!(amount > 0)) continue;
+
+    const { data: payment, error: insertErr } = await supabase
+      .from("loan_payments")
+      .insert([
+        {
+          loan_id: installment.loan_id,
+          installment_id: installment.id,
+          payment_type: "EMI",
+          amount,
+          paid_on: installment.due_date,
+          payment_method: "AUTO",
+          reference: null,
+          notes:
+            "Auto-recorded by the daily EMI job — due date passed with no payment logged. " +
+            "Reverse this entry from the loan's payment history if the lender confirms it was not actually paid.",
+          created_by: null,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (insertErr) {
+      console.error(
+        `Failed to auto-settle installment ${installment.id} (loan ${installment.loan_id}):`,
+        insertErr.message,
+      );
+      continue;
+    }
+
+    settled += 1;
+
+    await logActivity({
+      action: "CREATE_LOAN_PAYMENT",
+      tableName: "loan_payments",
+      recordId: payment.id,
+      details: {
+        loan_id: installment.loan_id,
+        payment_type: "EMI",
+        amount,
+        paid_on: installment.due_date,
+        auto: true,
+      },
+    });
+
+    if (
+      !(await alreadyNotified("loan_emi_auto_settled", { installment_id: installment.id }))
+    ) {
+      await notify({
+        userIds,
+        type: "loan_emi_auto_settled",
+        title: "EMI auto-marked paid",
+        body: `${formatRupees(amount)} EMI for ${describeLoan(loan)} (due ${installment.due_date}) was auto-recorded as paid — no payment was logged by its due date. Check the loan if this wasn't actually paid.${describeDebitAccount(loan)}`,
+        linkPath: `/admin/loans/${installment.loan_id}`,
+        metadata: { loan_id: installment.loan_id, installment_id: installment.id },
+      });
+    }
+  }
+
+  return settled;
+}
+
 async function checkEmiReminders(userIds) {
   const tomorrow = dateStr(1);
   const today = dateStr(0);
@@ -362,7 +491,12 @@ async function pruneOldNotifications() {
   const { error } = await supabase
     .from("notifications")
     .delete()
-    .in("type", ["loan_emi_due", "loan_emi_overdue", "loan_nearing_closure"])
+    .in("type", [
+      "loan_emi_due",
+      "loan_emi_overdue",
+      "loan_nearing_closure",
+      "loan_emi_auto_settled",
+    ])
     .lt("created_at", cutoff.toISOString());
 
   if (error) console.error("Failed to prune old loan notifications:", error.message);
@@ -375,13 +509,14 @@ async function main() {
     return;
   }
 
+  const settledCount = await autoSettleOverdueEmis(userIds);
   const emiCount = await checkEmiReminders(userIds);
   const closureCount = await checkLoansNearingClosure(userIds);
 
   await pruneOldNotifications();
 
   console.log(
-    `Loan reminders: ${emiCount} EMI notification(s), ${closureCount} closure notification(s) sent to ${userIds.length} user(s).`,
+    `Loan reminders: ${settledCount} EMI(s) auto-settled, ${emiCount} EMI notification(s), ${closureCount} closure notification(s) sent to ${userIds.length} user(s).`,
   );
 }
 

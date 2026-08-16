@@ -3,6 +3,7 @@ import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResp
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
+import { normalizeName } from "@/lib/normalizeName";
 
 // Compatibility adapter. The `vehicle_owners` table is gone — owners are now
 // rows in `entities` (see sql/28_add_entities.sql), which also carries loan
@@ -41,6 +42,25 @@ function toOwner(entity: EntityRow) {
     owner_type: toOwnerType(entity.relationship),
     ...(entity.created_at ? { created_at: entity.created_at } : {}),
   };
+}
+
+/**
+ * Catches near-duplicate names ("SS LOGISTICS - SUKANYA" vs "SS LOGISTICS
+ * -SUKANYA") that the DB's exact-string unique constraint lets through as
+ * distinct rows — see sql/42_entities_normalized_name_unique.sql. Returns
+ * the conflicting row's actual name for a readable error message, or null.
+ */
+async function findNormalizedNameConflict(
+  name: string,
+  excludeId: number | null,
+): Promise<string | null> {
+  const target = normalizeName(name);
+  let query = supabaseAdmin.from("entities").select("id, name");
+  if (excludeId !== null) query = query.neq("id", excludeId);
+
+  const { data } = await query;
+  const match = (data ?? []).find((row) => normalizeName(row.name as string) === target);
+  return match ? (match.name as string) : null;
 }
 
 export async function GET(req: Request) {
@@ -115,6 +135,12 @@ export async function POST(req: Request) {
     }
 
     const name = String(body.name).trim();
+
+    const nameConflict = await findNormalizedNameConflict(name, null);
+    if (nameConflict) {
+      return apiError(`A similar owner already exists: "${nameConflict}"`, 409);
+    }
+
     // entity_kind isn't expressible in the legacy payload; FIRM is the safer
     // default (it matches how sql/28 backfilled existing owners) and the row
     // can be re-tagged as a person from the Firms & Owners page.
@@ -172,7 +198,12 @@ export async function PUT(req: Request) {
       if (!fields.name || String(fields.name).trim() === "") {
         return apiError("Owner name cannot be empty", 400);
       }
-      updatePayload.name = String(fields.name).trim();
+      const trimmedName = String(fields.name).trim();
+      const nameConflict = await findNormalizedNameConflict(trimmedName, Number(id));
+      if (nameConflict) {
+        return apiError(`A similar owner already exists: "${nameConflict}"`, 409);
+      }
+      updatePayload.name = trimmedName;
     }
 
     if (fields.owner_type !== undefined) {
