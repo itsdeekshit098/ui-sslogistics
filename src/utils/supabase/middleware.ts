@@ -11,6 +11,8 @@ import { getCachedUser } from "@/utils/supabase/userCache";
 const MAINTENANCE_EXEMPT_PATHS = new Set([
   "/login",
   "/maintenance",
+  // Play Store links to this from the Store Listing; must always resolve.
+  "/privacy",
   "/api/auth/login",
   "/api/auth/session",
   "/api/auth/signout",
