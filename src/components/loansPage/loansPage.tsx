@@ -12,6 +12,7 @@ import {
   CalendarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  FileTextIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
@@ -57,6 +58,10 @@ const FundingModal = dynamic(
 );
 const ConfirmModal = dynamic(
   () => import("@/components/confirmModal/confirmModal"),
+  { ssr: false },
+);
+const LoanAttachmentsModal = dynamic(
+  () => import("@/components/loanAttachmentsModal").then((m) => m.LoanAttachmentsModal),
   { ssr: false },
 );
 
@@ -114,6 +119,8 @@ export function LoansPage() {
   const [deleteTarget, setDeleteTarget] = useState<Loan | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [attachmentsTarget, setAttachmentsTarget] = useState<Loan | null>(null);
 
   const fetchLoans = useCallback(async () => {
     try {
@@ -349,6 +356,12 @@ export function LoansPage() {
   ];
 
   const loanActions: RowAction<Loan>[] = [
+    {
+      key: "attachments",
+      label: "Documents",
+      icon: <FileTextIcon size={14} />,
+      onClick: (loan) => setAttachmentsTarget(loan),
+    },
     {
       key: "edit",
       label: "Edit",
@@ -860,6 +873,20 @@ export function LoansPage() {
         isLoading={deleteLoading}
         error={deleteError}
       />
+
+      {attachmentsTarget && (
+        <LoanAttachmentsModal
+          isOpen={!!attachmentsTarget}
+          onClose={() => setAttachmentsTarget(null)}
+          loanId={attachmentsTarget.id}
+          loanLabel={
+            attachmentsTarget.loan_number
+              ? `${attachmentsTarget.loan_type} · ${attachmentsTarget.loan_number}`
+              : attachmentsTarget.loan_type
+          }
+          canManage={canManage}
+        />
+      )}
     </div>
   );
 }

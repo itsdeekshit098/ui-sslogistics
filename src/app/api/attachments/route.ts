@@ -17,7 +17,7 @@ import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResp
 
 const BUCKET_NAME = "attachments";
 
-const OWNER_TYPES = ["vehicle", "client_entry"] as const;
+const OWNER_TYPES = ["vehicle", "client_entry", "loan"] as const;
 type OwnerType = (typeof OWNER_TYPES)[number];
 
 function isOwnerType(value: string | null): value is OwnerType {
@@ -29,31 +29,35 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
 
-/** A vehicle photo is image-only; a payment proof is usually a bank receipt PDF. */
+/** A vehicle photo is image-only; a payment proof or loan document is usually a PDF. */
 const ALLOWED_MIME_TYPES: Record<OwnerType, readonly string[]> = {
   vehicle: IMAGE_MIME_TYPES,
   client_entry: [...IMAGE_MIME_TYPES, "application/pdf"],
+  loan: [...IMAGE_MIME_TYPES, "application/pdf"],
 };
 
-const OWNER_COLUMN: Record<OwnerType, "vehicle_id" | "client_entry_id"> = {
+const OWNER_COLUMN: Record<OwnerType, "vehicle_id" | "client_entry_id" | "loan_id"> = {
   vehicle: "vehicle_id",
   client_entry: "client_entry_id",
+  loan: "loan_id",
 };
 
 const SELECT_COLUMNS =
-  "id, vehicle_id, client_entry_id, storage_path, file_name, mime_type, size_bytes, caption, created_at";
+  "id, vehicle_id, client_entry_id, loan_id, storage_path, file_name, mime_type, size_bytes, caption, created_at";
 
 /**
- * A client-entry attachment is a payment proof, gated the same as every other
- * money route (requireStrictAdminAuth, GET included). A vehicle photo only
- * needs the ordinary admin tier, matching the existing documents routes.
+ * A client-entry or loan attachment is money-module data, gated the same as
+ * every other money route (requireStrictAdminAuth, GET included). A vehicle
+ * photo only needs the ordinary admin tier, matching the existing documents
+ * routes.
  */
 async function requireAuthFor(ownerType: OwnerType) {
-  return ownerType === "client_entry" ? requireStrictAdminAuth() : requireAdminAuth();
+  return ownerType === "vehicle" ? requireAdminAuth() : requireStrictAdminAuth();
 }
 
 async function parentExists(ownerType: OwnerType, ownerId: number): Promise<boolean> {
-  const table = ownerType === "vehicle" ? "vehicles" : "client_ledger_entries";
+  const table =
+    ownerType === "vehicle" ? "vehicles" : ownerType === "loan" ? "loans" : "client_ledger_entries";
   const { data } = await supabaseAdmin.from(table).select("id").eq("id", ownerId).maybeSingle();
   return !!data;
 }
@@ -126,13 +130,18 @@ export async function POST(req: Request) {
 
     if (!(await parentExists(ownerType, ownerId))) {
       return apiError(
-        ownerType === "vehicle" ? "Vehicle not found" : "Statement entry not found",
+        ownerType === "vehicle"
+          ? "Vehicle not found"
+          : ownerType === "loan"
+            ? "Loan not found"
+            : "Statement entry not found",
         404,
       );
     }
 
     const extension = file.name.split(".").pop() || "bin";
-    const prefix = ownerType === "vehicle" ? "vehicles" : "client-entries";
+    const prefix =
+      ownerType === "vehicle" ? "vehicles" : ownerType === "loan" ? "loans" : "client-entries";
     const storagePath = `${prefix}/${ownerId}/${randomUUID()}.${extension}`;
 
     const buffer = await file.arrayBuffer();
@@ -194,14 +203,19 @@ export async function DELETE(req: Request) {
 
     const { data: attachment, error: fetchErr } = await supabaseAdmin
       .from("attachments")
-      .select("id, vehicle_id, client_entry_id, storage_path, file_name")
+      .select("id, vehicle_id, client_entry_id, loan_id, storage_path, file_name")
       .eq("id", id)
       .maybeSingle();
 
     if (fetchErr) return serverError(fetchErr);
     if (!attachment) return apiError("Attachment not found", 404);
 
-    const ownerType: OwnerType = attachment.client_entry_id != null ? "client_entry" : "vehicle";
+    const ownerType: OwnerType =
+      attachment.client_entry_id != null
+        ? "client_entry"
+        : attachment.loan_id != null
+          ? "loan"
+          : "vehicle";
     const authUser = await requireAuthFor(ownerType);
 
     const { error: storageErr } = await supabaseAdmin.storage

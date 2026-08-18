@@ -76,3 +76,26 @@ export function progressPercent(paid: number, total: number): number {
   if (!total) return 0;
   return Math.min(100, Math.round((paid / total) * 100));
 }
+
+/**
+ * Implied flat annual rate from the schedule alone — EMI × tenure vs
+ * principal — not the reducing-balance rate a lender actually applies. This
+ * is a display-only estimate for cross-checking the stored interest_rate,
+ * not a number stored or fed back into the schedule. Returns null (rather
+ * than a negative/zero rate) whenever the schedule's total payable doesn't
+ * fall below the principal — that only happens with a part schedule or bad
+ * data, where "% p.a." would be actively misleading. Total payable equal to
+ * principal is a real, valid case (an interest-free arrangement) and
+ * correctly reports 0%.
+ */
+export function flatRoiFromSchedule(
+  principal: number,
+  totalPayable: number,
+  totalInstallments: number,
+): number | null {
+  if (!principal || !totalInstallments) return null;
+  const totalInterest = totalPayable - principal;
+  if (totalInterest < 0) return null;
+  const tenureYears = totalInstallments / 12;
+  return (totalInterest / principal / tenureYears) * 100;
+}

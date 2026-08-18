@@ -26,7 +26,7 @@ const MANDATE_TYPES = ["NACH", "ECS", "SI", "PDC", "MANUAL"] as const;
 const LOAN_SELECT = `
   id, loan_type, borrower_entity_id, lender_id, loan_number,
   vehicle_id, collateral_description,
-  principal_amount, interest_rate, processing_fee,
+  principal_amount, disbursed_amount, interest_rate, processing_fee,
   start_date, first_emi_date, emi_amount, emi_day_of_month, total_installments,
   outstanding_override, status, closed_on, notes, created_at, updated_at,
   debit_account_id, mandate_type,
@@ -366,7 +366,12 @@ async function validateLoanFields(
     payload.total_installments = total;
   }
 
-  for (const key of ["interest_rate", "processing_fee", "outstanding_override"] as const) {
+  for (const key of [
+    "interest_rate",
+    "processing_fee",
+    "disbursed_amount",
+    "outstanding_override",
+  ] as const) {
     if (body[key] !== undefined) {
       if (body[key] === null || body[key] === "") {
         payload[key] = null;
