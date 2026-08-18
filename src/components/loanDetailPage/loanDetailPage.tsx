@@ -37,6 +37,7 @@ import {
   getMandateTypeLabel,
 } from "@/components/bankAccountsPage/bankAccountsPage.types";
 import {
+  flatRoiFromSchedule,
   INSTALLMENT_STATUS_LABELS,
   installmentStatusVariant,
   progressPercent,
@@ -358,6 +359,9 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
           loan.entities ? `in the name of ${loan.entities.name}` : null,
           collateral,
           loan.loan_number ? `Loan No. ${loan.loan_number}` : null,
+          loan.disbursed_amount != null && loan.disbursed_amount !== loan.principal_amount
+            ? `Disbursed ${formatCurrency(loan.disbursed_amount)} of ${formatCurrency(loan.principal_amount)} principal`
+            : null,
           loan.bank_accounts
             ? `Debits from ${formatBankAccountLabel(loan.bank_accounts, loan.bank_accounts.entities?.name)}${
                 loan.mandate_type ? ` (${getMandateTypeLabel(loan.mandate_type)})` : ""
@@ -422,6 +426,34 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
           <span className="text-4xl font-bold leading-tight tracking-tight tabular-nums text-foreground">
             <Money value={balance.outstanding} />
           </span>
+
+          <div className="grid grid-cols-3 gap-4 border-t border-border pt-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Principal</span>
+              <span className="text-sm font-semibold text-foreground">
+                <Money value={loan.principal_amount} />
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Total Payable</span>
+              <span className="text-sm font-semibold text-foreground">
+                <Money value={balance.total_payable} />
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Flat ROI</span>
+              <span className="text-sm font-semibold text-foreground">
+                {(() => {
+                  const roi = flatRoiFromSchedule(
+                    loan.principal_amount,
+                    balance.total_payable,
+                    loan.total_installments,
+                  );
+                  return roi != null ? `${roi.toFixed(2)}% p.a.` : "—";
+                })()}
+              </span>
+            </div>
+          </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between text-sm">

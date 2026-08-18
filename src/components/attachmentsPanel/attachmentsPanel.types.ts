@@ -1,10 +1,12 @@
-export type AttachmentOwnerType = "vehicle" | "client_entry";
+export type AttachmentOwnerType = "vehicle" | "client_entry" | "loan";
 
-/** One row from the `attachments` table (sql/38_add_attachments.sql). */
+/** One row from the `attachments` table (sql/38_add_attachments.sql, extended
+ * with loan_id by sql/44_add_loan_attachments.sql). */
 export interface Attachment {
   id: number;
   vehicle_id: number | null;
   client_entry_id: number | null;
+  loan_id: number | null;
   storage_path: string;
   file_name: string;
   mime_type: string;

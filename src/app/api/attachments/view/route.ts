@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     const { data: attachment, error: fetchErr } = await supabaseAdmin
       .from("attachments")
-      .select("storage_path, file_name, mime_type, client_entry_id")
+      .select("storage_path, file_name, mime_type, client_entry_id, loan_id")
       .eq("id", id)
       .maybeSingle();
 
@@ -66,9 +66,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // A payment proof is gated like every other money route; a vehicle photo
-    // only needs the ordinary admin tier, matching the documents view route.
-    await (attachment.client_entry_id != null ? requireStrictAdminAuth() : requireAdminAuth());
+    // A payment proof or loan document is gated like every other money
+    // route; a vehicle photo only needs the ordinary admin tier, matching
+    // the documents view route.
+    const isMoneyModuleAttachment = attachment.client_entry_id != null || attachment.loan_id != null;
+    await (isMoneyModuleAttachment ? requireStrictAdminAuth() : requireAdminAuth());
 
     const forceDownload = req.nextUrl.searchParams.get("download") === "true";
 

@@ -76,6 +76,7 @@ export interface Loan {
   vehicle_id: number | null;
   collateral_description: string | null;
   principal_amount: number;
+  disbursed_amount: number | null;
   interest_rate: number | null;
   processing_fee: number | null;
   start_date: string;

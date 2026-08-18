@@ -51,6 +51,7 @@ interface FormState {
   vehicleId: string;
   collateralDescription: string;
   principalAmount: string;
+  disbursedAmount: string;
   interestRate: string;
   processingFee: string;
   startDate: string;
@@ -73,6 +74,7 @@ function initialState(loan?: Loan | null): FormState {
     vehicleId: loan?.vehicle_id ? String(loan.vehicle_id) : "",
     collateralDescription: loan?.collateral_description ?? "",
     principalAmount: loan ? String(loan.principal_amount) : "",
+    disbursedAmount: loan?.disbursed_amount != null ? String(loan.disbursed_amount) : "",
     interestRate: loan?.interest_rate != null ? String(loan.interest_rate) : "",
     processingFee: loan?.processing_fee != null ? String(loan.processing_fee) : "",
     startDate: loan?.start_date ?? "",
@@ -217,6 +219,7 @@ const LoanForm: React.FC<{
       vehicle_id: form.vehicleId ? Number(form.vehicleId) : null,
       collateral_description: form.collateralDescription.trim() || null,
       principal_amount: Number(form.principalAmount),
+      disbursed_amount: form.disbursedAmount ? Number(form.disbursedAmount) : null,
       interest_rate: form.interestRate ? Number(form.interestRate) : null,
       processing_fee: form.processingFee ? Number(form.processingFee) : null,
       start_date: form.startDate,
@@ -459,6 +462,23 @@ const LoanForm: React.FC<{
               className={errorClass("principalAmount")}
             />
             <FieldError name="principalAmount" />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="loan-disbursed">Disbursed Amount (₹)</Label>
+            <Input
+              id="loan-disbursed"
+              type="number"
+              inputMode="numeric"
+              disabled={loading}
+              placeholder="Leave blank if same as principal"
+              value={form.disbursedAmount}
+              onChange={(e) => setField("disbursedAmount", e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">
+              What actually landed in the account, if different from the
+              sanctioned principal (after processing fee or other deductions).
+            </span>
           </div>
 
           <div className="flex flex-col gap-2">
