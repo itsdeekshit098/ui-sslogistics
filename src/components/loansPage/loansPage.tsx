@@ -13,6 +13,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   FileTextIcon,
+  SearchIcon,
+  XIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
@@ -31,11 +33,15 @@ import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import { Typeahead } from "@/components/typeahead";
+import { LookupSelect } from "@/components/lookupSelect";
+import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {
   getLoanStatusLabel,
   type CalendarDay,
   type Funding,
   type FundingDirection,
+  type Lender,
   type Loan,
   type LoanSummary,
 } from "./loansPage.types";
@@ -88,6 +94,17 @@ export function LoansPage() {
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState("");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [loanTypeFilter, setLoanTypeFilter] = useState("");
+  const [borrowerFilter, setBorrowerFilter] = useState("");
+  const [lenderFilter, setLenderFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // For the Borrower/Lender filter typeaheads — loaded once, not scoped to
+  // the currently-open create/edit modal (which fetches its own copies).
+  const [filterEntities, setFilterEntities] = useState<Entity[]>([]);
+  const [filterLenders, setFilterLenders] = useState<Lender[]>([]);
 
   const [fundings, setFundings] = useState<Funding[]>([]);
   const [fundingsLoaded, setFundingsLoaded] = useState(false);
@@ -134,6 +151,10 @@ export function LoansPage() {
       });
       if (statusFilter) params.set("status", statusFilter);
       if (overdueOnly) params.set("overdue_only", "true");
+      if (loanTypeFilter) params.set("loan_type", loanTypeFilter);
+      if (borrowerFilter) params.set("borrower_entity_id", borrowerFilter);
+      if (lenderFilter) params.set("lender_id", lenderFilter);
+      if (debouncedSearch) params.set("search", debouncedSearch);
 
       const res = await fetch(`/api/loans?${params}`);
       const json = await res.json();
@@ -147,7 +168,46 @@ export function LoansPage() {
     } finally {
       setFetching(false);
     }
-  }, [page, pageSize, statusFilter, overdueOnly]);
+  }, [
+    page,
+    pageSize,
+    statusFilter,
+    overdueOnly,
+    loanTypeFilter,
+    borrowerFilter,
+    lenderFilter,
+    debouncedSearch,
+  ]);
+
+  // Debounce search — matches the pattern in clientsPage.tsx.
+  useEffect(() => {
+    if (searchQuery === debouncedSearch) return;
+    searchDebounceRef.current = setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
+  useEffect(() => {
+    (async () => {
+      const [entitiesRes, lendersRes] = await Promise.allSettled([
+        fetch("/api/entities?is_active=true"),
+        fetch("/api/lenders?lender_kind=INSTITUTION"),
+      ]);
+      if (entitiesRes.status === "fulfilled" && entitiesRes.value.ok) {
+        const payload = await entitiesRes.value.json();
+        setFilterEntities(payload.data?.data ?? []);
+      }
+      if (lendersRes.status === "fulfilled" && lendersRes.value.ok) {
+        const payload = await lendersRes.value.json();
+        setFilterLenders(payload.data?.data ?? []);
+      }
+    })();
+  }, []);
 
   const fetchFundings = useCallback(async () => {
     try {
@@ -562,6 +622,74 @@ export function LoansPage() {
             />
           ) : activeTab === "loans" ? (
             <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full max-w-sm">
+                  <SearchIcon
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    size={16}
+                  />
+                  <Input
+                    data-testid="loans-search-input"
+                    placeholder="Search by loan number or collateral..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-background pl-9 pr-9"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 h-auto -translate-y-1/2 p-0 text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground"
+                      aria-label="Clear search"
+                    >
+                      <XIcon size={16} />
+                    </Button>
+                  )}
+                </div>
+                <LookupSelect
+                  category="loan_type"
+                  value={loanTypeFilter}
+                  onValueChange={(val) => {
+                    setLoanTypeFilter(val);
+                    setPage(1);
+                  }}
+                  placeholder="All types"
+                  allowAdd={false}
+                  clearable
+                  className="w-44"
+                />
+                <Typeahead<Entity>
+                  options={filterEntities}
+                  value={borrowerFilter}
+                  onValueChange={(val) => {
+                    setBorrowerFilter(val);
+                    setPage(1);
+                  }}
+                  getOptionLabel={(e) => e.name}
+                  getOptionValue={(e) => String(e.id)}
+                  getOptionDescription={(e) => (e.entity_kind === "FIRM" ? "Firm" : "Person")}
+                  placeholder="All borrowers"
+                  emptyMessage="No entities found."
+                  clearable
+                  className="w-52"
+                />
+                <Typeahead<Lender>
+                  options={filterLenders}
+                  value={lenderFilter}
+                  onValueChange={(val) => {
+                    setLenderFilter(val);
+                    setPage(1);
+                  }}
+                  getOptionLabel={(l) => l.name}
+                  getOptionValue={(l) => String(l.id)}
+                  placeholder="All lenders"
+                  emptyMessage="No lenders found."
+                  clearable
+                  className="w-52"
+                />
+              </div>
+
               <div className="flex flex-wrap items-center gap-3">
                 <SegmentedControl
                   idPrefix="loan-status"

@@ -25,6 +25,9 @@ const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/gif",
   "image/webp",
+  // iPhone's default camera format for a photographed RC/insurance page.
+  "image/heic",
+  "image/heif",
   "application/pdf",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -84,7 +87,7 @@ export async function POST(req: Request) {
     // Validate file MIME type
     if (!isAllowedMimeType(file.type)) {
       return apiError(
-        "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF, Excel",
+        "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, HEIC, PDF, Excel",
         400,
       );
     }

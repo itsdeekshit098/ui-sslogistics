@@ -65,7 +65,10 @@ export function StatCard({
           : undefined
       }
       className={cn(
-        "relative flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-card transition-[transform,box-shadow,border-color] duration-150",
+        // min-w-0 lets this shrink below its content's natural width — flex
+        // items default to min-width:auto, which is what let a long,
+        // unbroken number push past the card's border instead of wrapping.
+        "relative flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-5 shadow-card transition-[transform,box-shadow,border-color] duration-150",
         resolved ? resolved.border : "border-border",
         interactive &&
           "cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
@@ -99,7 +102,7 @@ export function StatCard({
 
       <span
         className={cn(
-          "text-[1.625rem] font-bold leading-tight tracking-tight tabular-nums",
+          "break-words text-[1.625rem] font-bold leading-tight tracking-tight tabular-nums",
           resolved ? resolved.value : "text-foreground",
         )}
       >

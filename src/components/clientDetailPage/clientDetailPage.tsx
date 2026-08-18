@@ -709,7 +709,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                 ownerType="client_entry"
                 ownerId={attachmentsEntry.id}
                 canManage={canManage}
-                accept="image/*,application/pdf"
+                accept="image/*,application/pdf,text/plain"
                 layout="list"
               />
             </ModalBody>

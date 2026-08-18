@@ -27,13 +27,25 @@ function isOwnerType(value: string | null): value is OwnerType {
 /** Max upload size: 10 MB — mirrors the vehicle-documents route. */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+const IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  // iPhone's default camera format — Chrome/Firefox can't render it as an
+  // <img> preview (no browser HEIC decoder), so AttachmentsPanel's onError
+  // handler falls back to a generic file icon for these; upload/download
+  // still work fine.
+  "image/heic",
+  "image/heif",
+] as const;
 
-/** A vehicle photo is image-only; a payment proof or loan document is usually a PDF. */
+/** A vehicle photo is image-only; a payment proof or loan document is usually
+ * a PDF, occasionally a plain-text note (e.g. a pasted statement excerpt). */
 const ALLOWED_MIME_TYPES: Record<OwnerType, readonly string[]> = {
   vehicle: IMAGE_MIME_TYPES,
-  client_entry: [...IMAGE_MIME_TYPES, "application/pdf"],
-  loan: [...IMAGE_MIME_TYPES, "application/pdf"],
+  client_entry: [...IMAGE_MIME_TYPES, "application/pdf", "text/plain"],
+  loan: [...IMAGE_MIME_TYPES, "application/pdf", "text/plain"],
 };
 
 const OWNER_COLUMN: Record<OwnerType, "vehicle_id" | "client_entry_id" | "loan_id"> = {
@@ -122,8 +134,8 @@ export async function POST(req: Request) {
     if (!ALLOWED_MIME_TYPES[ownerType].includes(file.type)) {
       return apiError(
         ownerType === "vehicle"
-          ? "Invalid file type. Allowed: JPEG, PNG, GIF, WebP"
-          : "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF",
+          ? "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, HEIC"
+          : "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, HEIC, PDF, TXT",
         400,
       );
     }
