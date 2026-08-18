@@ -33,7 +33,7 @@ export function LoanAttachmentsModal({
               ownerType="loan"
               ownerId={loanId}
               canManage={canManage}
-              accept="image/*,application/pdf"
+              accept="image/*,application/pdf,text/plain"
               layout="list"
             />
           )}
