@@ -61,7 +61,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-card sm:bg-muted/50 p-4 relative">
       <Link
         data-testid="app-login-link-1"
         href="/"
@@ -71,7 +71,7 @@ function LoginForm() {
         Back to Home
       </Link>
 
-      <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] shadow-[var(--card-shadow)] border border-border p-8">
+      <div className="w-full max-w-md bg-card rounded-[var(--modal-radius)] sm:shadow-[var(--card-shadow)] sm:border border-border px-2 py-8 sm:p-8">
         <div className="text-center mb-8">
           <Image
             src="/logo/sslogo.png"
@@ -147,7 +147,7 @@ function LoginForm() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-full py-2.5 h-auto"
+            className="w-full py-2.5 h-auto"
           >
             {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
             {isLoading ? "Signing in..." : "Sign in to Operations Portal"}

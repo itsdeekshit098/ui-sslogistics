@@ -6,78 +6,17 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  TruckIcon,
-  FileTextIcon,
-  FuelIcon,
-  UsersIcon,
-  BarChart3Icon,
-  LayoutDashboardIcon,
-  Building2Icon,
-  WrenchIcon,
-  ActivityIcon,
   LockIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
-  UserCogIcon,
-  ShieldIcon,
-  PackageIcon,
-  UserIcon,
-  SettingsIcon,
-  ClockIcon,
-  LandmarkIcon,
-  WalletIcon,
 } from "@/components/ui/icon";
 import { SignOutButton } from "@/components/signOutButton";
 import { ThemeToggle } from "@/components/themeToggle";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
-import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
-
-type SidebarItem = {
-  name: string;
-  href: string;
-  icon: typeof LayoutDashboardIcon;
-  enabled: boolean;
-};
-
-// Grouped rather than one flat 17-item list — now that Loans/Clients/Firms
-// & Owners sit alongside fleet operations, giving them their own labeled
-// section makes that distinction visible instead of just another row.
-const sidebarSections: { label: string; items: SidebarItem[] }[] = [
-  {
-    label: "Operations",
-    items: [
-      { name: "Dashboard", href: "/admin", icon: LayoutDashboardIcon, enabled: true },
-      { name: "Vehicles", href: "/admin/vehicles", icon: TruckIcon, enabled: true },
-      { name: "Trip Sheets", href: "/admin/trip-sheets", icon: FileTextIcon, enabled: false },
-      { name: "Diesel Records", href: "/admin/diesel-records", icon: FuelIcon, enabled: true },
-      { name: "Repair Records", href: "/admin/repair-records", icon: WrenchIcon, enabled: true },
-      { name: "Warranty", href: "/admin/warranty", icon: PackageIcon, enabled: true },
-      { name: "Technicians", href: "/admin/technicians", icon: UserCogIcon, enabled: true },
-      { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
-      { name: "Trips", href: "/admin/trip-bookings", icon: ClockIcon, enabled: true },
-    ],
-  },
-  {
-    label: "Money",
-    items: [
-      { name: "Loans", href: "/admin/loans", icon: LandmarkIcon, enabled: true },
-      { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: true },
-      { name: "Firms & Owners", href: "/admin/entities", icon: UserIcon, enabled: true },
-      { name: "Bank Accounts", href: "/admin/bank-accounts", icon: WalletIcon, enabled: true },
-    ],
-  },
-  {
-    label: "Administration",
-    items: [
-      { name: "Reports", href: "/admin/reports", icon: BarChart3Icon, enabled: false },
-      { name: "Activity Log", href: "/admin/activity-log", icon: ActivityIcon, enabled: true },
-      { name: "Sessions", href: "/admin/sessions", icon: ShieldIcon, enabled: true },
-      { name: "Settings", href: "/admin/settings", icon: SettingsIcon, enabled: true },
-    ],
-  },
-];
+import type { UserRole } from "@/lib/routePermissions";
+import { filterNavSections, matchNavItem } from "./navConfig";
 
 interface SidebarProps {
   className?: string;
@@ -96,19 +35,10 @@ export function Sidebar({
   const isMobile = !!onClose;
   const { user, userRole, loading: authLoading } = useAuth();
 
-  const filteredSections = sidebarSections
-    .map((section) => ({
-      label: section.label,
-      items: section.items
-        .filter((item) => {
-          if (authLoading || !userRole) return false;
-          return canRoleAccessPage(item.href, userRole as UserRole);
-        })
-        // "Coming soon" items sink to the end of their own section, rather
-        // than the end of the whole list — keeps the group boundary clean.
-        .sort((a, b) => Number(b.enabled) - Number(a.enabled)),
-    }))
-    .filter((section) => section.items.length > 0);
+  const filteredSections = authLoading
+    ? []
+    : filterNavSections(userRole as UserRole | null);
+  const activeHref = matchNavItem(pathname)?.item.href;
 
   return (
     <div
@@ -186,7 +116,7 @@ export function Sidebar({
                     )}
 
                     {section.items.map((item) => {
-                      const isActive = pathname === item.href;
+                      const isActive = activeHref === item.href;
                       const isEnabled = item.enabled;
 
                       const iconEl = (
@@ -288,7 +218,7 @@ export function Sidebar({
               <ThemeToggle />
             </div>
             <div className="flex items-center gap-3 rounded-lg p-2 bg-[var(--sidebar-border)]/30">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400">
                 {(user?.displayName || user?.email)?.charAt(0).toUpperCase() ||
                   "U"}
               </div>

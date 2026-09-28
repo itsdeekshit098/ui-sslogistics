@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { NavigationProgress } from "@/components/navigationProgress";
@@ -41,6 +41,19 @@ export const metadata: Metadata = {
     "commercial vehicles",
     "logistics management",
     "logistics company India",
+  ],
+};
+
+// viewportFit "cover" lets the mobile app bar / bottom nav extend under the
+// notch and home indicator (they pad themselves with env(safe-area-inset-*)).
+// themeColor tints the phone browser chrome to match the app bar (--card).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#161d2d" },
   ],
 };
 
