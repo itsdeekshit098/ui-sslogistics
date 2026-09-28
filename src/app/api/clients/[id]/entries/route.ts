@@ -40,7 +40,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(
-      100,
+      200,
       Math.max(1, Number(searchParams.get("page_size")) || 25),
     );
 

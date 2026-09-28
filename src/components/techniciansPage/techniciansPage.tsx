@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  PlusIcon,
   SearchIcon,
   PencilIcon,
   CheckCircleIcon,
@@ -15,12 +14,12 @@ import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermi
 import dynamic from "next/dynamic";
 import type { Technician, SpecializationOption } from "./techniciansPage.types";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 
@@ -260,6 +259,7 @@ export function TechniciansPage() {
     {
       key: "is_active",
       header: "Status",
+      mobile: "trailing",
       cell: (tech) => (
         <span
           className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -335,24 +335,17 @@ export function TechniciansPage() {
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Technicians
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your workshop technicians and their specializations
-          </p>
-        </div>
-        {canEdit && (
-          <Button data-testid="technicians-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
-            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Technician
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Technicians"
+        description="Manage your workshop technicians and their specializations"
+        primaryAction={
+          canEdit
+            ? { label: "Add Technician", testId: "technicians-add-btn", onClick: handleAddNew }
+            : undefined
+        }
+      />
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+      <div className="ss-panel bg-card rounded-xl border shadow-sm overflow-hidden">
         {/* Search */}
         <div className="p-4 sm:p-6 border-b border-border space-y-4">
           <div className="relative w-full max-w-sm">
@@ -411,97 +404,18 @@ export function TechniciansPage() {
           ) : (
             <>
               {/* Desktop Table - standard UI component is DataTable */}
-              <div className="hidden md:block">
-                <DataTable
-                  columns={columns}
-                  data={technicians}
-                  rowKey={(t) => String(t.id)}
-                  loading={fetching}
-                  showActions={canManage}
-                  rowActions={formattedRowActions}
-                  rowClassName={(tech) => (!tech.is_active ? "opacity-60 bg-muted/10" : "")}
-                />
-              </div>
+              <DataTable
+                columns={columns}
+                data={technicians}
+                rowKey={(t) => String(t.id)}
+                loading={fetching}
+                showActions={canManage}
+                rowActions={formattedRowActions}
+                rowClassName={(tech) => (!tech.is_active ? "opacity-60 bg-muted/10" : "")}
+              />
+            
 
               {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
-                {fetching ? (
-                  <CardListSkeleton count={5} lines={2} />
-                ) : (
-                  technicians.map((tech) => (
-                    <div
-                      key={tech.id}
-                      className={`rounded-lg border bg-card p-4 shadow-sm ${
-                        !tech.is_active ? "opacity-75 bg-muted/10" : ""
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="font-semibold text-foreground text-lg">
-                            {tech.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {tech.phone || "No phone"}
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            tech.is_active
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                              : "bg-zinc-50 text-zinc-600 dark:bg-zinc-500/10 dark:text-zinc-400"
-                          }`}
-                        >
-                          {tech.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-
-                      <div className="text-sm text-muted-foreground mb-3">
-                        {tech.location || "No location"}
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {tech.specializations.map((spec) => (
-                          <span
-                            key={spec}
-                            className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-background"
-                          >
-                            {spec}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {canManage && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleStatus(tech)}
-                            >
-                              {tech.is_active ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(tech)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteTarget(tech)}
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
             </>
           )}
 
@@ -511,6 +425,7 @@ export function TechniciansPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
+                loading={fetching}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
               />

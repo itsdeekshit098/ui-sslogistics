@@ -1,9 +1,9 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  PlusIcon,
   Trash2Icon,
   PencilIcon,
   AlertTriangleIcon,
@@ -262,34 +262,22 @@ export default function DieselRecordsPage() {
           data-testid="diesel-back-btn"
           variant="ghost"
           onClick={() => router.back()}
-          className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
+          className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground max-md:hidden"
         >
           <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
           Back
         </Button>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Diesel Records
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Track fuel consumption, cycles, and efficiency for all vehicles.
-            </p>
-          </div>
-          <Button
-            data-testid="admin-diesel-add-btn"
-            className="w-full md:w-auto"
-            onClick={() => setIsCreateOpen(true)}
-            disabled={vehiclesLoading || !!vehiclesError}
-          >
-            {vehiclesLoading ? (
-              <LoadingSpinner size="sm" className="mr-2" />
-            ) : (
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
-            )}
-            {vehiclesLoading ? "Loading Vehicles..." : "Add Diesel Entry"}
-          </Button>
-        </div>
+        <PageHeader
+          title="Diesel Records"
+          description="Track fuel consumption, cycles, and efficiency for all vehicles."
+          primaryAction={{
+            label: vehiclesLoading ? "Loading Vehicles..." : "Add Diesel Entry",
+            testId: "admin-diesel-add-btn",
+            onClick: () => setIsCreateOpen(true),
+            disabled: vehiclesLoading || !!vehiclesError,
+            icon: vehiclesLoading ? <LoadingSpinner size="sm" /> : undefined,
+          }}
+        />
 
         <>
             <div className="flex items-center gap-4">
@@ -344,7 +332,7 @@ export default function DieselRecordsPage() {
             )}
 
             {selectedVehicleId && (
-                <Card>
+                <Card className="ss-panel">
                   <CardHeader className="p-3 md:p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <CardTitle className="text-lg md:text-xl">
@@ -360,7 +348,7 @@ export default function DieselRecordsPage() {
                   <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
                     {/* Mobile Card View */}
                     <div className="block lg:hidden space-y-2">
-                      {loading ? (
+                      {loading && records.length === 0 ? (
                         <CardListSkeleton count={5} lines={4} />
                       ) : recordsError ? (
                         <ErrorState
@@ -874,6 +862,7 @@ export default function DieselRecordsPage() {
                           page={page}
                           totalCount={totalRecords}
                           pageSize={pageSize}
+                          loading={loading}
                           pageSizeOptions={[10, 20, 50, 100]}
                           onPageChange={handlePageChange}
                           onPageSizeChange={handlePageSizeChange}

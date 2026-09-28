@@ -271,7 +271,7 @@ export function SessionsPage() {
   return (
     <div style={styles.pageContainer}>
       {/* Header */}
-      <div style={styles.headerRow}>
+      <div style={styles.headerRow} className="max-md:!hidden">
         <h1 style={styles.pageTitle}>Session Management</h1>
         <p style={styles.pageDescription}>
           View all registered users, their active sessions, and manage access.

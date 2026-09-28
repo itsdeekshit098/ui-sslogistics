@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
-  PlusIcon,
   PencilIcon,
   Trash2Icon,
   LandmarkIcon,
@@ -15,6 +14,7 @@ import {
   FileTextIcon,
   SearchIcon,
   XIcon,
+  SlidersHorizontalIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
@@ -31,6 +31,7 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { BusyOverlay } from "@/components/busyOverlay";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
+import { FilterDrawer } from "@/components/ui/filterDrawer";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Typeahead } from "@/components/typeahead";
@@ -86,6 +87,7 @@ export function LoansPage() {
   const canManage = isAdminRole(userRole);
 
   const [activeTab, setActiveTab] = useState<TabKey>("loans");
+  const [loanFiltersOpen, setLoanFiltersOpen] = useState(false);
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [summary, setSummary] = useState<LoanSummary | null>(null);
@@ -407,6 +409,7 @@ export function LoansPage() {
     {
       key: "status",
       header: "Status",
+      mobile: "trailing",
       cell: (loan) => (
         <Badge variant={loan.status === "ACTIVE" ? "secondary" : "outline"}>
           {getLoanStatusLabel(loan.status)}
@@ -509,6 +512,7 @@ export function LoansPage() {
     {
       key: "status",
       header: "Status",
+      mobile: "trailing",
       cell: (funding) => (
         <Badge variant={funding.status === "OPEN" ? "secondary" : "outline"}>
           {funding.status === "OPEN" ? "Open" : "Settled"}
@@ -519,39 +523,89 @@ export function LoansPage() {
 
   if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
+
+  const loanFilterCount = [loanTypeFilter, borrowerFilter, lenderFilter].filter(Boolean).length;
+
+  // Type / borrower / lender filters — inline on sm+, inside a bottom-sheet
+  // FilterDrawer on phones (three stacked full-width dropdowns pushed the
+  // loan list a whole screen down).
+  const renderLoanFilters = (inSheet: boolean) => (
+    <>
+      <LookupSelect
+        category="loan_type"
+        value={loanTypeFilter}
+        onValueChange={(val) => {
+          setLoanTypeFilter(val);
+          setPage(1);
+        }}
+        placeholder="All types"
+        allowAdd={false}
+        clearable
+        className={inSheet ? "w-full" : "w-full sm:w-44"}
+      />
+      <Typeahead<Entity>
+        options={filterEntities}
+        value={borrowerFilter}
+        onValueChange={(val) => {
+          setBorrowerFilter(val);
+          setPage(1);
+        }}
+        getOptionLabel={(e) => e.name}
+        getOptionValue={(e) => String(e.id)}
+        getOptionDescription={(e) => (e.entity_kind === "FIRM" ? "Firm" : "Person")}
+        placeholder="All borrowers"
+        emptyMessage="No entities found."
+        clearable
+        className={inSheet ? "w-full" : "w-full sm:w-52"}
+      />
+      <Typeahead<Lender>
+        options={filterLenders}
+        value={lenderFilter}
+        onValueChange={(val) => {
+          setLenderFilter(val);
+          setPage(1);
+        }}
+        getOptionLabel={(l) => l.name}
+        getOptionValue={(l) => String(l.id)}
+        placeholder="All lenders"
+        emptyMessage="No lenders found."
+        clearable
+        className={inSheet ? "w-full" : "w-full sm:w-52"}
+      />
+    </>
+  );
+
   return (
     <div className="container mx-auto animate-in space-y-6 fade-in duration-200 md:space-y-8">
       <PageHeader
         title="Loans"
         description="Bank and finance-company loans, private borrowings, and what falls due when."
-        actions={
-          canManage ? (
-            <Button
-              data-testid="loans-primary-action-btn"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                if (activeTab === "fundings" || activeTab === "lent") {
-                  setFundingModalDirection(activeTab === "lent" ? "LENT" : "BORROWED");
-                  setShowFundingModal(true);
-                } else {
-                  setLoanToEdit(null);
-                  setShowLoanModal(true);
-                }
-              }}
-            >
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
-              {activeTab === "lent"
-                ? "Lend Money"
-                : activeTab === "fundings"
-                  ? "Add Funding"
-                  : "New Loan"}
-            </Button>
-          ) : undefined
+        primaryAction={
+          canManage
+            ? {
+                label:
+                  activeTab === "lent"
+                    ? "Lend Money"
+                    : activeTab === "fundings"
+                      ? "Add Funding"
+                      : "New Loan",
+                testId: "loans-primary-action-btn",
+                onClick: () => {
+                  if (activeTab === "fundings" || activeTab === "lent") {
+                    setFundingModalDirection(activeTab === "lent" ? "LENT" : "BORROWED");
+                    setShowFundingModal(true);
+                  } else {
+                    setLoanToEdit(null);
+                    setShowLoanModal(true);
+                  }
+                },
+              }
+            : undefined
         }
       />
 
       {summary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5 max-xl:[&>*:last-child:nth-child(odd)]:col-span-2">
           <StatCard
             title="Total Outstanding"
             value={<Money value={summary.totalOutstanding} />}
@@ -593,7 +647,7 @@ export function LoansPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="border-b border-border p-4 sm:p-6">
           <Tabs
             idPrefix="loans"
@@ -622,8 +676,15 @@ export function LoansPage() {
             />
           ) : activeTab === "loans" ? (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative w-full max-w-sm">
+              <FilterDrawer
+                open={loanFiltersOpen}
+                onClose={() => setLoanFiltersOpen(false)}
+                onApply={() => setLoanFiltersOpen(false)}
+              >
+                {renderLoanFilters(true)}
+              </FilterDrawer>
+              <div className="flex flex-wrap items-center gap-3 max-sm:flex-nowrap max-sm:gap-2">
+                <div className="relative w-full min-w-0 max-sm:flex-1 sm:max-w-sm">
                   <SearchIcon
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={16}
@@ -647,47 +708,21 @@ export function LoansPage() {
                     </Button>
                   )}
                 </div>
-                <LookupSelect
-                  category="loan_type"
-                  value={loanTypeFilter}
-                  onValueChange={(val) => {
-                    setLoanTypeFilter(val);
-                    setPage(1);
-                  }}
-                  placeholder="All types"
-                  allowAdd={false}
-                  clearable
-                  className="w-44"
-                />
-                <Typeahead<Entity>
-                  options={filterEntities}
-                  value={borrowerFilter}
-                  onValueChange={(val) => {
-                    setBorrowerFilter(val);
-                    setPage(1);
-                  }}
-                  getOptionLabel={(e) => e.name}
-                  getOptionValue={(e) => String(e.id)}
-                  getOptionDescription={(e) => (e.entity_kind === "FIRM" ? "Firm" : "Person")}
-                  placeholder="All borrowers"
-                  emptyMessage="No entities found."
-                  clearable
-                  className="w-52"
-                />
-                <Typeahead<Lender>
-                  options={filterLenders}
-                  value={lenderFilter}
-                  onValueChange={(val) => {
-                    setLenderFilter(val);
-                    setPage(1);
-                  }}
-                  getOptionLabel={(l) => l.name}
-                  getOptionValue={(l) => String(l.id)}
-                  placeholder="All lenders"
-                  emptyMessage="No lenders found."
-                  clearable
-                  className="w-52"
-                />
+                <Button
+                  variant="outline"
+                  onClick={() => setLoanFiltersOpen(true)}
+                  aria-label="Filters"
+                  className="relative h-11 shrink-0 gap-1.5 px-3 sm:hidden"
+                >
+                  <SlidersHorizontalIcon size={18} />
+                  {loanFilterCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                      {loanFilterCount}
+                    </span>
+                  )}
+                </Button>
+                {/* Tablet/desktop: inline. Phones: in the filter sheet below. */}
+                <div className="contents max-sm:hidden">{renderLoanFilters(false)}</div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -757,6 +792,7 @@ export function LoansPage() {
                     page={page}
                     totalCount={total}
                     pageSize={pageSize}
+                    loading={fetching}
                     onPageChange={setPage}
                     onPageSizeChange={(size) => {
                       setPageSize(size);
@@ -904,10 +940,10 @@ export function LoansPage() {
                       key={day.date}
                       className={
                         day.is_overdue
-                          ? "rounded-lg border border-destructive/30 bg-destructive-subtle p-4"
+                          ? "rounded-xl border border-destructive/30 bg-destructive-subtle p-4"
                           : isToday
-                            ? "rounded-lg border border-primary/40 bg-card p-4 ring-1 ring-primary/20"
-                            : "rounded-lg border border-border bg-card p-4"
+                            ? "rounded-xl border border-primary/40 bg-card p-4 ring-1 ring-primary/20"
+                            : "rounded-xl border border-border bg-card p-4"
                       }
                     >
                       <div className="mb-3 flex items-center justify-between gap-3">

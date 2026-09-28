@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
-  PlusIcon,
   SearchIcon,
   PencilIcon,
   Trash2Icon,
@@ -20,7 +19,6 @@ import { PageHeader } from "@/components/ui/pageHeader";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import {
@@ -186,6 +184,7 @@ export function EntitiesPage() {
     {
       key: "entity_kind",
       header: "Type",
+      mobile: "trailing",
       cell: (entity) => (
         <Badge variant="secondary">{getEntityKindLabel(entity.entity_kind)}</Badge>
       ),
@@ -251,16 +250,14 @@ export function EntitiesPage() {
       <PageHeader
         title="Firms & Owners"
         description="Our proprietorships and the people behind them, plus external parties whose vehicles we run. Loans are recorded against these names."
-        actions={
-          canEdit ? (
-            <Button data-testid="entities-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Entity
-            </Button>
-          ) : undefined
+        primaryAction={
+          canEdit
+            ? { label: "Add Entity", testId: "entities-add-btn", onClick: handleAddNew }
+            : undefined
         }
       />
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="space-y-4 border-b border-border p-4 sm:p-6">
           <Tabs
             idPrefix="entities"
@@ -321,83 +318,18 @@ export function EntitiesPage() {
             />
           ) : (
             <>
-              {/* Desktop Table */}
-              <div className="hidden md:block">
-                <DataTable
-                  columns={columns}
-                  data={entities}
-                  rowKey={(e) => String(e.id)}
-                  loading={fetching}
-                  showActions={canManage}
-                  rowActions={rowActions}
-                />
-              </div>
+              {/* Table — DataTable renders it as cards below md */}
+              <DataTable
+                columns={columns}
+                data={entities}
+                rowKey={(e) => String(e.id)}
+                loading={fetching}
+                showActions={canManage}
+                rowActions={rowActions}
+              />
+            
 
               {/* Mobile Cards */}
-              <div className="space-y-4 md:hidden">
-                {fetching ? (
-                  <CardListSkeleton count={5} lines={2} />
-                ) : (
-                  entities.map((entity) => (
-                    <div
-                      key={entity.id}
-                      className="rounded-lg border bg-card p-4 shadow-sm"
-                    >
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-lg font-semibold text-foreground">
-                            {entity.name}
-                          </div>
-                          {entity.proprietor_name && (
-                            <div className="text-xs text-muted-foreground">
-                              Proprietor: {entity.proprietor_name}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <Badge variant="secondary">
-                            {getEntityKindLabel(entity.entity_kind)}
-                          </Badge>
-                          <Badge
-                            variant={
-                              entity.relationship === "EXTERNAL" ? "outline" : "secondary"
-                            }
-                          >
-                            {getRelationshipLabel(entity.relationship)}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        {entity.phone && <span>{entity.phone}</span>}
-                        {!!entity.vehicle_count && (
-                          <span>{entity.vehicle_count} vehicle(s)</span>
-                        )}
-                      </div>
-
-                      {canManage && (
-                        <div className="mt-3 flex items-center justify-end gap-2 border-t pt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(entity)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(entity)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
             </>
           )}
         </div>

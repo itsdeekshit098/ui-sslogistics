@@ -3,8 +3,12 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SignOutButton } from "@/components/signOutButton";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { Button } from "@/components/ui/button";
-import { MenuIcon } from "@/components/ui/icon";
+import { MobileTopBar } from "@/components/layout/mobileTopBar";
+import { BottomNav } from "@/components/layout/bottomNav";
+import { MobileMenuSheet } from "@/components/layout/mobileMenuSheet";
+import { SectionChips } from "@/components/layout/sectionChips";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -24,6 +28,9 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, refreshSession } = useAuth();
+  // Phone chrome is mounted only on phones (not just CSS-hidden), so desktop
+  // has no hidden duplicate title, nav links or menu in the DOM.
+  const isMobile = useIsMobile();
   const idleTimeoutTriggeredRef = useRef(false);
 
   // If the session disappears while inside the admin area (revoked by a
@@ -100,42 +107,15 @@ export default function AdminLayout({
           onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         />
 
-        {/* Mobile Floating Menu Button */}
-        <div className="md:hidden fixed top-4 right-4 z-40">
-          <Button
-            data-testid="admin-mobile-menu-btn"
-            variant="outline"
-            size="icon"
-            className="rounded-[var(--input-radius)] shadow-md bg-background/80 backdrop-blur border-border text-foreground hover:bg-background"
-            onClick={() => setIsMobileMenuOpen(true)}
-          >
-            <MenuIcon size={20} />
-          </Button>
-        </div>
-
-        {/* Mobile Sidebar Overlay */}
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
-            {/* Backdrop */}
-            <div
-              data-testid="admin-mobile-overlay"
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-            {/* Drawer */}
-            <div className="fixed inset-y-0 left-0 w-72 shadow-xl z-50 animate-in slide-in-from-left duration-200">
-              <Sidebar
-                className="w-full h-full border-r border-border/50"
-                onClose={() => setIsMobileMenuOpen(false)}
-              />
-            </div>
-          </div>
-        )}
-
         <div
           className="flex flex-1 flex-col min-w-0 overflow-hidden"
           data-testid="admin-layout"
         >
+          {/* Mobile app bar — replaces the desktop header below md */}
+          {isMobile && (
+            <MobileTopBar className="md:hidden" onOpenMenu={() => setIsMobileMenuOpen(true)} />
+          )}
+
           {/* Desktop Header */}
           <header className="hidden md:flex h-14 shrink-0 items-center justify-end gap-3 bg-card px-6 z-30 border-b border-border shadow-sm">
             <NotificationBell />
@@ -153,7 +133,7 @@ export default function AdminLayout({
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
                 aria-label="User Account Menu"
-                className="flex h-9 w-9 p-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                className="flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
               >
                 {(user?.displayName || user?.email)?.charAt(0).toUpperCase() || "U"}
               </Button>
@@ -184,9 +164,25 @@ export default function AdminLayout({
             className="flex-1 overflow-y-auto p-4 md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
             data-testid="admin-main"
           >
+            {isMobile && <SectionChips />}
             {children}
           </main>
+
+          {isMobile && (
+            <BottomNav
+              className="md:hidden"
+              menuOpen={isMobileMenuOpen}
+              onOpenMenu={() => setIsMobileMenuOpen(true)}
+            />
+          )}
         </div>
+
+        {isMobile && (
+          <MobileMenuSheet
+            open={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          />
+        )}
     </div>
   );
 }

@@ -61,9 +61,12 @@
   --radius-xs: calc(var(--radius) - 4px);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  /* One corner for every box, card, field, button and sheet: lg/xl/2xl all
+     resolve to the base 8px, so `rounded-lg`/`rounded-xl`/`rounded-2xl`
+     written anywhere in the app come out identical. */
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
 
   /*
     ─── Shadow Tokens ───
@@ -154,6 +157,9 @@
 @utility slide-in-from-top-2 {
   --tw-enter-translate-y: -0.5rem;
 }
+@utility slide-in-from-bottom {
+  --tw-enter-translate-y: 100%;
+}
 @utility slide-in-from-bottom-2 {
   --tw-enter-translate-y: 0.5rem;
 }
@@ -173,6 +179,162 @@
         var(--tw-enter-scale, 1),
         var(--tw-enter-scale, 1)
       );
+  }
+}
+
+/* ── Phone-width modals become bottom sheets ─────────────────────────────
+   Modal styles are inline (modal.style.ts) and callers pass their own
+   maxWidth, so the overrides need !important. Kept here rather than in 36
+   modal call sites. */
+@keyframes ss-sheet-up {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@media (max-width: 639px) {
+  .ss-modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .ss-modal-content {
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: ss-sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+  /* Drag handle */
+  .ss-modal-content::before {
+    content: "";
+    display: block;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0.5rem auto 0;
+    border-radius: 9999px;
+    background: var(--muted-foreground);
+    opacity: 0.3;
+  }
+  /* Full-width, thumb-sized footer buttons */
+  .ss-modal-footer {
+    padding: 0.75rem 1rem !important;
+    border-top: 1px solid var(--border);
+  }
+  .ss-modal-footer > button,
+  .ss-modal-footer > a {
+    flex: 1 1 0;
+    min-height: 2.75rem;
+  }
+  /* 40px close target (24px on desktop is fine for a mouse) */
+  .ss-modal-close {
+    top: 0.75rem !important;
+    right: 0.5rem !important;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* ── Phone-width list panels and cards ──────────────────────────────────
+   A page's list lives in a bordered panel (search + tabs + table). On
+   phones the rows are already cards, so the panel flattens onto the page
+   instead of drawing rounded boxes inside a rounded box. */
+@media (max-width: 767px) {
+  .ss-panel {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    min-height: 0 !important;
+  }
+  .ss-panel > * {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-bottom-width: 0 !important;
+  }
+  /* Inline-styled summary strips (Trips) read as boxes-in-a-box; on phones
+     each figure becomes a stat tile matching StatCard. */
+  .ss-stat-strip {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .ss-stat-strip > div {
+    padding: 0.875rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.5rem !important;
+    background: var(--card) !important;
+    box-shadow: var(--card-shadow);
+  }
+  .ss-stat-strip > div > span:first-child {
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+  }
+  .ss-stat-strip > div > span:last-child {
+    font-size: 1.125rem !important;
+  }
+  /* Panel headings ("Vehicle List", "Repair History…") drop to the phone
+     section-title size — the top bar already carries the page title. */
+  .ss-panel h3 {
+    font-size: 0.9375rem !important;
+    line-height: 1.3 !important;
+  }
+}
+
+/* Card cells reuse the table's cell renderers, which are tuned for wide
+   columns (nowrap, truncate, fixed max-widths). In a half-width card field
+   those overflow into the neighbouring field, so let them wrap. */
+.ss-card-cell,
+.ss-card-cell * {
+  white-space: normal !important;
+  overflow-wrap: break-word;
+}
+.ss-card-cell .truncate,
+.ss-card-cell [class*="max-w-"] {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+/* Rows of badges/chips may wrap; an icon + text row keeps the icon beside
+   the text and wraps the text itself instead of dropping it to a new line. */
+.ss-card-cell .flex:not(:has(> svg)) {
+  flex-wrap: wrap;
+}
+.ss-card-cell .flex:has(> svg) > :not(svg) {
+  min-width: 0;
+}
+
+/* An empty state with its own call to action ("Add Account", "Clear
+   Search") already says what to do next; the floating page action would
+   only duplicate it and, on a short page, sit on top of it. */
+body:has([data-testid="empty-state-action-btn"]) .ss-fab {
+  display: none;
+}
+
+/* Room under the last card for the floating "+" (52px button, 12px above
+   the bottom nav) — only on pages that have one, so a list ends 16px above
+   the nav everywhere else instead of over a band of empty space. */
+@media (max-width: 767px) {
+  body:has(.ss-fab) [data-testid="admin-main"] {
+    padding-bottom: 5rem;
+  }
+}
+
+/* Filter drawer: side panel on desktop, bottom sheet on phones/tablets. */
+@media (max-width: 767px) {
+  .ss-filter-panel {
+    top: auto !important;
+    left: 0 !important;
+    max-width: 100% !important;
+    max-height: 85dvh;
+    border-left: 0 !important;
+    border-top: 1px solid var(--border);
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
@@ -204,7 +366,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-in,
-  .animate-out {
+  .animate-out,
+  .ss-modal-content {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
@@ -247,7 +410,9 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    /* The theme's border token, not Tailwind's gray-200 compat default —
+       gray-200 is near-white, so every bare `border` glared in dark mode. */
+    border-color: var(--border, currentColor);
   }
 
   button {
@@ -268,6 +433,9 @@
 
   body {
     font-family: var(--font-sans);
+    /* Anything that inherits its colour (outline buttons, plain text) must
+       follow the theme, not fall back to the UA's black. */
+    color: var(--foreground);
   }
 
   h1,
@@ -351,13 +519,10 @@
   --radius: 0.5rem;
 
   /* ─── Component-Specific Radius ─── */
-  /* radius-xl (12px), not radius-lg (10px): every page already builds its
-     cards with Tailwind's `rounded-xl`, so aligning the token here — rather
-     than rewriting rounded-xl on every page — is what makes the Card
-     primitive, StatCard and DataTable match what's already everywhere. */
-  --card-radius: var(--radius-xl);
-  --modal-radius: var(--radius-xl);
-  --input-radius: var(--radius-md);
+  /* Cards, dialogs, inputs and buttons all share the one 8px base radius. */
+  --card-radius: var(--radius);
+  --modal-radius: var(--radius);
+  --input-radius: var(--radius);
   --badge-radius: 9999px;
 
   /* ─── Shadow Scale ─── */
@@ -435,7 +600,9 @@
   --accent: hsl(222 28% 18%);
   --accent-foreground: hsl(210 40% 98%);
 
-  --destructive: hsl(0 63% 31%);
+  /* Used as text (overdue figures, Delete, errors) as well as a button fill,
+     so it has to read on the dark canvas — 31% lightness was near-invisible. */
+  --destructive: hsl(0 72% 58%);
   --destructive-foreground: hsl(210 40% 98%);
 
   --success: hsl(149 60% 32%);
@@ -515,7 +682,7 @@
     --accent: hsl(222 28% 18%);
     --accent-foreground: hsl(210 40% 98%);
 
-    --destructive: hsl(0 63% 31%);
+    --destructive: hsl(0 72% 58%);
     --destructive-foreground: hsl(210 40% 98%);
 
     --success: hsl(149 60% 32%);

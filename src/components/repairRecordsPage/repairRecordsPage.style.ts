@@ -2,8 +2,10 @@ import type { CSSProperties } from "react";
 
 export const summaryStrip: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-  gap: "1rem",
+  // min(…, 50%) keeps two cards per row on phones instead of one 190px
+  // card per full-width row; desktop still gets the 190px minimum.
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(190px, calc(50% - 0.375rem)), 1fr))",
+  gap: "0.75rem",
   width: "100%",
 };
 

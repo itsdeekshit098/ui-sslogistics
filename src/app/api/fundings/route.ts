@@ -144,7 +144,7 @@ export async function GET(req: Request) {
 
     const { from, to } = parsePageParams(searchParams, {
       defaultPageSize: 10,
-      maxPageSize: 50,
+      maxPageSize: 200,
     });
 
     let query = supabaseAdmin

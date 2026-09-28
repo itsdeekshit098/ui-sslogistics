@@ -27,7 +27,7 @@ const VIEW_URL = (id: number, download = false) =>
   `/api/attachments/view?id=${id}${download ? "&download=true" : ""}`;
 
 const ICON_ACTION_CLASS =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border bg-background/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AttachmentsPanel({
   ownerType,
@@ -182,7 +182,7 @@ export function AttachmentsPanel({
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -299,7 +299,7 @@ export function AttachmentsPanel({
             return (
             <div
               key={a.id}
-              className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
+              className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted"
             >
               {isImageMime(a.mime_type) && !failedImages.has(a.id) ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -373,7 +373,7 @@ export function AttachmentsPanel({
           })}
         </div>
       ) : (
-        <div className="flex flex-col divide-y divide-border overflow-hidden rounded-md border border-border">
+        <div className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border">
           {attachments.map((a) => (
             <div key={a.id} className="flex items-center gap-3 p-3">
               <FileTextIcon size={18} className="shrink-0 text-muted-foreground" />

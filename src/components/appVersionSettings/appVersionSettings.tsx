@@ -92,7 +92,7 @@ export function AppVersionSettings() {
   return (
     <Card className="max-w-2xl" data-testid="app-version-settings-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
           <UploadCloudIcon size={20} />
           Force App Update
         </CardTitle>
@@ -105,8 +105,8 @@ export function AppVersionSettings() {
         <div
           className={
             isOn
-              ? "rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
-              : "rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+              ? "rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+              : "rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
           }
           data-testid="app-version-status-banner"
         >

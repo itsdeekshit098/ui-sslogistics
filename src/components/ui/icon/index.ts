@@ -90,6 +90,7 @@ export {
   HomeIcon,
   MailIcon,
   GridIcon,
+  MoreHorizontalIcon,
 
   // File actions
   DownloadIcon,

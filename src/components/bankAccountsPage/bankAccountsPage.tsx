@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
-  PlusIcon,
   SearchIcon,
   PencilIcon,
   Trash2Icon,
@@ -18,7 +17,6 @@ import { PageHeader } from "@/components/ui/pageHeader";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import {
@@ -157,6 +155,7 @@ export function BankAccountsPage() {
     {
       key: "holder",
       header: "Holder",
+      mobile: "subtitle",
       cell: (account) => account.entities?.name ?? "—",
     },
     {
@@ -178,6 +177,7 @@ export function BankAccountsPage() {
     {
       key: "is_active",
       header: "Status",
+      mobile: "trailing",
       cell: (account) => (
         <Badge variant={account.is_active ? "secondary" : "outline"}>
           {account.is_active ? "Active" : "Inactive"}
@@ -220,16 +220,14 @@ export function BankAccountsPage() {
       <PageHeader
         title="Bank Accounts"
         description="Our own accounts, so a loan can record which one its EMI mandate debits from."
-        actions={
-          canEdit ? (
-            <Button data-testid="bank-accounts-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Account
-            </Button>
-          ) : undefined
+        primaryAction={
+          canEdit
+            ? { label: "Add Account", testId: "bank-accounts-add-btn", onClick: handleAddNew }
+            : undefined
         }
       />
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="space-y-4 border-b border-border p-4 sm:p-6">
           <div className="relative w-full max-w-sm">
             <SearchIcon
@@ -278,77 +276,16 @@ export function BankAccountsPage() {
             />
           ) : (
             <>
-              <div className="hidden md:block">
-                <DataTable
-                  columns={columns}
-                  data={accounts}
-                  rowKey={(a) => String(a.id)}
-                  loading={fetching}
-                  showActions={canManage}
-                  rowActions={rowActions}
-                />
-              </div>
+              <DataTable
+                columns={columns}
+                data={accounts}
+                rowKey={(a) => String(a.id)}
+                loading={fetching}
+                showActions={canManage}
+                rowActions={rowActions}
+              />
+            
 
-              <div className="space-y-4 md:hidden">
-                {fetching ? (
-                  <CardListSkeleton count={5} lines={2} />
-                ) : (
-                  accounts.map((account) => (
-                    <div
-                      key={account.id}
-                      className="rounded-lg border bg-card p-4 shadow-sm"
-                    >
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-lg font-semibold text-foreground">
-                            {formatBankAccountLabel(account)}
-                          </div>
-                          {account.entities?.name && (
-                            <div className="text-xs text-muted-foreground">
-                              Held by {account.entities.name}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <Badge variant="secondary">
-                            {getAccountTypeLabel(account.account_type)}
-                          </Badge>
-                          <Badge variant={account.is_active ? "secondary" : "outline"}>
-                            {account.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        {account.ifsc && <span>{account.ifsc}</span>}
-                        {!!account.loan_count && (
-                          <span>{account.loan_count} loan(s)</span>
-                        )}
-                      </div>
-
-                      {canManage && (
-                        <div className="mt-3 flex items-center justify-end gap-2 border-t pt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(account)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(account)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
             </>
           )}
         </div>
