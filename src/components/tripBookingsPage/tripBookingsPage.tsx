@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  PlusIcon,
   PencilIcon,
   XIcon,
   CheckCircleIcon,
@@ -29,6 +28,7 @@ import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -42,7 +42,6 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./tripBookingsPage.style";
@@ -369,6 +368,7 @@ export function TripBookingsPage() {
     {
       key: "status",
       header: "Status",
+      mobile: "trailing",
       cell: (b) => (
         <span style={statusBadgeStyle(b.status)}>{TRIP_BOOKING_STATUS_LABELS[b.status]}</span>
       ),
@@ -415,42 +415,42 @@ export function TripBookingsPage() {
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Trips</h1>
-          <p className="text-muted-foreground mt-1">
-            Plan trips, complete them, and review final costs and profit in one place.
-          </p>
-        </div>
-        {canEdit && (
-          <div className="flex w-full sm:w-auto gap-2">
-            {canManage && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setShowFinancials((visible) => !visible)}
-                title={showFinancials ? "Hide financial values" : "Show financial values"}
-                aria-label={showFinancials ? "Hide financial values" : "Show financial values"}
-              >
-                {showFinancials ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+      <PageHeader
+        title="Trips"
+        description="Plan trips, complete them, and review final costs and profit in one place."
+        actions={
+          canEdit ? (
+            <>
+              {canManage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowFinancials((visible) => !visible)}
+                  title={showFinancials ? "Hide financial values" : "Show financial values"}
+                  aria-label={showFinancials ? "Hide financial values" : "Show financial values"}
+                >
+                  {showFinancials ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setShowDirectComplete(true)} className="flex-1 sm:flex-none">
+                <CheckCircleIcon size={16} style={{ marginRight: "0.5rem" }} /> Record Completed Trip
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setShowDirectComplete(true)} className="flex-1 sm:flex-none">
-              <CheckCircleIcon size={16} style={{ marginRight: "0.5rem" }} /> Record Completed Trip
-            </Button>
-            <Button data-testid="trip-bookings-add-btn" onClick={handleAddNew} className="flex-1 sm:flex-none">
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Booking
-            </Button>
-          </div>
-        )}
-      </div>
+            </>
+          ) : undefined
+        }
+        primaryAction={
+          canEdit
+            ? { label: "New Booking", testId: "trip-bookings-add-btn", onClick: handleAddNew }
+            : undefined
+        }
+      />
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="ss-panel bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         {/* ── Summary Strip ── */}
         <div className="px-4 sm:px-6 pt-4">
           <div
+            className="ss-stat-strip"
             style={{
               ...styles.summaryStrip,
               opacity: fetching ? 0.5 : 1,
@@ -497,8 +497,8 @@ export function TripBookingsPage() {
 
         {/* ── Content ── */}
         <div className="flex-1 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mb-4">
-            <div className="relative w-full sm:w-72">
+          <div className="flex flex-row items-center justify-between gap-2 mb-4">
+            <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
               <SearchIcon
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -520,9 +520,14 @@ export function TripBookingsPage() {
                   Clear all
                 </Button>
               )}
-              <Button variant="outline" onClick={openDrawer} className="gap-2">
+              <Button
+                variant="outline"
+                onClick={openDrawer}
+                aria-label="Filters"
+                className="gap-2 max-sm:h-11 max-sm:gap-1.5 max-sm:px-3"
+              >
                 <SlidersHorizontalIcon size={16} />
-                Filters
+                <span className="max-sm:sr-only">Filters</span>
                 {activeFilterCount > 0 && (
                   <span style={styles.activeFilterBadge}>{activeFilterCount}</span>
                 )}
@@ -550,112 +555,24 @@ export function TripBookingsPage() {
             />
           ) : (
             <>
-              {/* Desktop Table */}
-              <div className="hidden md:block">
-                <DataTable
-                  columns={columns}
-                  data={displayData}
-                  rowKey={(b) => String(b.id)}
-                  loading={fetching}
-                  showActions={canEdit}
-                  rowActions={rowActions}
-                  rowStyle={(b) =>
-                    isOverdue(b)
-                      ? styles.rowHighlightOverdue
-                      : isToday(b)
-                        ? styles.rowHighlightToday
-                        : {}
-                  }
-                />
-              </div>
+              {/* Table — DataTable renders it as cards below md */}
+              <DataTable
+                columns={columns}
+                data={displayData}
+                rowKey={(b) => String(b.id)}
+                loading={fetching}
+                showActions={canEdit}
+                rowActions={rowActions}
+                rowStyle={(b) =>
+                  isOverdue(b)
+                    ? styles.rowHighlightOverdue
+                    : isToday(b)
+                      ? styles.rowHighlightToday
+                      : {}
+                }
+              />
+            
 
-              {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
-                {fetching ? (
-                  <CardListSkeleton count={5} lines={2} />
-                ) : (
-                  displayData.map((b) => {
-                    const route = [b.from_location, b.to_location].filter(Boolean).join(" → ");
-                    return (
-                      <div
-                        key={b.id}
-                        className="rounded-lg border bg-card p-4 shadow-sm"
-                        style={
-                          isOverdue(b)
-                            ? styles.rowHighlightOverdue
-                            : isToday(b)
-                              ? styles.rowHighlightToday
-                              : undefined
-                        }
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <div className="font-semibold text-foreground text-lg">
-                              {b.customer_name}
-                            </div>
-                            {b.customer_phone && (
-                              <div className="text-sm text-muted-foreground">
-                                {b.customer_phone}
-                              </div>
-                            )}
-                          </div>
-                          <span style={statusBadgeStyle(b.status)}>
-                            {TRIP_BOOKING_STATUS_LABELS[b.status]}
-                          </span>
-                        </div>
-                        {route && (
-                          <div className="text-sm text-muted-foreground mb-1">📍 {route}</div>
-                        )}
-                        <div className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                          📅 {b.start_date}
-                          {isOverdue(b) && <span style={styles.overdueBadge}>Overdue</span>}
-                          {isToday(b) && <span style={styles.todayBadge}>Today</span>}
-                        </div>
-                        <div className="text-sm text-muted-foreground mb-1">
-                          🚌{" "}
-                          {b.vehicles?.vehicle_number ||
-                            `${b.vehicle_type}${b.seating_capacity ? ` · ${b.seating_capacity} seats` : ""} — not assigned yet`}
-                        </div>
-                        {b.drivers?.name && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            🧑‍✈️ {b.drivers.name}
-                          </div>
-                        )}
-                        <div className="text-sm text-muted-foreground mb-3">
-                          Quoted {b.quoted_amount != null ? fmtCurrency(b.quoted_amount) : "—"} ·
-                          Advance {fmtCurrency(b.advance_amount || 0)}
-                        </div>
-                        {canEdit && b.status === "confirmed" && (
-                          <div className="flex items-center justify-end gap-2 border-t pt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCompleteTarget(b)}
-                            >
-                              Complete
-                            </Button>
-                            {canManage && (
-                              <>
-                                <Button variant="outline" size="sm" onClick={() => handleEdit(b)}>
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-destructive hover:bg-destructive/10"
-                                  onClick={() => setCancelTarget(b)}
-                                >
-                                  Cancel
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
             </>
           )}
 
@@ -665,6 +582,7 @@ export function TripBookingsPage() {
                 page={filters.page}
                 totalCount={totalRecords}
                 pageSize={filters.pageSize}
+                loading={fetching}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
               />

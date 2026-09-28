@@ -430,7 +430,7 @@ const FundingForm: React.FC<{
           </div>
 
           {monthlyPreview != null && (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm sm:col-span-2">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm sm:col-span-2">
               At this rate, a full month costs{" "}
               <span className="font-semibold text-foreground">
                 {formatCurrency(monthlyPreview)}
@@ -453,7 +453,7 @@ const FundingForm: React.FC<{
         </div>
 
         {submitError && (
-          <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
             {submitError}
           </div>
         )}

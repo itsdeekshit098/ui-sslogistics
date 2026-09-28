@@ -348,6 +348,7 @@ const TripBookingsForm: React.FC<{
                 onClick={swapLocations}
                 disabled={loading}
                 style={styles.routeSwapButton}
+                className="max-md:!h-9 max-md:!w-9"
                 title="Swap From/To"
                 aria-label="Swap From and To locations"
               >

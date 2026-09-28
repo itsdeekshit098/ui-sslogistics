@@ -132,7 +132,7 @@ export const actionBtn: CSSProperties = {
   alignItems: "center",
   gap: "0.375rem",
   padding: "0.375rem 0.75rem",
-  borderRadius: "0.375rem",
+  borderRadius: "var(--input-radius)",
   fontSize: "0.75rem",
   fontWeight: 600,
   cursor: "pointer",
@@ -161,9 +161,11 @@ export const mobileCard: CSSProperties = {
   flexDirection: "column",
   gap: "0.5rem",
   padding: "1rem",
-  borderRadius: "var(--card-radius, 0.625rem)",
+  // Matches the shared DataTable phone cards.
+  borderRadius: "var(--card-radius)",
   border: "1px solid var(--border)",
   backgroundColor: "var(--card)",
+  boxShadow: "var(--card-shadow)",
 };
 
 export const mobileCardRow: CSSProperties = {
@@ -233,7 +235,7 @@ export const expandBtn: CSSProperties = {
   alignItems: "center",
   gap: "0.25rem",
   padding: "0.25rem 0.5rem",
-  borderRadius: "0.375rem",
+  borderRadius: "var(--input-radius)",
   fontSize: "0.6875rem",
   fontWeight: 600,
   cursor: "pointer",

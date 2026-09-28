@@ -34,7 +34,7 @@ export default function NewDriverPage() {
   return (
     <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex items-center gap-3 md:gap-4">
-        <Button data-testid="app-admin-drivers-new-button-1" variant="ghost" size="icon" asChild>
+        <Button data-testid="app-admin-drivers-new-button-1" variant="ghost" size="icon" asChild className="max-md:hidden">
           <Link data-testid="app-admin-drivers-new-link-1" href="/admin/drivers" aria-label="Back to drivers">
             <ChevronLeftIcon size={16} />
           </Link>

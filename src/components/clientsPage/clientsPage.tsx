@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
-  PlusIcon,
   SearchIcon,
   XIcon,
   PencilIcon,
@@ -266,24 +265,22 @@ export function ClientsPage() {
       <PageHeader
         title="Clients"
         description="Companies our vehicles run for, and what they owe us."
-        actions={
-          canManage ? (
-            <Button
-              data-testid="clients-add-btn"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                setClientToEdit(null);
-                setShowModal(true);
-              }}
-            >
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Client
-            </Button>
-          ) : undefined
+        primaryAction={
+          canManage
+            ? {
+                label: "Add Client",
+                testId: "clients-add-btn",
+                onClick: () => {
+                  setClientToEdit(null);
+                  setShowModal(true);
+                },
+              }
+            : undefined
         }
       />
 
       {summary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard
             title="Total Clients"
             value={summary.totalClients}
@@ -317,7 +314,7 @@ export function ClientsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4 sm:p-6">
           <div className="relative w-full max-w-sm">
             <SearchIcon
@@ -422,6 +419,7 @@ export function ClientsPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
+                loading={fetching}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
                   setPageSize(size);

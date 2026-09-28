@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
-  PlusIcon,
   ZapIcon,
   SettingsIcon,
   Trash2Icon,
@@ -14,6 +13,7 @@ import {
   CheckCircleIcon,
   DownloadIcon,
 } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/dataTable";
@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/loadingSpinner";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -432,32 +431,21 @@ export function RepairRecordsPage() {
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Repair Records
-          </h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            View and manage vehicle repair history.
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            data-testid="repair-records-add-btn"
-            className="w-full md:w-auto"
-            onClick={openCreate}
-            disabled={vehiclesLoading || !!error}
-          >
-            {vehiclesLoading ? (
-              <LoadingSpinner size="sm" className="mr-2" />
-            ) : (
-              <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
-            )}
-            {vehiclesLoading ? "Loading Vehicles..." : "Add Repair Record"}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Repair Records"
+        description="View and manage vehicle repair history."
+        primaryAction={
+          canEdit
+            ? {
+                label: vehiclesLoading ? "Loading Vehicles..." : "Add Repair Record",
+                testId: "repair-records-add-btn",
+                onClick: openCreate,
+                disabled: vehiclesLoading || !!error,
+                icon: vehiclesLoading ? <LoadingSpinner size="sm" /> : undefined,
+              }
+            : undefined
+        }
+      />
 
 
 
@@ -548,7 +536,7 @@ export function RepairRecordsPage() {
 
       {/* Records Card */}
       {true && (
-        <Card>
+        <Card className="ss-panel">
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-xl">
@@ -580,10 +568,11 @@ export function RepairRecordsPage() {
                 <Button
                   variant="outline"
                   onClick={openDrawer}
-                  className="gap-2"
+                  aria-label="Filters"
+                  className="gap-2 max-sm:h-11 max-sm:gap-1.5 max-sm:px-3"
                 >
                   <SlidersHorizontalIcon size={16} />
-                  Filters
+                  <span className="max-sm:sr-only">Filters</span>
                   {activeFilterCount > 0 && (
                     <span style={styles.activeFilterBadge}>
                       {activeFilterCount}
@@ -595,7 +584,7 @@ export function RepairRecordsPage() {
                   variant="outline"
                   onClick={handleDownload}
                   disabled={isDownloading || recordsLoading}
-                  className="gap-2"
+                  className="gap-2 max-sm:h-11 max-sm:px-3"
                 >
                   {isDownloading ? (
                     <LoadingSpinner size="sm" />
@@ -618,11 +607,124 @@ export function RepairRecordsPage() {
             </div>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
-            {/* ─── Mobile Card View ─── */}
-            <div className="block md:hidden space-y-3">
-              {recordsLoading ? (
-                <CardListSkeleton count={5} lines={3} />
-              ) : filteredRecords.length === 0 ? (
+
+            {/* ─── Table (cards below md) ─── */}
+            <DataTable<RepairRecordWithVehicle>
+              columns={[
+                {
+                  key: "repair_date",
+                  header: "Date",
+                  cell: (row) => {
+                    const [datePart, timePart] = row.repair_date.split("T");
+                    const timeStr = timePart
+                      ? new Date(row.repair_date).toLocaleTimeString("en-IN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })
+                      : "";
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ whiteSpace: "nowrap", fontWeight: 500 }}>
+                          {datePart}
+                        </span>
+                        {timeStr && (
+                          <span
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--muted-foreground)",
+                            }}
+                          >
+                            {timeStr}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+                // Show Vehicle column only when viewing all vehicles
+                ...(!selectedVehicleId
+                  ? [
+                      {
+                        key: "vehicle" as const,
+                        header: "Vehicle",
+                        mobile: "subtitle" as const,
+                        cell: (row: RepairRecordWithVehicle) => (
+                          <span className="font-medium text-foreground whitespace-nowrap">
+                            {row.vehicles?.vehicle_number || "—"}
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+                {
+                  key: "category",
+                  header: "Category",
+                  cell: (row) => (
+                    <div style={styles.categoryCellRow}>
+                      <span style={styles.categoryCellIconBadge(row.category)}>
+                        {row.category === "electrical" ? (
+                          <ZapIcon
+                            size={14}
+                            style={styles.electricalIconStyle}
+                          />
+                        ) : (
+                          <SettingsIcon
+                            size={14}
+                            style={styles.mechanicalIconStyle}
+                          />
+                        )}
+                      </span>
+                      <span style={styles.categoryCellLabel}>
+                        {row.category}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
+                  key: "issues",
+                  header: "Issues",
+                  cell: (row) => (
+                    <div className="flex flex-wrap gap-1">
+                      {row.issues.map((issue) => (
+                        <Badge key={issue} variant="secondary" className="text-xs">
+                          {issue}
+                        </Badge>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: "description",
+                  header: "Description",
+                  cell: (row) => row.description || "—",
+                },
+                {
+                  key: "cost",
+                  header: "Cost",
+                  mobile: "trailing",
+                  cell: (row) => `₹${Number(row.cost).toLocaleString()}`,
+                },
+                {
+                  key: "technician",
+                  header: "Technician",
+                  cell: (row) => row.technicians?.name || "—",
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  mobile: "trailing",
+                  cell: (row) => (
+                    <Badge variant={row.status === "Closed" ? "success" : "warning"}>
+                      {row.status}
+                    </Badge>
+                  ),
+                },
+              ]}
+              data={filteredRecords}
+              rowKey={(row) => row.id.toString()}
+              loading={recordsLoading}
+              emptyNode={
                 <EmptyState
                   icon={InboxIcon}
                   title="No Repair Records"
@@ -630,225 +732,31 @@ export function RepairRecordsPage() {
                   actionLabel={canManage ? "Add Repair Record" : undefined}
                   onAction={canManage ? openCreate : undefined}
                 />
-              ) : (
-                filteredRecords.map((record) => (
-                  <div
-                    key={record.id}
-                    className="border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => canManage && openEdit(record)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-semibold text-sm">
-                          {record.repair_date.split("T")[0]}
-                        </span>
-                        {!selectedVehicleId && record.vehicles?.vehicle_number && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            • {record.vehicles.vehicle_number}
-                          </span>
-                        )}
-                      </div>
-                      <Badge
-                        variant={
-                          record.status === "Closed" ? "success" : "warning"
-                        }
-                      >
-                        {record.status}
-                      </Badge>
-                    </div>
-                    <div style={styles.categoryMobileCellRow}>
-                      <span style={styles.categoryCellIconBadgeSm(record.category)}>
-                        {record.category === "electrical" ? (
-                          <ZapIcon size={12} style={styles.electricalIconStyle} />
-                        ) : (
-                          <SettingsIcon size={12} style={styles.mechanicalIconStyle} />
-                        )}
-                      </span>
-                      {record.category}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {record.issues.map((issue) => (
-                        <Badge
-                           key={issue}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {issue}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Cost: ₹{Number(record.cost).toLocaleString()}
-                      {record.technicians?.name &&
-                        ` • Tech: ${record.technicians.name}`}
-                    </div>
-                    {canManage && (
-                      <div className="flex justify-end pt-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive h-7 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget(record);
-                          }}
-                        >
-                          <Trash2Icon size={14} />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* ─── Desktop Table View ─── */}
-            <div className="hidden md:block">
-              <DataTable<RepairRecordWithVehicle>
-                columns={[
-                  {
-                    key: "repair_date",
-                    header: "Date",
-                    cell: (row) => {
-                      const [datePart, timePart] = row.repair_date.split("T");
-                      const timeStr = timePart
-                        ? new Date(row.repair_date).toLocaleTimeString("en-IN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: true,
-                          })
-                        : "";
-                      return (
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          <span style={{ whiteSpace: "nowrap", fontWeight: 500 }}>
-                            {datePart}
-                          </span>
-                          {timeStr && (
-                            <span
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "var(--muted-foreground)",
-                              }}
-                            >
-                              {timeStr}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    },
-                  },
-                  // Show Vehicle column only when viewing all vehicles
-                  ...(!selectedVehicleId
-                    ? [
-                        {
-                          key: "vehicle" as const,
-                          header: "Vehicle",
-                          cell: (row: RepairRecordWithVehicle) => (
-                            <span className="font-medium text-foreground whitespace-nowrap">
-                              {row.vehicles?.vehicle_number || "—"}
-                            </span>
-                          ),
-                        },
-                      ]
-                    : []),
-                  {
-                    key: "category",
-                    header: "Category",
-                    cell: (row) => (
-                      <div style={styles.categoryCellRow}>
-                        <span style={styles.categoryCellIconBadge(row.category)}>
-                          {row.category === "electrical" ? (
-                            <ZapIcon
-                              size={14}
-                              style={styles.electricalIconStyle}
-                            />
-                          ) : (
-                            <SettingsIcon
-                              size={14}
-                              style={styles.mechanicalIconStyle}
-                            />
-                          )}
-                        </span>
-                        <span style={styles.categoryCellLabel}>
-                          {row.category}
-                        </span>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "issues",
-                    header: "Issues",
-                    cell: (row) => (
-                      <div className="flex flex-wrap gap-1">
-                        {row.issues.map((issue) => (
-                          <Badge key={issue} variant="secondary" className="text-xs">
-                            {issue}
-                          </Badge>
-                        ))}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "description",
-                    header: "Description",
-                    cell: (row) => row.description || "—",
-                  },
-                  {
-                    key: "cost",
-                    header: "Cost",
-                    cell: (row) => `₹${Number(row.cost).toLocaleString()}`,
-                  },
-                  {
-                    key: "technician",
-                    header: "Technician",
-                    cell: (row) => row.technicians?.name || "—",
-                  },
-                  {
-                    key: "status",
-                    header: "Status",
-                    cell: (row) => (
-                      <Badge variant={row.status === "Closed" ? "success" : "warning"}>
-                        {row.status}
-                      </Badge>
-                    ),
-                  },
-                ]}
-                data={filteredRecords}
-                rowKey={(row) => row.id.toString()}
-                loading={recordsLoading}
-                emptyNode={
-                  <EmptyState
-                    icon={InboxIcon}
-                    title="No Repair Records"
-                    description="No repair records found for the selected filters."
-                    actionLabel={canManage ? "Add Repair Record" : undefined}
-                    onAction={canManage ? openCreate : undefined}
-                  />
-                }
-                rowClickable={canManage}
-                onRowClick={(row) => canManage && openEdit(row)}
-                showActions={canManage}
-                rowActions={[
-                  {
-                    key: "edit",
-                    label: "Edit",
-                    icon: <PencilIcon size={14} />,
-                    onClick: (row) => openEdit(row),
-                    hidden: () => !canManage,
-                    testId: (row) => `repair-records-edit-btn-${row.id}`,
-                  },
-                  {
-                    key: "delete",
-                    label: "Delete",
-                    icon: <Trash2Icon size={14} />,
-                    variant: "danger",
-                    onClick: (row) => setDeleteTarget(row),
-                    hidden: () => !canManage,
-                    testId: (row) => `repair-records-delete-btn-${row.id}`,
-                  },
-                ]}
-              />
-            </div>
+              }
+              rowClickable={canManage}
+              onRowClick={(row) => canManage && openEdit(row)}
+              showActions={canManage}
+              rowActions={[
+                {
+                  key: "edit",
+                  label: "Edit",
+                  icon: <PencilIcon size={14} />,
+                  onClick: (row) => openEdit(row),
+                  hidden: () => !canManage,
+                  testId: (row) => `repair-records-edit-btn-${row.id}`,
+                },
+                {
+                  key: "delete",
+                  label: "Delete",
+                  icon: <Trash2Icon size={14} />,
+                  variant: "danger",
+                  onClick: (row) => setDeleteTarget(row),
+                  hidden: () => !canManage,
+                  testId: (row) => `repair-records-delete-btn-${row.id}`,
+                },
+              ]}
+            />
+          
 
             {/* Pagination */}
             {total > 0 && (
@@ -857,6 +765,7 @@ export function RepairRecordsPage() {
                   page={page}
                   totalCount={total}
                   pageSize={pageSize}
+                  loading={recordsLoading}
                   onPageChange={handlePageChange}
                   onPageSizeChange={handlePageSizeChange}
                 />

@@ -12,6 +12,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalBody,
+  ModalFooter,
 } from "@/components/ui/modal";
 import { VehicleFormFields } from "@/components/vehicleFormFields";
 import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
@@ -96,34 +97,32 @@ const CreateVehicleForm: React.FC<{
           clicking &quot;Manage Docs&quot; on the main vehicle table after
           successfully creating this vehicle entry.
         </div>
-
-        {/* Footer Buttons */}
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 border-t mt-4">
-          <Button
-            data-testid="components-createVehicleModal-createVehicleModal-button-1"
-            variant="outline"
-            onClick={handleClose}
-            disabled={loading}
-            className="w-full sm:w-auto mb-2 sm:mb-0"
-          >
-            Cancel
-          </Button>
-          <Button
-            data-testid="components-createVehicleModal-createVehicleModal-button-2"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full sm:w-auto"
-          >
-            {loading ? (
-              <LoadingSpinner size="sm" className="mr-2" />
-            ) : (
-              <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
-            )}
-            {loading ? "Saving..." : "Save Vehicle"}
-          </Button>
-        </div>
       </div>
       </ModalBody>
+      {/* Pinned below the scrolling fields, like every other form — on a
+          phone the buttons were at the very bottom of a long scroll. */}
+      <ModalFooter>
+        <Button
+          data-testid="components-createVehicleModal-createVehicleModal-button-1"
+          variant="outline"
+          onClick={handleClose}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button
+          data-testid="components-createVehicleModal-createVehicleModal-button-2"
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <LoadingSpinner size="sm" className="mr-2" />
+          ) : (
+            <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
+          )}
+          {loading ? "Saving..." : "Save Vehicle"}
+        </Button>
+      </ModalFooter>
     </>
   );
 };

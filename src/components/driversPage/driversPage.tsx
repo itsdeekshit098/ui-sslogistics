@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  PlusIcon,
   SearchIcon,
   PencilIcon,
   CheckCircleIcon,
@@ -15,12 +14,12 @@ import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermi
 import dynamic from "next/dynamic";
 import type { Driver } from "./driversPage.types";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
@@ -199,24 +198,17 @@ export function DriversPage() {
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Drivers
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your fleet drivers and their details
-          </p>
-        </div>
-        {canEdit && (
-          <Button data-testid="drivers-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
-            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Driver
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Drivers"
+        description="Manage your fleet drivers and their details"
+        primaryAction={
+          canEdit
+            ? { label: "Add Driver", testId: "drivers-add-btn", onClick: handleAddNew }
+            : undefined
+        }
+      />
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+      <div className="ss-panel bg-card rounded-xl border shadow-sm overflow-hidden">
         {/* Search */}
         <div className="p-4 sm:p-6 border-b border-border space-y-4">
           <div className="relative w-full max-w-sm">
@@ -277,189 +269,119 @@ export function DriversPage() {
             />
           ) : (
             <>
-              {/* Desktop Table */}
-              <div className="hidden md:block">
-                <DataTable<Driver>
-                  columns={[
-                    {
-                      key: "name",
-                      header: "Name",
-                      cell: (row) => (
-                        <span className="font-medium text-foreground">
-                          {row.name}
-                        </span>
+              {/* Table — DataTable renders it as cards below md */}
+              <DataTable<Driver>
+                columns={[
+                  {
+                    key: "name",
+                    header: "Name",
+                    cell: (row) => (
+                      <span className="font-medium text-foreground">
+                        {row.name}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "phone",
+                    header: "Phone",
+                    cell: (row) => row.phone || "—",
+                  },
+                  {
+                    key: "place",
+                    header: "Place",
+                    cell: (row) => row.place || "—",
+                  },
+                  {
+                    key: "dl_number",
+                    header: "DL Number",
+                    cell: (row) => row.dl_number || "—",
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    mobile: "trailing",
+                    cell: (row) => (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                          row.is_active
+                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
+                            : "bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20"
+                        }`}
+                      >
+                        {row.is_active ? "Active" : "Inactive"}
+                      </span>
+                    ),
+                  },
+                ]}
+                data={drivers}
+                rowKey={(row) => row.id.toString()}
+                loading={fetching}
+                emptyNode={
+                  <EmptyState
+                    title="No drivers found"
+                    description={
+                      debouncedSearch
+                        ? "Try adjusting your search query."
+                        : "Get started by adding your first driver."
+                    }
+                    actionLabel={
+                      debouncedSearch ? "Clear Search" : "Add Driver"
+                    }
+                    onAction={
+                      debouncedSearch
+                        ? () => {
+                            setSearchQuery("");
+                            fetchData({
+                              overrideSearch: "",
+                              overridePage: 1,
+                            });
+                          }
+                        : handleAddNew
+                    }
+                    icon={SearchIcon}
+                  />
+                }
+                showActions={canManage}
+                rowActions={[
+                  {
+                    key: "toggle",
+                    label: (row) =>
+                      row.is_active ? "Deactivate" : "Activate",
+                    icon: (row) =>
+                      row.is_active ? (
+                        <XCircleIcon size={14} className="text-amber-600" />
+                      ) : (
+                        <CheckCircleIcon
+                          size={14}
+                          className="text-emerald-600"
+                        />
                       ),
-                    },
-                    {
-                      key: "phone",
-                      header: "Phone",
-                      cell: (row) => row.phone || "—",
-                    },
-                    {
-                      key: "place",
-                      header: "Place",
-                      cell: (row) => row.place || "—",
-                    },
-                    {
-                      key: "dl_number",
-                      header: "DL Number",
-                      cell: (row) => row.dl_number || "—",
-                    },
-                    {
-                      key: "status",
-                      header: "Status",
-                      cell: (row) => (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                            row.is_active
-                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
-                              : "bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20"
-                          }`}
-                        >
-                          {row.is_active ? "Active" : "Inactive"}
-                        </span>
-                      ),
-                    },
-                  ]}
-                  data={drivers}
-                  rowKey={(row) => row.id.toString()}
-                  loading={fetching}
-                  emptyNode={
-                    <EmptyState
-                      title="No drivers found"
-                      description={
-                        debouncedSearch
-                          ? "Try adjusting your search query."
-                          : "Get started by adding your first driver."
-                      }
-                      actionLabel={
-                        debouncedSearch ? "Clear Search" : "Add Driver"
-                      }
-                      onAction={
-                        debouncedSearch
-                          ? () => {
-                              setSearchQuery("");
-                              fetchData({
-                                overrideSearch: "",
-                                overridePage: 1,
-                              });
-                            }
-                          : handleAddNew
-                      }
-                      icon={SearchIcon}
-                    />
-                  }
-                  showActions={canManage}
-                  rowActions={[
-                    {
-                      key: "toggle",
-                      label: (row) =>
-                        row.is_active ? "Deactivate" : "Activate",
-                      icon: (row) =>
-                        row.is_active ? (
-                          <XCircleIcon size={14} className="text-amber-600" />
-                        ) : (
-                          <CheckCircleIcon
-                            size={14}
-                            className="text-emerald-600"
-                          />
-                        ),
-                      onClick: (row) => toggleStatus(row),
-                      hidden: () => !canManage,
-                      testId: (row) => `drivers-toggle-status-btn-${row.id}`,
-                    },
-                    {
-                      key: "edit",
-                      label: "Edit",
-                      icon: <PencilIcon size={14} />,
-                      onClick: (row) => handleEdit(row),
-                      hidden: () => !canManage,
-                      testId: (row) => `drivers-edit-btn-${row.id}`,
-                    },
-                    {
-                      key: "delete",
-                      label: "Delete",
-                      icon: <Trash2Icon size={14} />,
-                      variant: "danger",
-                      onClick: (row) => setDeleteTarget(row),
-                      hidden: () => !canManage,
-                      testId: (row) => `drivers-delete-btn-${row.id}`,
-                    },
-                  ]}
-                />
-              </div>
+                    onClick: (row) => toggleStatus(row),
+                    hidden: () => !canManage,
+                    testId: (row) => `drivers-toggle-status-btn-${row.id}`,
+                  },
+                  {
+                    key: "edit",
+                    label: "Edit",
+                    icon: <PencilIcon size={14} />,
+                    onClick: (row) => handleEdit(row),
+                    hidden: () => !canManage,
+                    testId: (row) => `drivers-edit-btn-${row.id}`,
+                  },
+                  {
+                    key: "delete",
+                    label: "Delete",
+                    icon: <Trash2Icon size={14} />,
+                    variant: "danger",
+                    onClick: (row) => setDeleteTarget(row),
+                    hidden: () => !canManage,
+                    testId: (row) => `drivers-delete-btn-${row.id}`,
+                  },
+                ]}
+              />
+            
 
               {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
-                {fetching ? (
-                  <CardListSkeleton count={5} lines={2} />
-                ) : (
-                  drivers.map((driver) => (
-                    <div
-                      key={driver.id}
-                      className={`rounded-lg border bg-card p-4 shadow-sm ${
-                        !driver.is_active ? "opacity-75 bg-muted/10" : ""
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="font-semibold text-foreground text-lg">
-                            {driver.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {driver.phone || "No phone"}
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            driver.is_active
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                              : "bg-zinc-50 text-zinc-600 dark:bg-zinc-500/10 dark:text-zinc-400"
-                          }`}
-                        >
-                          {driver.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-
-                      <div className="text-sm text-muted-foreground mb-1">
-                        {driver.place || "No place"}
-                      </div>
-                      <div className="text-sm text-muted-foreground mb-3">
-                        DL: {driver.dl_number || "—"}
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2 border-t pt-3">
-                        {canManage && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleStatus(driver)}
-                            >
-                              {driver.is_active ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(driver)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteTarget(driver)}
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
             </>
           )}
 
@@ -469,6 +391,7 @@ export function DriversPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
+                loading={fetching}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
               />

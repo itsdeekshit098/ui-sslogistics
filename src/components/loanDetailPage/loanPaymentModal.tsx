@@ -126,7 +126,7 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
 
       <ModalBody>
         {installment && (
-          <div className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm">
+          <div className="mb-4 rounded-xl border bg-muted/40 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Installment</span>
               <span className="font-medium">#{installment.installment_no}</span>
@@ -212,7 +212,7 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
         </div>
 
         {error && (
-          <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}

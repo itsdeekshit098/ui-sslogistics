@@ -8,6 +8,7 @@ import {
   ReceiptIcon,
   HandCoinsIcon,
   AlertTriangleIcon,
+  BadgeCheckIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
@@ -180,6 +181,8 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
       key: "no",
       header: "#",
       width: 40,
+      // Shown inside the card title on phones instead (see due_date).
+      mobile: "hidden",
       cell: (installment) => (
         <span className="text-muted-foreground">{installment.installment_no}</span>
       ),
@@ -187,12 +190,18 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
     {
       key: "due_date",
       header: "Due Date",
+      mobile: "title",
       cell: (installment) => {
         const settled =
           installment.status === "PAID" || installment.status === "WAIVED";
         return (
           <div className="flex flex-col">
-            <span>{formatDate(installment.due_date)}</span>
+            <span>
+              <span className="font-normal text-muted-foreground md:hidden">
+                #{installment.installment_no} ·{" "}
+              </span>
+              {formatDate(installment.due_date)}
+            </span>
             {!settled && (
               <span
                 className={
@@ -212,6 +221,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
       key: "amount_due",
       header: "Amount",
       align: "right",
+      mobile: "trailing",
       cell: (installment) => <Money value={installment.amount_due} />,
     },
     {
@@ -228,6 +238,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
     {
       key: "status",
       header: "Status",
+      mobile: "subtitle",
       cell: (installment) => (
         <Badge variant={installmentStatusVariant(installment.status)} dot>
           {INSTALLMENT_STATUS_LABELS[installment.status]}
@@ -290,6 +301,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
     {
       key: "type",
       header: "Type",
+      mobile: "subtitle",
       cell: (payment) => (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
@@ -305,6 +317,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
     {
       key: "amount",
       header: "Amount",
+      mobile: "trailing",
       align: "right",
       cell: (payment) => (
         <span className="font-medium">
@@ -393,6 +406,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
                   setPaymentModal({ type: "FORECLOSURE", installment: null })
                 }
               >
+                <BadgeCheckIcon size={16} style={{ marginRight: "0.5rem" }} />
                 Foreclose
               </Button>
             </>
@@ -410,7 +424,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
         {/* Outstanding is the one number this page exists to communicate —
             it gets a hero treatment with the progress bar folded directly
             in, instead of sitting in a same-size card as "EMI." */}
-        <div className="flex flex-col justify-between gap-5 rounded-xl border border-border bg-card p-6 shadow-card">
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4 shadow-card sm:gap-5 sm:p-6">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <HandCoinsIcon size={18} />
@@ -423,11 +437,11 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
             )}
           </div>
 
-          <span className="text-4xl font-bold leading-tight tracking-tight tabular-nums text-foreground">
+          <span className="text-3xl font-bold leading-tight tracking-tight tabular-nums text-foreground sm:text-4xl">
             <Money value={balance.outstanding} />
           </span>
 
-          <div className="grid grid-cols-3 gap-4 border-t border-border pt-4">
+          <div className="grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-3 sm:gap-4">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground">Principal</span>
               <span className="text-sm font-semibold text-foreground">
@@ -456,7 +470,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between text-sm">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs sm:text-sm">
               <span className="text-muted-foreground">
                 {balance.installments_paid} of {loan.total_installments} installments paid
               </span>
@@ -484,7 +498,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-1">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-1 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
           <StatCard
             title="Total Paid"
             value={<Money value={balance.total_paid} />}
@@ -509,7 +523,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="border-b border-border p-4 sm:p-6">
           <Tabs
             idPrefix="loan-detail"
@@ -526,7 +540,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
           aria-labelledby={`loan-detail-tab-${activeTab}`}
         >
           {error && (
-            <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -546,6 +560,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
                 rowKey={(payment) => payment.id}
                 showActions={false}
                 emptyMessage="No payments recorded yet."
+                mobileLayout="timeline"
                 rowClassName={(payment) =>
                   payment.is_reversed ? "text-muted-foreground line-through" : ""
                 }
