@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { revealHorizontally, useScrollFade } from "@/hooks/useScrollFade";
 import type { TabsProps } from "./tabs.types";
 
 /**
@@ -21,6 +22,14 @@ const Tabs: React.FC<TabsProps> = ({
   idPrefix = "tabs",
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const { ref: listRef, el: listEl, style: fadeStyle, refresh: refreshFade } = useScrollFade();
+
+  // On a phone the strip overflows; keep the selected tab in view (e.g. one
+  // chosen by arrow key, or restored from state) instead of off the edge.
+  useEffect(() => {
+    revealHorizontally(listEl, tabRefs.current[value] ?? null);
+    refreshFade();
+  }, [value, listEl, refreshFade]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -66,10 +75,12 @@ const Tabs: React.FC<TabsProps> = ({
 
   return (
     <div
+      ref={listRef}
       role="tablist"
       aria-orientation="horizontal"
+      style={fadeStyle}
       className={cn(
-        "flex items-center gap-6 overflow-x-auto border-b border-border",
+        "flex items-center gap-6 overflow-x-auto border-b border-border [scrollbar-width:none] max-md:gap-1 [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
@@ -94,7 +105,9 @@ const Tabs: React.FC<TabsProps> = ({
             onClick={() => !item.disabled && onValueChange(item.key)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "relative flex shrink-0 items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors",
+              // Phones: a 44px-min target with side padding in place of the
+              // wide desktop gap, so short labels ("All") are easy to hit.
+              "relative flex shrink-0 items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors max-md:min-w-11 max-md:justify-center max-md:px-3",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:rounded-sm",
               isActive
                 ? "border-primary text-foreground"

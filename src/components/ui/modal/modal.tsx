@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@/components/ui/icon";
+import { cn } from "@/lib/utils";
 import * as styles from "./modal.style";
 import type {
   ModalProps,
@@ -70,6 +71,7 @@ export const Modal: React.FC<ModalProps> = ({
           ...styles.overlay,
           zIndex: nested ? "var(--z-modal-nested-overlay)" : styles.overlay.zIndex,
         }}
+        className="ss-modal-overlay"
         onClick={handleOverlayClick}
       >
         {children}
@@ -131,12 +133,13 @@ export const ModalContent: React.FC<ModalContentProps> = ({
       aria-labelledby="modal-title"
       tabIndex={-1} // Makes the container programmatically focusable
       style={{ ...styles.modalContainer, ...style }}
-      className={className}
+      className={cn("ss-modal-content", className)}
       onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
       onKeyDown={handleKeyDown}
     >
       <button
         style={styles.closeButton}
+        className="ss-modal-close"
         onClick={() => onOpenChange(false)}
         aria-label="Close"
         onMouseEnter={(e) => {
@@ -202,7 +205,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   style,
   className,
 }) => (
-  <div style={{ ...styles.footer, ...style }} className={className}>
+  <div style={{ ...styles.footer, ...style }} className={cn("ss-modal-footer", className)}>
     {children}
   </div>
 );

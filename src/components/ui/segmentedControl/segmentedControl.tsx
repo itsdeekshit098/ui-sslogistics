@@ -54,7 +54,7 @@ export function SegmentedControl({
     <div
       role="radiogroup"
       className={cn(
-        "inline-flex items-center gap-1 rounded-lg bg-muted p-1",
+        "inline-flex items-center gap-1 rounded-xl bg-muted p-1",
         className,
       )}
     >
@@ -74,7 +74,7 @@ export function SegmentedControl({
             onClick={() => onValueChange(item.key)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-xs px-3 py-1.5 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted",
               isActive
                 ? "bg-card text-foreground shadow-xs"

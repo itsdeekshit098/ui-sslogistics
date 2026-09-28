@@ -265,7 +265,7 @@ const Typeahead = <TOption,>({
           variant="ghost"
           type="button"
           aria-label="Clear selection"
-          className="absolute right-8 top-1/2 z-10 inline-flex h-6 w-6 p-0 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute right-8 top-1/2 z-10 inline-flex h-8 w-8 p-0 md:h-6 md:w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onMouseDown={(event) => event.preventDefault()}
           onClick={clearSelection}
         >
