@@ -99,3 +99,21 @@ export function flatRoiFromSchedule(
   const tenureYears = totalInstallments / 12;
   return (totalInterest / principal / tenureYears) * 100;
 }
+
+/** Mirrors FUNDING_SORTS in api/fundings/fundings.utils.ts — the server sorts. */
+export type FundingSortKey =
+  | "newest"
+  | "oldest"
+  | "principal"
+  | "rate"
+  | "monthly_interest"
+  | "interest_due";
+
+export const FUNDING_SORT_OPTIONS: { value: FundingSortKey; label: string }[] = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "principal", label: "Principal: high to low" },
+  { value: "rate", label: "Rate: high to low" },
+  { value: "monthly_interest", label: "Monthly interest: high to low" },
+  { value: "interest_due", label: "Interest till date: high to low" },
+];

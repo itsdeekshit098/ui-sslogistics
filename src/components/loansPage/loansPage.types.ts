@@ -225,6 +225,7 @@ export interface FundingComputation {
   interest_accrued: number;
   interest_paid: number;
   interest_due: number;
+  monthly_interest: number;
   total_due: number;
   monthly_breakdown: MonthlyBreakdownRow[];
 }
