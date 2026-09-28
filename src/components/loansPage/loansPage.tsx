@@ -26,6 +26,13 @@ import { StatCard } from "@/components/ui/statCard";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Money } from "@/components/ui/money";
 import { SegmentedControl } from "@/components/ui/segmentedControl";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Pagination } from "@/components/pagination";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { BusyOverlay } from "@/components/busyOverlay";
@@ -47,11 +54,13 @@ import {
   type LoanSummary,
 } from "./loansPage.types";
 import {
+  FUNDING_SORT_OPTIONS,
   installmentStatusVariant,
   monthBounds,
   progressPercent,
   relativeDueLabel,
   shiftMonth,
+  type FundingSortKey,
 } from "./loansPage.utils";
 import { formatCurrency, formatDate, formatMonth, todayString } from "@/lib/format";
 
@@ -116,6 +125,8 @@ export function LoansPage() {
   // never total together, so they get their own tab and their own state
   // rather than one list filtered client-side.
   const [lentFundings, setLentFundings] = useState<Funding[]>([]);
+  const [fundingSort, setFundingSort] = useState<FundingSortKey>("newest");
+  const [lentSort, setLentSort] = useState<FundingSortKey>("newest");
   const [lentLoaded, setLentLoaded] = useState(false);
   const [lentFetching, setLentFetching] = useState(false);
   const [fundingModalDirection, setFundingModalDirection] =
@@ -211,11 +222,15 @@ export function LoansPage() {
     })();
   }, []);
 
-  const fetchFundings = useCallback(async () => {
+  // Sorting is server-side: principal, rate and interest are computed per
+  // request, so only the API can order across every funding, not just the 50
+  // loaded here. A sort change passes its new key straight in rather than
+  // waiting a render for the state to land.
+  const fetchFundings = useCallback(async (sort: FundingSortKey = fundingSort) => {
     try {
       setFundingsFetching(true);
       setError(null);
-      const res = await fetch("/api/fundings?page_size=50&direction=BORROWED");
+      const res = await fetch(`/api/fundings?page_size=50&direction=BORROWED&sort=${sort}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load fundings");
       setFundings(json.data.data ?? []);
@@ -225,13 +240,13 @@ export function LoansPage() {
     } finally {
       setFundingsFetching(false);
     }
-  }, []);
+  }, [fundingSort]);
 
-  const fetchLentFundings = useCallback(async () => {
+  const fetchLentFundings = useCallback(async (sort: FundingSortKey = lentSort) => {
     try {
       setLentFetching(true);
       setError(null);
-      const res = await fetch("/api/fundings?page_size=50&direction=LENT");
+      const res = await fetch(`/api/fundings?page_size=50&direction=LENT&sort=${sort}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load lent fundings");
       setLentFundings(json.data.data ?? []);
@@ -241,7 +256,7 @@ export function LoansPage() {
     } finally {
       setLentFetching(false);
     }
-  }, []);
+  }, [lentSort]);
 
   const fetchCalendar = useCallback(async (monthStart: string) => {
     try {
@@ -486,14 +501,14 @@ export function LoansPage() {
       },
     },
     {
-      key: "accrued",
-      header: "Interest Accrued",
+      key: "monthly",
+      header: "Monthly Interest",
       align: "right",
-      cell: (funding) => <Money value={funding.computed?.interest_accrued} precise />,
+      cell: (funding) => <Money value={funding.computed?.monthly_interest} precise />,
     },
     {
       key: "due",
-      header: "Interest Due",
+      header: "Interest Till Date",
       align: "right",
       cell: (funding) => {
         const due = funding.computed?.interest_due ?? 0;
@@ -520,6 +535,32 @@ export function LoansPage() {
       ),
     },
   ];
+
+  // Shared by Private Fundings and Lent Out. A dropdown rather than sortable
+  // headers so it also works in the phone card layout, which has no headers.
+  const renderFundingSort = (
+    idPrefix: string,
+    value: FundingSortKey,
+    onChange: (key: FundingSortKey) => void,
+  ) => (
+    <div className="flex items-center gap-2">
+      <label htmlFor={`${idPrefix}-sort`} className="shrink-0 text-sm text-muted-foreground">
+        Sort by
+      </label>
+      <Select value={value} onValueChange={(v) => onChange(v as FundingSortKey)}>
+        <SelectTrigger id={`${idPrefix}-sort`} className="w-full sm:w-64">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {FUNDING_SORT_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
@@ -826,14 +867,20 @@ export function LoansPage() {
                   icon={LandmarkIcon}
                 />
               ) : (
-                <DataTable
-                  columns={buildFundingColumns("BORROWED")}
-                  data={fundings}
-                  rowKey={(funding) => String(funding.id)}
-                  loading={!fundingsLoaded || fundingsFetching}
-                  rowClickable
-                  onRowClick={(funding) => router.push(`/admin/fundings/${funding.id}`)}
-                />
+                <>
+                  {renderFundingSort("fundings", fundingSort, (key) => {
+                    setFundingSort(key);
+                    void fetchFundings(key);
+                  })}
+                  <DataTable
+                    columns={buildFundingColumns("BORROWED")}
+                    data={fundings}
+                    rowKey={(funding) => String(funding.id)}
+                    loading={!fundingsLoaded || fundingsFetching}
+                    rowClickable
+                    onRowClick={(funding) => router.push(`/admin/fundings/${funding.id}`)}
+                  />
+                </>
               )}
             </div>
           ) : activeTab === "lent" ? (
@@ -860,14 +907,20 @@ export function LoansPage() {
                   icon={LandmarkIcon}
                 />
               ) : (
-                <DataTable
-                  columns={buildFundingColumns("LENT")}
-                  data={lentFundings}
-                  rowKey={(funding) => String(funding.id)}
-                  loading={!lentLoaded || lentFetching}
-                  rowClickable
-                  onRowClick={(funding) => router.push(`/admin/fundings/${funding.id}`)}
-                />
+                <>
+                  {renderFundingSort("lent", lentSort, (key) => {
+                    setLentSort(key);
+                    void fetchLentFundings(key);
+                  })}
+                  <DataTable
+                    columns={buildFundingColumns("LENT")}
+                    data={lentFundings}
+                    rowKey={(funding) => String(funding.id)}
+                    loading={!lentLoaded || lentFetching}
+                    rowClickable
+                    onRowClick={(funding) => router.push(`/admin/fundings/${funding.id}`)}
+                  />
+                </>
               )}
             </div>
           ) : (

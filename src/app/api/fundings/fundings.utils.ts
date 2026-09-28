@@ -67,6 +67,12 @@ export interface FundingComputation {
   interest_paid: number;
   /** Accrued minus paid. Negative means interest has been paid ahead. */
   interest_due: number;
+  /**
+   * One full month's interest on the principal outstanding at `asOf`, at the
+   * rate in force that day (the fixed amount in FIXED mode). Zero once the
+   * principal is cleared.
+   */
+  monthly_interest: number;
   total_due: number;
   monthly_breakdown: MonthlyBreakdownRow[];
 }
@@ -169,6 +175,16 @@ export function computeFunding({
     0,
   );
 
+  const asOfDate = asOf ?? toDateString(new Date());
+  const currentRate = rateOn(sortedRates, asOfDate);
+  let monthlyInterest = 0;
+  if (principalOutstanding > 0) {
+    monthlyInterest =
+      interestMode === "FIXED"
+        ? Number(currentRate?.fixed_interest_amount ?? 0)
+        : (principalOutstanding * monthlyRateOf(currentRate)) / 100;
+  }
+
   const empty: FundingComputation = {
     principal_taken: round2(principalTaken),
     principal_repaid: round2(principalRepaid),
@@ -176,6 +192,7 @@ export function computeFunding({
     interest_accrued: 0,
     interest_paid: round2(interestPaid),
     interest_due: round2(-interestPaid),
+    monthly_interest: round2(monthlyInterest),
     total_due: round2(principalOutstanding - interestPaid),
     monthly_breakdown: [],
   };
@@ -184,7 +201,7 @@ export function computeFunding({
   if (!firstPrincipal) return empty;
 
   const start = parseDate(firstPrincipal.entry_date);
-  const end = parseDate(asOf ?? toDateString(new Date()));
+  const end = parseDate(asOfDate);
   if (daysBetween(start, end) <= 0) return empty;
 
   // Principal deltas keyed by the day they take effect.
@@ -285,7 +302,62 @@ export function computeFunding({
     interest_accrued: accrued,
     interest_paid: paid,
     interest_due: round2(accrued - paid),
+    monthly_interest: round2(monthlyInterest),
     total_due: round2(principalOutstanding + accrued - paid),
     monthly_breakdown: breakdown,
   };
+}
+
+export const FUNDING_SORTS = [
+  "newest",
+  "oldest",
+  "principal",
+  "rate",
+  "monthly_interest",
+  "interest_due",
+] as const;
+export type FundingSort = (typeof FUNDING_SORTS)[number];
+
+/** Sorts the database can do itself, so the list can stay a ranged query. */
+export const DB_FUNDING_SORTS: readonly FundingSort[] = ["newest", "oldest"];
+
+interface SortableFunding {
+  id: number;
+  start_date: string;
+  interest_mode: "PERCENT" | "FIXED";
+  computed: FundingComputation | null;
+  current_rate: FundingRate | null;
+}
+
+/**
+ * The monthly rate a funding runs at today, as a percentage — for ordering
+ * only. A FIXED deal ranks by the rate its fixed amount works out to on the
+ * principal still outstanding.
+ */
+function sortRateOf(funding: SortableFunding): number {
+  if (funding.interest_mode === "FIXED") {
+    const principal = funding.computed?.principal_outstanding ?? 0;
+    return principal > 0 ? (funding.computed?.monthly_interest ?? 0) / principal : 0;
+  }
+  return monthlyRateOf(funding.current_rate);
+}
+
+/**
+ * Orders computed fundings for the list. The money sorts are highest first —
+ * "who costs / owes the most" is the question being asked — and ties fall
+ * back to newest first so the order is stable across page turns.
+ */
+export function sortFundings<T extends SortableFunding>(rows: T[], sort: FundingSort): T[] {
+  const newest = (a: T, b: T) => b.start_date.localeCompare(a.start_date) || b.id - a.id;
+  const desc = (value: (f: T) => number) => (a: T, b: T) => value(b) - value(a) || newest(a, b);
+
+  const compare: Record<FundingSort, (a: T, b: T) => number> = {
+    newest,
+    oldest: (a, b) => newest(b, a),
+    principal: desc((f) => f.computed?.principal_outstanding ?? 0),
+    rate: desc(sortRateOf),
+    monthly_interest: desc((f) => f.computed?.monthly_interest ?? 0),
+    interest_due: desc((f) => f.computed?.interest_due ?? 0),
+  };
+  return [...rows].sort(compare[sort]);
 }

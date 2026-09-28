@@ -5,9 +5,13 @@ import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResp
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
 import {
+  DB_FUNDING_SORTS,
+  FUNDING_SORTS,
   INTEREST_MODES,
   ROI_BASES,
   computeFunding,
+  sortFundings,
+  type FundingSort,
   type FundingEntry,
   type FundingRate,
 } from "./fundings.utils";
@@ -141,6 +145,15 @@ export async function GET(req: Request) {
     const loanId = searchParams.get("loan_id");
     const direction = searchParams.get("direction")?.trim() ?? "";
     const includeSummary = searchParams.get("include_summary") === "true";
+    const sortParam = searchParams.get("sort")?.trim() || "newest";
+    if (!(FUNDING_SORTS as readonly string[]).includes(sortParam)) {
+      return apiError(`Invalid sort. Allowed values: ${FUNDING_SORTS.join(", ")}`, 400);
+    }
+    const sort = sortParam as FundingSort;
+    // Principal, rate and interest are computed per request, so the database
+    // can't order by them: those sorts load every matching funding, compute,
+    // sort, then cut out the page. There are tens of fundings, not thousands.
+    const sortInDb = DB_FUNDING_SORTS.includes(sort);
 
     const { from, to } = parsePageParams(searchParams, {
       defaultPageSize: 10,
@@ -150,14 +163,15 @@ export async function GET(req: Request) {
     let query = supabaseAdmin
       .from("fundings")
       .select(FUNDING_SELECT, { count: "exact" })
-      .order("start_date", { ascending: false });
+      .order("start_date", { ascending: sort === "oldest" })
+      .order("id", { ascending: sort === "oldest" });
 
     if (status) query = query.eq("status", status);
     if (funderId) query = query.eq("funder_id", Number(funderId));
     if (loanId) query = query.eq("linked_loan_id", Number(loanId));
     if (direction) query = query.eq("direction", direction);
 
-    query = query.range(from, to);
+    if (sortInDb) query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) return serverError(error);
@@ -170,7 +184,7 @@ export async function GET(req: Request) {
     // The current rate is what the list column shows; the full history lives
     // on the detail route. ratesByFunding is ordered by effective_from
     // ascending, so the last entry is the one in force now.
-    const enriched = rows.map((row) => {
+    const withComputed = rows.map((row) => {
       const rates = ratesByFunding.get(row.id as number) ?? [];
       return {
         ...row,
@@ -178,6 +192,9 @@ export async function GET(req: Request) {
         current_rate: rates.length > 0 ? rates[rates.length - 1] : null,
       };
     });
+    const enriched = sortInDb
+      ? withComputed
+      : sortFundings(withComputed, sort).slice(from, to + 1);
 
     const summary = includeSummary
       ? await buildFundingSummary({ status, funderId, loanId, direction })

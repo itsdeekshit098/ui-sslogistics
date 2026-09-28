@@ -89,6 +89,18 @@ const Typeahead = <TOption,>({
     }
   }, [open]);
 
+  // On a phone the keyboard eats half the screen, so a field left mid-form has
+  // a sliver of room either side for its options. Once the keyboard has slid
+  // up, scroll the field to the top of its container (keeping the label in
+  // view via scroll-margin) so the list drops into the space beneath it.
+  useEffect(() => {
+    if (!open || !window.matchMedia("(pointer: coarse)").matches) return;
+    const timer = window.setTimeout(() => {
+      rootRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
@@ -203,7 +215,7 @@ const Typeahead = <TOption,>({
   return (
     <div
       ref={rootRef}
-      className={cn("relative w-full", className)}
+      className={cn("relative w-full scroll-mt-12", className)}
       onBlur={(event) => {
         const nextFocusedElement = event.relatedTarget;
         if (
@@ -283,22 +295,29 @@ const Typeahead = <TOption,>({
             position: "fixed",
             left: dropdownRect.left,
             width: dropdownRect.width,
-            // Use visualViewport height on mobile to account for virtual keyboard
+            // The trigger rect and `position: fixed` are both in layout-viewport
+            // coordinates, but with the iOS keyboard up only the visual viewport
+            // is on screen — and it's usually scrolled down inside the layout
+            // one (offsetTop). Measuring free space against the visual viewport
+            // without that offset made the list flip upward and land on top of
+            // its own input.
             ...(() => {
-              const vh = window.visualViewport?.height ?? window.innerHeight;
-              const spaceBelow = vh - dropdownRect.bottom;
-              const spaceAbove = dropdownRect.top;
-              if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+              const vv = window.visualViewport;
+              const visibleTop = vv?.offsetTop ?? 0;
+              const visibleBottom = visibleTop + (vv?.height ?? window.innerHeight);
+              const spaceBelow = visibleBottom - dropdownRect.bottom - 8;
+              const spaceAbove = dropdownRect.top - visibleTop - 8;
+              if (spaceBelow < 160 && spaceAbove > spaceBelow) {
                 // Open upward — anchor bottom to the top of the trigger
                 return {
-                  bottom: window.innerHeight - dropdownRect.top + 6,
-                  maxHeight: Math.max(spaceAbove - 16, 120),
+                  bottom: document.documentElement.clientHeight - dropdownRect.top + 6,
+                  maxHeight: Math.max(spaceAbove - 6, 120),
                 };
               }
-              // Open downward — constrain maxHeight so it doesn't go below visible viewport
+              // Open downward — stop at the top of the keyboard
               return {
                 top: dropdownRect.bottom + 6,
-                maxHeight: Math.max(spaceBelow - 16, 120),
+                maxHeight: Math.max(spaceBelow - 6, 120),
               };
             })(),
           }}
