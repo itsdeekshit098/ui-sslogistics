@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     const vehicleId = searchParams.get("vehicle_id");
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(
-      100,
+      200,
       Math.max(1, Number(searchParams.get("pageSize")) || 10),
     );
 

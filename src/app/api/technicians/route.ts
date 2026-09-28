@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const includeInactive = searchParams.get("include_inactive") === "true";
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(
-      100,
+      200,
       Math.max(1, Number(searchParams.get("pageSize")) || 50),
     );
     const search = searchParams.get("search")?.trim() ?? "";
