@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  PlusIcon,
   PencilIcon,
   Trash2Icon,
   TruckIcon,
@@ -24,6 +23,7 @@ import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -38,7 +38,6 @@ import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
-import { CardListSkeleton } from "@/components/skeletonLoader";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./externalTripsPage.style";
@@ -258,6 +257,7 @@ export function ExternalTripsPage() {
     {
       key: "trip_type",
       header: "Trip Type",
+      mobile: "trailing",
       cell: (trip) => (
         <span
           className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
@@ -370,29 +370,23 @@ export function ExternalTripsPage() {
 
   return (
     <div className="container mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            External Trips
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Track every vehicle trip, expenses, and revenue
-          </p>
-        </div>
-        {canEdit && (
-          <Button data-testid="external-trips-add-btn" onClick={handleAddNew} className="w-full sm:w-auto">
-            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> New Trip
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="External Trips"
+        description="Track every vehicle trip, expenses, and revenue"
+        primaryAction={
+          canEdit
+            ? { label: "New Trip", testId: "external-trips-add-btn", onClick: handleAddNew }
+            : undefined
+        }
+      />
 
-      <div className="bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="ss-panel bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col min-h-[500px]">
 
         {/* ── Summary Strip ── */}
         {summary.count > 0 && (
           <div className="px-4 sm:px-6 pt-4">
             <div
+              className="ss-stat-strip"
               style={{
                 ...styles.summaryStrip,
                 opacity: fetching ? 0.5 : 1,
@@ -484,129 +478,17 @@ export function ExternalTripsPage() {
             />
           ) : (
             <>
-              {/* Desktop Table */}
-              <div className="hidden md:block">
-                <DataTable
-                  columns={columns}
-                  data={displayData}
-                  rowKey={(t) => String(t.id)}
-                  loading={fetching}
-                  showActions={canManage}
-                  rowActions={rowActions}
-                />
-              </div>
+              {/* Table — DataTable renders it as cards below md */}
+              <DataTable
+                columns={columns}
+                data={displayData}
+                rowKey={(t) => String(t.id)}
+                loading={fetching}
+                showActions={canManage}
+                rowActions={rowActions}
+              />
+            
 
-              {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
-                {fetching ? (
-                  <CardListSkeleton count={5} lines={2} />
-                ) : (
-                  displayData.map((trip) => {
-                    const route = [trip.from_location, trip.to_location]
-                      .filter(Boolean)
-                      .join(" → ");
-                    const profit =
-                      (trip.amount_received || 0) - (trip.total_cost || 0);
-                    return (
-                      <div
-                        key={trip.id}
-                        className="rounded-lg border bg-card p-4 shadow-sm"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <div className="font-semibold text-foreground text-lg">
-                              {trip.vehicles?.vehicle_number || "—"}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {trip.customer_name || "No customer"}
-                            </div>
-                          </div>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                              trip.trip_type === "company_oncall"
-                                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                                : "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
-                            }`}
-                          >
-                            {TRIP_TYPE_LABELS[trip.trip_type]}
-                          </span>
-                        </div>
-                        {route && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            📍 {route}
-                          </div>
-                        )}
-                        {trip.drivers?.name && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            🚗 {trip.drivers.name}
-                          </div>
-                        )}
-                        {trip.customer_phone && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            📞 {trip.customer_phone}
-                          </div>
-                        )}
-                        {trip.start_date && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            📅 {trip.start_date}
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between mt-2 mb-3 gap-4">
-                          <div>
-                            <div className="text-xs text-muted-foreground">
-                              Cost
-                            </div>
-                            <div className="text-base font-semibold text-foreground">
-                              {fmtCurrency(trip.total_cost)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground">
-                              Received
-                            </div>
-                            <div className="text-base font-semibold text-foreground">
-                              {fmtCurrency(trip.amount_received || 0)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground">
-                              Profit
-                            </div>
-                            <div
-                              className="text-base font-bold"
-                              style={profitStyle(profit)}
-                            >
-                              {profit >= 0 ? "+" : ""}
-                              {fmtCurrency(profit)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-end gap-2 border-t pt-3">
-                          {canManage && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(trip)}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeleteTarget(trip)}
-                              >
-                                Delete
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
             </>
           )}
 
@@ -616,6 +498,7 @@ export function ExternalTripsPage() {
                 page={filters.page}
                 totalCount={totalRecords}
                 pageSize={filters.pageSize}
+                loading={fetching}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
               />

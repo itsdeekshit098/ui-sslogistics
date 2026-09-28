@@ -122,10 +122,11 @@ export default function TripSheetsPage() {
   if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
   return (
-    <div className="container mx-auto px-4 py-4 md:p-6 space-y-6 md:space-y-8">
+    <div className="container mx-auto md:p-6 space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+          {/* The mobile top bar already names the page. */}
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight max-md:hidden">
             Trip Sheets
           </h1>
           <p className="text-sm md:text-base text-muted-foreground">

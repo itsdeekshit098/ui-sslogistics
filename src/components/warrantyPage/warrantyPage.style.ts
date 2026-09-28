@@ -4,7 +4,8 @@ export const pageContainer: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "1.5rem",
-  padding: "1.5rem",
+  // Padding comes from the className (md:p-6) instead — on phones the admin
+  // <main> already pads the page, and doubling it squeezed the cards.
 };
 
 export const headerRow: CSSProperties = {

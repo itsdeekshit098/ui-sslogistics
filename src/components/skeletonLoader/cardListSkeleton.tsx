@@ -15,7 +15,7 @@ export const CardListSkeleton: React.FC<CardListSkeletonProps> = ({
   return (
     <div className={className ?? "space-y-4"}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-lg border bg-card p-4 shadow-sm">
+        <div key={i} className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex justify-between items-start mb-3">
             <div className="space-y-2">
               <Skeleton width="140px" height="18px" />

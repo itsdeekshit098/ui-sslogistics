@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     const upcoming = searchParams.get("upcoming") === "true";
     const page = Math.max(1, Number(searchParams.get("page") || "1"));
     const pageSize = Math.min(
-      50,
+      200,
       Math.max(1, Number(searchParams.get("page_size") || "10")),
     );
 

@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
+import { MobileDashboard, type MobileDashboardAlert } from "@/components/mobileDashboard";
+import { Money } from "@/components/ui/money";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const menuItems = [
   {
@@ -166,7 +169,8 @@ const menuItems = [
 ];
 
 export default function DashboardPage() {
-  const { userRole, loading: authLoading } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
+  const isMobile = useIsMobile();
 
   const visibleMenuItems = menuItems
     .filter((item) => {
@@ -183,6 +187,40 @@ export default function DashboardPage() {
   const [expiringCounts, setExpiringCounts] = useState<{ fc: number; insurance: number } | null>(
     null,
   );
+
+  const canSeeLoans =
+    !authLoading && !!userRole && canRoleAccessPage("/admin/loans", userRole as UserRole);
+
+  const [overdueLoans, setOverdueLoans] = useState<{ count: number; amount: number } | null>(
+    null,
+  );
+
+  // Overdue EMIs for the phone "Needs attention" list — the same summary the
+  // Loans page shows, from one row of /api/loans (admin-only, like the page).
+  // Phone-only: the desktop dashboard has no place that shows it.
+  useEffect(() => {
+    if (!canSeeLoans || !isMobile) return;
+    let cancelled = false;
+    fetch("/api/loans?page=1&page_size=1&include_summary=true")
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled) return;
+        const summary = json?.data?.summary;
+        if (summary) {
+          setOverdueLoans({
+            count: Number(summary.overdueCount) || 0,
+            amount: Number(summary.overdueAmount) || 0,
+          });
+        }
+      })
+      .catch(() => {
+        // Non-critical widget — fail silently (settles the "Checking…" state)
+        if (!cancelled) setOverdueLoans({ count: 0, amount: 0 });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canSeeLoans, isMobile]);
 
   useEffect(() => {
     if (!canSeeVehicles) return;
@@ -201,6 +239,7 @@ export default function DashboardPage() {
       })
       .catch(() => {
         // Non-critical widget — fail silently, dashboard tiles still work
+        if (!cancelled) setExpiringCounts({ fc: 0, insurance: 0 });
       });
 
     return () => {
@@ -208,13 +247,54 @@ export default function DashboardPage() {
     };
   }, [canSeeVehicles]);
 
+  const alerts: MobileDashboardAlert[] = [];
+  if (overdueLoans && overdueLoans.count > 0) {
+    alerts.push({
+      key: "overdue-emis",
+      href: "/admin/loans",
+      title: `${overdueLoans.count} overdue EMI${overdueLoans.count === 1 ? "" : "s"}`,
+      detail: <Money value={overdueLoans.amount} />,
+      tone: "critical",
+    });
+  }
+  if (expiringCounts && expiringCounts.fc > 0) {
+    alerts.push({
+      key: "fc",
+      href: "/admin/vehicles?fcStatus=expiring_soon",
+      title: `${expiringCounts.fc} FC${expiringCounts.fc === 1 ? "" : "s"} expiring`,
+      detail: "Within the next 30 days",
+      tone: "warning",
+    });
+  }
+  if (expiringCounts && expiringCounts.insurance > 0) {
+    alerts.push({
+      key: "insurance",
+      href: "/admin/vehicles?insuranceStatus=expiring_soon",
+      title: `${expiringCounts.insurance} insurance polic${expiringCounts.insurance === 1 ? "y" : "ies"} expiring`,
+      detail: "Within the next 30 days",
+      tone: "warning",
+    });
+  }
+  const alertsLoading =
+    authLoading || (canSeeVehicles && !expiringCounts) || (canSeeLoans && !overdueLoans);
+
   return (
     <div className="container mx-auto space-y-6 md:space-y-8">
-      <div className="mb-2">
+      {isMobile && (
+        <MobileDashboard
+          name={user?.displayName ?? null}
+          loading={authLoading}
+          alertsLoading={alertsLoading}
+          alerts={alerts}
+          modules={visibleMenuItems}
+        />
+      )}
+
+      <div className="mb-2 max-md:hidden">
         <Button
           data-testid="app-admin-button-1"
           variant="ghost"
-          className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
+          className="w-fit -ml-2 text-muted-foreground hover:text-foreground max-md:hidden"
           asChild
         >
           <Link href="/" data-testid="admin-dashboard-back-link">
@@ -223,7 +303,7 @@ export default function DashboardPage() {
           </Link>
         </Button>
       </div>
-      <div>
+      <div className="max-md:hidden">
         <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-foreground">
           Dashboard
         </h1>
@@ -233,7 +313,7 @@ export default function DashboardPage() {
       </div>
 
       {expiringCounts && (expiringCounts.fc > 0 || expiringCounts.insurance > 0) && (
-        <Card className="border-amber-300/60 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5">
+        <Card className="max-md:hidden border-amber-300/60 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5">
           <CardContent className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
             <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-500/10 w-fit">
               <AlertTriangleIcon size={20} className="text-amber-600 dark:text-amber-400" />
@@ -265,7 +345,7 @@ export default function DashboardPage() {
 
       {authLoading ? (
         /* ── Skeleton grid shown while auth resolves ── */
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 max-md:hidden">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -275,7 +355,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         /* ── Real module card grid ── */
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 max-md:hidden">
           {visibleMenuItems.map((item) => {
             const isEnabled = item.enabled;
 

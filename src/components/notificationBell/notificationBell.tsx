@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BellIcon } from "@/components/ui/icon";
@@ -18,10 +18,19 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-export function NotificationBell({ className }: NotificationBellProps) {
+export function NotificationBell({ className, variant = "default" }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   const handleClick = (n: NotificationItem) => {
     setIsOpen(false);
@@ -38,9 +47,13 @@ export function NotificationBell({ className }: NotificationBellProps) {
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label="Notifications"
-        className="relative flex h-9 w-9 p-0 items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+        className={
+          variant === "ghost"
+            ? "relative flex h-10 w-10 p-0 items-center justify-center rounded-full border-0 bg-transparent text-foreground shadow-none cursor-pointer hover:bg-muted active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+            : "relative flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+        }
       >
-        <BellIcon size={18} />
+        <BellIcon size={variant === "ghost" ? 22 : 18} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -56,10 +69,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
             className="fixed inset-0 z-[9998] cursor-default appearance-none border-0 bg-transparent p-0"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full right-0 pt-2 z-[9999] animate-in fade-in-0 zoom-in-95 duration-100">
-            <div className="absolute top-[3px] right-[13px] w-2.5 h-2.5 bg-card border-l border-t border-border rotate-45 z-30" />
+          <div className="absolute top-full right-0 pt-2 z-[9999] animate-in fade-in-0 zoom-in-95 duration-100 max-md:fixed max-md:inset-x-3 max-md:top-[calc(3.5rem+env(safe-area-inset-top))]">
+            <div className="max-md:hidden absolute top-[3px] right-[13px] w-2.5 h-2.5 bg-card border-l border-t border-border rotate-45 z-30" />
 
-            <div className="p-2 bg-card border border-border rounded-md shadow-2xl drop-shadow-sm flex flex-col gap-1 w-[340px] max-h-[420px] text-card-foreground relative z-20">
+            <div className="p-2 bg-card border border-border rounded-xl shadow-2xl drop-shadow-sm flex flex-col gap-1 w-full md:w-[340px] max-h-[min(420px,70dvh)] text-card-foreground relative z-20">
               <div className="flex items-center justify-between px-2 py-1.5">
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   Notifications

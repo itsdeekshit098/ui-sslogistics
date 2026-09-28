@@ -1,15 +1,19 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  PlusIcon,
   SearchIcon,
   TruckIcon,
+  CheckCircleIcon,
+  WrenchIcon,
+  ClockIcon,
   CarIcon,
   BusIcon,
   VanIcon,
   FolderOpenIcon,
+  GridIcon,
   Trash2Icon,
   PencilIcon,
   ArrowLeftIcon,
@@ -53,8 +57,6 @@ import HighlightMatch from "./highlightMatch";
 import * as styles from "./vehiclesPage.style";
 import {
   CA_VEHICLES_CONTAINER,
-  CA_VEHICLES_HEADER_TITLE,
-  CA_VEHICLES_HEADER_DESC,
 } from "./vehicles.styles";
 import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
@@ -86,6 +88,7 @@ import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/ui/statCard";
 import {
   FilterDrawer,
   fieldGroup as filterFieldGroup,
@@ -115,37 +118,6 @@ function DocExpiryCell({
         {start ? formatDocDate(start) : "No Start Date"} –{" "}
         {end ? formatDocDate(end) : "No End Date"}
       </span>
-    </div>
-  );
-}
-
-/** Stacks FC + Insurance cells together — used on the mobile card where there's only one slot for both. */
-function hasAnyDocDates(vehicle: Vehicle): boolean {
-  return Boolean(
-    vehicle.fc_start_date ||
-      vehicle.fc_end_date ||
-      vehicle.insurance_start_date ||
-      vehicle.insurance_end_date,
-  );
-}
-
-function DocExpiryBadges({ vehicle }: { vehicle: Vehicle }) {
-  if (!hasAnyDocDates(vehicle)) return null;
-
-  return (
-    <div className="flex flex-col gap-1">
-      <DocExpiryCell
-        label="FC"
-        status={vehicle.fc_status}
-        start={vehicle.fc_start_date}
-        end={vehicle.fc_end_date}
-      />
-      <DocExpiryCell
-        label="Insurance"
-        status={vehicle.insurance_status}
-        start={vehicle.insurance_start_date}
-        end={vehicle.insurance_end_date}
-      />
     </div>
   );
 }
@@ -556,113 +528,51 @@ export default function VehiclesPage() {
         data-testid="vehicles-back-btn"
         variant="ghost"
         onClick={() => router.back()}
-        className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
+        className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground max-md:hidden"
       >
         <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
         Back
       </Button>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className={CA_VEHICLES_HEADER_TITLE}>Vehicles</h1>
-          <p className={CA_VEHICLES_HEADER_DESC}>
-            Manage your fleet of buses, cars, and trucks.
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            data-testid="vehicles-add-btn"
-            className="w-full md:w-auto"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <PlusIcon size={16} style={{ marginRight: "0.5rem" }} /> Add Vehicle
-          </Button>
-        )}
+      <PageHeader
+        title="Vehicles"
+        description="Manage your fleet of buses, cars, and trucks."
+        primaryAction={
+          canEdit
+            ? { label: "Add Vehicle", testId: "vehicles-add-btn", onClick: () => setIsCreateOpen(true) }
+            : undefined
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <StatCard
+          title="Total Fleet"
+          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.total}
+          icon={<TruckIcon size={18} />}
+          subtext={<span className="hidden sm:inline">Vehicles registered</span>}
+        />
+        <StatCard
+          title="Active"
+          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.active}
+          icon={<CheckCircleIcon size={18} />}
+          tone="positive"
+          subtext={<span className="hidden sm:inline">Currently operational</span>}
+        />
+        <StatCard
+          title="Maintenance"
+          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.maintenance}
+          icon={<WrenchIcon size={18} />}
+          tone={stats.maintenance > 0 ? "warning" : "neutral"}
+          subtext={<span className="hidden sm:inline">In service center</span>}
+        />
+        <StatCard
+          title="Idle"
+          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.idle}
+          icon={<ClockIcon size={18} />}
+          subtext={<span className="hidden sm:inline">Available for assignment</span>}
+        />
       </div>
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Total Fleet
-            </CardTitle>
-            <TruckIcon size={16} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <div className="text-xl md:text-2xl font-bold">
-              {loading ? (
-                <Skeleton width="40px" height="28px" borderRadius="4px" />
-              ) : (
-                stats.total
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Vehicles registered
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Active
-            </CardTitle>
-            <div className="h-2 w-2 rounded-full bg-green-500" />
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <div className="text-xl md:text-2xl font-bold">
-              {loading ? (
-                <Skeleton width="40px" height="28px" borderRadius="4px" />
-              ) : (
-                stats.active
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Currently operational
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Maintenance
-            </CardTitle>
-            <div className="h-2 w-2 rounded-full bg-yellow-500" />
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <div className="text-xl md:text-2xl font-bold">
-              {loading ? (
-                <Skeleton width="40px" height="28px" borderRadius="4px" />
-              ) : (
-                stats.maintenance
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              In service center
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Idle
-            </CardTitle>
-            <div className="h-2 w-2 rounded-full bg-gray-500" />
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <div className="text-xl md:text-2xl font-bold">
-              {loading ? (
-                <Skeleton width="40px" height="28px" borderRadius="4px" />
-              ) : (
-                stats.idle
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Available for assignment
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
+      <Card className="ss-panel">
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg md:text-xl">
@@ -673,16 +583,16 @@ export default function VehiclesPage() {
                 </span>
               )}
             </CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
+            <div className="flex flex-row gap-2 w-full sm:w-auto">
+              <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
                 <SearchIcon
                   size={16}
-                  className="absolute left-2 top-2.5 text-muted-foreground"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   data-testid="vehicles-search-input"
                   placeholder="Search vehicle number..."
-                  className="pl-8 pr-8"
+                  className="pl-9 pr-8"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -699,7 +609,7 @@ export default function VehiclesPage() {
                       setSearchQuery("");
                       fetchVehicles({ overrideSearch: "", overridePage: 1 });
                     }}
-                    className="absolute right-2 top-1.5 text-muted-foreground hover:text-foreground h-auto w-auto p-1"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-auto w-auto p-1"
                   >
                     <XIcon size={16} />
                   </Button>
@@ -708,10 +618,11 @@ export default function VehiclesPage() {
               <Button
                 variant="outline"
                 onClick={openDrawer}
-                className="gap-2 shrink-0"
+                aria-label="Filters"
+                className="gap-2 shrink-0 max-sm:h-11 max-sm:gap-1.5 max-sm:px-3"
               >
                 <SlidersHorizontalIcon size={16} />
-                Filters
+                <span className="max-sm:sr-only">Filters</span>
                 {(typeFilter !== "all" ||
                   statusFilter !== "" ||
                   ownerTypeFilter !== "" ||
@@ -745,364 +656,237 @@ export default function VehiclesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
-          {/* Mobile Card View */}
-          <div className="block md:hidden space-y-3">
-            {(() => {
-              if (loading)
-                return (
-                  <LoadingSpinner
-                    size="md"
-                    centered
-                    label="Loading vehicles..."
-                  />
-                );
-              if (fetchError)
-                return (
-                  <ErrorState
-                    title="Couldn't load vehicles"
-                    description={fetchError}
-                    onRetry={fetchVehicles}
-                  />
-                );
-              if (vehicles.length === 0) {
-                if (hasActiveFilters)
-                  return (
-                    <EmptyState
-                      icon={SearchIcon}
-                      title="No Matches Found"
-                      description="No vehicles match your current search or filter. Try adjusting your criteria."
-                      actionLabel="Clear Filters"
-                      onAction={resetFilters}
-                    />
-                  );
-                return (
-                  <EmptyState
-                    icon={TruckIcon}
-                    title="No Vehicles Found"
-                    description="You haven’t added any vehicles yet. Add your first vehicle to get started."
-                    actionLabel="Add Vehicle"
-                    onAction={() => setIsCreateOpen(true)}
-                  />
-                );
-              }
-              return (
-                <>
-                  {vehicles.map((vehicle) => (
-                    <div
-                      key={vehicle.id}
-                      className="border rounded-lg p-3 space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm">
-                          <HighlightMatch
-                            text={vehicle.vehicle_number}
-                            query={debouncedQuery}
-                          />
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {vehicle.owner_type === "EXTERNAL" && (
-                            <Badge variant="outline">External</Badge>
-                          )}
-                          <Badge
-                            variant={
-                              getStatusBadgeVariant(vehicle.status) as
-                                | "default"
-                                | "destructive"
-                                | "secondary"
-                                | "outline"
-                            }
-                          >
-                            {vehicle.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {vehicle.vehicle_type === "BUS" ? (
-                          <BusIcon size={14} />
-                        ) : vehicle.vehicle_type === "CAR" ? (
-                          <CarIcon size={14} />
-                        ) : vehicle.vehicle_type === "TEMPO_TRAVELLER" ? (
-                          <VanIcon size={14} />
-                        ) : (
-                          <TruckIcon size={14} />
-                        )}
-                        <span>{getVehicleTypeLabel(vehicle.vehicle_type)}</span>
-                        <span className="text-muted-foreground/50">•</span>
-                        <span>
-                          {vehicle.company} {vehicle.model}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        {getVehicleSubDetail(vehicle) !== "—" && (
-                          <div>{getVehicleSubDetail(vehicle)}</div>
-                        )}
-                        <div>Service: {vehicle.last_service_date || "N/A"}</div>
-                      </div>
-                      <DocExpiryBadges vehicle={vehicle} />
-                      <div className="flex gap-2 pt-1">
-                        <Button
-                          data-testid={`mobile-doc-btn-${vehicle.id}`}
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1 text-xs h-8"
-                          onClick={() => {
-                            setDocVehicle(vehicle);
-                            setIsDocOpen(true);
-                          }}
-                        >
-                          <FolderOpenIcon
-                            size={14}
-                            style={{ marginRight: "0.25rem" }}
-                          />{" "}
-                          Docs
-                        </Button>
-                        <Button
-                          data-testid={`mobile-images-btn-${vehicle.id}`}
-                          variant="secondary"
-                          size="sm"
-                          className="flex-1 text-xs h-8"
-                          onClick={() => {
-                            setImagesVehicle(vehicle);
-                            setIsImagesOpen(true);
-                          }}
-                        >
-                          Images
-                        </Button>
-                        {canManage && (
-                          <>
-                            <Button
-                              data-testid={`mobile-edit-btn-${vehicle.id}`}
-                              variant="secondary"
-                              size="sm"
-                              className="text-xs h-8"
-                              onClick={() => handleEditClick(vehicle)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              data-testid={`mobile-delete-btn-${vehicle.id}`}
-                              variant="destructive"
-                              size="sm"
-                              className="text-xs h-8 px-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(vehicle);
-                              }}
-                            >
-                              <Trash2Icon size={14} />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              );
-            })()}
-          </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden md:block">
-            <DataTable<Vehicle>
-              columns={[
-                {
-                  key: "vehicle_number",
-                  header: "Vehicle No.",
-                  cell: (row) => (
-                    <span className="font-medium">
-                      <HighlightMatch
-                        text={row.vehicle_number}
-                        query={debouncedQuery}
-                      />
+          {/* Table — DataTable renders it as cards below md */}
+          <DataTable<Vehicle>
+            columns={[
+              {
+                key: "vehicle_number",
+                header: "Vehicle No.",
+                cell: (row) => (
+                  <span className="font-medium">
+                    <HighlightMatch
+                      text={row.vehicle_number}
+                      query={debouncedQuery}
+                    />
+                  </span>
+                ),
+              },
+              {
+                key: "vehicle_type",
+                header: "Type",
+                mobile: "subtitle",
+                cell: (row) => (
+                  <div style={styles.cellRow}>
+                    <span style={styles.cellIconBadge}>
+                      {row.vehicle_type === "BUS" ? (
+                        <BusIcon
+                          size={14}
+                          style={{ color: styles.cellIconColor }}
+                        />
+                      ) : row.vehicle_type === "CAR" ? (
+                        <CarIcon
+                          size={14}
+                          style={{ color: styles.cellIconColor }}
+                        />
+                      ) : row.vehicle_type === "TEMPO_TRAVELLER" ? (
+                        <VanIcon
+                          size={14}
+                          style={{ color: styles.cellIconColor }}
+                        />
+                      ) : (
+                        <TruckIcon
+                          size={14}
+                          style={{ color: styles.cellIconColor }}
+                        />
+                      )}
                     </span>
-                  ),
-                },
-                {
-                  key: "vehicle_type",
-                  header: "Type",
-                  cell: (row) => (
-                    <div style={styles.cellRow}>
-                      <span style={styles.cellIconBadge}>
-                        {row.vehicle_type === "BUS" ? (
-                          <BusIcon
-                            size={14}
-                            style={{ color: styles.cellIconColor }}
-                          />
-                        ) : row.vehicle_type === "CAR" ? (
-                          <CarIcon
-                            size={14}
-                            style={{ color: styles.cellIconColor }}
-                          />
-                        ) : row.vehicle_type === "TEMPO_TRAVELLER" ? (
-                          <VanIcon
-                            size={14}
-                            style={{ color: styles.cellIconColor }}
-                          />
-                        ) : (
-                          <TruckIcon
-                            size={14}
-                            style={{ color: styles.cellIconColor }}
-                          />
-                        )}
-                      </span>
-                      <span style={styles.cellLabel}>
-                        {getVehicleTypeLabel(row.vehicle_type)}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  key: "documents",
-                  header: "Documents",
-                  cell: (row) => (
-                    <div className="flex gap-2">
-                      <Button
-                        data-testid={`desktop-doc-btn-${row.id}`}
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setDocVehicle(row);
-                          setIsDocOpen(true);
-                        }}
-                      >
-                        <FolderOpenIcon
-                          size={16}
-                          style={{ marginRight: "0.5rem" }}
-                        />{" "}
-                        Manage Docs
-                      </Button>
-                      <Button
-                        data-testid={`desktop-images-btn-${row.id}`}
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setImagesVehicle(row);
-                          setIsImagesOpen(true);
-                        }}
-                      >
-                        Images
-                      </Button>
-                    </div>
-                  ),
-                },
-                {
-                  key: "model",
-                  header: "Model",
-                  cell: (row) =>
-                    [row.company, row.model].filter(Boolean).join(" ") || "—",
-                },
-                {
-                  key: "owner_type",
-                  header: "Owner Type",
-                  cell: (row) => getOwnerTypeLabel(row.owner_type),
-                },
-                {
-                  key: "owner_name",
-                  header: "Owner Name",
-                  cell: (row) => row.owner_name || "—",
-                },
-                {
-                  key: "details",
-                  header: "Details",
-                  className: "whitespace-nowrap",
-                  cell: (row) => getVehicleSubDetail(row),
-                },
-                {
-                  key: "status",
-                  header: "Status",
-                  cell: (row) => (
-                    <Badge
-                      variant={
-                        getStatusBadgeVariant(row.status) as
-                          | "default"
-                          | "destructive"
-                          | "secondary"
-                          | "outline"
-                      }
+                    <span style={styles.cellLabel}>
+                      {getVehicleTypeLabel(row.vehicle_type)}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                key: "documents",
+                header: "Documents",
+                mobile: "hidden",
+                cell: (row) => (
+                  <div className="flex gap-2">
+                    <Button
+                      data-testid={`desktop-doc-btn-${row.id}`}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setDocVehicle(row);
+                        setIsDocOpen(true);
+                      }}
                     >
-                      {row.status}
-                    </Badge>
-                  ),
-                },
-                {
-                  key: "last_service_date",
-                  header: "Last Service",
-                  cell: (row) => row.last_service_date || "N/A",
-                },
-                {
-                  key: "fc_status",
-                  header: "FC",
-                  cell: (row) => (
-                    <DocExpiryCell
-                      label="FC"
-                      status={row.fc_status}
-                      start={row.fc_start_date}
-                      end={row.fc_end_date}
-                    />
-                  ),
-                },
-                {
-                  key: "insurance_status",
-                  header: "Insurance",
-                  cell: (row) => (
-                    <DocExpiryCell
-                      label="Insurance"
-                      status={row.insurance_status}
-                      start={row.insurance_start_date}
-                      end={row.insurance_end_date}
-                    />
-                  ),
-                },
-              ]}
-              data={vehicles}
-              rowKey={(row) => row.id.toString()}
-              loading={loading}
-              emptyNode={
-                hasActiveFilters ? (
-                  <EmptyState
-                    icon={SearchIcon}
-                    title="No Matches Found"
-                    description="No vehicles match your current search or filter. Try adjusting your criteria."
-                    actionLabel="Clear Filters"
-                    onAction={resetFilters}
+                      <FolderOpenIcon
+                        size={16}
+                        style={{ marginRight: "0.5rem" }}
+                      />{" "}
+                      Manage Docs
+                    </Button>
+                    <Button
+                      data-testid={`desktop-images-btn-${row.id}`}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setImagesVehicle(row);
+                        setIsImagesOpen(true);
+                      }}
+                    >
+                      Images
+                    </Button>
+                  </div>
+                ),
+              },
+              {
+                key: "model",
+                header: "Model",
+                mobile: "subtitle",
+                cell: (row) =>
+                  [row.company, row.model].filter(Boolean).join(" ") || "—",
+              },
+              {
+                key: "owner_type",
+                header: "Owner Type",
+                mobile: "hidden",
+                cell: (row) => getOwnerTypeLabel(row.owner_type),
+              },
+              {
+                key: "owner_name",
+                header: "Owner Name",
+                cell: (row) => row.owner_name || "—",
+              },
+              {
+                key: "details",
+                header: "Details",
+                className: "whitespace-nowrap",
+                cell: (row) => getVehicleSubDetail(row),
+              },
+              {
+                key: "status",
+                header: "Status",
+                mobile: "trailing",
+                cell: (row) => (
+                  <Badge
+                    variant={
+                      getStatusBadgeVariant(row.status) as
+                        | "default"
+                        | "destructive"
+                        | "secondary"
+                        | "outline"
+                    }
+                  >
+                    {row.status}
+                  </Badge>
+                ),
+              },
+              {
+                key: "last_service_date",
+                header: "Last Service",
+                cell: (row) => row.last_service_date || "N/A",
+              },
+              {
+                key: "fc_status",
+                header: "FC",
+                cell: (row) => (
+                  <DocExpiryCell
+                    label="FC"
+                    status={row.fc_status}
+                    start={row.fc_start_date}
+                    end={row.fc_end_date}
                   />
-                ) : (
-                  <EmptyState
-                    icon={TruckIcon}
-                    title="No Vehicles Found"
-                    description="You haven’t added any vehicles yet. Add your first vehicle to get started."
-                    actionLabel="Add Vehicle"
-                    onAction={() => setIsCreateOpen(true)}
+                ),
+              },
+              {
+                key: "insurance_status",
+                header: "Insurance",
+                cell: (row) => (
+                  <DocExpiryCell
+                    label="Insurance"
+                    status={row.insurance_status}
+                    start={row.insurance_start_date}
+                    end={row.insurance_end_date}
                   />
-                )
-              }
-              showActions={canManage}
-              rowActions={[
-                {
-                  key: "edit",
-                  label: "Edit",
-                  icon: <PencilIcon size={14} />,
-                  onClick: (row) => handleEditClick(row),
-                  hidden: () => !canManage,
+                ),
+              },
+            ]}
+            data={vehicles}
+            rowKey={(row) => row.id.toString()}
+            loading={loading}
+            emptyNode={
+              hasActiveFilters ? (
+                <EmptyState
+                  icon={SearchIcon}
+                  title="No Matches Found"
+                  description="No vehicles match your current search or filter. Try adjusting your criteria."
+                  actionLabel="Clear Filters"
+                  onAction={resetFilters}
+                />
+              ) : (
+                <EmptyState
+                  icon={TruckIcon}
+                  title="No Vehicles Found"
+                  description="You haven’t added any vehicles yet. Add your first vehicle to get started."
+                  actionLabel="Add Vehicle"
+                  onAction={() => setIsCreateOpen(true)}
+                />
+              )
+            }
+            rowActions={[
+              // Desktop has these as buttons in the Documents column;
+              // on phones they join the card's "⋯" sheet.
+              {
+                key: "documents",
+                label: "Documents",
+                icon: <FolderOpenIcon size={14} />,
+                onClick: (row) => {
+                  setDocVehicle(row);
+                  setIsDocOpen(true);
                 },
-                {
-                  key: "delete",
-                  label: "Delete",
-                  icon: <Trash2Icon size={14} />,
-                  variant: "danger",
-                  onClick: (row) => handleDeleteClick(row),
-                  hidden: () => !canManage,
+                mobileOnly: true,
+              },
+              {
+                key: "images",
+                label: "Images",
+                icon: <GridIcon size={14} />,
+                onClick: (row) => {
+                  setImagesVehicle(row);
+                  setIsImagesOpen(true);
                 },
-              ]}
-            />
-          </div>
+                mobileOnly: true,
+              },
+              ...(canManage
+                ? [
+                    {
+                      key: "edit",
+                      label: "Edit",
+                      icon: <PencilIcon size={14} />,
+                      onClick: (row: Vehicle) => handleEditClick(row),
+                    },
+                    {
+                      key: "delete",
+                      label: "Delete",
+                      icon: <Trash2Icon size={14} />,
+                      variant: "danger" as const,
+                      onClick: (row: Vehicle) => handleDeleteClick(row),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        
 
           {total > 0 && (
-            <div className="px-4 md:px-6 pb-4">
+            <div className="px-4 pb-4 md:px-6 max-md:p-0">
               <Pagination
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
+                loading={loading}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
               />

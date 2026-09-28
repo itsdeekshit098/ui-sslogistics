@@ -217,6 +217,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
     {
       key: "type",
       header: "Type",
+      mobile: "subtitle",
       cell: (entry) => (
         <Badge variant={entry.direction === "CREDIT" ? "secondary" : "outline"}>
           {entry.entry_type}
@@ -245,6 +246,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
     {
       key: "debit",
       header: "Debit",
+      mobile: "trailing",
       align: "right",
       cell: (entry) =>
         entry.direction === "DEBIT" ? (
@@ -256,6 +258,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
     {
       key: "credit",
       header: "Credit",
+      mobile: "trailing",
       align: "right",
       cell: (entry) =>
         entry.direction === "CREDIT" ? (
@@ -384,8 +387,8 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
       <div
         className={
           refreshing
-            ? "grid grid-cols-1 gap-4 opacity-60 transition-opacity duration-200 sm:grid-cols-3"
-            : "grid grid-cols-1 gap-4 transition-opacity duration-200 sm:grid-cols-3"
+            ? "grid grid-cols-2 gap-3 opacity-60 transition-opacity duration-200 sm:grid-cols-3 sm:gap-4 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2"
+            : "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:grid-cols-3 sm:gap-4 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2"
         }
       >
         <StatCard
@@ -407,7 +410,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="border-b border-border p-4 sm:p-6">
           <Tabs
             idPrefix="client-detail"
@@ -424,7 +427,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
           aria-labelledby={`client-detail-tab-${effectiveTab}`}
         >
           {error && (
-            <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -449,12 +452,14 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                   rowKey={(entry) => entry.id}
                   showActions={false}
                   rowClassName={(entry) => (entry.is_reversed ? "opacity-50 line-through" : "")}
+                  mobileLayout="timeline"
                 />
 
                 <Pagination
                   page={entriesPage}
                   totalCount={entriesTotal}
                   pageSize={entriesPageSize}
+                  loading={entriesFetching}
                   onPageChange={setEntriesPage}
                   onPageSizeChange={(size) => {
                     setEntriesPageSize(size);
@@ -487,7 +492,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {contacts.map((contact) => (
-                    <div key={contact.id} className="rounded-lg border bg-card p-4">
+                    <div key={contact.id} className="rounded-xl border bg-card p-4">
                       <div className="mb-2 flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -589,8 +594,8 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                       key={deployment.id}
                       className={
                         deployment.is_active
-                          ? "rounded-lg border bg-card p-4"
-                          : "rounded-lg border bg-muted/30 p-4 opacity-70"
+                          ? "rounded-xl border bg-card p-4"
+                          : "rounded-xl border bg-muted/30 p-4 opacity-70"
                       }
                     >
                       <div className="mb-2 flex items-start justify-between gap-3">

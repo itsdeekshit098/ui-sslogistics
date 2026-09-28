@@ -7,6 +7,7 @@ import {
   HandCoinsIcon,
   ReceiptIcon,
   PlusIcon,
+  PencilIcon,
   CheckCircleIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
@@ -206,6 +207,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
     {
       key: "type",
       header: "Type",
+      mobile: "subtitle",
       cell: (entry) => (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
@@ -221,6 +223,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
     {
       key: "amount",
       header: "Amount",
+      mobile: "trailing",
       align: "right",
       cell: (entry) => (
         <span className="font-medium">
@@ -271,6 +274,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
     {
       key: "rate",
       header: "Rate",
+      mobile: "trailing",
       cell: (rate) =>
         funding.interest_mode === "FIXED"
           ? `${formatCurrency(rate.fixed_interest_amount)}/mo`
@@ -331,6 +335,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
                   })
                 }
               >
+                <HandCoinsIcon size={16} style={{ marginRight: "0.5rem" }} />
                 {funding.direction === "LENT" ? "Recover Principal" : "Repay Principal"}
               </Button>
               <Button
@@ -341,6 +346,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
                 {funding.direction === "LENT" ? "Lend More" : "Borrow More"}
               </Button>
               <Button variant="outline" onClick={() => setShowRateModal(true)}>
+                <PencilIcon size={16} style={{ marginRight: "0.5rem" }} />
                 Change Rate
               </Button>
             </>
@@ -351,8 +357,8 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
       <div
         className={
           refreshing
-            ? "grid grid-cols-1 gap-4 opacity-60 transition-opacity duration-200 sm:grid-cols-2 xl:grid-cols-4"
-            : "grid grid-cols-1 gap-4 transition-opacity duration-200 sm:grid-cols-2 xl:grid-cols-4"
+            ? "grid grid-cols-2 gap-3 opacity-60 transition-opacity duration-200 sm:gap-4 xl:grid-cols-4"
+            : "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:gap-4 xl:grid-cols-4"
         }
       >
         <StatCard
@@ -378,7 +384,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="border-b border-border p-4 sm:p-6">
           <Tabs
             idPrefix="funding-detail"
@@ -417,6 +423,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
                 rowKey={(entry) => entry.id}
                 showActions={false}
                 emptyMessage="No entries yet."
+                mobileLayout="timeline"
                 rowClassName={(entry) => (entry.is_reversed ? "opacity-50 line-through" : "")}
               />
             ) : (
@@ -426,6 +433,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
                 rowKey={(rate) => rate.id}
                 showActions={false}
                 emptyMessage="No rate history yet."
+                mobileLayout="timeline"
               />
             )}
           </BusyOverlay>

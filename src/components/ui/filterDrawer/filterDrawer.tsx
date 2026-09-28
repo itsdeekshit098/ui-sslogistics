@@ -21,6 +21,15 @@ export function FilterDrawer({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   if (!open || !mounted || typeof document === "undefined") return null;
 
   const drawerContent = (
@@ -34,8 +43,11 @@ export function FilterDrawer({
 
       {/* Panel */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         style={styles.panel}
-        className="animate-in slide-in-from-right duration-300"
+        className="ss-filter-panel animate-in slide-in-from-right duration-300 max-md:slide-in-from-bottom"
       >
         {/* Header */}
         <div style={styles.header}>
@@ -44,7 +56,7 @@ export function FilterDrawer({
             type="button"
             onClick={onClose}
             aria-label="Close filters"
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:h-8 md:w-8"
           >
             <XIcon size={20} />
           </button>

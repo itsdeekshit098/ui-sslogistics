@@ -255,21 +255,21 @@ export default function ActivityLogPage() {
         data-testid="app-admin-activity-log-button-1"
         variant="ghost"
         onClick={() => router.back()}
-        className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground"
+        className="mb-2 w-fit -ml-2 text-muted-foreground hover:text-foreground max-md:hidden"
       >
         <ArrowLeftIcon size={16} style={{ marginRight: "0.5rem" }} />
         Back
       </Button>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="max-md:hidden">
           <h1 className={AL_HEADER_TITLE}>Activity Log</h1>
           <p className={AL_HEADER_DESC}>
             Track all actions performed across the system.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="text-sm font-medium px-3 py-1">
+        <div className="flex items-center gap-2 md:flex-wrap md:gap-3">
+          <Badge variant="secondary" className="whitespace-nowrap text-sm font-medium px-3 py-1 max-md:mr-auto">
             <ActivityIcon size={14} className="mr-1.5" />
             {loading ? "..." : `${total} entries`}
           </Badge>
@@ -279,12 +279,14 @@ export default function ActivityLogPage() {
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
+            aria-label="Refresh"
+            className="max-md:h-10 max-md:w-10 max-md:px-0"
           >
             <RefreshCwIcon
               size={16}
-              className={`mr-2 ${refreshing ? "animate-spin" : ""}`}
+              className={`mr-2 max-md:mr-0 ${refreshing ? "animate-spin" : ""}`}
             />
-            Refresh
+            <span className="max-md:sr-only">Refresh</span>
           </Button>
           {isSuperAdmin && (
             <Button
@@ -292,10 +294,11 @@ export default function ActivityLogPage() {
               variant="outline"
               size="sm"
               onClick={openPurge}
-              className="text-destructive hover:text-destructive"
+              aria-label="Clear Old Logs"
+              className="text-destructive hover:text-destructive max-md:h-10 max-md:w-10 max-md:px-0"
             >
-              <Trash2Icon size={16} className="mr-2" />
-              Clear Old Logs
+              <Trash2Icon size={16} className="mr-2 max-md:mr-0" />
+              <span className="max-md:sr-only">Clear Old Logs</span>
             </Button>
           )}
         </div>
@@ -310,8 +313,10 @@ export default function ActivityLogPage() {
           <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col p-0">
-          <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0 animate-in fade-in duration-200">
-            {loading ? (
+          {/* Phones: no inner scroll box — the page itself scrolls, so the
+              auto-load trigger below is only reached at the real end. */}
+          <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0 animate-in fade-in duration-200 max-md:max-h-none max-md:min-h-0 max-md:overflow-visible">
+            {loading && entries.length === 0 ? (
               <FeedSkeleton count={8} />
             ) : fetchError ? (
               <ErrorState
@@ -328,12 +333,18 @@ export default function ActivityLogPage() {
             ) : (
               <div className="space-y-1">
                 {entries.map((entry) => {
+                  // Theme tokens, not slate-50/700: unmapped actions (the loan,
+                  // funding and attachment ones) rendered as a white tile with
+                  // near-invisible text in dark mode.
                   const style = ACTION_STYLES[entry.action] || {
-                    bg: "bg-slate-50",
-                    text: "text-slate-700",
-                    icon: "text-slate-500",
+                    bg: "bg-muted",
+                    text: "text-foreground",
+                    icon: "text-muted-foreground",
                   };
-                  const label = ACTION_LABELS[entry.action] || entry.action;
+                  // "CREATE_LOAN" → "Create loan" when there's no curated label.
+                  const label =
+                    ACTION_LABELS[entry.action] ||
+                    entry.action.charAt(0) + entry.action.slice(1).toLowerCase().replace(/_/g, " ");
                   const Icon = ACTION_ICONS[entry.action] || ActivityIcon;
                   const details = entry.details || {};
                   const vehicleNumber =
@@ -437,6 +448,8 @@ export default function ActivityLogPage() {
                 page={page}
                 totalCount={total}
                 pageSize={pageSize}
+                loading={loading}
+                autoLoad
                 pageSizeOptions={[10, 20, 50, 100]}
                 onPageChange={(p) => setPage(p)}
                 onPageSizeChange={(newSize) => {
@@ -495,7 +508,7 @@ export default function ActivityLogPage() {
               </p>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+            <div className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm">
               {previewLoading ? (
                 <span className="text-muted-foreground">Checking…</span>
               ) : purgePreview === null ? (

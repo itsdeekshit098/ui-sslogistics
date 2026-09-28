@@ -29,9 +29,9 @@ import {
   fieldLabel as filterFieldLabel,
 } from "@/components/ui/filterDrawer";
 import { Tooltip } from "@/components/ui/tooltip";
+import { PageFab } from "@/components/ui/pageFab";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
-import { useIsMobile } from "@/hooks/useIsMobile";
 import type { WarrantyItem, WarrantyStatusFilter } from "./warrantyPage.types";
 import type { VehicleOption, Vendor } from "@/components/partModal";
 import * as styles from "./warrantyPage.style";
@@ -68,95 +68,6 @@ function StatusBadge({ status }: { status: WarrantyItem["warranty_status"] }) {
   return <span style={{ ...styles.statusBadge, ...badgeStyle }}>{label}</span>;
 }
 
-function WarrantyCard({
-  item,
-  onEdit,
-  onDelete,
-  refDataError,
-}: {
-  item: WarrantyItem;
-  onEdit: (item: WarrantyItem) => void;
-  onDelete: (item: WarrantyItem) => void;
-  refDataError?: string | null;
-}) {
-  const editBtn = (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={!!refDataError}
-      style={refDataError ? { pointerEvents: "none" } : undefined}
-      onClick={() => onEdit(item)}
-    >
-      <PencilIcon size={14} style={{ marginRight: "0.25rem" }} /> Edit
-    </Button>
-  );
-
-  return (
-    <div style={styles.warrantyCard}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <span style={styles.cardPartName}>{item.part_name}</span>
-        <StatusBadge status={item.warranty_status} />
-      </div>
-      {item.vehicles && (
-        <span style={styles.cardVehicle}>
-          {item.vehicles.vehicle_number} — {item.vehicles.company}{" "}
-          {item.vehicles.model}
-        </span>
-      )}
-      <span style={styles.cardDetail}>
-        Vendor: {item.vendors?.name ?? "Unknown"}
-      </span>
-      <span style={styles.cardDetail}>
-        Cost: ₹{item.cost.toLocaleString()} | Warranty: {item.warranty_duration}{" "}
-        {item.warranty_duration_unit}
-      </span>
-      <span style={styles.cardDetail}>
-        Purchased: {item.purchase_date} | Expires: {item.warranty_expiry}
-      </span>
-      {item.notes && (
-        <Tooltip content={item.notes}>
-          <span
-            style={{
-              ...styles.cardDetail,
-              fontStyle: "italic",
-              ...styles.notesCell,
-            }}
-          >
-            {item.notes}
-          </span>
-        </Tooltip>
-      )}
-      <div
-        style={{
-          display: "flex",
-          gap: "0.5rem",
-          justifyContent: "flex-end",
-          marginTop: "0.5rem",
-        }}
-      >
-        {refDataError ? (
-          <Tooltip content={refDataError}>
-            <span style={{ cursor: "not-allowed", display: "inline-block" }}>
-              {editBtn}
-            </span>
-          </Tooltip>
-        ) : (
-          editBtn
-        )}
-        <Button variant="destructive" size="sm" onClick={() => onDelete(item)}>
-          <Trash2Icon size={14} style={{ marginRight: "0.25rem" }} /> Delete
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 const columns: ColumnDef<WarrantyItem>[] = [
   {
     key: "part_name",
@@ -167,10 +78,16 @@ const columns: ColumnDef<WarrantyItem>[] = [
   {
     key: "vehicle",
     header: "Vehicle",
-    cell: (row) =>
-      row.vehicles
-        ? `${row.vehicles.vehicle_number} — ${row.vehicles.company} ${row.vehicles.model}`
-        : "—",
+    mobile: "subtitle",
+    cell: (row) => {
+      if (!row.vehicles) return "—";
+      // company/model are optional — skip the missing ones rather than
+      // printing "GSHAHA — null null".
+      const makeModel = [row.vehicles.company, row.vehicles.model].filter(Boolean).join(" ");
+      return makeModel
+        ? `${row.vehicles.vehicle_number} — ${makeModel}`
+        : row.vehicles.vehicle_number;
+    },
   },
   {
     key: "vendor",
@@ -215,6 +132,7 @@ const columns: ColumnDef<WarrantyItem>[] = [
   {
     key: "warranty_status",
     header: "Status",
+    mobile: "trailing",
     cell: (row) => <StatusBadge status={row.warranty_status} />,
   },
 ];
@@ -246,7 +164,6 @@ export function WarrantyPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const isMobile = useIsMobile();
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -254,7 +171,7 @@ export function WarrantyPage() {
     status: WarrantyStatusFilter;
   }>({ status: "all" });
 
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(20);
 
   // Fetch reference data once on mount
   useEffect(() => {
@@ -338,7 +255,7 @@ export function WarrantyPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter]);
+  }, [page, pageSize, debouncedSearch, statusFilter]);
 
   useEffect(() => {
     fetchData();
@@ -407,10 +324,10 @@ export function WarrantyPage() {
   );
 
   return (
-    <div style={styles.pageContainer}>
+    <div style={styles.pageContainer} className="md:p-6">
       {/* Header */}
-      <div style={styles.headerRow}>
-        <h1 style={styles.title}>
+      <div style={styles.headerRow} className="max-md:!hidden">
+        <h1 style={styles.title} className="max-md:hidden">
           <PackageIcon
             size={24}
             style={{ marginRight: "0.5rem", verticalAlign: "middle" }}
@@ -433,21 +350,30 @@ export function WarrantyPage() {
               Clear all
             </Button>
           )}
-          {refDataError ? (
-            <Tooltip content={refDataError}>
-              <span style={{ cursor: "not-allowed", display: "inline-block" }}>
-                {addPartBtn}
-              </span>
-            </Tooltip>
-          ) : (
-            addPartBtn
-          )}
+          <span className="max-md:hidden">
+            {refDataError ? (
+              <Tooltip content={refDataError}>
+                <span style={{ cursor: "not-allowed", display: "inline-block" }}>
+                  {addPartBtn}
+                </span>
+              </Tooltip>
+            ) : (
+              addPartBtn
+            )}
+          </span>
         </div>
       </div>
+      <PageFab
+        label="Add Part"
+        testId="warranty-add-btn-fab"
+        onClick={() => setShowAddPart(true)}
+        disabled={refDataLoading || !!refDataError}
+        disabledReason={refDataError ?? undefined}
+      />
 
       {/* Search bar */}
       <div style={styles.searchRow}>
-        <div style={{ position: "relative", flex: 1, maxWidth: "320px" }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: "320px" }} className="max-md:!max-w-none">
           <SearchIcon
             size={16}
             style={{
@@ -466,38 +392,23 @@ export function WarrantyPage() {
             style={{ paddingLeft: "2.25rem", width: "100%" }}
           />
         </div>
+        {/* Phones: the header row (with its Filters button) is hidden, so
+            filters sit beside the search like every other list page. */}
+        <Button
+          variant="outline"
+          onClick={openDrawer}
+          aria-label="Filters"
+          className="h-11 shrink-0 gap-1.5 px-3 md:hidden"
+        >
+          <SlidersHorizontalIcon size={18} />
+          {activeFilterCount > 0 && (
+            <span style={styles.activeFilterBadge}>{activeFilterCount}</span>
+          )}
+        </Button>
       </div>
 
       {/* Content — Table on desktop, Cards on mobile */}
-      {isMobile ? (
-        <>
-          {loading ? (
-            <div style={styles.emptyContainer}>Loading warranty records...</div>
-          ) : fetchError ? (
-            <ErrorState title="Error" description={fetchError} onRetry={() => fetchData()} />
-          ) : items.length === 0 ? (
-            <EmptyState
-              icon={PackageIcon}
-              title="No Warranty Records"
-              description="No warranty records found for the selected filters."
-              actionLabel="Add Warranty Part"
-              onAction={() => setShowAddPart(true)}
-            />
-          ) : (
-            <div style={styles.cardGrid}>
-              {items.map((item) => (
-                <WarrantyCard
-                  key={item.id}
-                  item={item}
-                  onEdit={setEditItem}
-                  onDelete={setDeleteItem}
-                  refDataError={refDataError}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
+      {/* DataTable renders cards below md */}
         <div style={styles.tableContainer}>
           <DataTable
             columns={columns}
@@ -541,15 +452,18 @@ export function WarrantyPage() {
             ]}
           />
         </div>
-      )}
 
-      {!loading && total > pageSize && (
+      {total > 0 && (
         <Pagination
           page={page}
           totalCount={total}
           pageSize={pageSize}
+          loading={loading}
           onPageChange={setPage}
-          onPageSizeChange={() => {}}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
         />
       )}
 

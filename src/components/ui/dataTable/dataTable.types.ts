@@ -27,6 +27,15 @@ export interface ColumnDef<TData> {
   className?: string;
   /** Additional inline style for the column's cells */
   style?: CSSProperties;
+  /**
+   * Where this column goes in the phone-width card layout. Defaults: the
+   * first column is the card "title", every other column a labelled "field".
+   * "trailing" sits top-right beside the title (status, amount); "subtitle"
+   * sits under the title; "footer" spans the card's full width at the
+   * bottom (inline action buttons — a column keyed "action"/"actions"
+   * defaults to it); "hidden" is left out of the card.
+   */
+  mobile?: "title" | "subtitle" | "trailing" | "field" | "footer" | "hidden";
 }
 
 // ─── Sorting State ───────────────────────────────────────────────────────────
@@ -58,6 +67,11 @@ export interface RowAction<TData> {
    * specific row's action instead of the first match.
    */
   testId?: string | ((row: TData) => string);
+  /**
+   * Only offered in the phone card's "⋯" sheet — for actions the desktop
+   * table already exposes another way (e.g. inline buttons in a column).
+   */
+  mobileOnly?: boolean;
 }
 
 // ─── DataTable Props ─────────────────────────────────────────────────────────
@@ -105,4 +119,9 @@ export interface DataTableProps<TData> {
   stickyHeader?: boolean;
   /** Max height for scrollable body (enables sticky header) */
   maxHeight?: string;
+  /**
+   * Phone-width rendering: "cards" (default) or "timeline" — rows on a
+   * vertical rail, for chronological ledgers like payments and entries.
+   */
+  mobileLayout?: "cards" | "timeline";
 }

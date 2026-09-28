@@ -203,7 +203,7 @@ const LedgerEntryForm: React.FC<Omit<LedgerEntryModalProps, "isOpen">> = ({
         </div>
 
         {error && (
-          <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}

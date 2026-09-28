@@ -144,7 +144,7 @@ export function ListSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
           <SlidersIcon size={18} />
           Dropdown Lists
         </CardTitle>
@@ -194,7 +194,7 @@ export function ListSettings() {
           </div>
 
           {error && (
-            <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -208,7 +208,7 @@ export function ListSettings() {
               No options in this list yet.
             </div>
           ) : (
-            <ul className="divide-y divide-border rounded-lg border">
+            <ul className="divide-y divide-border rounded-xl border">
               {options.map((option) => (
                 <li
                   key={option.id}

@@ -309,7 +309,7 @@ export async function GET(req: Request) {
     const includeSummary = searchParams.get("include_summary") !== "false";
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(
-      100,
+      200,
       Math.max(1, Number(searchParams.get("pageSize")) || 10),
     );
 
