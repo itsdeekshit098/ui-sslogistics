@@ -34,6 +34,7 @@ import {
 import { computeExpiryDateFromStrings as computeExpiryDate } from "@/utils/warrantyExpiry";
 import type { WarrantyItem } from "@/components/warrantyPage/warrantyPage.types";
 import * as styles from "./partModal.style";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 
 const PartForm: React.FC<{
@@ -196,7 +197,7 @@ const PartForm: React.FC<{
               }}
               getOptionValue={(v) => v.id.toString()}
               getOptionLabel={(v) =>
-                `${v.vehicle_number} — ${v.company} ${v.model}`
+                vehicleLabel(v)
               }
               getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
               placeholder="Search vehicle..."

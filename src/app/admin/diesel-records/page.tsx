@@ -26,6 +26,7 @@ import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
 // shouldn't bloat the initial page chunk that has to load before anything
@@ -290,7 +291,7 @@ export default function DieselRecordsPage() {
                 onValueChange={handleVehicleChange}
                 getOptionValue={(vehicle) => vehicle.id.toString()}
                 getOptionLabel={(vehicle) =>
-                  `${vehicle.vehicle_number} — ${vehicle.company} ${vehicle.model}`.trim()
+                  vehicleLabel(vehicle)
                 }
                 getOptionKeywords={(vehicle) => [
                   vehicle.vehicle_number,

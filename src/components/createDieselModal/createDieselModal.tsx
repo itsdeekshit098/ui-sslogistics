@@ -30,6 +30,7 @@ import type {
   FillType,
   PaymentMethod,
 } from "@/app/admin/diesel-records/dieselRecords.types";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 const MODAL_GRID = "grid grid-cols-1 sm:grid-cols-2 gap-4";
 const MODAL_LABEL_SPACE = "space-y-2";
@@ -291,7 +292,7 @@ const CreateDieselForm: React.FC<{
               }}
               getOptionValue={(vehicle) => vehicle.id.toString()}
               getOptionLabel={(vehicle) =>
-                `${vehicle.vehicle_number} — ${vehicle.company} ${vehicle.model}`.trim()
+                vehicleLabel(vehicle)
               }
               getOptionKeywords={(vehicle) => [
                 vehicle.vehicle_number,

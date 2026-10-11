@@ -38,6 +38,7 @@ import {
   ModalFooter,
 } from "@/components/ui/modal";
 import * as styles from "./tripBookingsModal.style";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
@@ -489,7 +490,7 @@ const TripBookingsForm: React.FC<{
               value={formData.vehicleId}
               onValueChange={(val) => setFormData((prev) => ({ ...prev, vehicleId: val }))}
               getOptionValue={(v) => v.id.toString()}
-              getOptionLabel={(v) => `${v.vehicle_number} — ${v.company} ${v.model}`.trim()}
+              getOptionLabel={(v) => vehicleLabel(v)}
               getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
               placeholder="Not decided yet — search to assign"
               emptyMessage="No matching vehicles found."

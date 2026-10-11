@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/modal";
 import * as styles from "./repairModal.style";
 import { computeExpiryDateFromStrings as computeExpiryDate } from "@/utils/warrantyExpiry";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 // ─── Part row form shape ───
 
@@ -575,7 +576,7 @@ const RepairForm: React.FC<{
                   }}
                   getOptionValue={(v) => v.id.toString()}
                   getOptionLabel={(v) =>
-                    `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+                    vehicleLabel(v)
                   }
                   getOptionKeywords={(v) => [
                     v.vehicle_number,
