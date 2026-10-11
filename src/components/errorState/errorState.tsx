@@ -22,7 +22,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         className,
       )}
     >
-      <div className="rounded-full bg-destructive/10 p-4 mb-4">
+      <div className="rounded-xl bg-destructive/10 p-4 mb-4">
         <AlertCircleIcon size={32} style={{ color: "var(--destructive)" }} />
       </div>
       <h3

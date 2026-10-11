@@ -21,6 +21,7 @@ export type AuditAction =
   | "CREATE_DRIVER"
   | "UPDATE_DRIVER"
   | "DELETE_DRIVER"
+  | "MARK_DRIVER_ATTENDANCE"
   // Vehicle Owners (legacy alias — /api/vehicle-owners now writes to entities)
   | "CREATE_VEHICLE_OWNER"
   | "UPDATE_VEHICLE_OWNER"

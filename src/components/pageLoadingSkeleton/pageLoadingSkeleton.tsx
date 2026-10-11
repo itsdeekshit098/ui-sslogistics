@@ -41,7 +41,7 @@ function LoginSkeleton() {
             <div className="h-4 w-20 rounded bg-slate-300/60 dark:bg-white/10 animate-pulse" />
             <div className="h-10 w-full rounded-lg bg-slate-300/60 dark:bg-white/10 animate-pulse" />
           </div>
-          <div className="h-11 w-full rounded-full bg-slate-300/60 dark:bg-white/10 animate-pulse" />
+          <div className="h-11 w-full rounded-lg bg-slate-300/60 dark:bg-white/10 animate-pulse" />
         </div>
       </div>
     </div>

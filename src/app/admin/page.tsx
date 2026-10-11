@@ -23,6 +23,7 @@ import {
   UserIcon,
   SettingsIcon,
   LandmarkIcon,
+  CalendarIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
@@ -92,6 +93,15 @@ const menuItems = [
     icon: UsersIcon,
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-500/10",
+    enabled: true,
+  },
+  {
+    title: "Attendance",
+    description: "Daily driver attendance by shift",
+    href: "/admin/attendance",
+    icon: CalendarIcon,
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-50 dark:bg-teal-500/10",
     enabled: true,
   },
   {
@@ -405,7 +415,7 @@ export default function DashboardPage() {
                   <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-muted">
                     <item.icon size={24} className="text-muted-foreground/50" />
                   </div>
-                  <div className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground font-medium">
+                  <div className="text-xs bg-muted px-2 py-1 rounded-sm text-muted-foreground font-medium">
                     Coming Soon
                   </div>
                 </CardHeader>

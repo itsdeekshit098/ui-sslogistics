@@ -19,6 +19,8 @@ export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
   "/admin/repair-records": ["admin", "staff", "superadmin"],
   "/admin/technicians": ["admin", "staff", "superadmin"],
   "/admin/drivers": ["admin", "staff", "superadmin"],
+  // Everyone can read attendance; only admins can mark it (enforced by the API).
+  "/admin/attendance": ["admin", "staff", "driver", "superadmin"],
   "/admin/vehicle-owners": ["admin", "staff", "superadmin"],
   "/admin/entities": ["admin", "staff", "superadmin"],
   // Loans and receivables are the app's most sensitive data — EMIs, personal

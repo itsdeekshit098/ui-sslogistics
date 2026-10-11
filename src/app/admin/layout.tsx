@@ -108,7 +108,8 @@ export default function AdminLayout({
         />
 
         <div
-          className="flex flex-1 flex-col min-w-0 overflow-hidden"
+          // relative: the phone dock is positioned over this column.
+          className="relative flex flex-1 flex-col min-w-0 overflow-hidden"
           data-testid="admin-layout"
         >
           {/* Mobile app bar — replaces the desktop header below md */}
@@ -133,7 +134,7 @@ export default function AdminLayout({
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
                 aria-label="User Account Menu"
-                className="flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                className="flex h-9 w-9 p-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground cursor-pointer hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
               >
                 {(user?.displayName || user?.email)?.charAt(0).toUpperCase() || "U"}
               </Button>
@@ -161,7 +162,10 @@ export default function AdminLayout({
           </header>
 
           <main
-            className="flex-1 overflow-y-auto p-4 md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
+            // Phones: the bottom padding is what lets the last row scroll
+            // clear of the floating dock (globals.css adds more on pages
+            // that also have the floating "+").
+            className="flex-1 overflow-y-auto p-4 max-md:pb-[calc(var(--mobile-dock-clearance,4.5rem)+1rem)] md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
             data-testid="admin-main"
           >
             {isMobile && <SectionChips />}

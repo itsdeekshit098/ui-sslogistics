@@ -315,12 +315,15 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   display: none;
 }
 
-/* Room under the last card for the floating "+" (52px button, 12px above
-   the bottom nav) — only on pages that have one, so a list ends 16px above
-   the nav everywhere else instead of over a band of empty space. */
+/* Phone pages end 16px above the floating dock; content scrolls on under
+   it. Pages with the floating "+" (52px button, 12px above the dock) get
+   room for that too, so the last card is never stuck behind it. */
 @media (max-width: 767px) {
+  [data-testid="admin-main"] {
+    padding-bottom: calc(var(--mobile-dock-clearance) + 1rem);
+  }
   body:has(.ss-fab) [data-testid="admin-main"] {
-    padding-bottom: 5rem;
+    padding-bottom: calc(var(--mobile-dock-clearance) + 4.75rem);
   }
 }
 
@@ -523,7 +526,9 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   --card-radius: var(--radius);
   --modal-radius: var(--radius);
   --input-radius: var(--radius);
-  --badge-radius: 9999px;
+  /* Badges share the app's one corner shape, a step tighter than a card —
+     not a pill. */
+  --badge-radius: calc(var(--radius) - 2px);
 
   /* ─── Shadow Scale ─── */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
@@ -557,6 +562,17 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   --space-16: 4rem;
 
   /* ─── Input Heights ─── */
+  /* ─── Phone dock ───
+     The bottom nav floats over the page as an inset dock. Anything that has
+     to clear it (the page's own bottom padding, the floating "+", a sticky
+     save bar) measures from --mobile-dock-clearance, the distance from the
+     bottom of the screen to the dock's top edge. */
+  --mobile-dock-height: 3.75rem;
+  --mobile-dock-gap: 0.75rem;
+  --mobile-dock-clearance: calc(
+    var(--mobile-dock-height) + var(--mobile-dock-gap) + env(safe-area-inset-bottom, 0px)
+  );
+
   --input-height-sm: 2.25rem;
   --input-height: 2.5rem;
   --input-height-lg: 2.75rem;

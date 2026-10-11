@@ -16,6 +16,7 @@ import type { Driver } from "./driversPage.types";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -301,15 +302,9 @@ export function DriversPage() {
                     header: "Status",
                     mobile: "trailing",
                     cell: (row) => (
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          row.is_active
-                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
-                            : "bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20"
-                        }`}
-                      >
+                      <Badge variant={row.is_active ? "success-subtle" : "secondary"}>
                         {row.is_active ? "Active" : "Inactive"}
-                      </span>
+                      </Badge>
                     ),
                   },
                 ]}

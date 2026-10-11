@@ -14,7 +14,9 @@ export function ThemeToggle() {
       variant="outline"
       size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="text-muted-foreground hover:text-foreground shrink-0"
+      // relative: the moon is absolutely placed over the sun. Without it the
+      // moon anchored to the page and stayed put while the menu scrolled.
+      className="relative text-muted-foreground hover:text-foreground shrink-0"
     >
       <SunIcon size={20} className="rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <MoonIcon size={20} className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

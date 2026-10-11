@@ -82,7 +82,7 @@ const baseBadge: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   padding: "0.125rem 0.5rem",
-  borderRadius: "9999px",
+  borderRadius: "var(--badge-radius)",
   fontSize: "0.6875rem",
   fontWeight: 600,
   textTransform: "capitalize",

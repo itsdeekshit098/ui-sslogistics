@@ -426,7 +426,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
             in, instead of sitting in a same-size card as "EMI." */}
         <div className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4 shadow-card sm:gap-5 sm:p-6">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <HandCoinsIcon size={18} />
             </span>
             <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">

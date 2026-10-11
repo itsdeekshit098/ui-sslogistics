@@ -912,7 +912,7 @@ export default function VehiclesPage() {
       >
         <ModalContent className="max-w-md p-6 rounded-xl sm:rounded-2xl">
           <div className="flex flex-col items-center space-y-4 text-center">
-            <div className="rounded-full bg-destructive/10 p-3">
+            <div className="rounded-xl bg-destructive/10 p-3">
               <Trash2Icon size={24} className="text-destructive" />
             </div>
             <div>

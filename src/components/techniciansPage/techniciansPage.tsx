@@ -16,6 +16,7 @@ import type { Technician, SpecializationOption } from "./techniciansPage.types";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { ErrorState } from "@/components/errorState";
 import { EmptyState } from "@/components/emptyState";
@@ -248,7 +249,7 @@ export function TechniciansPage() {
           {tech.specializations.map((spec) => (
             <span
               key={spec}
-              className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-background text-foreground"
+              className="inline-flex items-center rounded-[var(--badge-radius)] border px-2 py-0.5 text-xs font-semibold bg-background text-foreground"
             >
               {spec}
             </span>
@@ -261,15 +262,9 @@ export function TechniciansPage() {
       header: "Status",
       mobile: "trailing",
       cell: (tech) => (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-            tech.is_active
-              ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
-              : "bg-zinc-50 text-zinc-600 ring-1 ring-inset ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20"
-          }`}
-        >
+        <Badge variant={tech.is_active ? "success-subtle" : "secondary"}>
           {tech.is_active ? "Active" : "Inactive"}
-        </span>
+        </Badge>
       ),
     },
   ];

@@ -49,11 +49,11 @@ export function NotificationBell({ className, variant = "default" }: Notificatio
         aria-label="Notifications"
         className={
           variant === "ghost"
-            ? "relative flex h-10 w-10 p-0 items-center justify-center rounded-full border-0 bg-transparent text-foreground shadow-none cursor-pointer hover:bg-muted active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-            : "relative flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+            ? "relative flex h-10 w-10 p-0 items-center justify-center rounded-xl border-0 bg-muted text-foreground shadow-none cursor-pointer hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-transform"
+            : "relative flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
         }
       >
-        <BellIcon size={variant === "ghost" ? 22 : 18} />
+        <BellIcon size={variant === "ghost" ? 21 : 18} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
             {unreadCount > 99 ? "99+" : unreadCount}

@@ -15,7 +15,7 @@ export const activeFilterBadge: CSSProperties = {
   justifyContent: "center",
   width: "1.25rem",
   height: "1.25rem",
-  borderRadius: "9999px",
+  borderRadius: "var(--badge-radius)",
   backgroundColor: "var(--primary)",
   color: "var(--primary-foreground)",
   fontSize: "0.6875rem",
