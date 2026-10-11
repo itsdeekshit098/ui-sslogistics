@@ -540,10 +540,16 @@ export async function DELETE(req: Request) {
     // about the trip bookings on the next attempt.
     const dependentChecks: [string, string, string][] = [
       ["repair_records", "repair record", "repair records"],
-      ["warranty", "warranty claim", "warranty claims"],
+      // Warranty parts live in `repair_parts`. This used to check a table
+      // called "warranty", which does not exist: the lookup failed, and any
+      // vehicle that got past the repair-records check hit a 500 here.
+      ["repair_parts", "warranty part", "warranty parts"],
       ["external_trips", "external trip", "external trips"],
       ["diesel_records", "diesel record", "diesel records"],
       ["trip_bookings", "trip booking", "trip bookings"],
+      // loans.vehicle_id is a plain FK (the collateral), so a vehicle on a
+      // loan would otherwise fail the delete with an opaque FK error.
+      ["loans", "loan", "loans"],
     ];
 
     const counts = await Promise.all(
@@ -559,6 +565,10 @@ export async function DELETE(req: Request) {
     for (const [i, { count, error: countErr }] of counts.entries()) {
       const [table, one, many] = dependentChecks[i];
       if (countErr) {
+        // A table that has since been retired (external_trips is slated to
+        // be dropped) can't be holding any rows — skip it rather than
+        // turning every vehicle delete into a 500.
+        if (countErr.code === "PGRST205" || countErr.code === "42P01") continue;
         return serverError(countErr, { table });
       }
       if ((count ?? 0) > 0) blocking.push(`${count} ${count === 1 ? one : many}`);
