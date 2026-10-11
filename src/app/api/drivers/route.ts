@@ -215,6 +215,10 @@ export async function DELETE(req: Request) {
         .eq("driver_id", Number(id));
 
       if (countErr) {
+        // A table that isn't there yet (sql/ files are applied by hand) or
+        // has been retired can't be holding rows — skip it, as the vehicle
+        // delete does, rather than failing every driver delete.
+        if (countErr.code === "PGRST205" || countErr.code === "42P01") continue;
         return serverError(countErr, { table });
       }
 

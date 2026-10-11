@@ -1,6 +1,8 @@
 // Pure helpers for the attendance route. No Supabase, no request context.
 
-import { parseDate, toDateString } from "@/lib/dateOnly";
+import { parseDate, toDateString, todayInIndia } from "@/lib/dateOnly";
+
+export { todayInIndia };
 import {
   SHIFTS,
   type AttendanceMark,
@@ -31,14 +33,6 @@ export function isValidDate(value: unknown): value is string {
 
 export function isValidMonth(value: unknown): value is string {
   return typeof value === "string" && MONTH_RE.test(value) && isValidDate(`${value}-01`);
-}
-
-/**
- * Today as YYYY-MM-DD in IST. The server runs in UTC, where "today" is still
- * yesterday until 05:30 — exactly when the night shift is being marked.
- */
-export function todayInIndia(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 }
 
 /** First and last day of a YYYY-MM month. */

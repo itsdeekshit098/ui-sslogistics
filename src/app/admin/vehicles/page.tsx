@@ -2,16 +2,11 @@
 
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
+import { VehicleTypeIcon } from "@/components/vehicleTypeIcon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   SearchIcon,
   TruckIcon,
-  CheckCircleIcon,
-  WrenchIcon,
-  ClockIcon,
-  CarIcon,
-  BusIcon,
-  VanIcon,
   FolderOpenIcon,
   GridIcon,
   Trash2Icon,
@@ -58,7 +53,6 @@ import * as styles from "./vehiclesPage.style";
 import {
   CA_VEHICLES_CONTAINER,
 } from "./vehicles.styles";
-import { Skeleton } from "@/components/skeletonLoader";
 import { LoadingSpinner } from "@/components/loadingSpinner";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 
@@ -88,7 +82,6 @@ import { EmptyState } from "@/components/emptyState";
 import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/ui/statCard";
 import {
   FilterDrawer,
   fieldGroup as filterFieldGroup,
@@ -543,35 +536,6 @@ export default function VehiclesPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-        <StatCard
-          title="Total Fleet"
-          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.total}
-          icon={<TruckIcon size={18} />}
-          subtext={<span className="hidden sm:inline">Vehicles registered</span>}
-        />
-        <StatCard
-          title="Active"
-          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.active}
-          icon={<CheckCircleIcon size={18} />}
-          tone="positive"
-          subtext={<span className="hidden sm:inline">Currently operational</span>}
-        />
-        <StatCard
-          title="Maintenance"
-          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.maintenance}
-          icon={<WrenchIcon size={18} />}
-          tone={stats.maintenance > 0 ? "warning" : "neutral"}
-          subtext={<span className="hidden sm:inline">In service center</span>}
-        />
-        <StatCard
-          title="Idle"
-          value={loading ? <Skeleton width="40px" height="28px" borderRadius="4px" /> : stats.idle}
-          icon={<ClockIcon size={18} />}
-          subtext={<span className="hidden sm:inline">Available for assignment</span>}
-        />
-      </div>
-
       <Card className="ss-panel">
         <CardHeader className="p-4 md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -678,29 +642,7 @@ export default function VehiclesPage() {
                 mobile: "subtitle",
                 cell: (row) => (
                   <div style={styles.cellRow}>
-                    <span style={styles.cellIconBadge}>
-                      {row.vehicle_type === "BUS" ? (
-                        <BusIcon
-                          size={14}
-                          style={{ color: styles.cellIconColor }}
-                        />
-                      ) : row.vehicle_type === "CAR" ? (
-                        <CarIcon
-                          size={14}
-                          style={{ color: styles.cellIconColor }}
-                        />
-                      ) : row.vehicle_type === "TEMPO_TRAVELLER" ? (
-                        <VanIcon
-                          size={14}
-                          style={{ color: styles.cellIconColor }}
-                        />
-                      ) : (
-                        <TruckIcon
-                          size={14}
-                          style={{ color: styles.cellIconColor }}
-                        />
-                      )}
-                    </span>
+                    <VehicleTypeIcon vehicleType={row.vehicle_type} truckType={row.truck_type} />
                     <span style={styles.cellLabel}>
                       {getVehicleTypeLabel(row.vehicle_type)}
                     </span>

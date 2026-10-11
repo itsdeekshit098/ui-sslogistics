@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { addDays } from "@/lib/dateOnly";
+import { addDays, todayInIndia } from "@/lib/dateOnly";
 import { formatMonth } from "@/lib/format";
 import { isAdmin } from "@/lib/routePermissions";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,6 @@ import {
   isMarked,
   matchesFilter,
   sameMark,
-  todayInIndia,
 } from "./attendancePage.utils";
 
 const ConfirmModal = dynamic(() => import("@/components/confirmModal/confirmModal"), {
@@ -270,6 +269,9 @@ export function AttendancePage() {
 
   const save = async () => {
     if (!day || dirty.length === 0) return;
+    // Takes a ticket like a day load does: whichever of "save" and "load
+    // another day" was asked for last is the one allowed to fill the screen.
+    const ticket = ++dayTicket.current;
     setSaving(true);
     setSaveError(null);
     try {
@@ -282,7 +284,9 @@ export function AttendancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      applyDay(await readJson<AttendanceDay>(res, "Failed to save attendance"));
+      const stored = await readJson<AttendanceDay>(res, "Failed to save attendance");
+      if (ticket !== dayTicket.current) return;
+      applyDay(stored);
       // The register's totals are now stale. If it is the view on screen,
       // reload it now — clearing it alone left its spinner turning forever,
       // because the register only loads when its tab is opened. Otherwise
@@ -319,7 +323,9 @@ export function AttendancePage() {
   };
 
   const goToDate = (date: string) => {
-    if (!day || date > today) return;
+    // Not while a save is in flight: its response would land on top of the
+    // day being opened.
+    if (!day || saving || date > today) return;
     if (dirty.length > 0) {
       setPendingDate(date);
       return;
@@ -887,6 +893,9 @@ export function AttendancePage() {
           const target = pendingDate;
           setPendingDate(null);
           if (!target) return;
+          // Drop the marks now, not when the new day arrives — until then
+          // the Save button would still offer what was just discarded.
+          discard();
           setView("day");
           setFilter("all");
           void fetchDay(target);

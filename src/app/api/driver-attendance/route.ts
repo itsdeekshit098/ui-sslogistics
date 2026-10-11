@@ -80,37 +80,56 @@ export async function PUT(req: Request) {
       return apiError("One or more drivers no longer exist", 400);
     }
 
-    const now = new Date().toISOString();
-    const upserts = driverIds
-      .filter((id) => marks.get(id)!.shifts.length > 0 || marks.get(id)!.status)
-      .map((id) => {
-        const mark = marks.get(id)!;
-        return {
-          driver_id: id,
-          attendance_date: date,
-          status: mark.status ?? "PRESENT",
-          shift_a: mark.shifts.includes("A"),
-          shift_b: mark.shifts.includes("B"),
-          shift_c: mark.shifts.includes("C"),
-          marked_by: user.id,
-          updated_at: now,
-        };
-      });
-    const clears = driverIds.filter((id) => !upserts.some((row) => row.driver_id === id));
+    // One entry per changed driver; a null status clears that driver's mark.
+    const entries = driverIds.map((id) => {
+      const mark = marks.get(id)!;
+      const present = mark.shifts.length > 0;
+      return {
+        driver_id: id,
+        status: mark.status ?? (present ? "PRESENT" : null),
+        shift_a: mark.shifts.includes("A"),
+        shift_b: mark.shifts.includes("B"),
+        shift_c: mark.shifts.includes("C"),
+      };
+    });
+    const upserts = entries.filter((entry) => entry.status !== null);
+    const clears = entries.filter((entry) => entry.status === null).map((entry) => entry.driver_id);
 
-    if (upserts.length > 0) {
-      const { error } = await supabaseAdmin
-        .from("driver_attendance")
-        .upsert(upserts, { onConflict: "driver_id,attendance_date" });
-      if (error) return serverError(error);
-    }
-    if (clears.length > 0) {
-      const { error } = await supabaseAdmin
-        .from("driver_attendance")
-        .delete()
-        .eq("attendance_date", date)
-        .in("driver_id", clears);
-      if (error) return serverError(error);
+    // All-or-nothing: the stores and the clears go through one database
+    // function (sql/46), so a failure can't leave half a day saved.
+    const { error: saveErr } = await supabaseAdmin.rpc("save_driver_attendance", {
+      p_date: date,
+      p_entries: entries,
+      p_user: user.id,
+    });
+
+    if (saveErr && (saveErr.code === "PGRST202" || saveErr.code === "42883")) {
+      // The function hasn't been created in this database yet (sql/ files
+      // are applied by hand). Fall back to the two separate writes rather
+      // than refusing every save; this path is not atomic.
+      const now = new Date().toISOString();
+      if (upserts.length > 0) {
+        const { error } = await supabaseAdmin.from("driver_attendance").upsert(
+          upserts.map((entry) => ({
+            ...entry,
+            attendance_date: date,
+            marked_by: user.id,
+            updated_at: now,
+          })),
+          { onConflict: "driver_id,attendance_date" },
+        );
+        if (error) return serverError(error);
+      }
+      if (clears.length > 0) {
+        const { error } = await supabaseAdmin
+          .from("driver_attendance")
+          .delete()
+          .eq("attendance_date", date)
+          .in("driver_id", clears);
+        if (error) return serverError(error);
+      }
+    } else if (saveErr) {
+      return serverError(saveErr);
     }
 
     after(async () => {

@@ -162,10 +162,9 @@ export default function AdminLayout({
           </header>
 
           <main
-            // Phones: the bottom padding is what lets the last row scroll
-            // clear of the floating dock (globals.css adds more on pages
-            // that also have the floating "+").
-            className="flex-1 overflow-y-auto p-4 max-md:pb-[calc(var(--mobile-dock-clearance,4.5rem)+1rem)] md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
+            // Phones: globals.css gives this extra bottom padding so the
+            // last row can scroll clear of the floating dock.
+            className="flex-1 overflow-y-auto p-4 md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
             data-testid="admin-main"
           >
             {isMobile && <SectionChips />}

@@ -621,13 +621,6 @@ export async function DELETE(req: Request) {
       .eq("vehicle_id", id);
     const imagePaths = (images ?? []).map((row) => row.storage_path as string);
 
-    if (documentPaths.length > 0) {
-      await supabaseAdmin.storage.from("vehicle-documents").remove(documentPaths);
-    }
-    if (imagePaths.length > 0) {
-      await supabaseAdmin.storage.from("attachments").remove(imagePaths);
-    }
-
     const { error } = await supabaseAdmin
       .from("vehicles")
       .delete()
@@ -635,6 +628,16 @@ export async function DELETE(req: Request) {
 
     if (error) {
       return serverError(error);
+    }
+
+    // Only once the row is really gone. These ran before the delete, so a
+    // delete the database refused (the permanent-delete lock, an unlisted
+    // FK) still wiped every document and photo of a vehicle that survived.
+    if (documentPaths.length > 0) {
+      await supabaseAdmin.storage.from("vehicle-documents").remove(documentPaths);
+    }
+    if (imagePaths.length > 0) {
+      await supabaseAdmin.storage.from("attachments").remove(imagePaths);
     }
 
     after(() =>
