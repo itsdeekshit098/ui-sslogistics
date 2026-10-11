@@ -89,7 +89,7 @@ export function StatCard({
       <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
         <span
           className={cn(
-            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8 [&_svg]:max-sm:h-4 [&_svg]:max-sm:w-4",
+            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 [&_svg]:max-sm:h-4 [&_svg]:max-sm:w-4",
             resolved ? resolved.chip : "bg-muted text-muted-foreground",
           )}
           style={

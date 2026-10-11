@@ -415,7 +415,7 @@ export default function DashboardPage() {
                   <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-muted">
                     <item.icon size={24} className="text-muted-foreground/50" />
                   </div>
-                  <div className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground font-medium">
+                  <div className="text-xs bg-muted px-2 py-1 rounded-sm text-muted-foreground font-medium">
                     Coming Soon
                   </div>
                 </CardHeader>

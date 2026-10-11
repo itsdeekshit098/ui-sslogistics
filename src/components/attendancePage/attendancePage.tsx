@@ -5,10 +5,12 @@ import dynamic from "next/dynamic";
 import {
   AlertTriangleIcon,
   CalendarIcon,
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   SearchIcon,
+  UndoIcon,
   UsersIcon,
   XCircleIcon,
   XIcon,
@@ -18,7 +20,6 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { addDays } from "@/lib/dateOnly";
 import { formatMonth } from "@/lib/format";
 import { isAdmin } from "@/lib/routePermissions";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/pageHeader";
@@ -43,10 +44,13 @@ import {
   FULL_DAY,
   addMonths,
   formatDayLabel,
+  formatMonthShort,
+  formatWeekday,
   isFullDay,
   isMarked,
   matchesFilter,
   sameMark,
+  todayInIndia,
 } from "./attendancePage.utils";
 
 const ConfirmModal = dynamic(() => import("@/components/confirmModal/confirmModal"), {
@@ -100,6 +104,7 @@ export function AttendancePage() {
 
   // A date change that would drop unsaved marks waits here for a confirm.
   const [pendingDate, setPendingDate] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const applyDay = useCallback((next: AttendanceDay) => {
     setDay(next);
@@ -110,36 +115,58 @@ export function AttendancePage() {
     );
   }, []);
 
+  // Tapping "next day" (or month) quickly fires overlapping requests, and a
+  // slow early one can land after a fast later one. Each fetch takes a
+  // ticket; only the newest is allowed to touch the screen.
+  const dayTicket = useRef(0);
+  const monthTicket = useRef(0);
+
   const fetchDay = useCallback(
     async (date?: string) => {
+      const ticket = ++dayTicket.current;
       try {
         setDayLoading(true);
         setDayError(null);
         setSaveError(null);
         setJustSaved(false);
         const res = await fetch(`/api/driver-attendance${date ? `?date=${date}` : ""}`);
-        applyDay(await readJson<AttendanceDay>(res, "Failed to load attendance"));
+        const next = await readJson<AttendanceDay>(res, "Failed to load attendance");
+        if (ticket === dayTicket.current) applyDay(next);
       } catch (err) {
-        setDayError(err instanceof Error ? err.message : "Network error");
+        if (ticket === dayTicket.current) {
+          setDayError(err instanceof Error ? err.message : "Network error");
+        }
       } finally {
-        setDayLoading(false);
+        if (ticket === dayTicket.current) setDayLoading(false);
       }
     },
     [applyDay],
   );
 
   const fetchMonth = useCallback(async (target: string) => {
+    const ticket = ++monthTicket.current;
     try {
       setMonthLoading(true);
       setMonthError(null);
       const res = await fetch(`/api/driver-attendance?month=${target}`);
-      setMonthData(await readJson<AttendanceMonth>(res, "Failed to load the register"));
+      const next = await readJson<AttendanceMonth>(res, "Failed to load the register");
+      if (ticket === monthTicket.current) setMonthData(next);
     } catch (err) {
-      setMonthError(err instanceof Error ? err.message : "Network error");
+      if (ticket === monthTicket.current) {
+        setMonthError(err instanceof Error ? err.message : "Network error");
+      }
     } finally {
-      setMonthLoading(false);
+      if (ticket === monthTicket.current) setMonthLoading(false);
     }
   }, []);
+
+  // The "saved" note clears itself, so it reads as a confirmation rather
+  // than a permanent label.
+  useEffect(() => {
+    if (!justSaved) return;
+    const timer = setTimeout(() => setJustSaved(false), 3000);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
 
   const initialFetchDone = useRef(false);
   useEffect(() => {
@@ -148,6 +175,23 @@ export function AttendancePage() {
       fetchDay();
     }
   }, [authLoading, fetchDay]);
+
+  // The server's `today` is only as fresh as the last load. A page left open
+  // past midnight would keep treating yesterday as today — "next day" stayed
+  // disabled until a reload. The device clock (read in IST, once a minute and
+  // whenever the tab comes back) can only move it forward, never back, so the
+  // server still decides what may be edited.
+  const [clockToday, setClockToday] = useState<string | null>(null);
+  useEffect(() => {
+    const tick = () => setClockToday(todayInIndia());
+    const timer = setInterval(tick, 60_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+  const today = day ? (clockToday && clockToday > day.today ? clockToday : day.today) : "";
 
   const drivers = useMemo(() => day?.drivers ?? [], [day]);
   const markOf = useCallback(
@@ -239,8 +283,12 @@ export function AttendancePage() {
         body: JSON.stringify(payload),
       });
       applyDay(await readJson<AttendanceDay>(res, "Failed to save attendance"));
-      // The register's totals are now stale; it reloads the next time it opens.
-      setMonthData(null);
+      // The register's totals are now stale. If it is the view on screen,
+      // reload it now — clearing it alone left its spinner turning forever,
+      // because the register only loads when its tab is opened. Otherwise
+      // drop it, and it reloads the next time the tab opens.
+      if (view === "month") void fetchMonth(month ?? day.date.slice(0, 7));
+      else setMonthData(null);
       setJustSaved(true);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Network error");
@@ -271,7 +319,7 @@ export function AttendancePage() {
   };
 
   const goToDate = (date: string) => {
-    if (!day || date > day.today) return;
+    if (!day || date > today) return;
     if (dirty.length > 0) {
       setPendingDate(date);
       return;
@@ -304,23 +352,23 @@ export function AttendancePage() {
     );
   }
 
-  const isToday = day.date === day.today;
+  const isToday = day.date === today;
   const activeMonth = month ?? day.date.slice(0, 7);
   const marked = counts.total - counts.unmarked;
 
   const filterItems: { key: AttendanceFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.total },
-    { key: "unmarked", label: isMobile ? "Unmarked" : "Not marked", count: counts.unmarked },
+    { key: "unmarked", label: isMobile ? "Left" : "Not marked", count: counts.unmarked },
     ...SHIFTS.map((s) => ({ key: s, label: s, count: counts.shift[s] })),
     { key: "off", label: "Off", count: counts.absent + counts.leave },
   ];
 
   const dateStepper = (
-    <div className="flex items-center gap-1 md:gap-2">
+    <div className="flex min-w-0 items-center gap-1 md:gap-2">
       <Button
         variant="outline"
         size="sm"
-        className="max-md:h-10 max-md:w-10 max-md:border-transparent max-md:bg-transparent max-md:p-0"
+        className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => goToDate(addDays(day.date, -1))}
         aria-label="Previous day"
       >
@@ -329,23 +377,38 @@ export function AttendancePage() {
       {/* The label doubles as the date picker: a transparent native input
           sits over it, so a tap opens the platform calendar. */}
       <label className="relative min-w-0 cursor-pointer text-center font-semibold text-foreground md:min-w-[9.5rem]">
-        <span className="whitespace-nowrap">
-          {isToday ? `Today, ${formatDayLabel(day.date).split(", ")[1]}` : formatDayLabel(day.date)}
-        </span>
+        {isMobile ? (
+          // Two short lines instead of one long one, so the stepper, search
+          // and Day/Month switch all fit a 360px-wide phone.
+          <>
+            <span className="block truncate text-sm leading-tight">
+              {formatDayLabel(day.date).split(", ")[1]}
+            </span>
+            <span className="block truncate text-[0.6875rem] font-normal leading-tight text-muted-foreground">
+              {isToday ? "Today" : formatWeekday(day.date)}
+            </span>
+          </>
+        ) : (
+          <span className="whitespace-nowrap">
+            {isToday
+              ? `Today, ${formatDayLabel(day.date).split(", ")[1]}`
+              : formatDayLabel(day.date)}
+          </span>
+        )}
         <input
           type="date"
           data-testid="attendance-date-input"
           aria-label="Choose date"
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           value={day.date}
-          max={day.today}
+          max={today}
           onChange={(e) => e.target.value && goToDate(e.target.value)}
         />
       </label>
       <Button
         variant="outline"
         size="sm"
-        className="max-md:h-10 max-md:w-10 max-md:border-transparent max-md:bg-transparent max-md:p-0"
+        className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => goToDate(addDays(day.date, 1))}
         disabled={isToday}
         aria-label="Next day"
@@ -353,7 +416,7 @@ export function AttendancePage() {
         <ChevronRightIcon size={16} />
       </Button>
       {!isToday && (
-        <Button variant="ghost" size="sm" className="max-md:hidden" onClick={() => goToDate(day.today)}>
+        <Button variant="ghost" size="sm" className="max-md:hidden" onClick={() => goToDate(today)}>
           Today
         </Button>
       )}
@@ -361,25 +424,25 @@ export function AttendancePage() {
   );
 
   const monthStepper = (
-    <div className="flex items-center gap-1 md:gap-2">
+    <div className="flex min-w-0 items-center gap-1 md:gap-2">
       <Button
         variant="outline"
         size="sm"
-        className="max-md:h-10 max-md:w-10 max-md:border-transparent max-md:bg-transparent max-md:p-0"
+        className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => openMonth(addMonths(activeMonth, -1))}
         aria-label="Previous month"
       >
         <ChevronLeftIcon size={16} />
       </Button>
-      <span className="min-w-0 whitespace-nowrap text-center font-semibold text-foreground md:min-w-[9.5rem]">
-        {formatMonth(activeMonth)}
+      <span className="min-w-0 truncate whitespace-nowrap text-center font-semibold text-foreground max-md:text-sm md:min-w-[9.5rem]">
+        {isMobile ? formatMonthShort(activeMonth) : formatMonth(activeMonth)}
       </span>
       <Button
         variant="outline"
         size="sm"
-        className="max-md:h-10 max-md:w-10 max-md:border-transparent max-md:bg-transparent max-md:p-0"
+        className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => openMonth(addMonths(activeMonth, 1))}
-        disabled={activeMonth >= day.today.slice(0, 7)}
+        disabled={activeMonth >= today.slice(0, 7)}
         aria-label="Next month"
       >
         <ChevronRightIcon size={16} />
@@ -487,16 +550,16 @@ export function AttendancePage() {
         onChange={(e) => setSearch(e.target.value)}
         // Phones open the field from the search icon, so focus goes with it.
         autoFocus={isMobile}
-        className="bg-background pl-9 pr-9"
+        // Phones: a filled, borderless field at the same 36px height and
+        // shape as the Day / Month track it takes the place of. Text stays
+        // 16px so iOS doesn't zoom the page on focus.
+        className="bg-background pl-9 pr-9 max-md:h-9 max-md:border-transparent max-md:bg-muted max-md:focus-visible:ring-1 max-md:focus-visible:ring-offset-0"
       />
-      {(search || isMobile) && (
+      {search && (
         <button
           type="button"
-          aria-label={search ? "Clear search" : "Close search"}
-          onClick={() => {
-            if (!search) setSearchOpen(false);
-            setSearch("");
-          }}
+          aria-label="Clear search"
+          onClick={() => setSearch("")}
           className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
         >
           <XIcon size={16} />
@@ -526,45 +589,59 @@ export function AttendancePage() {
         <div className="space-y-3">
           {/* Pinned while the list scrolls: where you are, how far along,
               and the counts — which are also the filter. */}
-          <div className="sticky top-0 z-10 -mx-4 -mt-4 space-y-2 border-b border-border bg-background px-4 pb-2.5 pt-2">
-            <div className="flex items-center justify-between gap-2">
-              {view === "day" ? dateStepper : monthStepper}
-              <div className="flex items-center gap-1">
+          {/* -top-4 / -mt-4: the scrolling <main> has 1rem of padding, and a
+              sticky child is held inside that padding — at top-0 the list
+              showed through a 16px gap above this bar. */}
+          <div className="sticky -top-4 z-10 -mx-4 -mt-4 space-y-2 border-b border-border bg-background px-4 pb-2.5 pt-2">
+            {/* Search opens in place of this row rather than adding one
+                below it, so the header keeps its height and the list
+                doesn't jump. */}
+            {searchOpen ? (
+              <div className="flex items-center gap-2">
+                {searchField}
                 <button
                   type="button"
-                  aria-label="Search drivers"
-                  aria-expanded={searchOpen}
                   onClick={() => {
-                    if (searchOpen) setSearch("");
-                    setSearchOpen(!searchOpen);
+                    setSearch("");
+                    setSearchOpen(false);
                   }}
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground",
-                    (searchOpen || query) && "bg-muted text-foreground",
-                  )}
+                  className="h-9 shrink-0 px-1 text-sm font-medium text-primary"
                 >
-                  <SearchIcon size={18} />
+                  Cancel
                 </button>
-                <SegmentedControl
-                  idPrefix="attendance-view"
-                  items={[
-                    { key: "day", label: "Day" },
-                    { key: "month", label: "Month" },
-                  ]}
-                  value={view}
-                  onValueChange={changeView}
-                />
               </div>
-            </div>
-
-            {searchOpen && searchField}
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                {view === "day" ? dateStepper : monthStepper}
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Search drivers"
+                    onClick={() => setSearchOpen(true)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground"
+                  >
+                    <SearchIcon size={18} />
+                  </button>
+                  <SegmentedControl
+                    idPrefix="attendance-view"
+                    items={[
+                      { key: "day", label: "Day" },
+                      { key: "month", label: "Month" },
+                    ]}
+                    value={view}
+                    onValueChange={changeView}
+                    className="[&>button]:px-2.5 [&>button]:py-1"
+                  />
+                </div>
+              </div>
+            )}
 
             {view === "day" && (
               <>
                 <div className="flex items-center gap-2 text-[0.6875rem] tabular-nums text-muted-foreground">
                   <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
                     <span
-                      className="block h-full rounded-full bg-primary transition-[width] duration-200"
+                      className="block h-full rounded-full bg-success-subtle-foreground transition-[width] duration-200"
                       style={{
                         width: `${counts.total ? Math.round((marked / counts.total) * 100) : 0}%`,
                       }}
@@ -572,30 +649,16 @@ export function AttendancePage() {
                   </span>
                   {marked} of {counts.total} marked
                 </div>
-                <div
-                  role="radiogroup"
-                  aria-label="Filter drivers"
-                  className="-mx-4 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                >
-                  {filterItems.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      role="radio"
-                      aria-checked={filter === item.key}
-                      onClick={() => setFilter(item.key)}
-                      className={cn(
-                        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors",
-                        filter === item.key
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border bg-card text-muted-foreground",
-                      )}
-                    >
-                      {item.label}
-                      <span className="font-medium tabular-nums opacity-70">{item.count}</span>
-                    </button>
-                  ))}
-                </div>
+                {/* The same control as Day / Month, stretched edge to edge:
+                    six equal cells, so nothing runs off the screen and
+                    there is no sideways scrolling to discover. */}
+                <SegmentedControl
+                  idPrefix="attendance-filter"
+                  items={filterItems}
+                  value={filter}
+                  onValueChange={(key) => setFilter(key as AttendanceFilter)}
+                  className="flex w-full gap-0.5 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-0 [&>button]:py-1 [&>button]:text-[13px]"
+                />
               </>
             )}
           </div>
@@ -701,7 +764,7 @@ export function AttendancePage() {
                       aria-label="Choose month"
                       className="w-auto"
                       value={activeMonth}
-                      max={day.today.slice(0, 7)}
+                      max={today.slice(0, 7)}
                       onChange={(e) => e.target.value && openMonth(e.target.value)}
                     />
                   </div>
@@ -721,44 +784,101 @@ export function AttendancePage() {
       {/* Outside the panel on purpose: the panel clips overflow, which would
           stop this from sticking to the bottom of the scrolling page. */}
       {dirty.length > 0 ? (
-        <div
-          data-testid="attendance-save-bar"
-          className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-border bg-card max-md:-mx-4 max-md:-mb-4 max-md:border-t max-md:px-4 max-md:py-2.5 md:bottom-4 md:mx-auto md:max-w-2xl md:justify-between md:rounded-xl md:border md:px-4 md:py-2.5 md:shadow-lg"
-        >
-          <span className="text-sm text-muted-foreground max-md:hidden">
-            {dirty.length} unsaved {dirty.length === 1 ? "change" : "changes"} for{" "}
-            {formatDayLabel(day.date)}
-          </span>
-          {saveError && (
-            <span role="alert" className="w-full text-sm text-destructive md:order-last">
-              {saveError}
-            </span>
-          )}
-          <div className="flex items-center gap-2 max-md:w-full">
-            <Button variant="ghost" onClick={discard} disabled={saving} className="max-md:h-11">
-              Discard
-            </Button>
-            <Button
-              data-testid="attendance-save-btn"
-              onClick={save}
-              disabled={saving}
-              className="max-md:h-11 max-md:flex-1"
-            >
-              {saving
-                ? "Saving…"
-                : isMobile
-                  ? `Save ${dirty.length} ${dirty.length === 1 ? "change" : "changes"}`
-                  : "Save attendance"}
-            </Button>
+        isMobile ? (
+          // Phones: a small floating pair in the thumb corner, just above
+          // the dock, instead of a bar across the list. Discard is the
+          // quiet icon and asks first, since one tap could undo a whole
+          // day's marking.
+          <div
+            data-testid="attendance-save-bar"
+            className="pointer-events-none sticky bottom-0 z-10 flex flex-col items-end gap-2"
+          >
+            {saveError && (
+              <span
+                role="alert"
+                className="pointer-events-auto max-w-full rounded-lg border border-destructive/30 bg-card px-3 py-2 text-sm text-destructive shadow-lg"
+              >
+                {saveError}
+              </span>
+            )}
+            <div className="pointer-events-auto flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={`Discard ${dirty.length} unsaved ${dirty.length === 1 ? "change" : "changes"}`}
+                onClick={() => setConfirmDiscard(true)}
+                disabled={saving}
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+              >
+                <UndoIcon size={18} />
+              </button>
+              <Button
+                data-testid="attendance-save-btn"
+                onClick={save}
+                disabled={saving}
+                className="h-11 gap-2 rounded-xl px-4 shadow-lg transition-transform active:scale-95"
+              >
+                <CheckIcon size={18} />
+                {saving ? "Saving…" : <>Save {dirty.length} {dirty.length === 1 ? "change" : "changes"}</>}
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            data-testid="attendance-save-bar"
+            className="sticky bottom-4 z-10 mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-2.5 shadow-lg"
+          >
+            <span className="text-sm text-muted-foreground">
+              {dirty.length} unsaved {dirty.length === 1 ? "change" : "changes"} for{" "}
+              {formatDayLabel(day.date)}
+            </span>
+            {saveError && (
+              <span role="alert" className="order-last w-full text-sm text-destructive">
+                {saveError}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={discard} disabled={saving}>
+                Discard
+              </Button>
+              <Button data-testid="attendance-save-btn" onClick={save} disabled={saving}>
+                {saving ? "Saving…" : "Save attendance"}
+              </Button>
+            </div>
+          </div>
+        )
       ) : (
-        justSaved && (
+        justSaved &&
+        (isMobile ? (
+          // Where the Save button just was — at the end of a 60-row list
+          // nobody would see it.
+          <div className="pointer-events-none sticky bottom-0 z-10 flex justify-end">
+            <p
+              role="status"
+              className="flex h-11 items-center gap-2 rounded-xl border border-success/30 bg-success-subtle px-4 text-sm font-medium text-success-subtle-foreground shadow-lg animate-in fade-in-0 slide-in-from-bottom-2"
+            >
+              <CheckIcon size={18} />
+              Saved
+            </p>
+          </div>
+        ) : (
           <p role="status" className="text-center text-sm font-medium text-success-subtle-foreground">
             Attendance saved for {formatDayLabel(day.date)}.
           </p>
-        )
+        ))
       )}
+
+      <ConfirmModal
+        isOpen={confirmDiscard}
+        onClose={() => setConfirmDiscard(false)}
+        onConfirm={() => {
+          setConfirmDiscard(false);
+          discard();
+        }}
+        title="Discard unsaved changes?"
+        description={`${dirty.length} ${dirty.length === 1 ? "change" : "changes"} for ${formatDayLabel(day.date)} will be lost.`}
+        confirmText="Discard"
+        icon={<AlertTriangleIcon size={24} className="text-warning" />}
+      />
 
       <ConfirmModal
         isOpen={pendingDate !== null}

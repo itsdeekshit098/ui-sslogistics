@@ -6,7 +6,10 @@ import { revealHorizontally, useScrollFade } from "@/hooks/useScrollFade";
 import type { TabsProps } from "./tabs.types";
 
 /**
- * Underlined tab bar. Follows the WAI-ARIA tabs pattern with manual
+ * Tab bar, drawn as the same grey track with a raised active button as
+ * <SegmentedControl> so every "pick one" control in the app shares a shape.
+ * It differs in behaviour, not looks: this switches between panels. Follows
+ * the WAI-ARIA tabs pattern with manual
  * activation: arrows move focus, Enter/Space selects — so keyboard users
  * aren't forced through every panel's data fetch on their way to the one
  * they want.
@@ -80,7 +83,7 @@ const Tabs: React.FC<TabsProps> = ({
       aria-orientation="horizontal"
       style={fadeStyle}
       className={cn(
-        "flex items-center gap-6 overflow-x-auto border-b border-border [scrollbar-width:none] max-md:gap-1 [&::-webkit-scrollbar]:hidden",
+        "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
@@ -105,20 +108,24 @@ const Tabs: React.FC<TabsProps> = ({
             onClick={() => !item.disabled && onValueChange(item.key)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              // Phones: a 44px-min target with side padding in place of the
-              // wide desktop gap, so short labels ("All") are easy to hit.
-              "relative flex shrink-0 items-center gap-2 border-b-2 px-1 pb-3 pt-2 text-sm font-medium transition-colors max-md:min-w-11 max-md:justify-center max-md:px-3",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:rounded-sm",
+              // min-w-11 keeps short labels ("All") an easy target on phones.
+              "relative flex min-w-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xs px-3 py-1.5 text-sm font-medium transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted",
               isActive
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground",
               item.disabled && "cursor-not-allowed opacity-50 hover:text-muted-foreground",
             )}
           >
             {item.icon}
             <span>{item.label}</span>
             {item.badge != null && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+              <span
+                className={cn(
+                  "rounded-sm px-1.5 py-0.5 text-xs font-normal text-muted-foreground",
+                  isActive ? "bg-muted" : "bg-card/60",
+                )}
+              >
                 {item.badge}
               </span>
             )}

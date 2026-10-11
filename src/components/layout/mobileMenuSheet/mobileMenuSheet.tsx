@@ -36,7 +36,7 @@ export function MobileMenuSheet({ open, onClose }: MobileMenuSheetProps) {
       <div className="space-y-5" data-testid="admin-mobile-menu">
         {/* Account */}
         <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 p-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/12 text-base font-semibold text-primary ring-1 ring-primary/20 dark:bg-primary/20">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground">
             {name.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">

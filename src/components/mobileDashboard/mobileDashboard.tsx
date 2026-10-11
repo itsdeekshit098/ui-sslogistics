@@ -63,7 +63,7 @@ export function MobileDashboard({
               >
                 <span
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                     alert.tone === "critical"
                       ? "bg-destructive-subtle text-destructive"
                       : "bg-warning-subtle text-warning-subtle-foreground",

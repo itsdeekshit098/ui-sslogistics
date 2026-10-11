@@ -330,7 +330,7 @@ export function AttachmentsPanel({
                   className={`absolute inset-0 ${isSelected ? "bg-primary/20" : ""}`}
                 >
                   <span
-                    className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 shadow-sm ${
+                    className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-sm border-2 shadow-sm ${
                       isSelected
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-white bg-black/30"

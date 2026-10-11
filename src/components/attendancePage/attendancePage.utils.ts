@@ -81,3 +81,26 @@ export function formatDayLabel(date: string): string {
     timeZone: "UTC",
   });
 }
+
+/** "Sunday" */
+export function formatWeekday(date: string): string {
+  return parseDate(date).toLocaleDateString("en-IN", { weekday: "long", timeZone: "UTC" });
+}
+
+/** "Oct 2026" — the phone header has no room for the full month name. */
+export function formatMonthShort(month: string): string {
+  return parseDate(`${month}-01`).toLocaleDateString("en-IN", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * Today in IST from the device clock. Only ever used to notice that the day
+ * has rolled over since the last load — the server's own `today` remains the
+ * authority on what can be edited.
+ */
+export function todayInIndia(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+}

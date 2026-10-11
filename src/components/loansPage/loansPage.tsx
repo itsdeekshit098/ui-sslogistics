@@ -757,7 +757,7 @@ export function LoansPage() {
                 >
                   <SlidersHorizontalIcon size={18} />
                   {loanFilterCount > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-sm bg-primary px-1 text-[11px] font-bold text-primary-foreground">
                       {loanFilterCount}
                     </span>
                   )}

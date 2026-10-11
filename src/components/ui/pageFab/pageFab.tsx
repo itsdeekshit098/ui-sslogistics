@@ -8,7 +8,7 @@ import type { PageFabProps } from "./pageFab.types";
 
 /**
  * The page's main "create" action as a floating round "+" above the bottom
- * nav, phone widths only. Always on screen — it used to slide away on
+ * dock, phone widths only. Always on screen — it used to slide away on
  * scroll-down, which read as the button disappearing just when needed.
  * Icon-only to keep content visible beneath it; the label stays as the
  * accessible name (and title) for screen readers. Hidden (via globals.css)
@@ -42,7 +42,7 @@ export function PageFab({ label, onClick, icon, disabled, disabledReason, testId
   return createPortal(
     <div
       className={cn(
-        "ss-fab fixed right-2 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-20 flex flex-col items-end gap-2 md:hidden",
+        "ss-fab fixed right-2 bottom-[calc(var(--mobile-dock-clearance,4.5rem)+0.75rem)] z-20 flex flex-col items-end gap-2 md:hidden",
       )}
     >
       {showReason && disabledReason && (
@@ -62,7 +62,7 @@ export function PageFab({ label, onClick, icon, disabled, disabledReason, testId
         aria-label={label}
         title={label}
         className={cn(
-          "flex h-13 w-13 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_6px_16px_-4px_rgba(37,99,235,0.5),0_2px_4px_rgba(0,0,0,0.12)] transition-transform active:scale-95",
+          "flex h-13 w-13 items-center justify-center rounded-[calc(var(--radius)+4px)] bg-primary text-primary-foreground shadow-[0_6px_16px_-4px_rgba(37,99,235,0.5),0_2px_4px_rgba(0,0,0,0.12)] transition-transform active:scale-95",
           disabled && "opacity-60 shadow-none",
         )}
       >

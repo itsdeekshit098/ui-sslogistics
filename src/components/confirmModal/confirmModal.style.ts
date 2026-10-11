@@ -13,7 +13,7 @@ export const iconWrapper: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: "12px", // 0.75rem = 12px
-  borderRadius: "9999px",
+  borderRadius: "var(--radius)",
   backgroundColor: "rgba(239, 68, 68, 0.1)",
 };
 

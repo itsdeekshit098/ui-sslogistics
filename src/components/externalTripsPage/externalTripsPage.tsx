@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -259,15 +260,12 @@ export function ExternalTripsPage() {
       header: "Trip Type",
       mobile: "trailing",
       cell: (trip) => (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
-            trip.trip_type === "company_oncall"
-              ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20"
-              : "bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/20"
-          }`}
+        <Badge
+          variant={trip.trip_type === "company_oncall" ? "info-subtle" : "secondary"}
+          className="whitespace-nowrap"
         >
           {TRIP_TYPE_LABELS[trip.trip_type]}
-        </span>
+        </Badge>
       ),
     },
     {

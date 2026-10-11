@@ -39,7 +39,7 @@ export const issueGrid: CSSProperties = {
 
 export const issueChipBase: CSSProperties = {
   padding: "0.375rem 0.75rem",
-  borderRadius: "9999px",
+  borderRadius: "var(--badge-radius)",
   fontSize: "0.75rem",
   fontWeight: 500,
   cursor: "pointer",

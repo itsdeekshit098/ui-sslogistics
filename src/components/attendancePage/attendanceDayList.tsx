@@ -41,6 +41,11 @@ function withFullDay(mark: AttendanceMark): AttendanceMark {
 }
 
 /**
+ * Colour carries meaning here, not decoration: green is present (the tick and
+ * the shifts worked), red is absent, amber is leave or not yet marked. Blue
+ * is kept for things you act on — Save, the selected tab — so it never means
+ * "status".
+ *
  * One row per driver. Desktop spells every choice out (Full day · A B C ·
  * Absent · Leave); phones fold the same choices into a tick, a three-cell
  * shift block and a "more" menu so a row stays one line tall and roughly
@@ -53,7 +58,7 @@ export function AttendanceDayList(props: AttendanceDayListProps) {
 // ─── Desktop ───
 
 const chipBase =
-  "inline-flex h-9 min-w-10 items-center justify-center rounded-xs border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-9 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 const chipIdle = "border-border bg-card text-muted-foreground enabled:hover:border-muted-foreground";
 
 function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListProps) {
@@ -67,22 +72,24 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
             key={driver.driver_id}
             data-testid={`attendance-row-${driver.driver_id}`}
             className={cn(
-              "flex items-center gap-3 px-4 py-2.5 sm:px-6",
+              // Wraps below ~1100px of content: at tablet width the six
+              // controls would otherwise squeeze the name to nothing.
+              "flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:px-6",
               !isMarked(mark) && "bg-warning-subtle/40",
             )}
           >
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">
               {initials(driver.name)}
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-40 flex-1">
               <div className="truncate font-semibold text-foreground">{driver.name}</div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {driver.place && <span>{driver.place}</span>}
                 {!driver.is_active && <Badge variant="outline">Inactive</Badge>}
                 {isFullDay(mark) ? (
-                  <Badge variant="info-subtle">Full day</Badge>
+                  <Badge variant="success-subtle">Full day</Badge>
                 ) : mark.shifts.length > 1 ? (
-                  <Badge variant="info-subtle">Double shift</Badge>
+                  <Badge variant="success-subtle">Double shift</Badge>
                 ) : !isMarked(mark) ? (
                   <Badge variant="warning-subtle">Not marked</Badge>
                 ) : null}
@@ -97,7 +104,7 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
                 onClick={() => set(withFullDay(mark))}
                 className={cn(
                   chipBase,
-                  isFullDay(mark) ? "border-primary bg-primary text-primary-foreground" : chipIdle,
+                  isFullDay(mark) ? "border-success bg-success text-success-foreground" : chipIdle,
                 )}
               >
                 Full day
@@ -115,7 +122,11 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
                     onClick={() => set(toggleShift(mark, shift))}
                     className={cn(
                       chipBase,
-                      on ? "border-primary bg-primary text-primary-foreground" : chipIdle,
+                      // Tinted, not solid: "Full day" beside it is the solid
+                      // one, so a full roster isn't a wall of colour.
+                      on
+                        ? "border-success/35 bg-success-subtle text-success-subtle-foreground"
+                        : chipIdle,
                     )}
                   >
                     {shift}
@@ -195,14 +206,14 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
             >
               <span
                 className={cn(
-                  "flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border-2 text-sm font-bold leading-none",
-                  full && "border-primary bg-primary text-primary-foreground",
-                  partial && "border-primary text-primary",
+                  "flex h-[1.375rem] w-[1.375rem] items-center justify-center rounded-sm border-2 text-sm font-bold leading-none",
+                  full && "border-success bg-success text-success-foreground",
+                  partial && "border-success text-success-subtle-foreground",
                   !full && !partial && "border-muted-foreground/45 text-transparent",
                   mark.status && "border-dashed",
                 )}
               >
-                {partial ? "–" : <CheckIcon size={14} />}
+                {partial ? "–" : <CheckIcon size={12} />}
               </span>
             </button>
 
@@ -228,7 +239,7 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                 aria-label={`Clear ${OFF_LABEL[mark.status]}, ${driver.name}`}
                 onClick={() => set(EMPTY_MARK)}
                 className={cn(
-                  "inline-flex h-10 w-[7.375rem] shrink-0 items-center justify-center gap-2 rounded-lg border text-sm font-semibold disabled:opacity-60",
+                  "inline-flex h-9 w-[6.875rem] shrink-0 items-center justify-center gap-2 rounded-lg border text-sm font-semibold disabled:opacity-60",
                   mark.status === "ABSENT"
                     ? "border-destructive/35 bg-destructive-subtle text-destructive-subtle-foreground"
                     : "border-warning/45 bg-warning-subtle text-warning-subtle-foreground",
@@ -241,7 +252,12 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
               <div
                 role="group"
                 aria-label={`Shifts, ${driver.name}`}
-                className="flex shrink-0 overflow-hidden rounded-lg border border-border"
+                className={cn(
+                  "flex shrink-0 overflow-hidden rounded-lg border",
+                  // The solid tick says "present all day"; the cells only
+                  // tint, so a full roster isn't a wall of colour.
+                  mark.shifts.length > 0 ? "border-success/30" : "border-border",
+                )}
               >
                 {SHIFTS.map((shift) => {
                   const on = mark.shifts.includes(shift);
@@ -254,9 +270,9 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                       aria-label={`Shift ${shift}`}
                       onClick={() => set(toggleShift(mark, shift))}
                       className={cn(
-                        "h-10 w-[2.375rem] border-l border-border text-sm font-bold first:border-l-0 disabled:opacity-60",
+                        "h-9 w-9 border-l border-border text-sm font-bold first:border-l-0 disabled:opacity-60",
                         on
-                          ? "border-l-primary-foreground/35 bg-primary text-primary-foreground"
+                          ? "border-l-success/30 bg-success-subtle text-success-subtle-foreground"
                           : "bg-card text-muted-foreground",
                       )}
                     >
@@ -288,7 +304,7 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                     key={status}
                     type="button"
                     onClick={() => set({ shifts: [], status })}
-                    className="h-10 flex-1 rounded-lg border border-border bg-card text-sm font-medium text-foreground active:bg-muted"
+                    className="h-9 flex-1 rounded-lg border border-border bg-card text-sm font-medium text-foreground active:bg-muted"
                   >
                     {OFF_LABEL[status]}
                   </button>
@@ -297,7 +313,7 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                   type="button"
                   disabled={!isMarked(mark)}
                   onClick={() => set(EMPTY_MARK)}
-                  className="h-10 flex-1 rounded-lg border border-border bg-card text-sm font-medium text-foreground active:bg-muted disabled:opacity-50"
+                  className="h-9 flex-1 rounded-lg border border-border bg-card text-sm font-medium text-foreground active:bg-muted disabled:opacity-50"
                 >
                   Clear
                 </button>

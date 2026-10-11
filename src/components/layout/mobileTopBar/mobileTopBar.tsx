@@ -30,11 +30,16 @@ export function MobileTopBar({ onOpenMenu, className }: MobileTopBarProps) {
   return (
     <header
       className={cn(
+        // Sits on the page colour with no divider, so the title reads as the
+        // top of the page rather than a separate strip.
         // Solid, no backdrop-blur: page content scrolls inside <main>, never
         // under the bar, and a backdrop-filter would turn the bar into the
         // containing block for `fixed` children — the notification panel's
         // tap-outside-to-close layer then covered only the bar itself.
-        "z-30 shrink-0 border-b border-border bg-card pt-[env(safe-area-inset-top)]",
+        // z-[35]: above the floating dock (z-30), which comes later in the
+        // page — otherwise a tall notification panel opened from this bar
+        // would slide underneath the dock.
+        "z-[35] shrink-0 bg-background pt-[env(safe-area-inset-top)]",
         className,
       )}
       data-testid="admin-mobile-topbar"
@@ -44,32 +49,30 @@ export function MobileTopBar({ onOpenMenu, className }: MobileTopBarProps) {
           <button
             type="button"
             onClick={handleBack}
-            className="flex h-10 min-w-0 items-center gap-0.5 rounded-full pl-1 pr-3 text-foreground transition-colors active:bg-muted"
+            className="flex h-10 min-w-0 items-center gap-0.5 rounded-xl pl-1 pr-3 text-foreground transition-colors active:bg-muted"
             aria-label={`Back to ${title}`}
           >
             <ChevronLeftIcon size={22} className="shrink-0" />
-            <span className="truncate text-[17px] font-semibold">{title}</span>
+            <span className="truncate text-[19px] font-bold tracking-tight">{title}</span>
           </button>
         ) : (
           <div className="flex min-w-0 items-center pl-2">
-            <h1 className="truncate text-[17px] font-semibold tracking-tight text-foreground">
+            <h1 className="truncate text-[22px] font-bold tracking-tight text-foreground">
               {title}
             </h1>
           </div>
         )}
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 pr-1">
+        <div className="ml-auto flex shrink-0 items-center gap-2 pr-2">
           <NotificationBell variant="ghost" />
           <button
             type="button"
             onClick={onOpenMenu}
             aria-label="Account and menu"
             data-testid="admin-mobile-avatar-btn"
-            className="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-transform duration-200 active:scale-95"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/12 text-[13px] font-semibold text-primary ring-1 ring-primary/20 dark:bg-primary/20">
-              {initial}
-            </span>
+            {initial}
           </button>
         </div>
       </div>

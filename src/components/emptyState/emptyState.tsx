@@ -23,7 +23,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         className,
       )}
     >
-      <div className="rounded-full bg-muted p-4 mb-4">
+      <div className="rounded-xl bg-muted p-4 mb-4">
         <Icon size={32} style={{ color: "var(--muted-foreground)", opacity: 0.5 }} />
       </div>
       <h3

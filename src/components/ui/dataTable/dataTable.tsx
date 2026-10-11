@@ -151,7 +151,7 @@ function SkeletonCards() {
         >
           <div className="flex justify-between gap-4">
             <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
-            <div className="h-4 w-16 animate-pulse rounded-full bg-muted" />
+            <div className="h-4 w-16 animate-pulse rounded-sm bg-muted" />
           </div>
           <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
             {Array.from({ length: 4 }).map((_, j) => (
@@ -383,7 +383,7 @@ function MobileCards<TData>({
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") e.stopPropagation();
             }}
-              className="-mr-2 -mt-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted active:bg-muted"
+              className="-mr-2 -mt-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted active:bg-muted"
             >
               <MoreHorizontalIcon size={20} />
             </button>

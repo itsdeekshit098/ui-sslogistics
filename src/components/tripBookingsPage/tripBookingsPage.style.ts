@@ -47,7 +47,7 @@ export const activeFilterBadge: CSSProperties = {
   justifyContent: "center",
   width: "1.25rem",
   height: "1.25rem",
-  borderRadius: "9999px",
+  borderRadius: "var(--badge-radius)",
   backgroundColor: "var(--primary)",
   color: "var(--primary-foreground)",
   fontSize: "0.6875rem",
@@ -60,7 +60,7 @@ export const activeFilterBadge: CSSProperties = {
 export const statusBadgeBase: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  borderRadius: "9999px",
+  borderRadius: "var(--badge-radius)",
   padding: "0.25rem 0.5rem",
   fontSize: "0.75rem",
   fontWeight: 500,

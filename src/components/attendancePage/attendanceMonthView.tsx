@@ -55,7 +55,7 @@ function MarkCell({
               key={shift}
               className={cn(
                 "h-3.5 w-1.5 rounded-[2px]",
-                mark.shifts.includes(shift) ? "bg-primary" : "bg-border",
+                mark.shifts.includes(shift) ? "bg-success-subtle-foreground" : "bg-border",
               )}
             />
           ))}
@@ -68,7 +68,7 @@ function Legend() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
       <span className="inline-flex items-center gap-1.5">
         <span className="inline-flex gap-0.5">
-          <span className="h-3.5 w-1.5 rounded-[2px] bg-primary" />
+          <span className="h-3.5 w-1.5 rounded-[2px] bg-success-subtle-foreground" />
           <span className="h-3.5 w-1.5 rounded-[2px] bg-border" />
           <span className="h-3.5 w-1.5 rounded-[2px] bg-border" />
         </span>
@@ -209,7 +209,7 @@ function stripTone(mark: AttendanceMark | undefined, future: boolean): string {
   if (!mark) return "bg-card shadow-[inset_0_0_0_1px_var(--border)]";
   if (mark.status === "ABSENT") return "bg-destructive";
   if (mark.status === "LEAVE") return "bg-warning";
-  return isFullDay(mark) ? "bg-primary" : "bg-primary/45";
+  return isFullDay(mark) ? "bg-success-subtle-foreground" : "bg-success-subtle-foreground/45";
 }
 
 function PhoneMonth({ data, dates, onOpenDay }: MonthLayoutProps) {
@@ -219,8 +219,8 @@ function PhoneMonth({ data, dates, onOpenDay }: MonthLayoutProps) {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.6875rem] text-muted-foreground">
         {[
-          ["bg-primary", "Full day"],
-          ["bg-primary/45", "Part"],
+          ["bg-success-subtle-foreground", "Full day"],
+          ["bg-success-subtle-foreground/45", "Part"],
           ["bg-destructive", "Absent"],
           ["bg-warning", "Leave"],
         ].map(([tone, label]) => (
