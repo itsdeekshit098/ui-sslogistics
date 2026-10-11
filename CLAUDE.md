@@ -58,6 +58,24 @@ Three rules hold across all of them, and breaking any one reintroduces a bug the
 
 Label-only dropdown lists (loan types, client types, contact roles, payment methods) live in `lookup_options` and are edited at runtime through `<LookupSelect>`'s "+ Add new" footer or Settings → Dropdown Lists. **Do not add new Postgres enums for these** — `vehicle_type` and friends already demonstrate the cost (defined in the DB, in `vehicles.types.ts`, and in the API validation array, all needing a coordinated deploy).
 
+### Deleting a vehicle
+
+A vehicle delete has to pass two gates, in this order:
+
+1. **Nothing still points at it.** `DELETE /api/vehicles` counts rows in `repair_records`, `warranty`, `repair_parts`, `external_trips`, `diesel_records`, `trip_bookings` and `loans`, and answers 400 with one message listing everything attached ("…still has 6 repair records and 1 loan"). A table that doesn't exist is skipped, not treated as an error.
+2. **The row is unlocked.** `vehicles.allow_permanent_delete` must be `true`. The database enforces this itself and rejects the delete otherwise; the column and its enforcement predate the files in `sql/`, so they are not recorded there. Nothing in the web or mobile UI can set the flag — it is flipped by hand in the Supabase SQL editor, per vehicle, immediately before deleting:
+
+   ```sql
+   -- change the id to the vehicle being deleted
+   UPDATE vehicles
+   SET allow_permanent_delete = TRUE
+   WHERE id = 35;
+   ```
+
+   Then delete from the Vehicles page as usual. While the flag is false the API answers 400 with `code: "VEHICLE_DELETE_LOCKED"` rather than letting the database's refusal surface as a 500.
+
+There is currently no UI toggle for the flag and the API never sets it. The delete also removes the vehicle's documents and photos from storage, which a raw `DELETE FROM vehicles` in SQL would leave orphaned, so prefer the page over deleting in SQL.
+
 ### Driver attendance
 
 `driver_attendance` holds one row per driver per day: three shift booleans (A, B, C) plus a status (`PRESENT` / `ABSENT` / `LEAVE`), with a check constraint that present means at least one shift and absent/leave means none. "Not marked" is the absence of a row — clearing a mark deletes it. Month totals (shifts, full days, absences, leave) are counted per request, never stored.

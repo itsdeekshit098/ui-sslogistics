@@ -540,9 +540,8 @@ export async function DELETE(req: Request) {
     // about the trip bookings on the next attempt.
     const dependentChecks: [string, string, string][] = [
       ["repair_records", "repair record", "repair records"],
-      // Warranty parts live in `repair_parts`. This used to check a table
-      // called "warranty", which does not exist: the lookup failed, and any
-      // vehicle that got past the repair-records check hit a 500 here.
+      ["warranty", "warranty claim", "warranty claims"],
+      // Parts logged against the vehicle (the Warranty page's rows).
       ["repair_parts", "warranty part", "warranty parts"],
       ["external_trips", "external trip", "external trips"],
       ["diesel_records", "diesel record", "diesel records"],
@@ -565,9 +564,9 @@ export async function DELETE(req: Request) {
     for (const [i, { count, error: countErr }] of counts.entries()) {
       const [table, one, many] = dependentChecks[i];
       if (countErr) {
-        // A table that has since been retired (external_trips is slated to
-        // be dropped) can't be holding any rows — skip it rather than
-        // turning every vehicle delete into a 500.
+        // A table that isn't there (the early schema isn't in sql/, and
+        // external_trips is slated to be dropped) can't be holding any
+        // rows — skip it rather than turning every vehicle delete into a 500.
         if (countErr.code === "PGRST205" || countErr.code === "42P01") continue;
         return serverError(countErr, { table });
       }
@@ -582,6 +581,25 @@ export async function DELETE(req: Request) {
       return apiError(
         `Cannot delete "${vehicle.vehicle_number}" because it still has ${list}. Remove those first.`,
         400,
+      );
+    }
+
+    // The database itself refuses to delete a vehicle unless its
+    // `allow_permanent_delete` flag is true — a deliberate second lock that
+    // can only be opened in SQL (see CLAUDE.md, "Deleting a vehicle").
+    // Without this check that refusal surfaced as a bare "Internal server
+    // error". Read separately and tolerantly: if the flag can't be read, the
+    // database still has the final say below.
+    const { data: lock } = await supabaseAdmin
+      .from("vehicles")
+      .select("allow_permanent_delete")
+      .eq("id", id)
+      .maybeSingle();
+    if (lock && lock.allow_permanent_delete !== true) {
+      return apiError(
+        `"${vehicle.vehicle_number}" is locked against permanent deletion. An admin has to enable it in the database first.`,
+        400,
+        "VEHICLE_DELETE_LOCKED",
       );
     }
 
