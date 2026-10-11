@@ -17,6 +17,7 @@ import {
   LandmarkIcon,
   WalletIcon,
   HomeIcon,
+  CalendarIcon,
 } from "@/components/ui/icon";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
@@ -50,6 +51,7 @@ export const navSections: NavSection[] = [
       { name: "Warranty", href: "/admin/warranty", icon: PackageIcon, enabled: true },
       { name: "Technicians", href: "/admin/technicians", icon: UserCogIcon, enabled: true },
       { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
+      { name: "Attendance", href: "/admin/attendance", icon: CalendarIcon, enabled: true },
       { name: "Trips", href: "/admin/trip-bookings", icon: ClockIcon, enabled: true },
     ],
   },
@@ -134,7 +136,7 @@ export const mobileTabs: MobileTab[] = [
     key: "fleet",
     label: "Fleet",
     icon: TruckIcon,
-    hrefs: ["/admin/vehicles", "/admin/trip-bookings", "/admin/drivers", "/admin/diesel-records"],
+    hrefs: ["/admin/vehicles", "/admin/trip-bookings", "/admin/drivers", "/admin/attendance", "/admin/diesel-records"],
   },
   {
     key: "repairs",

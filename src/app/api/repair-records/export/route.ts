@@ -1,26 +1,10 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth } from "@/lib/auth";
 import { apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { csvValue } from "@/lib/csv";
 import type { RepairCategory } from "@/components/repairRecordsPage";
 
 const VALID_CATEGORIES: RepairCategory[] = ["electrical", "mechanical"];
-
-// Helper to escape CSV values (quotes strings containing delimiters/newlines)
-function escapeCsvValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-  let str = String(value);
-  // Neutralize spreadsheet formula injection (=, +, -, @, tab, CR at the start
-  // of user-controlled text). Numbers are left untouched so costs render as-is.
-  if (typeof value === "string" && /^[=+\-@\t\r]/.test(str)) {
-    str = `'${str}`;
-  }
-  if (/[",\r\n]/.test(str)) {
-    return `"${str.replace(/"/g, "\"\"")}"`;
-  }
-  return str;
-}
 
 export async function GET(req: Request) {
   try {
@@ -120,7 +104,7 @@ export async function GET(req: Request) {
         row.cost || 0,
         technicianName,
         row.description || ""
-      ].map(escapeCsvValue);
+      ].map(csvValue);
 
       csvRows.push(csvRow.join(","));
     }

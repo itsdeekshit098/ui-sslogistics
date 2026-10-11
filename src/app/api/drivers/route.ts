@@ -205,6 +205,7 @@ export async function DELETE(req: Request) {
     const dependentChecks: [string, string][] = [
       ["external_trips", "external trip(s)"],
       ["trip_bookings", "trip booking(s)"],
+      ["driver_attendance", "attendance record(s)"],
     ];
 
     for (const [table, label] of dependentChecks) {
