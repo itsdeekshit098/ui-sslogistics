@@ -41,6 +41,7 @@ import {
   ModalFooter,
 } from "@/components/ui/modal";
 import * as styles from "./externalTripsModal.style";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
@@ -409,7 +410,7 @@ const ExternalTripsForm: React.FC<{
                   }}
                   getOptionValue={(v) => v.id.toString()}
                   getOptionLabel={(v) =>
-                    `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+                    vehicleLabel(v)
                   }
                   getOptionKeywords={(v) => [
                     v.vehicle_number,

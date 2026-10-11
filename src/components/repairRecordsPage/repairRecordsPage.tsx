@@ -49,6 +49,7 @@ import type {
   RepairStatus,
 } from "./repairRecordsPage.types";
 import * as styles from "./repairRecordsPage.style";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
 // shouldn't bloat the initial page chunk that has to load before anything
@@ -555,7 +556,7 @@ export function RepairRecordsPage() {
                     onValueChange={handleVehicleChange}
                     getOptionValue={(v) => v.id.toString()}
                     getOptionLabel={(v) =>
-                      `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+                      vehicleLabel(v)
                     }
                     getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
                     placeholder={

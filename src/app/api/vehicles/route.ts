@@ -535,30 +535,44 @@ export async function DELETE(req: Request) {
     // mirrors the in-use check in vehicle-owners/route.ts and drivers/route.ts.
     // Without this, deleting a vehicle either orphans rows (if there's no FK)
     // or surfaces as an opaque FK-violation 500 (if there is one).
-    const dependentChecks: [string, string][] = [
-      ["repair_records", "repair record(s)"],
-      ["warranty", "warranty claim(s)"],
-      ["external_trips", "external trip(s)"],
-      ["diesel_records", "diesel record(s)"],
-      ["trip_bookings", "trip booking(s)"],
+    // Every list is checked, not just the first that blocks: stopping at
+    // "6 repair records" sent the user off to clear those, only to be told
+    // about the trip bookings on the next attempt.
+    const dependentChecks: [string, string, string][] = [
+      ["repair_records", "repair record", "repair records"],
+      ["warranty", "warranty claim", "warranty claims"],
+      ["external_trips", "external trip", "external trips"],
+      ["diesel_records", "diesel record", "diesel records"],
+      ["trip_bookings", "trip booking", "trip bookings"],
     ];
 
-    for (const [table, label] of dependentChecks) {
-      const { count, error: countErr } = await supabaseAdmin
-        .from(table)
-        .select("id", { count: "exact", head: true })
-        .eq("vehicle_id", id);
+    const counts = await Promise.all(
+      dependentChecks.map(([table]) =>
+        supabaseAdmin
+          .from(table)
+          .select("id", { count: "exact", head: true })
+          .eq("vehicle_id", id),
+      ),
+    );
 
+    const blocking: string[] = [];
+    for (const [i, { count, error: countErr }] of counts.entries()) {
+      const [table, one, many] = dependentChecks[i];
       if (countErr) {
         return serverError(countErr, { table });
       }
+      if ((count ?? 0) > 0) blocking.push(`${count} ${count === 1 ? one : many}`);
+    }
 
-      if ((count ?? 0) > 0) {
-        return apiError(
-          `Cannot delete "${vehicle.vehicle_number}" because it has ${count} ${label} on file. Remove those first.`,
-          400,
-        );
-      }
+    if (blocking.length > 0) {
+      const list =
+        blocking.length > 1
+          ? `${blocking.slice(0, -1).join(", ")} and ${blocking[blocking.length - 1]}`
+          : blocking[0];
+      return apiError(
+        `Cannot delete "${vehicle.vehicle_number}" because it still has ${list}. Remove those first.`,
+        400,
+      );
     }
 
     // Deleting the row cascades the `attachments` rows via their FK, but the

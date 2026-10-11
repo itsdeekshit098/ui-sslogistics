@@ -42,6 +42,7 @@ import { Pagination } from "@/components/pagination";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./externalTripsPage.style";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
 // shouldn't bloat the initial page chunk that has to load before anything
@@ -553,7 +554,7 @@ export function ExternalTripsPage() {
             }
             getOptionValue={(v) => v.id.toString()}
             getOptionLabel={(v) =>
-              `${v.vehicle_number} — ${v.company} ${v.model}`.trim()
+              vehicleLabel(v)
             }
             getOptionKeywords={(v) => [
               v.vehicle_number,

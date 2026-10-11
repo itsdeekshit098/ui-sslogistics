@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/modal";
 import { CSSProperties } from "react";
 import { computeExpiryDateFromStrings as computeExpiryDate } from "@/utils/warrantyExpiry";
+import { vehicleLabel } from "@/lib/vehicleLabel";
 
 const formSection: CSSProperties = {
   display: "flex",
@@ -230,7 +231,7 @@ const AddPartForm: React.FC<{
               }}
               getOptionValue={(v) => v.id.toString()}
               getOptionLabel={(v) =>
-                `${v.vehicle_number} — ${v.company} ${v.model}`
+                vehicleLabel(v)
               }
               getOptionKeywords={(v) => [v.vehicle_number, v.company, v.model]}
               placeholder="Search vehicle..."
