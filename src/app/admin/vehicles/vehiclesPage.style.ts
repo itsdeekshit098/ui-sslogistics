@@ -24,19 +24,6 @@ export const cellRow: CSSProperties = {
   gap: "0.625rem",
 };
 
-export const cellIconBadge: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "1.75rem",
-  height: "1.75rem",
-  borderRadius: "0.5rem",
-  backgroundColor: "rgba(100, 116, 139, 0.10)",
-  flexShrink: 0,
-};
-
-export const cellIconColor = "#94a3b8";
-
 export const cellLabel: CSSProperties = {
   fontWeight: 500,
 };

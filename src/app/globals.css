@@ -320,10 +320,10 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
    room for that too, so the last card is never stuck behind it. */
 @media (max-width: 767px) {
   [data-testid="admin-main"] {
-    padding-bottom: calc(var(--mobile-dock-clearance) + 1rem);
+    padding-bottom: calc(var(--mobile-dock-clearance, 4.5rem) + 1rem);
   }
   body:has(.ss-fab) [data-testid="admin-main"] {
-    padding-bottom: calc(var(--mobile-dock-clearance) + 4.75rem);
+    padding-bottom: calc(var(--mobile-dock-clearance, 4.5rem) + 4.75rem);
   }
 }
 

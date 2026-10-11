@@ -15,3 +15,11 @@ export function addDays(date: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return toDateString(d);
 }
+
+/**
+ * Today as YYYY-MM-DD in IST. A server in UTC still reads "yesterday" until
+ * 05:30 — exactly when the night shift is being marked.
+ */
+export function todayInIndia(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+}

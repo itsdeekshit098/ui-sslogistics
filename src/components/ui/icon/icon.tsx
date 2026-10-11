@@ -620,8 +620,10 @@ export function VanIcon({ size = 16, className, style }: IconProps) {
       style={style}
       aria-hidden="true"
     >
-      <path d="M19.5 17.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0Zm-10 0a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0Z" />
-      <path d="M14.5 17.5h-5m10 0h.763c.22 0 .33 0 .422-.012a1.5 1.5 0 0 0 1.303-1.302c.012-.093.012-.203.012-.423V13a6.5 6.5 0 0 0-6.5-6.5m-.5 9V7c0-1.414 0-2.121-.44-2.56C14.122 4 13.415 4 12 4H5c-1.414 0-2.121 0-2.56.44C2 4.878 2 5.585 2 7v8c0 .935 0 1.402.201 1.75a1.5 1.5 0 0 0 .549.549c.348.201.815.201 1.75.201" />
+      <path d="m12 6l.954 3.86A1.5 1.5 0 0 0 14.41 11H20" />
+      <path d="M2 6h11.069c1.549 0 2.323 0 2.98.346c.656.346 1.094.985 1.97 2.262c.613.896 1.258 1.546 2.164 2.125c.912.582 1.346.867 1.586 1.324c.231.437.231.955.231 1.992c0 1.367 0 2.05-.413 2.484l-.054.054C21.1 17 20.416 17 19.05 17M5 17c-.32 0-.615 0-.77-.033c-.156-.034-.302-.1-.595-.231L2 16c0-3.194.479-5.038 1.106-6.55c.41-.992.616-1.488.53-1.93C3.553 7.08 2.5 6 2.5 6M9 17h6" />
+      <circle cx="17" cy="17" r="2" />
+      <circle cx="7" cy="17" r="2" />
     </svg>
   );
 }
@@ -1712,6 +1714,141 @@ export function UndoIcon({ size = 16, className, style }: IconProps) {
       aria-hidden="true"
     >
       <path d="M3 12a9 9 0 1 0 1.383-4.797m-1.09-4.202l.173 2.054c.124 1.479.186 2.218.668 2.634s1.193.343 2.615.197l2.044-.21" />
+    </svg>
+  );
+}
+
+// ─── Vehicle types ───────────────────────────────────────────────────────────
+// One drawing per kind of goods vehicle, so a row's icon says what it is.
+// (Car, Bus and Van are further up; TruckIcon stays as the generic "fleet" mark.)
+
+export function CargoTruckIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <circle cx="17" cy="18" r="2" />
+      <circle cx="7" cy="18" r="2" />
+      <path d="M11 17h4M13.5 7h.943c1.31 0 1.966 0 2.521.315c.556.314.926.895 1.667 2.056c.52.814 1.064 1.406 1.831 1.931c.772.53 1.14.789 1.343 1.204c.195.398.195.869.195 1.811c0 1.243 0 1.864-.349 2.259l-.046.049c-.367.375-.946.375-2.102.375H19" />
+      <path d="m13 7l.994 2.486c.487 1.217.73 1.826 1.239 2.17c.508.344 1.163.344 2.475.344H21M4.87 17c-1.353 0-2.03 0-2.45-.44C2 16.122 2 15.415 2 14V7c0-1.414 0-2.121.42-2.56S3.517 4 4.87 4h5.26c1.353 0 2.03 0 2.45.44C13 4.878 13 5.585 13 7v10H8.696" />
+    </svg>
+  );
+}
+
+export function PickupTruckIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <path d="M12.003 17.5v-13h.698c1.613 0 2.419 0 3.102.409c.684.409 1.14 1.164 2.051 2.673c.64 1.059 1.31 1.827 2.254 2.511c.95.688 1.401 1.025 1.652 1.565c.24.517.24 1.13.24 2.355c0 1.614 0 2.422-.43 2.935l-.056.065c-.452.487-1.09.487-2.513.487m-6.998-13l1.118 3.48c.548 1.705.822 2.557 1.393 3.039c.571.481 1.309.481 2.784.481H21m-11.996 6h5.998m6.998-3h-1m-8.997-3H3.005s-.321.004-.6 0c-.461-.007-.4-.02-.4.04v.96s-.02 3.3.016 3.693c0 .259.204.47.564.687c.236.157.606.406.9.524c.36.136 1.52.096 1.52.096" />
+      <path d="M17.001 19.5a2 2 0 1 0 0-4a2 2 0 0 0 0 4Zm-9.997 0a2 2 0 1 0 0-4a2 2 0 0 0 0 4Z" />
+    </svg>
+  );
+}
+
+export function DumpTruckIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <path clipPath="url(#SVGHcSWxdhd)" d="M2.5 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 0 0-5 0m13 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 0 0-5 0" />
+      <path clipPath="url(#SVGHcSWxdhd)" d="M20.5 17.5h.167c.781 0 1.172 0 1.442-.207q.105-.08.184-.184c.207-.27.207-.66.207-1.442c0-1.564 0-2.346-.413-2.884a2 2 0 0 0-.37-.37C21.18 12 20.398 12 18.834 12H16l1-4h.5c.895 0 1.342 0 1.714.157a2 2 0 0 1 .825.643c.242.323.35.757.567 1.625L21 12m-3-8h-.658c-1.125 0-1.687 0-2.094.318c-.407.317-.543.863-.816 1.954l-1.65 6.598a1.492 1.492 0 0 1-2.085.986l-8.31-3.935a1.553 1.553 0 0 1-.576-2.335L2.1 7.2c.293-.39.44-.586.619-.735a2 2 0 0 1 .821-.412C3.767 6 4.011 6 4.5 6H14M7.5 17.5h8M5 11.5V15" />
+      <defs />
+      <clipPath id="SVGHcSWxdhd" />
+      <path fill="#fff" d="M0 0h24v24H0z" />
+    </svg>
+  );
+}
+
+export function TankerTruckIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <path d="M7 17.5h8V15H2.25c-.232 0-.348 0-.445.02a1 1 0 0 0-.786.785C1 15.902 1 16.018 1 16.25s0 .349.02.445a1 1 0 0 0 .785.786c.097.019.213.019.445.019H3m14 0h-2v-8c0-.943 0-1.414.293-1.707S16.057 7.5 17 7.5h.735c1.106 0 1.66 0 2.118.26s.743.733 1.312 1.682l1.265 2.108c.283.472.425.708.497.97s.073.537.073 1.088V15.5c0 .943 0 1.414-.293 1.707s-.764.293-1.707.293m-4 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0m1.5-5H20c-.943 0-1.414 0-1.707-.293S18 11.443 18 10.5V10" />
+      <path d="M7 17.5a2 2 0 1 1-4 0a2 2 0 0 1 4 0M1.203 6.552A9.2 9.2 0 0 0 1 8.5c0 .687.072 1.344.203 1.948c.17.777.254 1.166.803 1.61c.55.442 1.102.442 2.206.442h5.076c1.104 0 1.656 0 2.206-.443s.634-.832.803-1.61c.131-.603.203-1.26.203-1.947s-.072-1.344-.203-1.948c-.17-.778-.254-1.166-.803-1.61c-.55-.442-1.102-.442-2.206-.442H4.212c-1.104 0-1.656 0-2.206.443s-.634.831-.803 1.61M8.75 4.5v8m-4 0v-8" />
+    </svg>
+  );
+}
+
+export function TrailerTruckIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <path d="M19 13.5h-1c-.943 0-1.414 0-1.707-.293S16 12.443 16 11.5v-3m3 5v-5m0 5c.932 0 1.398 0 1.765.152a2 2 0 0 1 1.083 1.083c.152.367.152.833.152 1.765c0 .943 0 1.414-.293 1.707s-.764.293-1.707.293h-.5M16 8.5h-3m3 0h3m-6 0v10h2.5M13 8.5v-3h3c.932 0 1.398 0 1.765.152a2 2 0 0 1 1.083 1.083C19 7.102 19 7.568 19 8.5m-6-3c0-.943 0-1.414-.293-1.707S11.943 3.5 11 3.5m-3 15h5v-5H4c-.943 0-1.414 0-1.707.293S2 14.557 2 15.5v1c0 .943 0 1.414.293 1.707S3.057 18.5 4 18.5" />
+      <path d="M19.5 18.5a2 2 0 1 1-4 0a2 2 0 0 1 4 0M8 18.5a2 2 0 1 1-4 0a2 2 0 0 1 4 0" />
+    </svg>
+  );
+}
+
+export function ContainerTruckIcon({ size = 16, className, style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+    >
+      <path d="M19.5 17.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0Zm-10 0a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0Z" />
+      <path d="M14.5 17.5h-5m10 0h.763c.22 0 .33 0 .422-.012a1.5 1.5 0 0 0 1.303-1.302c.012-.093.012-.203.012-.423V13a6.5 6.5 0 0 0-6.5-6.5m-.5 9V7c0-1.414 0-2.121-.44-2.56C14.122 4 13.415 4 12 4H5c-1.414 0-2.121 0-2.56.44C2 4.878 2 5.585 2 7v8c0 .935 0 1.402.201 1.75a1.5 1.5 0 0 0 .549.549c.348.201.815.201 1.75.201M6.5 7v4m4-4v4" />
     </svg>
   );
 }

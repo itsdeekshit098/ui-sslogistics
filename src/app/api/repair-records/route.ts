@@ -31,60 +31,11 @@ const parseFiniteNumber = (value: unknown): number | null => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
-/**
- * Sync vehicle status based on open repair records.
- * - Any open repair → vehicle.status = 'Maintenance'
- * - All repairs closed AND vehicle was 'Maintenance' → vehicle.status = 'Active'
- * - Never touches 'Idle' vehicles (manual admin override)
- *
- * This is idempotent and runs inside after() so it never blocks the response.
- */
-async function syncVehicleStatus(vehicleId: number): Promise<void> {
-  try {
-    // 1. Count open repairs for this vehicle
-    const { count: openCount, error: countErr } = await supabaseAdmin
-      .from("repair_records")
-      .select("id", { count: "exact", head: true })
-      .eq("vehicle_id", vehicleId)
-      .eq("status", "Open");
-
-    if (countErr) {
-      return;
-    }
-
-    // 2. Fetch current vehicle status
-    const { data: vehicle, error: vErr } = await supabaseAdmin
-      .from("vehicles")
-      .select("id, status")
-      .eq("id", vehicleId)
-      .single();
-
-    if (vErr || !vehicle) {
-      return;
-    }
-
-    // 3. Never touch 'Idle' vehicles
-    if (vehicle.status === "Idle") return;
-
-    const hasOpenRepairs = (openCount ?? 0) > 0;
-
-    if (hasOpenRepairs && vehicle.status !== "Maintenance") {
-      // Flip to Maintenance
-      await supabaseAdmin
-        .from("vehicles")
-        .update({ status: "Maintenance" })
-        .eq("id", vehicleId);
-    } else if (!hasOpenRepairs && vehicle.status === "Maintenance") {
-      // All repairs closed — flip back to Active
-      await supabaseAdmin
-        .from("vehicles")
-        .update({ status: "Active" })
-        .eq("id", vehicleId);
-    }
-  } catch {
-    // Never fail the parent — log and move on
-  }
-}
+// Logging, closing or deleting a repair deliberately does NOT touch the
+// vehicle's status. It used to flip the vehicle to "Maintenance" while any
+// repair was open and back to "Active" when the last one closed; that link
+// was removed because a repair entry is often just a bill being recorded,
+// not a vehicle off the road. Status is set by hand on the vehicle itself.
 
 // ─── Parts validation & sync helpers ───
 
@@ -553,10 +504,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // ── after(): sync vehicle status + audit log ──
+    // ── after(): audit log ──
     after(async () => {
       await Promise.all([
-        syncVehicleStatus(vehicleId),
         logActivity({
           action: "CREATE_REPAIR_RECORD",
           userId: authUser.id,
@@ -704,10 +654,9 @@ export async function PUT(req: Request) {
       }
     }
 
-    // ── after(): sync vehicle status + audit log ──
+    // ── after(): audit log ──
     after(async () => {
       await Promise.all([
-        syncVehicleStatus(existing.vehicle_id),
         logActivity({
           action: "UPDATE_REPAIR_RECORD",
           userId: authUser.id,
@@ -762,10 +711,9 @@ export async function DELETE(req: Request) {
       return serverError(deleteErr);
     }
 
-    // ── after(): sync vehicle status + audit log ──
+    // ── after(): audit log ──
     after(async () => {
       await Promise.all([
-        syncVehicleStatus(record.vehicle_id),
         logActivity({
           action: "DELETE_REPAIR_RECORD",
           userId: authUser.id,

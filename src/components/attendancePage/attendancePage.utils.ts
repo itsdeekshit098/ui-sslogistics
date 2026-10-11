@@ -95,12 +95,3 @@ export function formatMonthShort(month: string): string {
     timeZone: "UTC",
   });
 }
-
-/**
- * Today in IST from the device clock. Only ever used to notice that the day
- * has rolled over since the last load — the server's own `today` remains the
- * authority on what can be edited.
- */
-export function todayInIndia(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-}
