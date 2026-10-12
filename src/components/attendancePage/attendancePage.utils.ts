@@ -42,6 +42,7 @@ export function markLabel(mark: AttendanceMark): string {
 export function matchesFilter(mark: AttendanceMark, filter: AttendanceFilter): boolean {
   if (filter === "all") return true;
   if (filter === "unmarked") return !isMarked(mark);
+  if (filter === "present") return mark.shifts.length > 0;
   if (filter === "off") return mark.status !== null;
   return mark.shifts.includes(filter);
 }

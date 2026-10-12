@@ -12,7 +12,6 @@ import {
   SearchIcon,
   UndoIcon,
   UsersIcon,
-  XCircleIcon,
   XIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { SegmentedControl } from "@/components/ui/segmentedControl";
-import { StatCard } from "@/components/ui/statCard";
 import { Tabs } from "@/components/ui/tabs";
 import { BusyOverlay } from "@/components/busyOverlay";
 import { EmptyState } from "@/components/emptyState";
@@ -32,6 +30,7 @@ import { ErrorState } from "@/components/errorState";
 import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
 import { AttendanceDayList } from "./attendanceDayList";
 import { AttendanceMonthView } from "./attendanceMonthView";
+import { AttendanceRollCall } from "./attendanceRollCall";
 import {
   SHIFTS,
   type AttendanceDay,
@@ -208,6 +207,7 @@ export function AttendancePage() {
     return {
       total: all.length,
       unmarked: all.filter((m) => !isMarked(m)).length,
+      present: all.filter((m) => m.shifts.length > 0).length,
       absent: all.filter((m) => m.status === "ABSENT").length,
       leave: all.filter((m) => m.status === "LEAVE").length,
       fullDay: all.filter(isFullDay).length,
@@ -360,7 +360,6 @@ export function AttendancePage() {
 
   const isToday = day.date === today;
   const activeMonth = month ?? day.date.slice(0, 7);
-  const marked = counts.total - counts.unmarked;
 
   const filterItems: { key: AttendanceFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.total },
@@ -644,17 +643,7 @@ export function AttendancePage() {
 
             {view === "day" && (
               <>
-                <div className="flex items-center gap-2 text-[0.6875rem] tabular-nums text-muted-foreground">
-                  <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
-                    <span
-                      className="block h-full rounded-full bg-success-subtle-foreground transition-[width] duration-200"
-                      style={{
-                        width: `${counts.total ? Math.round((marked / counts.total) * 100) : 0}%`,
-                      }}
-                    />
-                  </span>
-                  {marked} of {counts.total} marked
-                </div>
+                <AttendanceRollCall compact counts={counts} filter={filter} onFilter={setFilter} />
                 {/* The same control as Day / Month, stretched edge to edge:
                     six equal cells, so nothing runs off the screen and
                     there is no sideways scrolling to discover. */}
@@ -698,32 +687,8 @@ export function AttendancePage() {
       ) : (
         <>
           {view === "day" && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5 max-xl:[&>*:last-child:nth-child(odd)]:col-span-2">
-              {SHIFTS.map((shift) => (
-                <StatCard
-                  key={shift}
-                  title={`Shift ${shift}`}
-                  value={counts.shift[shift]}
-                  subtext="drivers"
-                  icon={<UsersIcon size={18} />}
-                  onClick={() => setFilter(shift)}
-                />
-              ))}
-              <StatCard
-                title="Off today"
-                value={counts.absent + counts.leave}
-                subtext={`${counts.absent} absent · ${counts.leave} leave`}
-                icon={<XCircleIcon size={18} />}
-                onClick={() => setFilter("off")}
-              />
-              <StatCard
-                title="Not marked"
-                value={counts.unmarked > 0 ? counts.unmarked : "None"}
-                subtext={`${counts.fullDay} on full day`}
-                icon={<AlertTriangleIcon size={18} />}
-                tone={counts.unmarked > 0 ? "warning" : "neutral"}
-                onClick={counts.unmarked > 0 ? () => setFilter("unmarked") : undefined}
-              />
+            <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5">
+              <AttendanceRollCall counts={counts} filter={filter} onFilter={setFilter} />
             </div>
           )}
 

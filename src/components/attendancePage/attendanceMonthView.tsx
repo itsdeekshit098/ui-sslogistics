@@ -152,8 +152,8 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
           </thead>
           <tbody>
             {data.drivers.map((driver) => (
-              <tr key={driver.driver_id} className="[&:last-child>td]:border-b-0">
-                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-border bg-card px-4 py-1.5 text-sm font-semibold text-foreground">
+              <tr key={driver.driver_id} className="group [&:last-child>td]:border-b-0">
+                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-border bg-card px-4 py-1.5 text-sm font-semibold text-foreground group-hover:bg-muted">
                   {driver.name}
                 </td>
                 {dates.map((date) => {
@@ -161,7 +161,10 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
                   return (
                     <td
                       key={date}
-                      className={cn("border-b border-border px-0.5 py-1.5 text-center", cellTone(date))}
+                      className={cn(
+                        "border-b border-border px-0.5 py-1.5 text-center group-hover:bg-muted",
+                        cellTone(date),
+                      )}
                     >
                       {date <= data.today && (
                         <MarkCell
@@ -173,24 +176,24 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
                     </td>
                   );
                 })}
-                <td className="border-b border-l border-border px-2.5 text-center text-sm">
+                <td className="border-b border-l border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.days_present}
                 </td>
-                <td className="border-b border-border px-2.5 text-center text-sm">
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.full_days}
                 </td>
-                <td className="border-b border-border px-2.5 text-center text-sm font-semibold">
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm font-bold text-foreground group-hover:bg-muted">
                   {driver.totals.shifts}
                 </td>
                 <td
                   className={cn(
-                    "border-b border-border px-2.5 text-center text-sm",
+                    "border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted",
                     driver.totals.absent >= 3 && "font-semibold text-destructive",
                   )}
                 >
                   {driver.totals.absent}
                 </td>
-                <td className="border-b border-border px-2.5 text-center text-sm">
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.leave}
                 </td>
               </tr>

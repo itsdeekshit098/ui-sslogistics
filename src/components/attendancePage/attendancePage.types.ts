@@ -67,4 +67,4 @@ export interface SaveAttendancePayload {
   entries: SaveAttendanceEntry[];
 }
 
-export type AttendanceFilter = "all" | "unmarked" | "off" | Shift;
+export type AttendanceFilter = "all" | "unmarked" | "present" | "off" | Shift;
