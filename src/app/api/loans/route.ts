@@ -7,8 +7,11 @@ import { parsePageParams } from "@/lib/pagination";
 import { escapeLike } from "@/lib/escapeLike";
 import {
   LOAN_NOTES_MAX_LENGTH,
+  LOAN_SORTS,
   LOAN_STATUSES,
+  type LoanSort,
   generateSchedule,
+  sortLoans,
   isNonNegativeNumber,
   isPositiveNumber,
   isValidDateString,
@@ -172,6 +175,16 @@ export async function GET(req: Request) {
     const search = searchParams.get("search")?.trim() ?? "";
     const overdueOnly = searchParams.get("overdue_only") === "true";
     const includeSummary = searchParams.get("include_summary") === "true";
+    const sortParam = searchParams.get("sort")?.trim() || "ending_soon";
+    if (!(LOAN_SORTS as readonly string[]).includes(sortParam)) {
+      return apiError(`Invalid sort. Allowed values: ${LOAN_SORTS.join(", ")}`, 400);
+    }
+    const sort = sortParam as LoanSort;
+    // The last EMI date lives in the loan_balances view, not a column, so the
+    // database can't order by it: that sort loads every matching loan, merges
+    // the balances, sorts, then cuts out the page. There are tens of loans,
+    // not thousands (and the 1000-row response cap is nowhere near).
+    const sortInDb = sort === "newest";
 
     const { from, to } = parsePageParams(searchParams, {
       defaultPageSize: 10,
@@ -181,7 +194,8 @@ export async function GET(req: Request) {
     let query = supabaseAdmin
       .from("loans")
       .select(LOAN_SELECT, { count: "exact" })
-      .order("start_date", { ascending: false });
+      .order("start_date", { ascending: false })
+      .order("id", { ascending: false });
 
     if (status) query = query.eq("status", status);
     if (loanType) query = query.eq("loan_type", loanType);
@@ -196,7 +210,7 @@ export async function GET(req: Request) {
       );
     }
 
-    query = query.range(from, to);
+    if (sortInDb) query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) return serverError(error);
@@ -219,9 +233,17 @@ export async function GET(req: Request) {
       enriched = enriched.filter((row) => (row.balance.overdue_count ?? 0) > 0);
     }
 
+    let total = count ?? enriched.length;
+    if (!sortInDb) {
+      // Everything was loaded, so the total is the filtered count and the
+      // page is cut out here rather than by the database.
+      total = enriched.length;
+      enriched = sortLoans(enriched, sort).slice(from, to + 1);
+    }
+
     const summary = includeSummary ? await buildSummary() : undefined;
 
-    return apiSuccess({ data: enriched, total: count ?? enriched.length, summary });
+    return apiSuccess({ data: enriched, total, summary });
   } catch (err: unknown) {
     return handleApiError(err);
   }

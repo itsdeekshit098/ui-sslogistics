@@ -114,3 +114,40 @@ export function isNonNegativeNumber(value: unknown): value is number {
 export function isPositiveNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
+
+export const LOAN_SORTS = ["ending_soon", "newest"] as const;
+export type LoanSort = (typeof LOAN_SORTS)[number];
+
+interface SortableLoan {
+  id: number;
+  start_date: string;
+  status: string;
+  balance: { final_due_date: string | null };
+}
+
+/**
+ * Orders loans for the list. "Ending soon" puts the loan whose last EMI falls
+ * soonest first — the one closest to being finished — so active loans come
+ * before closed ones, and a loan with no schedule goes last. Closed loans,
+ * which are only history, run most recently ended first. Ties fall back to
+ * newest first so the order stays stable across page turns.
+ */
+export function sortLoans<T extends SortableLoan>(rows: T[], sort: LoanSort): T[] {
+  const newest = (a: T, b: T) => b.start_date.localeCompare(a.start_date) || b.id - a.id;
+  if (sort === "newest") return [...rows].sort(newest);
+
+  return [...rows].sort((a, b) => {
+    const aActive = a.status === "ACTIVE";
+    const bActive = b.status === "ACTIVE";
+    if (aActive !== bActive) return aActive ? -1 : 1;
+
+    const aEnd = a.balance.final_due_date;
+    const bEnd = b.balance.final_due_date;
+    if (aEnd !== bEnd) {
+      if (!aEnd) return 1;
+      if (!bEnd) return -1;
+      return aActive ? aEnd.localeCompare(bEnd) : bEnd.localeCompare(aEnd);
+    }
+    return newest(a, b);
+  });
+}

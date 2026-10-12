@@ -4,12 +4,13 @@ import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import {
-  SHIFTS,
+  shiftsFor,
   type AttendanceMark,
   type AttendanceMonth,
   type AttendanceMonthDriver,
 } from "./attendancePage.types";
 import { EMPTY_MARK, datesInMonth, isFullDay, markLabel, weekday } from "./attendancePage.utils";
+import type { ShiftCount } from "./attendancePage.types";
 
 export interface AttendanceMonthViewProps {
   data: AttendanceMonth;
@@ -29,10 +30,13 @@ function MarkCell({
   mark,
   label,
   onClick,
+  shiftCount,
 }: {
   mark: AttendanceMark;
   label: string;
   onClick: () => void;
+  /** This driver's shifts: a 2-shift driver shows two dots, not three. */
+  shiftCount: ShiftCount;
 }) {
   return (
     <button
@@ -50,7 +54,7 @@ function MarkCell({
         ? mark.status === "ABSENT"
           ? "A"
           : "L"
-        : SHIFTS.map((shift) => (
+        : shiftsFor(shiftCount).map((shift) => (
             <span
               key={shift}
               className={cn(
@@ -152,8 +156,8 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
           </thead>
           <tbody>
             {data.drivers.map((driver) => (
-              <tr key={driver.driver_id} className="[&:last-child>td]:border-b-0">
-                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-border bg-card px-4 py-1.5 text-sm font-semibold text-foreground">
+              <tr key={driver.driver_id} className="group [&:last-child>td]:border-b-0">
+                <td className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-border bg-card px-4 py-1.5 text-sm font-semibold text-foreground group-hover:bg-muted">
                   {driver.name}
                 </td>
                 {dates.map((date) => {
@@ -161,36 +165,40 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
                   return (
                     <td
                       key={date}
-                      className={cn("border-b border-border px-0.5 py-1.5 text-center", cellTone(date))}
+                      className={cn(
+                        "border-b border-border px-0.5 py-1.5 text-center group-hover:bg-muted",
+                        cellTone(date),
+                      )}
                     >
                       {date <= data.today && (
                         <MarkCell
                           mark={mark}
-                          label={`${driver.name}, ${Number(date.slice(8))}: ${markLabel(mark)}`}
+                          label={`${driver.name}, ${Number(date.slice(8))}: ${markLabel(mark, driver.shift_count)}`}
+                          shiftCount={driver.shift_count}
                           onClick={() => onOpenDay(date)}
                         />
                       )}
                     </td>
                   );
                 })}
-                <td className="border-b border-l border-border px-2.5 text-center text-sm">
+                <td className="border-b border-l border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.days_present}
                 </td>
-                <td className="border-b border-border px-2.5 text-center text-sm">
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.full_days}
                 </td>
-                <td className="border-b border-border px-2.5 text-center text-sm font-semibold">
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm font-bold text-foreground group-hover:bg-muted">
                   {driver.totals.shifts}
                 </td>
                 <td
                   className={cn(
-                    "border-b border-border px-2.5 text-center text-sm",
+                    "border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted",
                     driver.totals.absent >= 3 && "font-semibold text-destructive",
                   )}
                 >
                   {driver.totals.absent}
                 </td>
-                <td className="border-b border-border px-2.5 text-center text-sm">
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.leave}
                 </td>
               </tr>
@@ -204,12 +212,18 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
 
 // ─── Phone: a card per driver with the month as one strip ───
 
-function stripTone(mark: AttendanceMark | undefined, future: boolean): string {
+function stripTone(
+  mark: AttendanceMark | undefined,
+  future: boolean,
+  shiftCount: ShiftCount,
+): string {
   if (future) return "bg-muted";
   if (!mark) return "bg-card shadow-[inset_0_0_0_1px_var(--border)]";
   if (mark.status === "ABSENT") return "bg-destructive";
   if (mark.status === "LEAVE") return "bg-warning";
-  return isFullDay(mark) ? "bg-success-subtle-foreground" : "bg-success-subtle-foreground/45";
+  return isFullDay(mark, shiftCount)
+    ? "bg-success-subtle-foreground"
+    : "bg-success-subtle-foreground/45";
 }
 
 function PhoneMonth({ data, dates, onOpenDay }: MonthLayoutProps) {
@@ -295,7 +309,10 @@ function PhoneMonthCard({
           {dates.map((date) => (
             <span
               key={date}
-              className={cn("h-3.5 rounded-[2px]", stripTone(driver.days[date], date > today))}
+              className={cn(
+                "h-3.5 rounded-[2px]",
+                stripTone(driver.days[date], date > today, driver.shift_count),
+              )}
             />
           ))}
         </span>
@@ -326,7 +343,8 @@ function PhoneMonthCard({
                 {date <= today && (
                   <MarkCell
                     mark={mark}
-                    label={`${driver.name}, ${Number(date.slice(8))}: ${markLabel(mark)}`}
+                    label={`${driver.name}, ${Number(date.slice(8))}: ${markLabel(mark, driver.shift_count)}`}
+                    shiftCount={driver.shift_count}
                     onClick={() => onOpenDay(date)}
                   />
                 )}

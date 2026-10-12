@@ -8,6 +8,10 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
+    // Component tests opt into a DOM via a `// @vitest-environment jsdom`
+    // docblock; everything else (route handlers, pure logic) stays on the
+    // lighter "node" environment.
+    setupFiles: ["test/support/setupTests.ts"],
     // `test/` mirrors `src/`'s structure and holds all colocated-by-feature
     // route/unit tests; `src/**/*.test.ts` stays included for any test still
     // living next to its source file (e.g. work in progress elsewhere).

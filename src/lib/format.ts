@@ -31,6 +31,18 @@ export function formatDate(value: string | null | undefined): string {
   });
 }
 
+/** "12 Aug 26" — for a table column too narrow for the full year. */
+export function formatDateCompact(value: string | null | undefined): string {
+  if (!value) return "—";
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 /** "August 2026", for the calendar and interest-breakdown headings. */
 export function formatMonth(value: string): string {
   const [year, month] = value.slice(0, 7).split("-").map(Number);

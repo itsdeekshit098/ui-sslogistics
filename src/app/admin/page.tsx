@@ -24,6 +24,7 @@ import {
   SettingsIcon,
   LandmarkIcon,
   CalendarIcon,
+  HandCoinsIcon,
 } from "@/components/ui/icon";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
@@ -120,6 +121,15 @@ const menuItems = [
     icon: LandmarkIcon,
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-500/10",
+    enabled: true,
+  },
+  {
+    title: "Salaries",
+    description: "Driver pay from attendance, advances & deductions",
+    href: "/admin/salaries",
+    icon: HandCoinsIcon,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
     enabled: true,
   },
   {

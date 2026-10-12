@@ -2,17 +2,18 @@
 
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { CheckIcon, MoreHorizontalIcon, XIcon } from "@/components/ui/icon";
+import { CheckIcon, MoreHorizontalIcon, SettingsIcon, XIcon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import {
-  SHIFTS,
+  shiftsFor,
   type AttendanceDayDriver,
   type AttendanceMark,
   type OffStatus,
+  type ShiftCount,
 } from "./attendancePage.types";
 import {
   EMPTY_MARK,
-  FULL_DAY,
+  fullDayFor,
   initials,
   isFullDay,
   isMarked,
@@ -27,6 +28,8 @@ export interface AttendanceDayListProps {
   editable: boolean;
   isMobile: boolean;
   onChange: (driverId: number, mark: AttendanceMark) => void;
+  /** Opens "shifts per day" for a driver. Omitted for roles that may not set it. */
+  onEditShiftCount?: (driver: AttendanceDayDriver) => void;
 }
 
 const OFF_LABEL: Record<OffStatus, string> = { ABSENT: "Absent", LEAVE: "Leave" };
@@ -36,8 +39,9 @@ function withOff(mark: AttendanceMark, status: OffStatus): AttendanceMark {
   return mark.status === status ? EMPTY_MARK : { shifts: [], status };
 }
 
-function withFullDay(mark: AttendanceMark): AttendanceMark {
-  return isFullDay(mark) ? EMPTY_MARK : FULL_DAY;
+/** A full day is this driver's own shifts, so a 2-shift driver gets A + B. */
+function withFullDay(mark: AttendanceMark, count: ShiftCount): AttendanceMark {
+  return isFullDay(mark, count) ? EMPTY_MARK : fullDayFor(count);
 }
 
 /**
@@ -55,18 +59,44 @@ export function AttendanceDayList(props: AttendanceDayListProps) {
   return props.isMobile ? <PhoneList {...props} /> : <DesktopList {...props} />;
 }
 
+/**
+ * A coloured edge down the left of every row, so the day can be read by
+ * scanning one column: green worked, red absent, amber leave, and a paler
+ * amber (with a tinted row) for a driver who still has to be marked.
+ */
+function statusEdge(mark: AttendanceMark): string {
+  if (mark.status === "ABSENT") return "border-l-destructive";
+  if (mark.status === "LEAVE") return "border-l-warning";
+  if (mark.shifts.length > 0) return "border-l-success-subtle-foreground/70";
+  return "border-l-warning/70";
+}
+
 // ─── Desktop ───
 
-const chipBase =
-  "inline-flex h-9 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
-const chipIdle = "border-border bg-card text-muted-foreground enabled:hover:border-muted-foreground";
+// The six choices sit in two joined groups (worked · off) rather than six
+// separate chips, and every cell has a fixed width so A, B and C line up as
+// columns down the page.
+const groupBase = "inline-flex overflow-hidden rounded-lg border border-border bg-card";
+const cellBase =
+  "inline-flex h-9 items-center justify-center border-l border-border px-3 text-sm font-semibold transition-colors first:border-l-0 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
+const cellIdle = "text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground";
 
-function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListProps) {
+function DesktopList({
+  drivers,
+  marks,
+  editable,
+  onChange,
+  onEditShiftCount,
+}: AttendanceDayListProps) {
   return (
     <ul className="divide-y divide-border">
       {drivers.map((driver) => {
         const mark = marks[driver.driver_id] ?? EMPTY_MARK;
         const set = (next: AttendanceMark) => onChange(driver.driver_id, next);
+        // Only the shifts this driver runs are offered; the rest never existed
+        // for them, so showing a greyed-out C would only invite a question.
+        const shifts = shiftsFor(driver.shift_count);
+        const full = isFullDay(mark, driver.shift_count);
         return (
           <li
             key={driver.driver_id}
@@ -74,8 +104,9 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
             className={cn(
               // Wraps below ~1100px of content: at tablet width the six
               // controls would otherwise squeeze the name to nothing.
-              "flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:px-6",
-              !isMarked(mark) && "bg-warning-subtle/40",
+              "flex flex-wrap items-center gap-x-3 gap-y-2 border-l-4 py-2.5 pl-3 pr-4 sm:pl-5 sm:pr-6",
+              statusEdge(mark),
+              !isMarked(mark) && "bg-warning-subtle/30",
             )}
           >
             <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">
@@ -86,7 +117,13 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {driver.place && <span>{driver.place}</span>}
                 {!driver.is_active && <Badge variant="outline">Inactive</Badge>}
-                {isFullDay(mark) ? (
+                {/* Only worth saying when it is not the usual three. */}
+                {driver.shift_count !== 3 && (
+                  <Badge variant="outline">
+                    {driver.shift_count === 1 ? "1 shift/day" : `${driver.shift_count} shifts/day`}
+                  </Badge>
+                )}
+                {full ? (
                   <Badge variant="success-subtle">Full day</Badge>
                 ) : mark.shifts.length > 1 ? (
                   <Badge variant="success-subtle">Double shift</Badge>
@@ -96,72 +133,87 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label={driver.name}>
-              <button
-                type="button"
-                disabled={!editable}
-                aria-pressed={isFullDay(mark)}
-                onClick={() => set(withFullDay(mark))}
-                className={cn(
-                  chipBase,
-                  isFullDay(mark) ? "border-success bg-success text-success-foreground" : chipIdle,
-                )}
-              >
-                Full day
-              </button>
-              <span className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
-              {SHIFTS.map((shift) => {
-                const on = mark.shifts.includes(shift);
-                return (
-                  <button
-                    key={shift}
-                    type="button"
-                    disabled={!editable}
-                    aria-pressed={on}
-                    aria-label={`Shift ${shift}`}
-                    onClick={() => set(toggleShift(mark, shift))}
-                    className={cn(
-                      chipBase,
-                      // Tinted, not solid: "Full day" beside it is the solid
-                      // one, so a full roster isn't a wall of colour.
-                      on
-                        ? "border-success/35 bg-success-subtle text-success-subtle-foreground"
-                        : chipIdle,
-                    )}
-                  >
-                    {shift}
-                  </button>
-                );
-              })}
-              <span className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
-              <button
-                type="button"
-                disabled={!editable}
-                aria-pressed={mark.status === "ABSENT"}
-                onClick={() => set(withOff(mark, "ABSENT"))}
-                className={cn(
-                  chipBase,
-                  mark.status === "ABSENT"
-                    ? "border-destructive/40 bg-destructive-subtle text-destructive-subtle-foreground"
-                    : chipIdle,
-                )}
-              >
-                Absent
-              </button>
-              <button
-                type="button"
-                disabled={!editable}
-                aria-pressed={mark.status === "LEAVE"}
-                onClick={() => set(withOff(mark, "LEAVE"))}
-                className={cn(
-                  chipBase,
-                  mark.status === "LEAVE"
-                    ? "border-warning/45 bg-warning-subtle text-warning-subtle-foreground"
-                    : chipIdle,
-                )}
-              >
-                Leave
-              </button>
+            <div className="flex shrink-0 items-center gap-3" role="group" aria-label={driver.name}>
+              <div className={groupBase}>
+                <button
+                  type="button"
+                  disabled={!editable}
+                  aria-pressed={full}
+                  onClick={() => set(withFullDay(mark, driver.shift_count))}
+                  className={cn(
+                    cellBase,
+                    "w-24",
+                    full ? "bg-success text-success-foreground" : cellIdle,
+                  )}
+                >
+                  Full day
+                </button>
+                {shifts.map((shift) => {
+                  const on = mark.shifts.includes(shift);
+                  return (
+                    <button
+                      key={shift}
+                      type="button"
+                      disabled={!editable}
+                      aria-pressed={on}
+                      aria-label={`Shift ${shift}`}
+                      onClick={() => set(toggleShift(mark, shift))}
+                      className={cn(
+                        cellBase,
+                        "w-11 px-0",
+                        // Tinted, not solid: "Full day" beside it is the solid
+                        // one, so a full roster isn't a wall of colour.
+                        on ? "bg-success-subtle text-success-subtle-foreground" : cellIdle,
+                      )}
+                    >
+                      {shift}
+                    </button>
+                  );
+                })}
+              </div>
+              {onEditShiftCount && (
+                <button
+                  type="button"
+                  title={`Shifts per day for ${driver.name}`}
+                  aria-label={`Shifts per day for ${driver.name}`}
+                  onClick={() => onEditShiftCount(driver)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <SettingsIcon size={16} />
+                </button>
+              )}
+              <div className={groupBase}>
+                <button
+                  type="button"
+                  disabled={!editable}
+                  aria-pressed={mark.status === "ABSENT"}
+                  onClick={() => set(withOff(mark, "ABSENT"))}
+                  className={cn(
+                    cellBase,
+                    "w-[4.5rem]",
+                    mark.status === "ABSENT"
+                      ? "bg-destructive-subtle text-destructive-subtle-foreground"
+                      : cellIdle,
+                  )}
+                >
+                  Absent
+                </button>
+                <button
+                  type="button"
+                  disabled={!editable}
+                  aria-pressed={mark.status === "LEAVE"}
+                  onClick={() => set(withOff(mark, "LEAVE"))}
+                  className={cn(
+                    cellBase,
+                    "w-[4.5rem]",
+                    mark.status === "LEAVE"
+                      ? "bg-warning-subtle text-warning-subtle-foreground"
+                      : cellIdle,
+                  )}
+                >
+                  Leave
+                </button>
+              </div>
             </div>
           </li>
         );
@@ -172,7 +224,13 @@ function DesktopList({ drivers, marks, editable, onChange }: AttendanceDayListPr
 
 // ─── Phone ───
 
-function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProps) {
+function PhoneList({
+  drivers,
+  marks,
+  editable,
+  onChange,
+  onEditShiftCount,
+}: AttendanceDayListProps) {
   // Only one row's Absent / Leave / Clear menu is open at a time.
   const [menuFor, setMenuFor] = useState<number | null>(null);
 
@@ -184,7 +242,8 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
           onChange(driver.driver_id, next);
           setMenuFor(null);
         };
-        const full = isFullDay(mark);
+        const shifts = shiftsFor(driver.shift_count);
+        const full = isFullDay(mark, driver.shift_count);
         const partial = !full && mark.shifts.length > 0;
         const menuOpen = menuFor === driver.driver_id;
 
@@ -192,7 +251,10 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
           <li
             key={driver.driver_id}
             data-testid={`attendance-row-${driver.driver_id}`}
-            className="flex flex-wrap items-center gap-1 border-b border-border py-1 pl-0.5 pr-1 last:border-b-0"
+            className={cn(
+              "flex flex-wrap items-center gap-1 border-b border-l-[3px] border-b-border py-1 pl-0 pr-1 last:border-b-0",
+              statusEdge(mark),
+            )}
           >
             {/* The tick is the one-tap "present all day"; it reads as a
                 tri-state checkbox over the three shifts beside it. */}
@@ -201,7 +263,7 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
               disabled={!editable}
               aria-pressed={full}
               aria-label={`Full day, ${driver.name}`}
-              onClick={() => set(withFullDay(mark))}
+              onClick={() => set(withFullDay(mark, driver.shift_count))}
               className="flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-60"
             >
               <span
@@ -227,7 +289,10 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                     : "font-semibold text-warning-subtle-foreground",
                 )}
               >
-                {markLabel(mark)}
+                {markLabel(mark, driver.shift_count)}
+                {driver.shift_count !== 3 &&
+                  mark.status !== null &&
+                  ` · ${driver.shift_count === 1 ? "1 shift" : `${driver.shift_count} shifts`}`}
                 {!driver.is_active && " · Inactive"}
               </div>
             </div>
@@ -259,7 +324,7 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                   mark.shifts.length > 0 ? "border-success/30" : "border-border",
                 )}
               >
-                {SHIFTS.map((shift) => {
+                {shifts.map((shift) => {
                   const on = mark.shifts.includes(shift);
                   return (
                     <button
@@ -317,6 +382,19 @@ function PhoneList({ drivers, marks, editable, onChange }: AttendanceDayListProp
                 >
                   Clear
                 </button>
+                {onEditShiftCount && (
+                  <button
+                    type="button"
+                    aria-label={`Shifts per day for ${driver.name}`}
+                    onClick={() => {
+                      setMenuFor(null);
+                      onEditShiftCount(driver);
+                    }}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground active:bg-muted"
+                  >
+                    <SettingsIcon size={16} />
+                  </button>
+                )}
               </div>
             )}
           </li>

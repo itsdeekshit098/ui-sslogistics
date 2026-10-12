@@ -7,8 +7,14 @@ import type {
   AttendanceMark,
   SaveAttendancePayload,
 } from "@/components/attendancePage/attendancePage.types";
-import { loadDay, loadMonth } from "./driver-attendance.data";
-import { isValidDate, isValidMonth, parseMark, todayInIndia } from "./driver-attendance.utils";
+import { loadDay, loadMonth, shiftCountsForDate } from "./driver-attendance.data";
+import {
+  isValidDate,
+  isValidMonth,
+  parseMark,
+  shiftCountForDate,
+  todayInIndia,
+} from "./driver-attendance.utils";
 
 const MAX_ENTRIES = 500;
 
@@ -58,6 +64,11 @@ export async function PUT(req: Request) {
       return apiError(`Too many entries (max ${MAX_ENTRIES})`, 400);
     }
 
+    // Each driver's mark is checked against that driver's own shifts, so a
+    // screen opened before their duties changed can't store a shift they no
+    // longer work.
+    const shiftCountRows = await shiftCountsForDate(date);
+
     const marks = new Map<number, AttendanceMark>();
     for (const entry of body.entries) {
       const driverId = Number(entry?.driver_id);
@@ -65,7 +76,8 @@ export async function PUT(req: Request) {
         return apiError("Invalid driver ID", 400);
       }
       if (marks.has(driverId)) return apiError("A driver appears twice in this save", 400);
-      const mark = parseMark(entry.shifts, entry.status);
+      const shiftCount = shiftCountForDate(shiftCountRows.get(driverId) ?? [], date);
+      const mark = parseMark(entry.shifts, entry.status, shiftCount);
       if (typeof mark === "string") return apiError(mark, 400);
       marks.set(driverId, mark);
     }

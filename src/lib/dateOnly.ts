@@ -23,3 +23,9 @@ export function addDays(date: string, days: number): string {
 export function todayInIndia(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 }
+
+/** Moves a YYYY-MM month by whole months. */
+export function addMonths(month: string, months: number): string {
+  const [year, m] = month.split("-").map(Number);
+  return toDateString(new Date(Date.UTC(year, m - 1 + months, 1))).slice(0, 7);
+}

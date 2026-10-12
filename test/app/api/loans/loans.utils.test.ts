@@ -6,6 +6,7 @@ import {
   isValidDateString,
   isNonNegativeNumber,
   isPositiveNumber,
+  sortLoans,
 } from "@/app/api/loans/loans.utils";
 
 describe("parseDate / toDateString", () => {
@@ -137,5 +138,66 @@ describe("generateSchedule", () => {
         totalInstallments: 0,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("sortLoans", () => {
+  const loan = (
+    id: number,
+    status: string,
+    start_date: string,
+    final_due_date: string | null,
+  ) => ({ id, status, start_date, balance: { final_due_date } });
+  const ids = (rows: { id: number }[]) => rows.map((r) => r.id);
+
+  it("puts the loan whose last EMI is soonest first", () => {
+    const rows = [
+      loan(1, "ACTIVE", "2026-01-01", "2029-03-05"),
+      loan(2, "ACTIVE", "2026-01-01", "2026-12-05"),
+      loan(3, "ACTIVE", "2026-01-01", "2027-06-05"),
+    ];
+    expect(ids(sortLoans(rows, "ending_soon"))).toEqual([2, 3, 1]);
+  });
+
+  it("lists active loans before closed ones, however soon the closed ones ended", () => {
+    const rows = [
+      loan(1, "CLOSED", "2024-01-01", "2025-01-05"),
+      loan(2, "ACTIVE", "2026-01-01", "2030-01-05"),
+    ];
+    expect(ids(sortLoans(rows, "ending_soon"))).toEqual([2, 1]);
+  });
+
+  it("orders closed loans most recently ended first", () => {
+    const rows = [
+      loan(1, "CLOSED", "2022-01-01", "2023-05-05"),
+      loan(2, "CLOSED", "2024-01-01", "2025-05-05"),
+    ];
+    expect(ids(sortLoans(rows, "ending_soon"))).toEqual([2, 1]);
+  });
+
+  it("puts a loan with no schedule last among active loans", () => {
+    const rows = [
+      loan(1, "ACTIVE", "2026-03-01", null),
+      loan(2, "ACTIVE", "2026-01-01", "2027-01-05"),
+    ];
+    expect(ids(sortLoans(rows, "ending_soon"))).toEqual([2, 1]);
+  });
+
+  it("breaks a tie on the last EMI date by newest first, then id", () => {
+    const rows = [
+      loan(1, "ACTIVE", "2026-01-01", "2027-01-05"),
+      loan(2, "ACTIVE", "2026-03-01", "2027-01-05"),
+      loan(3, "ACTIVE", "2026-03-01", "2027-01-05"),
+    ];
+    expect(ids(sortLoans(rows, "ending_soon"))).toEqual([3, 2, 1]);
+  });
+
+  it("sorts newest first on request and leaves the input untouched", () => {
+    const rows = [
+      loan(1, "ACTIVE", "2026-01-01", "2026-12-05"),
+      loan(2, "ACTIVE", "2026-03-01", "2030-12-05"),
+    ];
+    expect(ids(sortLoans(rows, "newest"))).toEqual([2, 1]);
+    expect(ids(rows)).toEqual([1, 2]);
   });
 });

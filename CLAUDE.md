@@ -44,7 +44,7 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 
 ## Database
 
-Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `46_save_driver_attendance.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
+Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `47_add_driver_salaries.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
 
 ### Money modules (loans, fundings, clients)
 
@@ -54,6 +54,8 @@ Three rules hold across all of them, and breaking any one reintroduces a bug the
 - **Ledgers are append-only.** `loan_payments`, `funding_entries` and `client_ledger_entries` are never edited or deleted. A mistake is corrected by inserting a row whose `reverses_*_id` points at the original; the views exclude *both* rows, so the pair nets to zero and the history stays auditable. A partial unique index on `reverses_*_id` makes a double-reversal a 409.
 - **Every method is `requireStrictAdminAuth()`, GET included** — unlike most feature routes, which let staff read.
 
+The loans list (`GET /api/loans`) takes `sort=ending_soon` (default: active loans first, the one whose last EMI is nearest on top, closed loans last) or `sort=newest` (the web page and the Flutter loans list both send it, so the two agree on order). The last EMI date (`final_due_date`) and the remaining count (`installments_left`) come from the `loan_balances` view, so "ending soon" loads every matching loan, merges balances, sorts and slices the page in the route — the same approach as the fundings list — instead of ordering in SQL.
+
 `entities` is the single master of firms and people. It replaced `vehicle_owners`; `vehicles.owner_entity_id` is the real FK, while `owner_name` / `owner_type` survive as trigger-maintained mirrors so existing readers (the vehicles API, `get_vehicles_summary`, the Flutter app) keep working. `/api/vehicle-owners` is now a thin adapter over `entities`.
 
 Label-only dropdown lists (loan types, client types, contact roles, payment methods) live in `lookup_options` and are edited at runtime through `<LookupSelect>`'s "+ Add new" footer or Settings → Dropdown Lists. **Do not add new Postgres enums for these** — `vehicle_type` and friends already demonstrate the cost (defined in the DB, in `vehicles.types.ts`, and in the API validation array, all needing a coordinated deploy).
@@ -62,7 +64,7 @@ Label-only dropdown lists (loan types, client types, contact roles, payment meth
 
 A vehicle delete has to pass two gates, in this order:
 
-1. **Nothing still points at it.** `DELETE /api/vehicles` counts rows in `repair_records`, `warranty`, `repair_parts`, `external_trips`, `diesel_records`, `trip_bookings` and `loans`, and answers 400 with one message listing everything attached ("…still has 6 repair records and 1 loan"). A table that doesn't exist is skipped, not treated as an error.
+1. **Nothing still points at it.** `DELETE /api/vehicles` counts rows in `repair_records`, `warranty`, `repair_parts`, `external_trips`, `diesel_records`, `trip_bookings` and `loans`, and answers 400 with one message listing everything attached ("…still has 6 repair records and 1 loan"). A table that doesn't exist is skipped, not treated as an error. See the standing rule under "Deleting a driver" below — it applies here too: any new `references vehicles(id)` table must be added to this check in the same change that creates it.
 2. **The row is unlocked.** `vehicles.allow_permanent_delete` must be `true`. The database enforces this itself and rejects the delete otherwise; the column and its enforcement predate the files in `sql/`, so they are not recorded there. Nothing in the web or mobile UI can set the flag — it is flipped by hand in the Supabase SQL editor, per vehicle, immediately before deleting:
 
    ```sql
@@ -76,6 +78,16 @@ A vehicle delete has to pass two gates, in this order:
 
 There is currently no UI toggle for the flag and the API never sets it. The delete also removes the vehicle's documents and photos from storage, which a raw `DELETE FROM vehicles` in SQL would leave orphaned, so prefer the page over deleting in SQL.
 
+### Deleting a driver
+
+`DELETE /api/drivers` (`src/app/api/drivers/route.ts`) counts rows in every table that references `driver_id`, and answers 400 with one message naming what's attached ("Cannot delete driver because they are linked to 12 attendance record(s). Deactivate them instead.") — nothing is deleted while anything is attached. A table that doesn't exist yet is skipped, not treated as an error, same as the vehicle delete.
+
+**The checked tables, kept in sync with `sql/` by hand:** `external_trips`, `trip_bookings`, `driver_attendance`, `driver_salary_rates`, `driver_salary_entries`, `driver_shift_counts`.
+
+**Standing rule:** any new table with a `driver_id bigint references drivers(id)` column must be added to `dependentChecks` in that route in the same change that creates the table. The foreign key means an unguarded delete still fails safely (Postgres refuses it) rather than orphaning rows, but it surfaces as a raw 500 instead of the friendly message, which is the bug this rule exists to prevent. The same applies to vehicles — see below — and to any future `references drivers(id)` / `references vehicles(id)` table.
+
+In practice, almost no driver can actually be deleted once they've been used anywhere (marked attendance, paid a salary, had their shift count set, booked on a trip). **Deactivate is the real workflow**; delete only clears out a driver who was added by mistake and never touched.
+
 ### Driver attendance
 
 `driver_attendance` holds one row per driver per day: three shift booleans (A, B, C) plus a status (`PRESENT` / `ABSENT` / `LEAVE`), with a check constraint that present means at least one shift and absent/leave means none. "Not marked" is the absence of a row — clearing a mark deletes it. Month totals (shifts, full days, absences, leave) are counted per request, never stored.
@@ -83,6 +95,20 @@ There is currently no UI toggle for the flag and the API never sets it. The dele
 `/api/driver-attendance` serves both clients: `GET ?date=` (one day, every active driver, plus each driver's previous day for "copy yesterday"), `GET ?month=` (the register with totals) and `PUT` (only the changed drivers for one date, in one request; returns the day as stored). The write goes through the `save_driver_attendance` database function (`sql/46`) so the stores and the clears land together or not at all; until that function exists in a database the route falls back to two separate, non-atomic writes. On the wire a mark is `{ shifts: ["A","B"], status: "ABSENT" | "LEAVE" | null }` — present is implied by shifts. Reading is open to every role (`requireUserAuth()`), but marking is admin/superadmin only (`requireStrictAdminAuth()` on `PUT`) because the marks decide wages — staff and drivers get the same screens with every control disabled, driven by the `editable` flag in the day response. Nobody can mark a future date. `GET /api/driver-attendance/export?month=` returns the month as a CSV for wages (totals first, then one column per day) and is admin-only too. "Today" is IST, computed by the server and returned as `today`, and the server alone decides what is editable. The one thing the clients add: a screen left open past midnight moves its own "today" *forward* to the device's IST date (never back), so "next day" isn't stuck disabled until a reload.
 
 The page (`src/components/attendancePage/`) mounts a different layout below `md`: desktop spells out Full day · A B C · Absent · Leave per row, phones use a tick + three-cell shift block + "more" menu so a row stays one line. Both are sized for 30–40 drivers: client-side search by name/place, counts that double as filters, and a register that scrolls inside its own box with the day header and driver column pinned.
+
+### Driver salaries
+
+Salaries follow the money modules' three rules: nothing derived is stored, the ledger is append-only with reversals, and every method — GET included — is `requireStrictAdminAuth()` (attendance is readable by every role; what it works out to in rupees is not).
+
+A month's pay is computed per request in `src/app/api/driver-salaries/driver-salaries.utils.ts` (`computePay`), from three inputs:
+
+- `driver_salary_rates` — the monthly salary and the month it applies from (`effective_from`, always the 1st). The salary for a month is the latest rate on or before it, so a raise never rewrites earlier months. Saving again for the *same* starting month corrects that row in place (a typo fix); everything else is a new row.
+- `driver_attendance` — days marked Absent or Leave.
+- `driver_salary_entries` — `ADVANCE` and `DEDUCTION` rows against a `period_month`, append-only; a mistake is cancelled by a row with `reverses_entry_id`, and both drop out of the totals.
+
+The rule: day's pay = monthly salary ÷ calendar days in that month; attendance cut = day's pay × (absent + leave days), rounded to the rupee and capped at the salary; net = salary − cut − advances − deductions (it may go negative). Leave is unpaid like absent. A day with any shift worked is a paid day regardless of how many shifts, and a day with **no mark at all is paid** — only an explicit Absent/Leave costs pay — but the sheet reports `unmarked_days` so gaps are visible. A month that hasn't finished is flagged `is_provisional`.
+
+Routes: `GET /api/driver-salaries?month=` (the sheet + totals), `GET /api/driver-salaries/export?month=` (CSV), `GET /api/driver-salaries/[driverId]?month=` (one driver's line, rate history and entries), `POST …/[driverId]/rates`, `POST …/[driverId]/entries`, `POST …/[driverId]/entries/[entryId]/reverse`. The page is `/admin/salaries` (`src/components/salariesPage/`), admin/superadmin only. A driver with salary rows can no longer be deleted, only deactivated.
 
 ### Activity log retention
 

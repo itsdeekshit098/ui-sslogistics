@@ -72,6 +72,18 @@ export function installmentStatusVariant(
 }
 
 /** Percentage of a loan's installments settled, for the progress bar. */
+/** "in 12 days" / "in 5 months" / "in 2.5 years", for the Last EMI column. */
+export function relativeEndLabel(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const days = daysFromToday(dateStr);
+  if (days < 0) return "date passed";
+  if (days === 0) return "today";
+  if (days < 45) return `in ${days} day${days === 1 ? "" : "s"}`;
+  const months = Math.round(days / 30.44);
+  if (months < 24) return `in ${months} months`;
+  return `in ${(months / 12).toFixed(1).replace(/\.0$/, "")} years`;
+}
+
 export function progressPercent(paid: number, total: number): number {
   if (!total) return 0;
   return Math.min(100, Math.round((paid / total) * 100));
@@ -116,4 +128,12 @@ export const FUNDING_SORT_OPTIONS: { value: FundingSortKey; label: string }[] = 
   { value: "rate", label: "Rate: high to low" },
   { value: "monthly_interest", label: "Monthly interest: high to low" },
   { value: "interest_due", label: "Interest till date: high to low" },
+];
+
+/** Mirrors LOAN_SORTS in api/loans/loans.utils.ts — the server sorts. */
+export type LoanSortKey = "ending_soon" | "newest";
+
+export const LOAN_SORT_OPTIONS: { value: LoanSortKey; label: string }[] = [
+  { value: "ending_soon", label: "Ending soonest" },
+  { value: "newest", label: "Newest first" },
 ];

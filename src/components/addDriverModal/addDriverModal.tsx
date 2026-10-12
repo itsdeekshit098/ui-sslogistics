@@ -20,6 +20,15 @@ import * as styles from "./addDriverModal.style";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
+/** A driver the server thinks might be the person being added. */
+interface SimilarDriver {
+  id: number;
+  name: string;
+  place: string | null;
+  phone: string | null;
+  is_active: boolean;
+}
+
 const AddDriverForm: React.FC<{
   onClose: () => void;
   onSuccess: AddDriverModalProps["onSuccess"];
@@ -38,6 +47,10 @@ const AddDriverForm: React.FC<{
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Drivers with a similar name, from the server. Shown so the person adding
+  // can see who they might be duplicating and decide; an exact name or a
+  // repeated DL is refused outright and never lands here.
+  const [similar, setSimilar] = useState<SimilarDriver[] | null>(null);
 
   const handleClose = useCallback(() => {
     if (!loading) onClose();
@@ -48,9 +61,11 @@ const AddDriverForm: React.FC<{
     setFormData((prev) => ({ ...prev, [id]: value }));
     setFieldErrors((prev) => ({ ...prev, [id]: "" }));
     setSubmitError(null);
+    // Editing the name makes the previous warning stale.
+    if (id === "name") setSimilar(null);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (confirmSimilar = false) => {
     const errors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
@@ -94,6 +109,7 @@ const AddDriverForm: React.FC<{
             place: formData.place.trim() || undefined,
             dl_number: formData.dl_number.trim() || undefined,
             photo_url: formData.photo_url.trim() || undefined,
+            ...(confirmSimilar ? { confirm_similar: true } : {}),
           }),
         });
       }
@@ -104,8 +120,14 @@ const AddDriverForm: React.FC<{
         onSuccess(data.data.driver);
         setLoading(false);
         onClose();
+      } else if (data.code === "SIMILAR_DRIVER_EXISTS") {
+        // Not a failure: the server is asking whether this is the same person.
+        setSimilar(data.similar ?? []);
+        setSubmitError(null);
+        setLoading(false);
       } else {
         setSubmitError(data.error || "Failed to save driver");
+        setSimilar(null);
         setLoading(false);
       }
     } catch (err) {
@@ -197,6 +219,38 @@ const AddDriverForm: React.FC<{
             {submitError}
           </div>
         )}
+
+        {similar && similar.length > 0 && (
+          <div
+            role="alert"
+            className="mt-4 rounded-xl border border-warning/40 bg-warning-subtle p-3"
+          >
+            <p className="text-sm font-semibold text-warning-subtle-foreground">
+              {similar.length === 1
+                ? "A driver with a similar name already exists"
+                : `${similar.length} drivers with similar names already exist`}
+            </p>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {similar.map((row) => (
+                <li key={row.id} className="text-sm text-foreground">
+                  <span className="font-semibold">{row.name}</span>
+                  {[row.place, row.phone, row.is_active ? null : "inactive"]
+                    .filter(Boolean)
+                    .map((part) => (
+                      <span key={String(part)} className="text-muted-foreground">
+                        {" · "}
+                        {part}
+                      </span>
+                    ))}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              If this is the same person, cancel and use the existing driver — adding a second
+              row splits their attendance and salary. If it is someone else, add them anyway.
+            </p>
+          </div>
+        )}
         </div>
       </ModalBody>
 
@@ -204,13 +258,13 @@ const AddDriverForm: React.FC<{
         <Button variant="outline" onClick={handleClose} disabled={loading}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={loading}>
+        <Button onClick={() => handleSubmit(similar !== null)} disabled={loading}>
           {loading ? (
             <LoadingSpinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}
-          {isEdit ? "Update Driver" : "Save Driver"}
+          {similar !== null ? "Add anyway" : isEdit ? "Update Driver" : "Save Driver"}
         </Button>
       </ModalFooter>
     </>
