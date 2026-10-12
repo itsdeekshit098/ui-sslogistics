@@ -18,6 +18,7 @@ export function SegmentedControl({
   onValueChange,
   className,
   idPrefix = "segmented",
+  disabled = false,
 }: SegmentedControlProps) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -71,14 +72,16 @@ export function SegmentedControl({
             aria-checked={isActive}
             id={`${idPrefix}-${item.key}`}
             tabIndex={isActive ? 0 : -1}
+            disabled={disabled}
             onClick={() => onValueChange(item.key)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-xs px-3 py-1.5 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted",
+              "disabled:cursor-not-allowed disabled:opacity-60",
               isActive
                 ? "bg-card text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-muted-foreground enabled:hover:text-foreground",
             )}
           >
             {item.label}

@@ -22,6 +22,11 @@ export type AuditAction =
   | "UPDATE_DRIVER"
   | "DELETE_DRIVER"
   | "MARK_DRIVER_ATTENDANCE"
+  // Driver salaries
+  | "SET_DRIVER_SHIFT_COUNT"
+  | "SET_DRIVER_SALARY"
+  | "CREATE_DRIVER_SALARY_ENTRY"
+  | "REVERSE_DRIVER_SALARY_ENTRY"
   // Vehicle Owners (legacy alias — /api/vehicle-owners now writes to entities)
   | "CREATE_VEHICLE_OWNER"
   | "UPDATE_VEHICLE_OWNER"

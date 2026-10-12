@@ -29,6 +29,9 @@ export const PAGE_ROLE_MAP: Record<string, UserRole[]> = {
   "/admin/fundings": ["admin", "superadmin"],
   "/admin/clients": ["admin", "superadmin"],
   "/admin/bank-accounts": ["admin", "superadmin"],
+  // What each driver is paid. Attendance itself is readable by every role;
+  // the salaries worked out from it are not.
+  "/admin/salaries": ["admin", "superadmin"],
   "/admin/trip-bookings": ["admin", "staff", "superadmin"],
   // Pages accessible to ALL authenticated roles (including driver):
   // /admin              → Dashboard

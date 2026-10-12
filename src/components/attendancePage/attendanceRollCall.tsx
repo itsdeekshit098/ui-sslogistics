@@ -19,6 +19,8 @@ export interface AttendanceRollCallProps {
   onFilter: (filter: AttendanceFilter) => void;
   /** Phones show the bar and one line of text; desktop adds the breakdown. */
   compact?: boolean;
+  /** Locks the bar and shift counts as filters, e.g. while a save is in flight. */
+  disabled?: boolean;
 }
 
 interface Segment {
@@ -47,7 +49,13 @@ const SEGMENTS: Segment[] = [
  * marked. The hatched segment shrinks as the roster gets marked, so progress
  * reads without counting. Each segment doubles as the matching filter.
  */
-export function AttendanceRollCall({ counts, filter, onFilter, compact }: AttendanceRollCallProps) {
+export function AttendanceRollCall({
+  counts,
+  filter,
+  onFilter,
+  compact,
+  disabled = false,
+}: AttendanceRollCallProps) {
   const { total } = counts;
   const marked = total - counts.unmarked;
   const done = total > 0 && counts.unmarked === 0;
@@ -80,6 +88,7 @@ export function AttendanceRollCall({ counts, filter, onFilter, compact }: Attend
                 title={`${segment.label}: ${value}`}
                 aria-label={`${segment.label}: ${value}`}
                 aria-pressed={filter === segment.filter}
+                disabled={disabled}
                 onClick={() => onFilter(filter === segment.filter ? "all" : segment.filter)}
                 // Width eases so marking a driver visibly moves the bar.
                 style={{ flexGrow: value, flexBasis: 0 }}
@@ -108,15 +117,16 @@ export function AttendanceRollCall({ counts, filter, onFilter, compact }: Attend
               <span className="font-semibold tabular-nums text-foreground">{counts[segment.key]}</span>
             </div>
           ))}
-          <span className="hidden h-4 w-px bg-border sm:block" aria-hidden="true" />
+          <span className="hidden h-4 w-px bg-border xl:block" aria-hidden="true" />
           {SHIFTS.map((shift) => (
             <button
               key={shift}
               type="button"
               aria-pressed={filter === shift}
+              disabled={disabled}
               onClick={() => onFilter(filter === shift ? "all" : shift)}
               className={cn(
-                "flex items-center gap-2 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex items-center gap-2 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors enabled:hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
                 filter === shift && "bg-muted",
               )}
             >

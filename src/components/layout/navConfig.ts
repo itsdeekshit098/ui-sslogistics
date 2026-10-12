@@ -18,6 +18,7 @@ import {
   WalletIcon,
   HomeIcon,
   CalendarIcon,
+  HandCoinsIcon,
 } from "@/components/ui/icon";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
@@ -68,6 +69,7 @@ export const navSections: NavSection[] = [
       { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: true },
       { name: "Firms & Owners", href: "/admin/entities", icon: UserIcon, enabled: true },
       { name: "Bank Accounts", href: "/admin/bank-accounts", icon: WalletIcon, enabled: true },
+      { name: "Salaries", href: "/admin/salaries", icon: HandCoinsIcon, enabled: true },
     ],
   },
   {
@@ -148,7 +150,7 @@ export const mobileTabs: MobileTab[] = [
     key: "money",
     label: "Money",
     icon: WalletIcon,
-    hrefs: ["/admin/loans", "/admin/clients", "/admin/entities", "/admin/bank-accounts"],
+    hrefs: ["/admin/loans", "/admin/clients", "/admin/entities", "/admin/bank-accounts", "/admin/salaries"],
   },
 ];
 

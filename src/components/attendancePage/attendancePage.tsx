@@ -40,7 +40,7 @@ import {
   type SaveAttendancePayload,
 } from "./attendancePage.types";
 import {
-  FULL_DAY,
+  fullDayFor,
   addMonths,
   formatDayLabel,
   formatMonthShort,
@@ -54,6 +54,12 @@ import {
 const ConfirmModal = dynamic(() => import("@/components/confirmModal/confirmModal"), {
   ssr: false,
 });
+
+// Only opened from a row, and only for admins.
+const ShiftCountModal = dynamic(
+  () => import("./shiftCountModal").then((m) => m.ShiftCountModal),
+  { ssr: false },
+);
 
 type View = "day" | "month";
 
@@ -73,6 +79,9 @@ export function AttendancePage() {
   const isMobile = useIsMobile();
   // Wages are worked out from the export, so it is offered to admins only.
   const canExport = isAdmin(userRole);
+  // Who runs which shifts is part of marking, so the same roles that may mark
+  // may change it.
+  const canSetShifts = isAdmin(userRole);
 
   const [day, setDay] = useState<AttendanceDay | null>(null);
   // The working copy. `day` stays as the server last returned it, so the
@@ -96,6 +105,9 @@ export function AttendancePage() {
   // Phones keep the search field folded behind an icon so the pinned header
   // stays short; desktop always shows it.
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shiftCountDriver, setShiftCountDriver] = useState<AttendanceDay["drivers"][number] | null>(
+    null,
+  );
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -210,9 +222,15 @@ export function AttendancePage() {
       present: all.filter((m) => m.shifts.length > 0).length,
       absent: all.filter((m) => m.status === "ABSENT").length,
       leave: all.filter((m) => m.status === "LEAVE").length,
-      fullDay: all.filter(isFullDay).length,
+      // Full day is per driver: a two-shift driver on A + B counts here.
+      fullDay: drivers.filter((d) => isFullDay(markOf(d.driver_id), d.shift_count)).length,
       shift: Object.fromEntries(
         SHIFTS.map((s) => [s, all.filter((m) => m.shifts.includes(s)).length]),
+      ) as Record<(typeof SHIFTS)[number], number>,
+      // How many drivers run each shift at all, so a filter for a shift
+      // nobody works can be left out rather than showing an empty list.
+      rostered: Object.fromEntries(
+        SHIFTS.map((s, i) => [s, drivers.filter((d) => d.shift_count > i).length]),
       ) as Record<(typeof SHIFTS)[number], number>,
     };
   }, [drivers, markOf]);
@@ -364,7 +382,13 @@ export function AttendancePage() {
   const filterItems: { key: AttendanceFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.total },
     { key: "unmarked", label: isMobile ? "Left" : "Not marked", count: counts.unmarked },
-    ...SHIFTS.map((s) => ({ key: s, label: s, count: counts.shift[s] })),
+    // A shift no driver runs is dropped: with everyone on two shifts, a "C 0"
+    // chip would read as nobody having been marked for it.
+    ...SHIFTS.filter((s) => counts.rostered[s] > 0).map((s) => ({
+      key: s as AttendanceFilter,
+      label: s,
+      count: counts.shift[s],
+    })),
     { key: "off", label: "Off", count: counts.absent + counts.leave },
   ];
 
@@ -375,6 +399,7 @@ export function AttendancePage() {
         size="sm"
         className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => goToDate(addDays(day.date, -1))}
+        disabled={saving}
         aria-label="Previous day"
       >
         <ChevronLeftIcon size={16} />
@@ -407,6 +432,7 @@ export function AttendancePage() {
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           value={day.date}
           max={today}
+          disabled={saving}
           onChange={(e) => e.target.value && goToDate(e.target.value)}
         />
       </label>
@@ -415,13 +441,19 @@ export function AttendancePage() {
         size="sm"
         className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => goToDate(addDays(day.date, 1))}
-        disabled={isToday}
+        disabled={isToday || saving}
         aria-label="Next day"
       >
         <ChevronRightIcon size={16} />
       </Button>
       {!isToday && (
-        <Button variant="ghost" size="sm" className="max-md:hidden" onClick={() => goToDate(today)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="max-md:hidden"
+          disabled={saving}
+          onClick={() => goToDate(today)}
+        >
           Today
         </Button>
       )}
@@ -435,6 +467,7 @@ export function AttendancePage() {
         size="sm"
         className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => openMonth(addMonths(activeMonth, -1))}
+        disabled={saving}
         aria-label="Previous month"
       >
         <ChevronLeftIcon size={16} />
@@ -447,7 +480,7 @@ export function AttendancePage() {
         size="sm"
         className="max-md:h-9 max-md:w-8 max-md:shrink-0 max-md:border-transparent max-md:bg-transparent max-md:p-0"
         onClick={() => openMonth(addMonths(activeMonth, 1))}
-        disabled={activeMonth >= today.slice(0, 7)}
+        disabled={saving || activeMonth >= today.slice(0, 7)}
         aria-label="Next month"
       >
         <ChevronRightIcon size={16} />
@@ -462,7 +495,7 @@ export function AttendancePage() {
         size="sm"
         data-testid="attendance-fill-full-day"
         disabled={saving}
-        onClick={() => fillUnmarked(() => FULL_DAY)}
+        onClick={() => fillUnmarked((d) => fullDayFor(d.shift_count))}
       >
         {isMobile ? "Full day" : "Mark full day"}
       </Button>
@@ -515,6 +548,7 @@ export function AttendancePage() {
         editable={editable}
         isMobile={isMobile}
         onChange={setMark}
+        onEditShiftCount={canSetShifts ? setShiftCountDriver : undefined}
       />
     );
 
@@ -553,6 +587,7 @@ export function AttendancePage() {
         placeholder="Search driver or place..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        disabled={saving}
         // Phones open the field from the search icon, so focus goes with it.
         autoFocus={isMobile}
         // Phones: a filled, borderless field at the same 36px height and
@@ -564,6 +599,7 @@ export function AttendancePage() {
         <button
           type="button"
           aria-label="Clear search"
+          disabled={saving}
           onClick={() => setSearch("")}
           className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
         >
@@ -578,7 +614,7 @@ export function AttendancePage() {
       variant="outline"
       size="sm"
       data-testid="attendance-export-btn"
-      disabled={exporting || !monthData || monthData.drivers.length === 0}
+      disabled={saving || exporting || !monthData || monthData.drivers.length === 0}
       onClick={() => exportMonth(activeMonth)}
     >
       <DownloadIcon size={16} className="mr-2" />
@@ -606,11 +642,12 @@ export function AttendancePage() {
                 {searchField}
                 <button
                   type="button"
+                  disabled={saving}
                   onClick={() => {
                     setSearch("");
                     setSearchOpen(false);
                   }}
-                  className="h-9 shrink-0 px-1 text-sm font-medium text-primary"
+                  className="h-9 shrink-0 px-1 text-sm font-medium text-primary disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -622,8 +659,9 @@ export function AttendancePage() {
                   <button
                     type="button"
                     aria-label="Search drivers"
+                    disabled={saving}
                     onClick={() => setSearchOpen(true)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground disabled:opacity-50"
                   >
                     <SearchIcon size={18} />
                   </button>
@@ -635,6 +673,7 @@ export function AttendancePage() {
                     ]}
                     value={view}
                     onValueChange={changeView}
+                    disabled={saving}
                     className="[&>button]:px-2.5 [&>button]:py-1"
                   />
                 </div>
@@ -643,7 +682,13 @@ export function AttendancePage() {
 
             {view === "day" && (
               <>
-                <AttendanceRollCall compact counts={counts} filter={filter} onFilter={setFilter} />
+                <AttendanceRollCall
+                  compact
+                  counts={counts}
+                  filter={filter}
+                  onFilter={setFilter}
+                  disabled={saving}
+                />
                 {/* The same control as Day / Month, stretched edge to edge:
                     six equal cells, so nothing runs off the screen and
                     there is no sideways scrolling to discover. */}
@@ -652,6 +697,7 @@ export function AttendancePage() {
                   items={filterItems}
                   value={filter}
                   onValueChange={(key) => setFilter(key as AttendanceFilter)}
+                  disabled={saving}
                   className="flex w-full gap-0.5 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-0 [&>button]:py-1 [&>button]:text-[13px]"
                 />
               </>
@@ -688,13 +734,23 @@ export function AttendancePage() {
         <>
           {view === "day" && (
             <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5">
-              <AttendanceRollCall counts={counts} filter={filter} onFilter={setFilter} />
+              <AttendanceRollCall
+                counts={counts}
+                filter={filter}
+                onFilter={setFilter}
+                disabled={saving}
+              />
             </div>
           )}
 
           <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
             <div className="border-b border-border p-4 sm:p-6">
-              <Tabs idPrefix="attendance" items={VIEW_TABS} value={view} onValueChange={changeView} />
+              <Tabs
+                idPrefix="attendance"
+                items={VIEW_TABS.map((tab) => ({ ...tab, disabled: saving }))}
+                value={view}
+                onValueChange={changeView}
+              />
             </div>
 
             {view === "day" ? (
@@ -718,6 +774,7 @@ export function AttendancePage() {
                     items={filterItems}
                     value={filter}
                     onValueChange={(key) => setFilter(key as AttendanceFilter)}
+                    disabled={saving}
                   />
                   {searchField}
                 </div>
@@ -736,6 +793,7 @@ export function AttendancePage() {
                       className="w-auto"
                       value={activeMonth}
                       max={today.slice(0, 7)}
+                      disabled={saving}
                       onChange={(e) => e.target.value && openMonth(e.target.value)}
                     />
                   </div>
@@ -869,6 +927,17 @@ export function AttendancePage() {
         description={`${dirty.length} ${dirty.length === 1 ? "change" : "changes"} for ${formatDayLabel(day.date)} have not been saved.`}
         confirmText="Discard"
         icon={<AlertTriangleIcon size={24} className="text-warning" />}
+      />
+
+      <ShiftCountModal
+        driver={shiftCountDriver}
+        month={day.date.slice(0, 7)}
+        onClose={() => setShiftCountDriver(null)}
+        onSaved={() => {
+          // The count changes what a full day is, so both views are stale.
+          void fetchDay(day.date);
+          if (monthData) void fetchMonth(monthData.month);
+        }}
       />
     </div>
   );

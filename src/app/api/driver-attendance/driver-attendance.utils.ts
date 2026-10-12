@@ -4,11 +4,45 @@ import { parseDate, toDateString, todayInIndia } from "@/lib/dateOnly";
 
 export { todayInIndia };
 import {
+  DEFAULT_SHIFT_COUNT,
   SHIFTS,
+  shiftsFor,
   type AttendanceMark,
   type AttendanceTotals,
   type Shift,
+  type ShiftCount,
 } from "@/components/attendancePage/attendancePage.types";
+
+/** A row of driver_shift_counts, as the register reads it. */
+export interface ShiftCountRow {
+  driver_id: number;
+  shift_count: number;
+  effective_from: string;
+}
+
+/**
+ * How many shifts a driver worked in a given month: the latest row taking
+ * effect on or before it. Same shape as salaryForMonth, so a change of
+ * duties never rewrites the months before it.
+ *
+ * [rows] may hold any driver's rows in any order; only this driver's count
+ * is read. With nothing set, a driver works all three shifts.
+ */
+export function shiftCountForMonth(rows: ShiftCountRow[], month: string): ShiftCount {
+  const monthStart = `${month}-01`;
+  let best: ShiftCountRow | null = null;
+  for (const row of rows) {
+    if (row.effective_from > monthStart) continue;
+    if (!best || row.effective_from > best.effective_from) best = row;
+  }
+  const count = best ? Number(best.shift_count) : DEFAULT_SHIFT_COUNT;
+  return count === 1 || count === 2 || count === 3 ? count : DEFAULT_SHIFT_COUNT;
+}
+
+/** The same lookup for one date rather than a month. */
+export function shiftCountForDate(rows: ShiftCountRow[], date: string): ShiftCount {
+  return shiftCountForMonth(rows, date.slice(0, 7));
+}
 
 export interface AttendanceRow {
   driver_id: number;
@@ -53,12 +87,20 @@ export function rowToMark(row: AttendanceRow): AttendanceMark {
   return { shifts, status: null };
 }
 
-export function totalsFor(marks: AttendanceMark[]): AttendanceTotals {
+/**
+ * [shiftCount] is the driver's own number of shifts, so a full day is all of
+ * *their* shifts: a 2-shift driver who worked A and B has a full day, the
+ * same as a 3-shift driver on A+B+C.
+ */
+export function totalsFor(
+  marks: AttendanceMark[],
+  shiftCount: ShiftCount = DEFAULT_SHIFT_COUNT,
+): AttendanceTotals {
   const totals: AttendanceTotals = { shifts: 0, days_present: 0, full_days: 0, absent: 0, leave: 0 };
   for (const mark of marks) {
     totals.shifts += mark.shifts.length;
     if (mark.shifts.length > 0) totals.days_present += 1;
-    if (mark.shifts.length === SHIFTS.length) totals.full_days += 1;
+    if (mark.shifts.length === shiftCount) totals.full_days += 1;
     if (mark.status === "ABSENT") totals.absent += 1;
     if (mark.status === "LEAVE") totals.leave += 1;
   }
@@ -69,7 +111,11 @@ export function totalsFor(marks: AttendanceMark[]): AttendanceTotals {
  * Validates one incoming entry's mark. Returns the normalised mark, or a
  * message describing what is wrong with it.
  */
-export function parseMark(shifts: unknown, status: unknown): AttendanceMark | string {
+export function parseMark(
+  shifts: unknown,
+  status: unknown,
+  shiftCount: ShiftCount = DEFAULT_SHIFT_COUNT,
+): AttendanceMark | string {
   if (!Array.isArray(shifts) || shifts.some((s) => !SHIFTS.includes(s as Shift))) {
     return "Shifts must be a list of A, B or C";
   }
@@ -77,6 +123,15 @@ export function parseMark(shifts: unknown, status: unknown): AttendanceMark | st
     return "Status must be ABSENT, LEAVE or empty";
   }
   const unique = SHIFTS.filter((s) => (shifts as Shift[]).includes(s));
+  // A driver who runs two shifts cannot be marked on C: the request is
+  // either stale (their duties changed while the screen was open) or
+  // hand-made, and silently dropping the shift would record a day that was
+  // never worked.
+  const allowed = shiftsFor(shiftCount);
+  const extra = unique.filter((s) => !allowed.includes(s));
+  if (extra.length > 0) {
+    return `This driver works ${allowed.join(" and ")} only, so shift ${extra.join(", ")} cannot be marked`;
+  }
   if (status && unique.length > 0) {
     return "A driver cannot be absent or on leave and also work a shift";
   }

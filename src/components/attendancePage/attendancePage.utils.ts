@@ -1,20 +1,37 @@
-import { parseDate, toDateString } from "@/lib/dateOnly";
+import { addMonths, parseDate } from "@/lib/dateOnly";
 import {
+  DEFAULT_SHIFT_COUNT,
   SHIFTS,
+  shiftsFor,
   type AttendanceFilter,
   type AttendanceMark,
   type Shift,
+  type ShiftCount,
 } from "./attendancePage.types";
 
 export const EMPTY_MARK: AttendanceMark = { shifts: [], status: null };
-export const FULL_DAY: AttendanceMark = { shifts: [...SHIFTS], status: null };
+
+/** A full day for a driver who runs [count] shifts: all of theirs. */
+export function fullDayFor(count: ShiftCount = DEFAULT_SHIFT_COUNT): AttendanceMark {
+  return { shifts: shiftsFor(count), status: null };
+}
+
+/** A three-shift full day, for callers with no driver in hand. */
+export const FULL_DAY: AttendanceMark = fullDayFor(DEFAULT_SHIFT_COUNT);
 
 export function isMarked(mark: AttendanceMark): boolean {
   return mark.shifts.length > 0 || mark.status !== null;
 }
 
-export function isFullDay(mark: AttendanceMark): boolean {
-  return mark.shifts.length === SHIFTS.length;
+/**
+ * A full day is all of *this driver's* shifts, so a two-shift driver on
+ * A + B is a full day, exactly as a three-shift driver on A + B + C.
+ */
+export function isFullDay(
+  mark: AttendanceMark,
+  count: ShiftCount = DEFAULT_SHIFT_COUNT,
+): boolean {
+  return mark.shifts.length === count;
 }
 
 export function sameMark(a: AttendanceMark, b: AttendanceMark): boolean {
@@ -30,10 +47,13 @@ export function toggleShift(mark: AttendanceMark, shift: Shift): AttendanceMark 
   };
 }
 
-export function markLabel(mark: AttendanceMark): string {
+export function markLabel(
+  mark: AttendanceMark,
+  count: ShiftCount = DEFAULT_SHIFT_COUNT,
+): string {
   if (mark.status === "ABSENT") return "Absent";
   if (mark.status === "LEAVE") return "On leave";
-  if (isFullDay(mark)) return "Full day";
+  if (isFullDay(mark, count)) return "Full day";
   if (mark.shifts.length > 1) return `Shifts ${mark.shifts.join(" + ")}`;
   if (mark.shifts.length === 1) return `Shift ${mark.shifts[0]}`;
   return "Not marked";
@@ -56,10 +76,9 @@ export function initials(name: string): string {
     .join("");
 }
 
-export function addMonths(month: string, months: number): string {
-  const [year, m] = month.split("-").map(Number);
-  return toDateString(new Date(Date.UTC(year, m - 1 + months, 1))).slice(0, 7);
-}
+// Shared with the Salaries page, so it lives in lib; re-exported to keep
+// this module's existing imports working.
+export { addMonths };
 
 /** Every date in a YYYY-MM month, in order. */
 export function datesInMonth(month: string): string[] {

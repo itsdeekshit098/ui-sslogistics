@@ -65,7 +65,13 @@ import {
   type FundingSortKey,
   type LoanSortKey,
 } from "./loansPage.utils";
-import { formatCurrency, formatDate, formatMonth, todayString } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDate,
+  formatDateCompact,
+  formatMonth,
+  todayString,
+} from "@/lib/format";
 
 const LoanModal = dynamic(
   () => import("@/components/loanModal").then((m) => m.LoanModal),
@@ -411,9 +417,9 @@ export function LoansPage() {
         }
         const isOverdue = loan.balance.overdue_count > 0;
         return (
-          <div className="flex flex-col">
+          <div className="flex flex-col whitespace-nowrap">
             <span className={isOverdue ? "font-medium text-destructive" : ""}>
-              {formatDate(loan.balance.next_due_date)}
+              {formatDateCompact(loan.balance.next_due_date)}
             </span>
             <span
               className={
@@ -435,8 +441,8 @@ export function LoansPage() {
         const last = loan.balance.final_due_date;
         if (!last) return <span className="text-muted-foreground">—</span>;
         return (
-          <div className="flex flex-col">
-            <span>{formatDate(last)}</span>
+          <div className="flex flex-col whitespace-nowrap">
+            <span title={formatDate(last)}>{formatDateCompact(last)}</span>
             {loan.status === "ACTIVE" && (
               <span className="text-xs text-muted-foreground">{relativeEndLabel(last)}</span>
             )}

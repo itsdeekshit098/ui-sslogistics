@@ -26,6 +26,9 @@ export async function GET(req: Request) {
     const header = [
       "Driver",
       "Place",
+      // Without this, a 2-shift driver's lower shift total reads as missing
+      // days rather than as the duties they actually run.
+      "Shifts per day",
       "Days present",
       "Full days",
       "Shifts",
@@ -36,6 +39,7 @@ export async function GET(req: Request) {
     const rows = data.drivers.map((driver) => [
       driver.name,
       driver.place ?? "",
+      driver.shift_count,
       driver.totals.days_present,
       driver.totals.full_days,
       driver.totals.shifts,

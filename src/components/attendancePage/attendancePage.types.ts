@@ -1,6 +1,24 @@
 export const SHIFTS = ["A", "B", "C"] as const;
 export type Shift = (typeof SHIFTS)[number];
 
+/**
+ * How many shifts a driver runs in a day: 1, 2 or 3. Which shifts those are
+ * is fixed — the first N of A, B, C — so a 2-shift driver works A and B.
+ *
+ * This is what a *full day* means for that driver, and so what full pay
+ * means: a 2-shift driver who works A and B is on a full day, exactly as a
+ * 3-shift driver on A+B+C is. Pay is never divided by shift count.
+ */
+export type ShiftCount = 1 | 2 | 3;
+
+/** What a driver works when nothing has been set for them. */
+export const DEFAULT_SHIFT_COUNT: ShiftCount = 3;
+
+/** The shifts a driver of this count works: the first N of A, B, C. */
+export function shiftsFor(count: ShiftCount): Shift[] {
+  return SHIFTS.slice(0, count) as Shift[];
+}
+
 /** A whole-day status that rules out any shift. Present is implied by shifts. */
 export type OffStatus = "ABSENT" | "LEAVE";
 
@@ -18,6 +36,8 @@ export interface AttendanceDayDriver extends AttendanceMark {
   name: string;
   place: string | null;
   is_active: boolean;
+  /** This driver's shifts for this date — a full day is all of them. */
+  shift_count: ShiftCount;
   /** The day before, for "as yesterday". Null when that day was not marked. */
   previous: AttendanceMark | null;
 }
@@ -45,6 +65,8 @@ export interface AttendanceMonthDriver {
   name: string;
   place: string | null;
   is_active: boolean;
+  /** This driver's shifts for this month — a full day is all of them. */
+  shift_count: ShiftCount;
   /** Marked days only, keyed by YYYY-MM-DD. */
   days: Record<string, AttendanceMark>;
   totals: AttendanceTotals;
@@ -55,6 +77,24 @@ export interface AttendanceMonth {
   month: string;
   today: string;
   drivers: AttendanceMonthDriver[];
+}
+
+/** One row of a driver's shift-count history. */
+export interface DriverShiftCount {
+  id: number;
+  driver_id: number;
+  shift_count: ShiftCount;
+  /** YYYY-MM-01 — the first month this count applies to. */
+  effective_from: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface SetShiftCountPayload {
+  shift_count: ShiftCount;
+  /** YYYY-MM — the first month the count applies to. */
+  effective_month: string;
+  note?: string | null;
 }
 
 export interface SaveAttendanceEntry extends AttendanceMark {

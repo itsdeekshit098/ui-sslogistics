@@ -12,4 +12,6 @@ export interface SegmentedControlProps {
   onValueChange: (key: string) => void;
   className?: string;
   idPrefix?: string;
+  /** Locks every option, e.g. while a save is in flight. */
+  disabled?: boolean;
 }
