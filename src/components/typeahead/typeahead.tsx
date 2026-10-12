@@ -339,7 +339,7 @@ const Typeahead = <TOption,>({
                   tabIndex={-1}
                   aria-selected={isSelected}
                   className={cn(
-                    "flex min-h-11 w-full items-center gap-3 rounded-[calc(var(--input-radius)-1px)] px-3 py-2 text-left outline-none transition-colors h-auto justify-start font-normal",
+                    "flex min-h-11 w-full items-center gap-3 rounded-[calc(var(--input-radius)-1px)] py-2 pl-3 pr-3 text-left outline-none transition-colors h-auto justify-start font-normal",
                     isHighlighted && "bg-secondary text-foreground",
                     isSelected && "font-semibold",
                   )}
@@ -347,9 +347,6 @@ const Typeahead = <TOption,>({
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => selectOption(option)}
                 >
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center text-primary">
-                    {isSelected && <CheckIcon size={16} />}
-                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">
                       {getOptionLabel(option)}
@@ -360,6 +357,10 @@ const Typeahead = <TOption,>({
                       </span>
                     )}
                   </span>
+                  {/* On the right, as in the Select dropdown. It used to sit
+                      in a reserved slot on the left of every row, which left
+                      a blank gutter on all the options that weren't selected. */}
+                  {isSelected && <CheckIcon size={16} className="shrink-0 text-primary" />}
                 </Button>
               );
             })

@@ -55,12 +55,15 @@ import {
 } from "./loansPage.types";
 import {
   FUNDING_SORT_OPTIONS,
+  LOAN_SORT_OPTIONS,
   installmentStatusVariant,
   monthBounds,
   progressPercent,
   relativeDueLabel,
+  relativeEndLabel,
   shiftMonth,
   type FundingSortKey,
+  type LoanSortKey,
 } from "./loansPage.utils";
 import { formatCurrency, formatDate, formatMonth, todayString } from "@/lib/format";
 
@@ -105,6 +108,7 @@ export function LoansPage() {
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState("");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [loanSort, setLoanSort] = useState<LoanSortKey>("ending_soon");
   const [loanTypeFilter, setLoanTypeFilter] = useState("");
   const [borrowerFilter, setBorrowerFilter] = useState("");
   const [lenderFilter, setLenderFilter] = useState("");
@@ -161,6 +165,7 @@ export function LoansPage() {
         page: String(page),
         page_size: String(pageSize),
         include_summary: "true",
+        sort: loanSort,
       });
       if (statusFilter) params.set("status", statusFilter);
       if (overdueOnly) params.set("overdue_only", "true");
@@ -186,6 +191,7 @@ export function LoansPage() {
     pageSize,
     statusFilter,
     overdueOnly,
+    loanSort,
     loanTypeFilter,
     borrowerFilter,
     lenderFilter,
@@ -377,6 +383,7 @@ export function LoansPage() {
           <div className="flex min-w-[7rem] flex-col gap-1">
             <span className="text-xs text-muted-foreground">
               {paid} / {loan.total_installments}
+              {loan.balance.installments_left > 0 && ` - ${loan.balance.installments_left} rem`}
             </span>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
@@ -417,6 +424,22 @@ export function LoansPage() {
                 ? `${loan.balance.overdue_count} overdue`
                 : relativeDueLabel(loan.balance.next_due_date)}
             </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "last_emi",
+      header: "Last EMI",
+      cell: (loan) => {
+        const last = loan.balance.final_due_date;
+        if (!last) return <span className="text-muted-foreground">—</span>;
+        return (
+          <div className="flex flex-col">
+            <span>{formatDate(last)}</span>
+            {loan.status === "ACTIVE" && (
+              <span className="text-xs text-muted-foreground">{relativeEndLabel(last)}</span>
+            )}
           </div>
         );
       },
@@ -538,21 +561,22 @@ export function LoansPage() {
 
   // Shared by Private Fundings and Lent Out. A dropdown rather than sortable
   // headers so it also works in the phone card layout, which has no headers.
-  const renderFundingSort = (
+  const renderSort = <K extends string>(
     idPrefix: string,
-    value: FundingSortKey,
-    onChange: (key: FundingSortKey) => void,
+    options: { value: K; label: string }[],
+    value: K,
+    onChange: (key: K) => void,
   ) => (
     <div className="flex items-center gap-2">
       <label htmlFor={`${idPrefix}-sort`} className="shrink-0 text-sm text-muted-foreground">
         Sort by
       </label>
-      <Select value={value} onValueChange={(v) => onChange(v as FundingSortKey)}>
+      <Select value={value} onValueChange={(v) => onChange(v as K)}>
         <SelectTrigger id={`${idPrefix}-sort`} className="w-full sm:w-64">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {FUNDING_SORT_OPTIONS.map((option) => (
+          {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
@@ -561,6 +585,12 @@ export function LoansPage() {
       </Select>
     </div>
   );
+
+  const renderFundingSort = (
+    idPrefix: string,
+    value: FundingSortKey,
+    onChange: (key: FundingSortKey) => void,
+  ) => renderSort(idPrefix, FUNDING_SORT_OPTIONS, value, onChange);
 
   if (authLoading) return <PageLoadingSkeleton variant="admin" />;
 
@@ -800,6 +830,12 @@ export function LoansPage() {
                 >
                   Overdue only
                 </Button>
+                <div className="w-full sm:ml-auto sm:w-auto">
+                  {renderSort("loans", LOAN_SORT_OPTIONS, loanSort, (key) => {
+                    setLoanSort(key);
+                    setPage(1);
+                  })}
+                </div>
               </div>
 
               {!fetching && loans.length === 0 ? (

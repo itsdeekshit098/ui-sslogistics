@@ -46,12 +46,21 @@ describe("GET /api/loans", () => {
   it("lists loans with their derived balances merged in", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
-      loans: [{ data: [{ id: 1 }, { id: 2 }], error: null, count: 2 }],
+      loans: [
+        {
+          data: [
+            { id: 1, status: "ACTIVE", start_date: "2026-02-01" },
+            { id: 2, status: "ACTIVE", start_date: "2026-01-01" },
+          ],
+          error: null,
+          count: 2,
+        },
+      ],
       loan_balances: [
         {
           data: [
-            { loan_id: 1, outstanding: 1000, overdue_count: 0 },
-            { loan_id: 2, outstanding: 2000, overdue_count: 1 },
+            { loan_id: 1, outstanding: 1000, overdue_count: 0, final_due_date: "2027-01-05" },
+            { loan_id: 2, outstanding: 2000, overdue_count: 1, final_due_date: "2027-06-05" },
           ],
           error: null,
         },
@@ -70,10 +79,90 @@ describe("GET /api/loans", () => {
     ]);
   });
 
+  it("defaults to the loan whose last EMI is nearest first, and pages the sorted list", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const rows = [
+      { id: 1, status: "ACTIVE", start_date: "2026-03-01" },
+      { id: 2, status: "ACTIVE", start_date: "2026-02-01" },
+      { id: 3, status: "ACTIVE", start_date: "2026-01-01" },
+    ];
+    const balances = [
+      { loan_id: 1, final_due_date: "2029-01-05" },
+      { loan_id: 2, final_due_date: "2027-01-05" },
+      { loan_id: 3, final_due_date: "2028-01-05" },
+    ];
+    const run = async (query: string) => {
+      mockSupabaseAdmin({
+        loans: [{ data: rows, error: null, count: 3 }],
+        loan_balances: [{ data: balances, error: null }],
+      });
+      const { GET } = await importRoute();
+      const res = await GET(new NextRequest(`http://localhost/api/loans${query}`));
+      return res.json();
+    };
+
+    const first = await run("?page_size=2");
+    expect(first.data.data.map((l: { id: number }) => l.id)).toEqual([2, 3]);
+    expect(first.data.total).toBe(3);
+
+    const second = await run("?page_size=2&page=2");
+    expect(second.data.data.map((l: { id: number }) => l.id)).toEqual([1]);
+  });
+
+  it("keeps the database's newest-first order when sort=newest", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      loans: [
+        {
+          data: [
+            { id: 5, status: "ACTIVE", start_date: "2026-05-01" },
+            { id: 4, status: "ACTIVE", start_date: "2026-04-01" },
+          ],
+          error: null,
+          count: 2,
+        },
+      ],
+      loan_balances: [
+        {
+          data: [
+            { loan_id: 5, final_due_date: "2030-01-05" },
+            { loan_id: 4, final_due_date: "2026-12-05" },
+          ],
+          error: null,
+        },
+      ],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/loans?sort=newest"));
+    const body = await res.json();
+
+    expect(body.data.data.map((l: { id: number }) => l.id)).toEqual([5, 4]);
+  });
+
+  it("rejects an unknown sort", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/loans?sort=biggest"));
+
+    expect(res.status).toBe(400);
+  });
+
   it("filters to only overdue loans when overdue_only=true", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
-      loans: [{ data: [{ id: 1 }, { id: 2 }], error: null, count: 2 }],
+      loans: [
+        {
+          data: [
+            { id: 1, status: "ACTIVE", start_date: "2026-02-01" },
+            { id: 2, status: "ACTIVE", start_date: "2026-01-01" },
+          ],
+          error: null,
+          count: 2,
+        },
+      ],
       loan_balances: [
         {
           data: [
