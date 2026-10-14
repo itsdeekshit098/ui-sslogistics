@@ -5,13 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev        # dev server on http://localhost:3000
-npm run build      # production build
-npm run lint       # eslint
-npm run typecheck  # tsc --noEmit
+npm run dev             # dev server on http://localhost:3000
+npm run build           # production build
+npm run lint            # eslint
+npm run typecheck       # tsc --noEmit
+npm run test            # vitest run (unit/integration)
+npm run test:watch      # vitest watch mode
+npm run test:coverage   # vitest with coverage
+npm run test:e2e        # playwright e2e
+npm run test:e2e:ui     # playwright e2e, interactive UI
 ```
 
-There is no automated test suite. Verify changes with `npm run typecheck` and `npm run lint`.
+Run a single Vitest file with `npx vitest run path/to/file.test.ts`, a single Playwright spec with `npx playwright test e2e/<name>.spec.ts`. The husky `pre-commit` hook runs `lint && typecheck && build` (not the test suites) — always run `npm run test` yourself before considering a change done.
 
 ## What this app is
 
@@ -21,7 +26,7 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 
 - Supabase **cookie sessions** via `@supabase/ssr`; no bearer tokens. The browser/mobile Supabase keys never reach the client — login goes through `POST /api/auth/login`.
 - `src/utils/supabase/middleware.ts` runs on every request: refreshes the session, and short-circuits unauthenticated `/api/*` requests with 401 + `code: "SESSION_INVALID"` **before route handlers execute**. Page requests redirect to `/login`; role-gated `/admin/*` pages are enforced here via `src/lib/routePermissions.ts` (longest-prefix match; roles: `admin | staff | driver`).
-- Route handlers additionally call `requireUserAuth` / `requireAdminAuth` / `requireStrictAdminAuth` from `src/lib/auth.ts`, which throw `"UNAUTHORIZED..."` / `"FORBIDDEN..."` errors that `handleApiError` (`src/lib/apiResponse.ts`) maps to 401 (`SESSION_INVALID`) / 403.
+- Route handlers additionally call `requireUserAuth` / `requireAdminAuth` / `requireStrictAdminAuth` / `requireSuperAdminAuth` from `src/lib/auth.ts`, which throw `"UNAUTHORIZED..."` / `"FORBIDDEN..."` errors that `handleApiError` (`src/lib/apiResponse.ts`) maps to 401 (`SESSION_INVALID`) / 403. `requireSuperAdminAuth` gates the handful of routes even an admin shouldn't hit alone — session management (`/api/admin/sessions`), maintenance mode and min-app-version (`/api/admin/settings/*`), and activity-log purge.
 - **Session-cap enforcement**: login calls the Supabase RPC `revoke_old_user_sessions`, which keeps only the newest session per user — except admin accounts (`app_metadata.role === "admin"`), which are allowed 2 concurrent sessions (e.g. web + mobile at once). The role check lives inside the RPC itself; see `sql/24_admin_two_sessions.sql` for the current definition (must be applied to Supabase manually — there is no migration runner). Admin session management (`/api/admin/sessions`) uses RPCs `get_active_sessions` and `revoke_user_sessions`, which remain role-agnostic.
 - Client-side auth state lives in `src/context/AuthContext.tsx` (fetches `/api/auth/session` on mount and on tab-refocus, throttled 15s). `src/app/admin/layout.tsx` redirects to `/login?reason=session_expired` the moment the session disappears; the login page shows an explanatory banner for that query param. Preserve this behavior when changing auth flows.
 - Sign-out endpoint is `POST /api/auth/signout` (not `/logout`); the mobile app depends on this path.
@@ -32,7 +37,7 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 - Wrap handlers in try/catch ending in `return handleApiError(err)`; never leak internal error details.
 - Validate inputs manually in the handler with explicit type/range checks (no zod).
 - `supabaseAdmin` (service-role client, `src/lib/supabase.ts`) is server-only. RLS stays enabled; role checks use `user.app_metadata.role` (never `user_metadata` — users can edit that themselves).
-- Mutations write audit entries via `src/lib/activityLog.ts`.
+- Mutations write audit entries via `src/lib/activityLog.ts`; add a new `AuditAction` literal there in the same change that adds a new mutating route (e.g. `CREATE_SPECIALIZATION`, `CREATE_REPAIR_ISSUE`) — a lookup-style POST that skips this is a bug, not a style choice. Low-stakes, self-service, own-record writes (marking your own notification read, registering/unregistering your own push token) are the one accepted exception.
 
 ## Structure conventions (from agents.md, where still accurate)
 
@@ -40,11 +45,11 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 - Folders and file names are camelCase; React component exports are PascalCase.
 - Keep business logic out of route handlers where practical (`src/services/`, `src/lib/`).
 
-**Note:** `agents.md` also bans Tailwind and external UI primitives, but the codebase actually uses Tailwind CSS 4, Radix UI primitives, and CVA (shadcn-style `src/components/ui/`). Follow the existing code, not that section of agents.md.
+**Note:** `agents.md` also bans Tailwind and external UI primitives and calls for `.style.ts` files, but the codebase mostly uses Tailwind CSS 4, Radix UI primitives, and CVA (shadcn-style `src/components/ui/`). Follow the existing code, not that section of agents.md — except that ~24 older components (several modals, `homePage`, `warrantyPage`, `sessionsPage`, and a few `src/components/ui/` primitives like `modal` and `tooltip`) still genuinely use a `componentName.style.ts` file of plain `CSSProperties` objects, imported as `import * as styles from "./componentName.style"`. These are live code, not dead leftovers — don't delete them on sight. New components should use Tailwind/CVA; migrating an existing `.style.ts` component to Tailwind is a deliberate refactor, not a drive-by cleanup.
 
 ## Database
 
-Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `47_add_driver_salaries.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
+Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `49_drivers_normalized_name_unique.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
 
 ### Money modules (loans, fundings, clients)
 
@@ -56,9 +61,13 @@ Three rules hold across all of them, and breaking any one reintroduces a bug the
 
 The loans list (`GET /api/loans`) takes `sort=ending_soon` (default: active loans first, the one whose last EMI is nearest on top, closed loans last) or `sort=newest` (the web page and the Flutter loans list both send it, so the two agree on order). The last EMI date (`final_due_date`) and the remaining count (`installments_left`) come from the `loan_balances` view, so "ending soon" loads every matching loan, merges balances, sorts and slices the page in the route — the same approach as the fundings list — instead of ordering in SQL.
 
-`entities` is the single master of firms and people. It replaced `vehicle_owners`; `vehicles.owner_entity_id` is the real FK, while `owner_name` / `owner_type` survive as trigger-maintained mirrors so existing readers (the vehicles API, `get_vehicles_summary`, the Flutter app) keep working. `/api/vehicle-owners` is now a thin adapter over `entities`.
+`entities` is the single master of firms and people. It replaced `vehicle_owners`; `vehicles.owner_entity_id` is the real FK, while `owner_name` / `owner_type` survive as trigger-maintained mirrors so existing readers (the vehicles API, `get_vehicles_summary`, the Flutter app) keep working. `/api/vehicle-owners` is now a thin adapter over `entities`. Unlike the other money-module routes, `/api/entities` GET and POST are intentionally `requireAdminAuth` (not strict) — staff need to read/add entities to pick a borrower or owner elsewhere in the app — while its `PUT`/`DELETE` stay `requireStrictAdminAuth()`. This is a deliberate carve-out (see the inline comment on the route), not a bug to fix.
 
 Label-only dropdown lists (loan types, client types, contact roles, payment methods) live in `lookup_options` and are edited at runtime through `<LookupSelect>`'s "+ Add new" footer or Settings → Dropdown Lists. **Do not add new Postgres enums for these** — `vehicle_type` and friends already demonstrate the cost (defined in the DB, in `vehicles.types.ts`, and in the API validation array, all needing a coordinated deploy).
+
+`bank_accounts` (`sql/34`) holds SS Logistics's own bank accounts (holder is an `entities` row), so a loan can record which account its EMI mandate debits (`loans.debit_account_id`). Like the money modules, `/api/bank-accounts` is `requireStrictAdminAuth` on every method, GET included, and `DELETE` is blocked while any loan or client still references the account.
+
+`attachments` (`sql/38`) is a shared files-per-record table used by vehicles, client ledger entries and loans via three mutually-exclusive nullable FKs (`vehicle_id` / `client_entry_id` / `loan_id`, enforced by a CHECK, each `ON DELETE CASCADE`). Files live in a private Supabase Storage bucket under random-UUID paths; `/api/attachments/view` streams them back through the app's own domain rather than a signed storage URL. Auth follows the owner: vehicle attachments are `requireAdminAuth` (images only), client/loan attachments are `requireStrictAdminAuth` including on read (images, PDF, and plain text).
 
 ### Deleting a vehicle
 
@@ -87,6 +96,16 @@ There is currently no UI toggle for the flag and the API never sets it. The dele
 **Standing rule:** any new table with a `driver_id bigint references drivers(id)` column must be added to `dependentChecks` in that route in the same change that creates the table. The foreign key means an unguarded delete still fails safely (Postgres refuses it) rather than orphaning rows, but it surfaces as a raw 500 instead of the friendly message, which is the bug this rule exists to prevent. The same applies to vehicles — see below — and to any future `references drivers(id)` / `references vehicles(id)` table.
 
 In practice, almost no driver can actually be deleted once they've been used anywhere (marked attendance, paid a salary, had their shift count set, booked on a trip). **Deactivate is the real workflow**; delete only clears out a driver who was added by mistake and never touched.
+
+Adding a driver also warns on near-duplicates: `src/lib/similarName.ts` compares the new name/license against existing active drivers, and `AddDriverModal` surfaces a non-blocking warning (not an error — a genuine duplicate name is still legal, e.g. two different people). `sql/49_drivers_normalized_name_unique.sql` backs this with a normalized-name uniqueness constraint at the database level for exact collisions after normalization (case/whitespace), which *does* block the insert — the two are different lines of defense: client-side similarity warning (soft) vs. DB-level exact-normalized uniqueness (hard).
+
+### Shifts per driver
+
+Not every driver runs all three shifts. `driver_shift_counts` (`sql/48_add_driver_shift_counts.sql`) holds how many a driver runs — 1, 2 or 3, meaning the **first N of A, B, C** — and, like a salary rate, a change applies from a month onward so earlier months keep the count they were marked against. A driver with no row runs three.
+
+That number is what a **full day** means for them, and so what full pay means: a two-shift driver who works A and B is on a full day and loses nothing. Pay is never divided by shift count — only Absent and Leave cut a day's pay (see "Driver salaries" below). Every driver on `/api/driver-attendance` carries `shift_count`, the attendance page offers only that driver's shifts (via `shiftCountModal.tsx`), and the save route rejects a shift the driver doesn't run rather than silently dropping it.
+
+`GET /api/driver-attendance/shift-counts/[driverId]` (any logged-in role) returns the history; `POST` (admin/superadmin only) takes `{ shift_count, effective_month, note? }` and upserts — saving again for the same `effective_month` corrects that row rather than duplicating, same convention as salary rates.
 
 ### Driver attendance
 
@@ -119,6 +138,12 @@ Routes: `GET /api/driver-salaries?month=` (the sheet + totals), `GET /api/driver
 Daily GitHub Actions in `.github/workflows/`, each running a standalone CommonJS script from `scripts/` that talks to Supabase directly with the service-role key (they do not go through Next.js). `check-loan-emis.js` warns a day before each EMI, nags at 1/7/15/30 days overdue, and flags a loan reaching its final installment; it dedupes against the `notifications` table by `type` + metadata before sending, so a re-run can't double-notify.
 
 Before any of that, the same script **auto-settles** every EMI whose due date has passed with nothing logged against it (`autoSettleOverdueEmis`): it inserts a real `loan_payments` row itself (`payment_method: 'AUTO'`, `paid_on` = the due date), on the assumption the mandate went through. This is a deliberate product decision, not a bug — it trades ledger accuracy for zero manual "mark paid" clicks, on the basis that a genuine miss gets caught externally (the lender chases it) rather than by the app. Consequences worth knowing before touching this code: `loan_balances.outstanding` and `loan_installment_state.status` will read as paid/settled for money that was only assumed, not confirmed; every auto-row is tagged and logged to `activity_log` (`CREATE_LOAN_PAYMENT`, `details.auto: true`) and shows its origin in the loan detail payment history (notes + `payment_method: "AUTO"`) precisely so a real miss can be found and reversed through the normal reversal endpoint — there is no automated un-settling. `BOUNCED` installments are deliberately excluded (that `manual_status` already means a mandate is *known* to have failed, so auto-paying over it would hide a confirmed problem). A `loan_emi_auto_settled` notification fires per auto-settled installment so admins still have visibility without needing to act.
+
+## Maintenance mode and push notifications
+
+`system_settings` (`sql/19`) is a singleton row (`maintenance_mode`, `maintenance_message`) with no dedicated write route in this codebase — it's flipped by hand in Supabase, and `GET /api/system/maintenance-stream` (no auth, must work pre-login) is an SSE stream polling it every second so clients react without reloading. `GET /api/system/app-version` is likewise unauthenticated, backing the minimum-app-version gate mentioned under auth architecture.
+
+`device_push_tokens` (`sql/21`) stores one FCM token per `(user_id, token)` pair with a `platform`. `POST /api/notifications/register-device` (any logged-in role) reassigns a token away from any other user before upserting it for the caller, so a forced logout on shared/reused devices can't leave push notifications going to the wrong account; `DELETE ?token=` unregisters the caller's own token on sign-out.
 
 ## Error tracking (Sentry)
 
