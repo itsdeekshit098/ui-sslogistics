@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build output of the isolated mocked-e2e dev server (playwright.config.ts
+    // webServer, E2E_MOCK_AUTH=true) — generated chunks, not source.
+    ".next-mock-e2e/**",
   ]),
   {
     // Chai's BDD assertions (`expect(x).to.eq(y)`) are bare expression
