@@ -76,6 +76,7 @@ describe("GET /api/driver-salaries/[driverId]", () => {
       driver_shift_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
     });
     const { GET } = await importRoute();
 
@@ -104,6 +105,7 @@ describe("GET /api/driver-salaries/[driverId]", () => {
           error: null,
         },
       ],
+      driver_salary_settlements: [{ data: null, error: null }],
     });
     const { GET } = await importRoute();
 
@@ -137,6 +139,7 @@ describe("GET /api/driver-salaries/[driverId]", () => {
           error: null,
         },
       ],
+      driver_salary_settlements: [{ data: null, error: null }],
     });
     const { GET } = await importRoute();
 

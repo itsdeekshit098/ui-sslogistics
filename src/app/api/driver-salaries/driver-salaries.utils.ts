@@ -45,6 +45,8 @@ export interface EntryRow {
   entry_type: string;
   amount: number | string;
   reverses_entry_id: number | null;
+  /** Set when this row is the carry-forward a settlement produced. */
+  settlement_id?: number | null;
 }
 
 /**
@@ -63,6 +65,26 @@ export function sumLiveEntries(entries: EntryRow[]): { advances: number; deducti
     else deductions += Number(entry.amount);
   }
   return { advances, deductions };
+}
+
+/**
+ * The portion of this month's advances/deductions that is a carry-forward
+ * from a prior settlement, signed: positive means the driver was overpaid
+ * last month (counted here as an advance), negative means underpaid
+ * (counted as a deduction). Purely for labelling — it is already included
+ * in sumLiveEntries' totals and never changes the pay rule.
+ */
+export function carryForwardIn(entries: EntryRow[]): number {
+  const reversed = new Set(
+    entries.map((e) => e.reverses_entry_id).filter((id): id is number => id != null),
+  );
+  let total = 0;
+  for (const entry of entries) {
+    if (entry.settlement_id == null) continue;
+    if (entry.reverses_entry_id != null || reversed.has(entry.id)) continue;
+    total += entry.entry_type === "ADVANCE" ? Number(entry.amount) : -Number(entry.amount);
+  }
+  return total;
 }
 
 export interface PayInput {

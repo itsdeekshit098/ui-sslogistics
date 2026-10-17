@@ -135,10 +135,14 @@ export function SalaryMobileList({
                     tone={(row.net_pay ?? 0) < 0 ? "negative" : "neutral"}
                     className="block text-sm font-bold"
                   />
-                  {row.net_pay !== row.monthly_salary && (
-                    <span className="block text-xs tabular-nums text-muted-foreground">
-                      of {formatCurrency(row.monthly_salary)}
-                    </span>
+                  {row.is_settled ? (
+                    <span className="block text-xs font-medium text-success">Paid</span>
+                  ) : (
+                    row.net_pay !== row.monthly_salary && (
+                      <span className="block text-xs tabular-nums text-muted-foreground">
+                        of {formatCurrency(row.monthly_salary)}
+                      </span>
+                    )
                   )}
                 </div>
               ) : (

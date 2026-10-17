@@ -231,11 +231,18 @@ export function SalariesPage() {
         row.net_pay == null ? (
           <span className="text-muted-foreground">—</span>
         ) : (
-          <Money
-            value={row.net_pay}
-            tone={row.net_pay < 0 ? "negative" : "neutral"}
-            className="font-semibold"
-          />
+          <div className="flex flex-col items-end gap-1">
+            <Money
+              value={row.net_pay}
+              tone={row.net_pay < 0 ? "negative" : "neutral"}
+              className="font-semibold"
+            />
+            {row.is_settled && (
+              <Badge variant="success-subtle" className="self-end">
+                Paid
+              </Badge>
+            )}
+          </div>
         ),
     },
   ];

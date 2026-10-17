@@ -6,12 +6,14 @@ import type {
   SalaryEntry,
   SalaryRate,
   SalaryRow,
+  SalarySettlement,
   SalarySheet,
 } from "@/components/salariesPage/salariesPage.types";
 import type { AttendanceMonthDriver } from "@/components/attendancePage/attendancePage.types";
 import { loadMonth } from "../driver-attendance/driver-attendance.data";
 import { monthRange } from "../driver-attendance/driver-attendance.utils";
 import {
+  carryForwardIn,
   computePay,
   daysInMonth,
   elapsedDays,
@@ -49,6 +51,7 @@ function buildRow(
   entries: EntryRow[],
   month: string,
   today: string,
+  isSettled: boolean,
 ): SalaryRow {
   const monthlySalary = salaryForMonth(rates, month);
   const { advances, deductions } = sumLiveEntries(entries);
@@ -76,6 +79,8 @@ function buildRow(
     unmarked_days: Math.max(0, elapsedDays(month, today) - markedDays),
     advances,
     deductions,
+    carry_forward_in: carryForwardIn(entries),
+    is_settled: isSettled,
     ...pay,
   };
 }
@@ -89,7 +94,7 @@ function buildRow(
 export async function loadSalarySheet(month: string): Promise<SalarySheet> {
   const monthStart = `${month}-01`;
 
-  const [attendance, ratesRes, entriesRes] = await Promise.all([
+  const [attendance, ratesRes, entriesRes, settlementsRes] = await Promise.all([
     loadMonth(month),
     supabaseAdmin
       .from("driver_salary_rates")
@@ -97,14 +102,20 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
       .lte("effective_from", monthStart),
     supabaseAdmin
       .from("driver_salary_entries")
-      .select("id, driver_id, entry_type, amount, reverses_entry_id")
+      .select("id, driver_id, entry_type, amount, reverses_entry_id, settlement_id")
+      .eq("period_month", monthStart),
+    supabaseAdmin
+      .from("driver_salary_settlements")
+      .select("driver_id")
       .eq("period_month", monthStart),
   ]);
   if (ratesRes.error) throw ratesRes.error;
   if (entriesRes.error) throw entriesRes.error;
+  if (settlementsRes.error) throw settlementsRes.error;
 
   const ratesByDriver = groupBy((ratesRes.data ?? []) as DriverRateRow[]);
   const entriesByDriver = groupBy((entriesRes.data ?? []) as DriverEntryRow[]);
+  const settledDrivers = new Set((settlementsRes.data ?? []).map((s) => s.driver_id as number));
   const attendanceByDriver = new Map(attendance.drivers.map((d) => [d.driver_id, d]));
 
   const drivers: DriverRef[] = attendance.drivers.map((d) => ({
@@ -135,6 +146,7 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
       entriesByDriver.get(driver.id) ?? [],
       month,
       attendance.today,
+      settledDrivers.has(driver.id),
     ),
   );
 
@@ -159,7 +171,7 @@ export async function loadDriverSalary(
 ): Promise<SalaryDriverDetail | null> {
   const monthStart = `${month}-01`;
 
-  const [driverRes, attendance, ratesRes, entriesRes] = await Promise.all([
+  const [driverRes, attendance, ratesRes, entriesRes, settlementRes] = await Promise.all([
     supabaseAdmin
       .from("drivers")
       .select("id, name, place, is_active")
@@ -178,17 +190,27 @@ export async function loadDriverSalary(
       .eq("period_month", monthStart)
       .order("entry_date", { ascending: false })
       .order("id", { ascending: false }),
+    supabaseAdmin
+      .from("driver_salary_settlements")
+      .select("*")
+      .eq("driver_id", driverId)
+      .eq("period_month", monthStart)
+      .maybeSingle(),
   ]);
   if (driverRes.error) throw driverRes.error;
   if (ratesRes.error) throw ratesRes.error;
   if (entriesRes.error) throw entriesRes.error;
+  if (settlementRes.error) throw settlementRes.error;
   if (!driverRes.data) return null;
 
   const rates = ((ratesRes.data ?? []) as SalaryRate[]).map((rate) => ({
     ...rate,
     monthly_salary: Number(rate.monthly_salary),
   }));
-  const rawEntries = (entriesRes.data ?? []) as Omit<SalaryEntry, "is_reversed" | "is_reversal">[];
+  const rawEntries = (entriesRes.data ?? []) as (Omit<
+    SalaryEntry,
+    "is_reversed" | "is_reversal" | "is_carry_forward"
+  > & { settlement_id: number | null })[];
   const reversed = new Set(
     rawEntries.map((e) => e.reverses_entry_id).filter((id): id is number => id != null),
   );
@@ -197,7 +219,30 @@ export async function loadDriverSalary(
     amount: Number(entry.amount),
     is_reversed: reversed.has(entry.id),
     is_reversal: entry.reverses_entry_id != null,
+    is_carry_forward: entry.settlement_id != null,
   }));
+
+  const settlementRow = settlementRes.data as
+    | {
+        id: number;
+        period_month: string;
+        net_pay_computed: number | string;
+        amount_paid: number | string;
+        note: string | null;
+        carry_forward_entry_id: number | null;
+        created_at: string;
+      }
+    | null;
+  const settlement: SalarySettlement | null = settlementRow && {
+    id: settlementRow.id,
+    period_month: settlementRow.period_month,
+    net_pay_computed: Number(settlementRow.net_pay_computed),
+    amount_paid: Number(settlementRow.amount_paid),
+    note: settlementRow.note,
+    carry_forward: Number(settlementRow.amount_paid) - Number(settlementRow.net_pay_computed),
+    carry_forward_entry_id: settlementRow.carry_forward_entry_id,
+    created_at: settlementRow.created_at,
+  };
 
   return {
     month,
@@ -210,8 +255,10 @@ export async function loadDriverSalary(
       rawEntries,
       month,
       attendance.today,
+      settlementRow != null,
     ),
     rates,
     entries,
+    settlement,
   };
 }

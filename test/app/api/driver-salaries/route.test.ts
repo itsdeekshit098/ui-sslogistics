@@ -63,6 +63,7 @@ describe("GET /api/driver-salaries", () => {
       driver_shift_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -83,6 +84,7 @@ describe("GET /api/driver-salaries", () => {
         { data: [{ driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01" }], error: null },
       ],
       driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -115,6 +117,7 @@ describe("GET /api/driver-salaries", () => {
           error: null,
         },
       ],
+      driver_salary_settlements: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -137,6 +140,7 @@ describe("GET /api/driver-salaries", () => {
       driver_shift_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 

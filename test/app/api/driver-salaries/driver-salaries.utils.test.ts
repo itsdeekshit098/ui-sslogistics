@@ -4,6 +4,7 @@ import {
   elapsedDays,
   salaryForMonth,
   sumLiveEntries,
+  carryForwardIn,
   computePay,
   totalsFor,
   type RateRow,
@@ -119,6 +120,45 @@ describe("sumLiveEntries", () => {
       { id: 1, entry_type: "ADVANCE", amount: "1000", reverses_entry_id: null },
     ];
     expect(sumLiveEntries(entries).advances).toBe(1000);
+  });
+});
+
+describe("carryForwardIn", () => {
+  it("returns 0 when nothing is tagged with a settlement", () => {
+    const entries: EntryRow[] = [
+      { id: 1, entry_type: "ADVANCE", amount: 1000, reverses_entry_id: null },
+    ];
+    expect(carryForwardIn(entries)).toBe(0);
+  });
+
+  it("reports an overpayment carry-forward (ADVANCE) as positive", () => {
+    const entries: EntryRow[] = [
+      { id: 1, entry_type: "ADVANCE", amount: 2000, reverses_entry_id: null, settlement_id: 9 },
+    ];
+    expect(carryForwardIn(entries)).toBe(2000);
+  });
+
+  it("reports an underpayment carry-forward (DEDUCTION) as negative", () => {
+    const entries: EntryRow[] = [
+      { id: 1, entry_type: "DEDUCTION", amount: 1500, reverses_entry_id: null, settlement_id: 9 },
+    ];
+    expect(carryForwardIn(entries)).toBe(-1500);
+  });
+
+  it("excludes a carry-forward entry that was reversed (settlement undone)", () => {
+    const entries: EntryRow[] = [
+      { id: 1, entry_type: "ADVANCE", amount: 2000, reverses_entry_id: null, settlement_id: 9 },
+      { id: 2, entry_type: "ADVANCE", amount: -2000, reverses_entry_id: 1, settlement_id: null },
+    ];
+    expect(carryForwardIn(entries)).toBe(0);
+  });
+
+  it("ignores a plain manual entry alongside a tagged carry-forward", () => {
+    const entries: EntryRow[] = [
+      { id: 1, entry_type: "ADVANCE", amount: 2000, reverses_entry_id: null, settlement_id: 9 },
+      { id: 2, entry_type: "ADVANCE", amount: 500, reverses_entry_id: null },
+    ];
+    expect(carryForwardIn(entries)).toBe(2000);
   });
 });
 
