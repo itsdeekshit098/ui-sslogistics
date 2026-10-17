@@ -57,7 +57,7 @@ describe("POST /api/auth/login", () => {
     const body = await res.json();
 
     expect(res.status).toBe(401);
-    expect(body.error).toBe("Invalid email or password");
+    expect(body.error).toBe("Invalid credentials. Please check your email and password.");
   });
 
   it("logs in successfully and revokes old sessions via RPC", async () => {

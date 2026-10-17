@@ -128,7 +128,7 @@ describe("BankAccountModal", () => {
   });
 
   it("submits a valid form via POST and calls onSuccess + onClose", async () => {
-    const fetchMock = vi.fn((url: string) => {
+    const fetchMock = vi.fn((url: string, _init?: RequestInit) => {
       if (url.includes("entities")) {
         return Promise.resolve({ ok: true, json: async () => ({ data: { data: entities } }) });
       }
@@ -162,7 +162,7 @@ describe("BankAccountModal", () => {
       (c) => c[0] === "/api/bank-accounts",
     );
     expect(postCall?.[1]).toMatchObject({ method: "POST" });
-    const body = JSON.parse(postCall![1].body as string);
+    const body = JSON.parse(postCall![1]!.body as string);
     expect(body).toMatchObject({
       holder_entity_id: 1,
       bank_name: "HDFC",
@@ -172,7 +172,7 @@ describe("BankAccountModal", () => {
   });
 
   it("submits via PUT with the account id when editing", async () => {
-    const fetchMock = vi.fn((url: string) => {
+    const fetchMock = vi.fn((url: string, _init?: RequestInit) => {
       if (url.includes("entities")) {
         return Promise.resolve({ ok: true, json: async () => ({ data: { data: entities } }) });
       }
@@ -204,13 +204,13 @@ describe("BankAccountModal", () => {
     await waitFor(() => {
       const putCall = fetchMock.mock.calls.find((c) => c[0] === "/api/bank-accounts");
       expect(putCall?.[1]).toMatchObject({ method: "PUT" });
-      const body = JSON.parse(putCall![1].body as string);
+      const body = JSON.parse(putCall![1]!.body as string);
       expect(body.id).toBe(5);
     });
   });
 
   it("shows the server's error message and does not close on a failed submit", async () => {
-    const fetchMock = vi.fn((url: string) => {
+    const fetchMock = vi.fn((url: string, _init?: RequestInit) => {
       if (url.includes("entities")) {
         return Promise.resolve({ ok: true, json: async () => ({ data: { data: entities } }) });
       }

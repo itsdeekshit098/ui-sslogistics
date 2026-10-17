@@ -25,7 +25,7 @@ describe("GET /api/repair-issues", () => {
     mockSupabaseAdmin({});
     const { GET } = await importRoute();
 
-    const res = await GET(new NextRequest("http://localhost/api/repair-issues"));
+    const res = await GET();
 
     expect(res.status).toBe(403);
   });
@@ -45,7 +45,7 @@ describe("GET /api/repair-issues", () => {
     });
     const { GET } = await importRoute();
 
-    const res = await GET(new NextRequest("http://localhost/api/repair-issues"));
+    const res = await GET();
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -60,7 +60,7 @@ describe("GET /api/repair-issues", () => {
     });
     const { GET } = await importRoute();
 
-    const res = await GET(new NextRequest("http://localhost/api/repair-issues"));
+    const res = await GET();
 
     expect(res.status).toBe(500);
   });

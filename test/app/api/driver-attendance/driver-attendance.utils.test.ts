@@ -12,6 +12,7 @@ import {
   type ShiftCountRow,
   type AttendanceRow,
 } from "@/app/api/driver-attendance/driver-attendance.utils";
+import type { Shift } from "@/components/attendancePage/attendancePage.types";
 
 describe("shiftCountForMonth", () => {
   it("defaults to 3 when the driver has no rows", () => {
@@ -189,8 +190,8 @@ describe("rowToMark", () => {
 describe("totalsFor", () => {
   it("counts shifts, days present, full days, absences and leave", () => {
     const marks = [
-      { shifts: ["A", "B", "C"], status: null },
-      { shifts: ["A"], status: null },
+      { shifts: ["A", "B", "C"] as Shift[], status: null },
+      { shifts: ["A"] as Shift[], status: null },
       { shifts: [], status: "ABSENT" as const },
       { shifts: [], status: "LEAVE" as const },
     ];
@@ -204,17 +205,17 @@ describe("totalsFor", () => {
   });
 
   it("counts a 2-shift driver's A+B day as a full day, not just a 3-shift driver's A+B+C", () => {
-    const marks = [{ shifts: ["A", "B"], status: null }];
+    const marks = [{ shifts: ["A", "B"] as Shift[], status: null }];
     expect(totalsFor(marks, 2).full_days).toBe(1);
   });
 
   it("does not count a 2-shift driver's single-shift day as full", () => {
-    const marks = [{ shifts: ["A"], status: null }];
+    const marks = [{ shifts: ["A"] as Shift[], status: null }];
     expect(totalsFor(marks, 2).full_days).toBe(0);
   });
 
   it("defaults shiftCount to 3 when not supplied", () => {
-    const marks = [{ shifts: ["A", "B", "C"], status: null }];
+    const marks = [{ shifts: ["A", "B", "C"] as Shift[], status: null }];
     expect(totalsFor(marks).full_days).toBe(1);
   });
 

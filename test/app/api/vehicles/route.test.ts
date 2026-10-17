@@ -444,7 +444,7 @@ describe("DELETE /api/vehicles", () => {
     pollution_url: null,
     tax_url: null,
   };
-  const zeroCountFor = (except?: string) =>
+  const zeroCountFor = (except?: string): Record<string, { count: number | null; error: unknown }[]> =>
     Object.fromEntries(
       dependentTables.map((t) => [t, [{ count: t === except ? 2 : 0, error: null }]]),
     );

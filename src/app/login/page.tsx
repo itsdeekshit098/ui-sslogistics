@@ -46,7 +46,10 @@ function LoginForm() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setError(json.error || "Invalid email or password. Please try again.");
+        setError(
+          json.error ||
+            "Invalid credentials. Please check your email and password.",
+        );
         setIsLoading(false);
         return;
       }
