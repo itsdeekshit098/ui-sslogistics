@@ -28,16 +28,16 @@ import {
   AlertTriangleIcon,
 } from "@/components/ui/icon";
 import { useRouter } from "next/navigation";
-import { FeedSkeleton } from "@/components/skeletonLoader";
-import { Pagination } from "@/components/pagination";
+import { FeedSkeleton } from "@/components/ui/skeletonLoader";
+import { Pagination } from "@/components/ui/pagination";
 import {
   ActivityLogEntry,
   ActivityLogPurgeResponse,
   ActivityLogResponse,
 } from "./activityLog.types";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import {
   AL_CONTAINER,

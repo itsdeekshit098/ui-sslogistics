@@ -24,12 +24,12 @@ import type {
 } from "../externalTripsPage/externalTripsPage.types";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import { Typeahead } from "@/components/typeahead";
+import { Typeahead } from "@/components/ui/typeahead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { AddDriverModal } from "@/components/addDriverModal";
 import {
   Modal,

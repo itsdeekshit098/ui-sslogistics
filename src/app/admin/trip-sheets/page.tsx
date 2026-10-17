@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/dataTable";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
 import { useAuth } from "@/context/AuthContext";
 
 interface MockVehicle {

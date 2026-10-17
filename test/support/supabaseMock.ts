@@ -52,8 +52,17 @@ const CHAIN_METHODS = [
 
 export interface SupabaseAdminMock {
   from: ReturnType<typeof vi.fn>;
+  rpc: ReturnType<typeof vi.fn>;
+  /** `.storage.from(bucket).remove(paths)` / `.upload(path, body, opts)`. */
+  storage: { from: ReturnType<typeof vi.fn> };
   /** Total calls to `.from(table)`, or calls for one specific table. */
   callCount: (table?: string) => number;
+  /** Total calls to `.rpc(name, ...)`, or calls for one specific RPC name. */
+  rpcCallCount: (name?: string) => number;
+  /** Total calls to `.storage.from(bucket).remove(...)`, or for one bucket. */
+  storageRemoveCallCount: (bucket?: string) => number;
+  /** Total calls to `.storage.from(bucket).upload(...)`, or for one bucket. */
+  storageUploadCallCount: (bucket?: string) => number;
 }
 
 let current: SupabaseAdminMock | undefined;
@@ -85,12 +94,20 @@ vi.mock("@/lib/supabase", () => ({
  */
 export function mockSupabaseAdmin(
   tableResponses: Record<string, ResultQueue | MockResult>,
+  rpcResponses: Record<string, ResultQueue | MockResult> = {},
+  storageResponses: Record<string, ResultQueue | MockResult> = {},
 ): SupabaseAdminMock {
   const queues = new Map<string, ResultQueue>();
   for (const [table, value] of Object.entries(tableResponses)) {
     queues.set(table, Array.isArray(value) ? [...value] : [value]);
   }
   const calls = new Map<string, number>();
+
+  const rpcQueues = new Map<string, ResultQueue>();
+  for (const [name, value] of Object.entries(rpcResponses)) {
+    rpcQueues.set(name, Array.isArray(value) ? [...value] : [value]);
+  }
+  const rpcCalls = new Map<string, number>();
 
   const from = vi.fn((table: string) => {
     const queue = queues.get(table);
@@ -118,12 +135,82 @@ export function mockSupabaseAdmin(
     return builder;
   });
 
+  const rpc = vi.fn((name: string) => {
+    const queue = rpcQueues.get(name);
+    const callIndex = rpcCalls.get(name) ?? 0;
+    rpcCalls.set(name, callIndex + 1);
+
+    if (!queue || queue.length === 0) {
+      throw new Error(
+        `mockSupabaseAdmin: no response queued for rpc "${name}" (call #${callIndex + 1}). ` +
+          `Pass rpcResponses["${name}"] to stub it.`,
+      );
+    }
+    const entry = queue[Math.min(callIndex, queue.length - 1)];
+    const response = typeof entry === "function" ? entry() : entry;
+    return Promise.resolve(response);
+  });
+
+  // One shared per-bucket queue: `.upload()` and `.remove()` calls on the same
+  // bucket draw from it in call order, same convention as the `.from()` table
+  // queues — a test only supplies as many entries as it needs to distinguish.
+  const storageQueues = new Map<string, ResultQueue>();
+  for (const [bucket, value] of Object.entries(storageResponses)) {
+    storageQueues.set(bucket, Array.isArray(value) ? [...value] : [value]);
+  }
+  const storageCallIndex = new Map<string, number>();
+
+  const storageRemoveCalls = new Map<string, number>();
+  const storageUploadCalls = new Map<string, number>();
+
+  function nextStorageResponse(bucket: string, fallback: MockResult) {
+    const queue = storageQueues.get(bucket);
+    if (!queue) return fallback;
+    const callIndex = storageCallIndex.get(bucket) ?? 0;
+    storageCallIndex.set(bucket, callIndex + 1);
+    const entry = queue[Math.min(callIndex, queue.length - 1)];
+    return typeof entry === "function" ? entry() : entry;
+  }
+
+  const storageFrom = vi.fn((bucket: string) => ({
+    remove: vi.fn((paths: string[]) => {
+      storageRemoveCalls.set(bucket, (storageRemoveCalls.get(bucket) ?? 0) + 1);
+      return Promise.resolve(
+        nextStorageResponse(bucket, { data: paths.map((p) => ({ name: p })), error: null }),
+      );
+    }),
+    upload: vi.fn(() => {
+      storageUploadCalls.set(bucket, (storageUploadCalls.get(bucket) ?? 0) + 1);
+      return Promise.resolve(
+        nextStorageResponse(bucket, { data: { path: "mock/path" }, error: null }),
+      );
+    }),
+    download: vi.fn(() => {
+      storageUploadCalls.set(bucket, (storageUploadCalls.get(bucket) ?? 0) + 1);
+      return Promise.resolve(nextStorageResponse(bucket, { data: null, error: null }));
+    }),
+  }));
+
   const mock: SupabaseAdminMock = {
     from,
+    rpc,
+    storage: { from: storageFrom },
     callCount: (table?: string) =>
       table
         ? (calls.get(table) ?? 0)
         : [...calls.values()].reduce((sum, n) => sum + n, 0),
+    rpcCallCount: (name?: string) =>
+      name
+        ? (rpcCalls.get(name) ?? 0)
+        : [...rpcCalls.values()].reduce((sum, n) => sum + n, 0),
+    storageRemoveCallCount: (bucket?: string) =>
+      bucket
+        ? (storageRemoveCalls.get(bucket) ?? 0)
+        : [...storageRemoveCalls.values()].reduce((sum, n) => sum + n, 0),
+    storageUploadCallCount: (bucket?: string) =>
+      bucket
+        ? (storageUploadCalls.get(bucket) ?? 0)
+        : [...storageUploadCalls.values()].reduce((sum, n) => sum + n, 0),
   };
   current = mock;
   return mock;

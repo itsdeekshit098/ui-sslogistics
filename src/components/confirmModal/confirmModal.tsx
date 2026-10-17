@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Trash2Icon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import type { ConfirmModalProps } from "./confirmModal.types";
 import * as styles from "./confirmModal.style";
 

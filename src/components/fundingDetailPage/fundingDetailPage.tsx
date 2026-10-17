@@ -20,9 +20,9 @@ import { PageHeader } from "@/components/ui/pageHeader";
 import { Money } from "@/components/ui/money";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef } from "@/components/ui/dataTable/dataTable.types";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/busyOverlay";
-import { ErrorState } from "@/components/errorState";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { BusyOverlay } from "@/components/ui/busyOverlay";
+import { ErrorState } from "@/components/ui/errorState";
 import { FundingEntryModal } from "./fundingEntryModal";
 import { RateChangeModal } from "./rateChangeModal";
 import {

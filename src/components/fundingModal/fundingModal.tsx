@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/typeahead";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { LenderModal } from "@/components/lenderModal";
 import { EntityModal } from "@/components/entityModal";
 import {

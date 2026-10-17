@@ -33,8 +33,8 @@ describe("retentionCutoff", () => {
 });
 
 describe("RETENTION_OPTIONS", () => {
-  it("includes the 2-month floor option matching the server's MIN_RETENTION_DAYS", () => {
-    expect(RETENTION_OPTIONS.some((o) => o.months === 2)).toBe(true);
+  it("has no option shorter than 3 months — 2 months can land under the server's 60-day floor across February", () => {
+    expect(RETENTION_OPTIONS.every((o) => o.months >= 3)).toBe(true);
   });
 
   it("is sorted ascending by months, shortest window first", () => {

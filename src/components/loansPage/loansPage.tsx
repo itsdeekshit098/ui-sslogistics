@@ -33,15 +33,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pagination } from "@/components/pagination";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/busyOverlay";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
+import { Pagination } from "@/components/ui/pagination";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { BusyOverlay } from "@/components/ui/busyOverlay";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
 import { FilterDrawer } from "@/components/ui/filterDrawer";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
-import { Typeahead } from "@/components/typeahead";
+import { Typeahead } from "@/components/ui/typeahead";
 import { LookupSelect } from "@/components/lookupSelect";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {

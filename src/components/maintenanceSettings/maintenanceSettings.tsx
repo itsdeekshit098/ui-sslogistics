@@ -13,8 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { ErrorState } from "@/components/errorState";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { ErrorState } from "@/components/ui/errorState";
 
 interface MaintenanceStatus {
   maintenanceMode: boolean;

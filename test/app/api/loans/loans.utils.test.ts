@@ -59,9 +59,9 @@ describe("isNonNegativeNumber / isPositiveNumber", () => {
     expect(isPositiveNumber(-5)).toBe(false);
   });
 
-  it("coerces numeric strings, matching how JSON body values arrive", () => {
-    expect(isNonNegativeNumber("100.50")).toBe(true);
-    expect(isPositiveNumber("0.01")).toBe(true);
+  it("rejects numeric strings — only a real `number` passes, by design", () => {
+    expect(isNonNegativeNumber("100.50")).toBe(false);
+    expect(isPositiveNumber("0.01")).toBe(false);
   });
 });
 

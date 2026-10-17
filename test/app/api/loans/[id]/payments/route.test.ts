@@ -336,6 +336,7 @@ describe("POST /api/loans/[id]/payments", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     const supa = mockSupabaseAdmin({
       loans: [{ data: LOAN_ROW, error: null }],
+      loan_installments: [{ data: { id: 5, loan_id: 10 }, error: null }],
       loan_payments: [{ data: { id: 1, loan_id: 10, installment_id: 5 }, error: null }],
     });
     const { POST } = await importRoute();
@@ -352,8 +353,9 @@ describe("POST /api/loans/[id]/payments", () => {
 
     expect(res.status).toBe(201);
     expect(body.data.payment.installment_id).toBe(5);
-    // Only the payment insert hit loan_installment_state's sibling table -
-    // context installment_id is not validated against the DB for non-EMI types.
+    // The context installment is checked against loan_installments (it belongs
+    // to this loan), but loan_installment_state — the derived due/paid view
+    // used for real EMI validation — is never touched for a non-EMI payment.
     expect(supa.callCount("loan_installment_state")).toBe(0);
   });
 

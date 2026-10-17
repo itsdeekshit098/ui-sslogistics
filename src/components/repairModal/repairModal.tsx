@@ -23,7 +23,7 @@ import type {
   Vendor,
   WarrantyDurationUnit,
 } from "@/components/repairRecordsPage";
-import { Typeahead } from "@/components/typeahead";
+import { Typeahead } from "@/components/ui/typeahead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { AddTechnicianModal } from "@/components/addTechnicianModal";
 import { AddVendorModal } from "@/components/addVendorModal";
 import {

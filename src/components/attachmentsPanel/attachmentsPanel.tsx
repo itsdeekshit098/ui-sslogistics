@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import JSZip from "jszip";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { ConfirmModal } from "@/components/confirmModal";
-import { EmptyState } from "@/components/emptyState";
+import { EmptyState } from "@/components/ui/emptyState";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import {
   UploadCloudIcon,

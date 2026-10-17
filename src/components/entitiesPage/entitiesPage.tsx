@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/ui/pageHeader";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import {

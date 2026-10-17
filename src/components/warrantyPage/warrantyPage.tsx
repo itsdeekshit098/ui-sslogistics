@@ -20,7 +20,7 @@ import {
   PencilIcon,
   Trash2Icon,
 } from "@/components/ui/icon";
-import { Pagination } from "@/components/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { DataTable } from "@/components/ui/dataTable";
 import type { ColumnDef } from "@/components/ui/dataTable";
 import {
@@ -30,8 +30,8 @@ import {
 } from "@/components/ui/filterDrawer";
 import { Tooltip } from "@/components/ui/tooltip";
 import { PageFab } from "@/components/ui/pageFab";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
 import type { WarrantyItem, WarrantyStatusFilter } from "./warrantyPage.types";
 import type { VehicleOption, Vendor } from "@/components/partModal";
 import * as styles from "./warrantyPage.style";

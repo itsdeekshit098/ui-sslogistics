@@ -33,12 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Typeahead } from "@/components/typeahead";
+import { Typeahead } from "@/components/ui/typeahead";
 import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
-import { Pagination } from "@/components/pagination";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
+import { Pagination } from "@/components/ui/pagination";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import * as styles from "./externalTripsPage.style";

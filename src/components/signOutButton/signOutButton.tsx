@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { LogOutIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 

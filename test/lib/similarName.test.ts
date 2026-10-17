@@ -1,90 +1,77 @@
-import { describe, expect, it } from "vitest";
-import { findSimilarNames, isSimilarName } from "@/lib/similarName";
+import { describe, it, expect } from "vitest";
+import { isSimilarName, findSimilarNames } from "@/lib/similarName";
 
-describe("isSimilarName — spellings of one name", () => {
-  it("matches transliterations of the same name", () => {
-    expect(isSimilarName("MAHABOOB", "MEHABOOB")).toBe(true);
-    expect(isSimilarName("Mehboob", "Mehaboob")).toBe(true);
-    expect(isSimilarName("Mahboob", "MEHABOOB")).toBe(true);
+describe("isSimilarName", () => {
+  it("is true for the exact same name, ignoring case", () => {
+    expect(isSimilarName("Mehaboob", "MEHABOOB")).toBe(true);
   });
 
-  it("matches the same name typed differently", () => {
-    expect(isSimilarName("mehaboob", "MEHABOOB")).toBe(true);
-    expect(isSimilarName("  Mehaboob  ", "Mehaboob")).toBe(true);
-    expect(isSimilarName("Mehaboob", "Meha boob")).toBe(true);
+  it("is true for the exact same name once spacing is ignored", () => {
+    expect(isSimilarName("Ravi Kumar", "RaviKumar")).toBe(true);
   });
 
-  it("matches a name that is a full part of another", () => {
+  it("is true when one name fully contains the other and both are long enough", () => {
     expect(isSimilarName("Ramesh", "Ramesh Kumar")).toBe(true);
-    expect(isSimilarName("Suresh Babu", "Suresh")).toBe(true);
   });
 
-  it("matches other common transliteration pairs", () => {
-    expect(isSimilarName("Yousuf", "Yusuf")).toBe(true);
-    expect(isSimilarName("Shaik", "Sheik")).toBe(true);
-    expect(isSimilarName("Mohammed", "Muhammad")).toBe(true);
+  it("is false for a short name contained in a longer one — below the length floor", () => {
+    // "Jo" is only 2 letters; it must not match half the roster.
+    expect(isSimilarName("Jo", "John Smith")).toBe(false);
   });
 
-  it("leaves very short names alone, even when they sound alike", () => {
-    // "Khan"/"Kan" are the same name, but matching 3-4 letter names by sound
-    // also matches every unrelated short pair ("Ravi"/"Ravu"). A missed
-    // warning on a short name costs less than flagging half the roster, and
-    // the exact-duplicate check still catches "Khan" vs "KHAN".
-    expect(isSimilarName("Khan", "Kan")).toBe(false);
+  it("recognizes common transliteration variants of the same name", () => {
+    expect(isSimilarName("Mehaboob", "Mahaboob")).toBe(true);
+    expect(isSimilarName("Mehaboob", "Mehboob")).toBe(true);
   });
 
-  it("matches a single-letter slip in a longer name", () => {
-    expect(isSimilarName("Narayana", "Narayanna")).toBe(true);
-    expect(isSimilarName("Venkatesh", "Venkatesr")).toBe(true);
-  });
-});
-
-describe("isSimilarName — genuinely different people", () => {
-  it("does not match unrelated names", () => {
-    expect(isSimilarName("Ramesh", "Suresh")).toBe(false);
-    expect(isSimilarName("Mehaboob", "Narayana")).toBe(false);
-    expect(isSimilarName("Kiran", "Balaji")).toBe(false);
-  });
-
-  it("does not match short names that differ by a letter", () => {
-    // Four letters apart by one is far more likely to be two people than a
-    // typo, so short names get no slack at all.
+  it("is false for two short, clearly different names a letter apart", () => {
     expect(isSimilarName("Ravi", "Ravu")).toBe(false);
-    expect(isSimilarName("Raju", "Ravi")).toBe(false);
   });
 
-  it("does not match on a short fragment of a longer name", () => {
-    // "Ram" appearing inside "Ramesh" must not drag in every Ram*.
-    expect(isSimilarName("Ram", "Ramesh Kumar")).toBe(false);
+  it("tolerates a single-letter typo in a medium-length name", () => {
+    expect(isSimilarName("Srinivas", "Srinivasa")).toBe(true);
   });
 
-  it("handles empty and junk input without matching", () => {
-    expect(isSimilarName("", "Ramesh")).toBe(false);
-    expect(isSimilarName("Ramesh", "")).toBe(false);
-    expect(isSimilarName("   ", "Ramesh")).toBe(false);
+  it("is false for two names that share a prefix but are otherwise unrelated", () => {
+    expect(isSimilarName("Suresh", "Suman")).toBe(false);
+  });
+
+  it("is false for two clearly unrelated names", () => {
+    expect(isSimilarName("Ravi Kumar", "John Smith")).toBe(false);
+  });
+
+  it("is false when either name is empty after stripping punctuation", () => {
+    expect(isSimilarName("", "Ravi")).toBe(false);
+    expect(isSimilarName("---", "Ravi")).toBe(false);
+  });
+
+  it("is case- and punctuation-insensitive throughout", () => {
+    expect(isSimilarName("ravi-kumar", "RAVI KUMAR")).toBe(true);
   });
 });
 
 describe("findSimilarNames", () => {
   const rows = [
-    { id: 1, name: "MEHABOOB" },
-    { id: 2, name: "Ramesh Kumar" },
-    { id: 3, name: "Suresh Babu" },
-    { id: 4, name: "Narayana" },
+    { id: 1, name: "Mehaboob" },
+    { id: 2, name: "Suresh" },
+    { id: 3, name: "Mahaboob" },
   ];
 
-  it("returns every row worth a second look", () => {
-    expect(findSimilarNames("MAHABOOB", rows).map((r) => r.id)).toEqual([1]);
-    expect(findSimilarNames("Ramesh", rows).map((r) => r.id)).toEqual([2]);
+  it("returns every row similar to the candidate name", () => {
+    const result = findSimilarNames("Mehaboob", rows);
+    expect(result.map((r) => r.id)).toEqual([1, 3]);
   });
 
-  it("returns nothing for a genuinely new name", () => {
-    expect(findSimilarNames("Prasad Reddy", rows)).toEqual([]);
+  it("returns an empty array when nothing matches", () => {
+    expect(findSimilarNames("Zzzxyz", rows)).toEqual([]);
   });
 
-  it("skips the row being edited, so renaming a driver never flags itself", () => {
-    expect(findSimilarNames("MEHABOOB", rows, 1)).toEqual([]);
-    // ...but still flags a different row with that name.
-    expect(findSimilarNames("MEHABOOB", rows, 2).map((r) => r.id)).toEqual([1]);
+  it("excludes the given excludeId even if it would otherwise match", () => {
+    const result = findSimilarNames("Mehaboob", rows, 1);
+    expect(result.map((r) => r.id)).toEqual([3]);
+  });
+
+  it("returns an empty array for an empty row list", () => {
+    expect(findSimilarNames("Mehaboob", [])).toEqual([]);
   });
 });

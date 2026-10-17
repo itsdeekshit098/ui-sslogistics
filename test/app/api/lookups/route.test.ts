@@ -1,13 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { mockSupabaseAdmin } from "@test/supabaseMock";
-import {
-  requireUserAuth,
-  requireAdminAuth,
-  requireStrictAdminAuth,
-} from "@test/authMock";
+import { requireStrictAdminAuth } from "@test/authMock";
 import { logActivity } from "@test/activityLogMock";
-import { ADMIN_USER, STAFF_USER, forbiddenError } from "@test/fixtures";
+import { ADMIN_USER, forbiddenError } from "@test/fixtures";
 
 async function importRoute() {
   return await import("@/app/api/lookups/route");
@@ -21,15 +17,13 @@ function jsonRequest(url: string, method: string, body?: unknown) {
 }
 
 beforeEach(() => {
-  requireUserAuth.mockReset();
-  requireAdminAuth.mockReset();
   requireStrictAdminAuth.mockReset();
   logActivity.mockReset();
 });
 
 describe("GET /api/lookups", () => {
-  it("rejects when requireUserAuth fails", async () => {
-    requireUserAuth.mockRejectedValue(forbiddenError());
+  it("rejects when requireStrictAdminAuth fails", async () => {
+    requireStrictAdminAuth.mockRejectedValue(forbiddenError());
     mockSupabaseAdmin({});
     const { GET } = await importRoute();
 
@@ -40,22 +34,8 @@ describe("GET /api/lookups", () => {
     expect(res.status).toBe(403);
   });
 
-  it("allows any authenticated staff user (requireUserAuth gate)", async () => {
-    requireUserAuth.mockResolvedValue(STAFF_USER);
-    mockSupabaseAdmin({
-      lookup_options: [{ data: [{ id: 1, value: "TERM_LOAN" }], error: null }],
-    });
-    const { GET } = await importRoute();
-
-    const res = await GET(
-      new NextRequest("http://localhost/api/lookups?category=LOAN_TYPE"),
-    );
-
-    expect(res.status).toBe(200);
-  });
-
   it("400s when category is missing", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});
     const { GET } = await importRoute();
 
@@ -67,7 +47,7 @@ describe("GET /api/lookups", () => {
   });
 
   it("filters to active options by default, and includes inactive when asked", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       lookup_options: [{ data: [], error: null }],
     });
@@ -83,7 +63,7 @@ describe("GET /api/lookups", () => {
   });
 
   it("surfaces a 500 when the query errors", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       lookup_options: [{ data: null, error: { message: "connection reset" } }],
     });
@@ -98,8 +78,8 @@ describe("GET /api/lookups", () => {
 });
 
 describe("POST /api/lookups", () => {
-  it("rejects when requireAdminAuth fails", async () => {
-    requireAdminAuth.mockRejectedValue(forbiddenError());
+  it("rejects when requireStrictAdminAuth fails", async () => {
+    requireStrictAdminAuth.mockRejectedValue(forbiddenError());
     mockSupabaseAdmin({});
     const { POST } = await importRoute();
 
@@ -114,7 +94,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("400s when category is missing", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});
     const { POST } = await importRoute();
 
@@ -128,7 +108,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("400s when label is missing", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});
     const { POST } = await importRoute();
 
@@ -142,7 +122,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("400s when the label exceeds the max length", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});
     const { POST } = await importRoute();
 
@@ -159,7 +139,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("400s when the label slugifies to an empty value", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});
     const { POST } = await importRoute();
 
@@ -176,7 +156,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("derives the value from the label when none is supplied", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     const supa = mockSupabaseAdmin({
       lookup_options: [
         {
@@ -207,7 +187,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("uses an explicitly supplied value instead of deriving one, and honors sort_order", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       lookup_options: [
         {
@@ -233,7 +213,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("falls back to a default sort_order when the supplied one isn't finite", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       lookup_options: [
         { data: { id: 3, category: "LOAN_TYPE", value: "X", label: "X" }, error: null },
@@ -253,7 +233,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("409s when the option already exists in the list", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       lookup_options: [{ data: null, error: { code: "23505" } }],
     });
@@ -272,7 +252,7 @@ describe("POST /api/lookups", () => {
   });
 
   it("surfaces a 500 on a generic insert error", async () => {
-    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       lookup_options: [{ data: null, error: { message: "disk full" } }],
     });

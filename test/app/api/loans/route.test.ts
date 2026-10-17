@@ -856,6 +856,7 @@ describe("DELETE /api/loans", () => {
         { error: null },
       ],
       fundings: [{ count: 0, error: null }],
+      loan_payments: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 

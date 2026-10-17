@@ -43,15 +43,13 @@ export const PURGE_CONFIRM_PHRASE = "DELETE";
  */
 export function retentionCutoff(months: number): Date {
   const now = new Date();
-  const targetMonthIndex = now.getMonth() - months;
+  const targetMonthIndex = now.getUTCMonth() - months;
   // Day 0 of the month after the target lands on the target month's last
   // real day, whatever its length. JS normalizes a negative month index
   // (and a negative day-of-month here) across year boundaries automatically.
   const lastDayOfTargetMonth = new Date(
-    now.getFullYear(),
-    targetMonthIndex + 1,
-    0,
-  ).getDate();
-  const day = Math.min(now.getDate(), lastDayOfTargetMonth);
-  return new Date(now.getFullYear(), targetMonthIndex, day);
+    Date.UTC(now.getUTCFullYear(), targetMonthIndex + 1, 0),
+  ).getUTCDate();
+  const day = Math.min(now.getUTCDate(), lastDayOfTargetMonth);
+  return new Date(Date.UTC(now.getUTCFullYear(), targetMonthIndex, day));
 }

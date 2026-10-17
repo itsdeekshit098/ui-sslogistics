@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronRightIcon } from "@/components/ui/icon";
+import { ChevronRightIcon, HandCoinsIcon } from "@/components/ui/icon";
 import { formatCurrency } from "@/lib/format";
 import { Money } from "@/components/ui/money";
 import type { SalaryRow, SalarySheet } from "./salariesPage.types";
@@ -70,9 +70,11 @@ function cutsLine(row: SalaryRow): string[] {
 export function SalaryMobileList({
   rows,
   onOpen,
+  onAddAdvance,
 }: {
   rows: SalaryRow[];
   onOpen: (driverId: number) => void;
+  onAddAdvance: (row: SalaryRow) => void;
 }) {
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
@@ -86,12 +88,12 @@ export function SalaryMobileList({
           .join(" · ");
 
         return (
-          <li key={row.driver_id}>
+          <li key={row.driver_id} className="flex items-center">
             <button
               type="button"
               data-testid={`salary-row-${row.driver_id}`}
               onClick={() => onOpen(row.driver_id)}
-              className="flex w-full items-center gap-3 px-3.5 py-3 text-left active:bg-muted/60"
+              className="flex min-w-0 flex-1 items-center gap-3 px-3.5 py-3 text-left active:bg-muted/60"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">{row.name}</p>
@@ -125,6 +127,18 @@ export function SalaryMobileList({
                 <span className="shrink-0 text-[13px] font-semibold text-primary">Set salary</span>
               )}
               <ChevronRightIcon size={16} className="shrink-0 text-muted-foreground" />
+            </button>
+            <button
+              type="button"
+              aria-label={`Add advance for ${row.name}`}
+              data-testid={`salary-add-advance-${row.driver_id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddAdvance(row);
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground active:bg-muted/60"
+            >
+              <HandCoinsIcon size={18} />
             </button>
           </li>
         );

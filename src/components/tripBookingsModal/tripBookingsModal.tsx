@@ -14,7 +14,7 @@ import type {
 import { VEHICLE_TYPES, SEATING_CAPACITY_TYPES } from "@/app/admin/vehicles/vehicles.types";
 import type { Vehicle, VehicleType } from "@/app/admin/vehicles/vehicles.types";
 import type { Driver } from "@/components/driversPage/driversPage.types";
-import { Typeahead } from "@/components/typeahead";
+import { Typeahead } from "@/components/ui/typeahead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { AddDriverModal } from "@/components/addDriverModal";
 import {
   Modal,
