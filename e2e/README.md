@@ -1,82 +1,122 @@
 # End-to-end tests (Playwright)
 
-Real browser, real login, real Supabase-backed dev database — this is not
-the mocked route-handler suite in `test/` (`npm run test`). Use these when
-you need proof a flow actually works end to end; use `test/` for everything
-else, since it's orders of magnitude faster and doesn't touch real data.
-
-## One-time setup
-
-```bash
-cp .env.e2e.local.example .env.e2e.local
-# fill in E2E_EMAIL / E2E_PASSWORD — an admin or superadmin account
-npx playwright install chromium
-```
-
-## Running
+The whole suite is **fully mocked**: every `/api/**` call the browser makes
+is intercepted by `page.route()` and answered from an in-memory fixture
+store (`e2e/fixtures/*.ts`). There is no real login, no real Supabase, and
+no record cleanup to run afterward — each test builds and tears down its own
+fixture state just by starting and finishing.
 
 ```bash
 npm run test:e2e          # headless, starts/reuses the dev server automatically
 npm run test:e2e:ui       # Playwright's interactive UI mode — best for writing/debugging
+npm run test:e2e:watch    # headed, slowed down (SLOWMO=750), one worker — for watching a run live
 npm run test:e2e:report   # open the HTML report from the last run
 ```
 
-## Before you touch this: the single-session gotcha
+No setup beyond `npx playwright install chromium` — there's no account to
+create, no `.env.e2e.local` to fill in, and no dev Supabase project this
+suite needs to reach.
 
-The account this suite logs in as can hold **one session at a time**,
-period — unless its `app_metadata.role` is exactly `"admin"`, in which case
-`revoke_old_user_sessions` (see `sql/24_admin_two_sessions.sql`) allows two.
-**Superadmin does not get that allowance.** Logging in anywhere else with the
-same account (your own browser tab, the mobile app, a second local run)
-silently signs out whichever session was already active.
+## How it works
 
-Consequence for how this suite is built: **only `e2e/support/global-setup.ts`
-is allowed to call the login endpoint.** It logs in exactly once per run and
-saves the resulting cookies to `e2e/.auth/admin.json`
-(gitignored), which every test's browser context loads via
-`use.storageState` in `playwright.config.ts`. Tests run fully parallel
-across files because they all share that one already-authenticated session —
-never add a second `POST /api/auth/login` call anywhere in a spec, or you'll
-invalidate every other test's session mid-run and get a wall of confusing
-401s that have nothing to do with whatever you were actually testing.
+`playwright.config.ts` starts an isolated Next.js dev server on port 3100
+(`.next-mock-e2e` build directory, so it never collides with a normal
+`npm run dev` on 3000) with `E2E_MOCK_AUTH=true`. `src/proxy.ts` checks that
+flag, `NODE_ENV === "development"`, and the absence of `VERCEL` (which
+Vercel sets on every build/runtime it manages) before skipping the auth
+middleware — three independent conditions, all required, so a production
+build or a Vercel deployment can't accidentally enable the bypass even if one
+env var were misconfigured. When all three hold, every route behaves as if a
+session already exists, so the app renders straight through to the page
+under test without a login screen in the way.
 
-If you need a *different* role in a test (e.g. asserting a `staff` account
-can't reach a money-module page), open an incognito-equivalent context with
-its own `storageState: undefined}` and log that one in by hand inside the
-test — just know it will kick the shared admin session out for the rest of
-the run, so put role/permission tests last or in their own project.
+The actual API responses then come entirely from `page.route("**/api/**", ...)`
+installed at the top of each test (or in a `beforeEach`), reading from and
+writing to an in-memory store scoped to that one test. A create, a payment,
+a reversal, a delete-guard check — the mock keeps just enough state to make
+those operations behave like the real route handler would (see
+`e2e/fixtures/salaries.fixtures.ts` or `e2e/fixtures/clients.fixtures.ts` for
+the pattern: a `Map` per resource, builder functions for fixture rows, and
+one `installXMocks(page, options?)` that wires it all up). Every response
+uses the app's real envelope (`{success:true,data,message}` /
+`{success:false,error}` — see `src/lib/apiResponse.ts`), and fixture shapes
+are built by reading the actual route handler they stand in for, not
+guessed.
 
-## Test data hygiene
+Because each test installs its own mock, tests are fully independent and
+run in parallel safely — there's no shared session, no shared database, and
+nothing for one test's data to collide with another's.
 
-Every record a test creates must carry `RUN_PREFIX` (from
-`e2e/support/run-id.ts`, via the `testLabel()` helper) somewhere
-identifiable — an entity/lender/client's `name`, a loan's `loan_number`, a
-funding's `notes`. Two reasons:
+### Raw API calls inside a test
 
-1. It's how you tell your own test's rows apart from real dev data when
-   debugging in Supabase directly.
-2. `global-teardown.ts` greps for `RUN_PREFIX` across loans/fundings/clients/
-   entities/lenders after the run and deletes anything that matches — a
-   safety net for tests that fail before their own cleanup runs. It is *not*
-   a substitute for each spec cleaning up after itself in `test.afterEach`;
-   it's what catches what that missed.
-
-This suite runs against the real dev Supabase project (same one the app's
-`.env.local` points at) — there is no ephemeral/disposable test database.
-Treat every write as something a human could see in the admin UI a minute
-later.
+A few specs need to hit an endpoint directly rather than through a UI flow
+(seeding a second fixture, asserting a delete-guard's exact status code).
+`page.request` — a separate `APIRequestContext` — is **not** an option here:
+it talks to the network directly from Node and is never routed through
+`page.route()`, so it would just fail (or hit a real network) against a
+fully-mocked app with nothing real behind it. Use `apiFetch()` from
+`e2e/support/apiFetch.ts` instead, which runs the call as a real `fetch()`
+*inside* the page via `page.evaluate` — that's what the browser's own
+network stack dispatches, and the one thing `page.route()` actually
+intercepts. It needs a `page.goto()` to any mocked page first, so there's a
+document for the fetch to run in and the route handler is already
+installed.
 
 ## Layout
 
-```
+```text
 e2e/
   support/
-    global-setup.ts     # the one and only login, saves storageState
-    global-teardown.ts  # sweeps up anything RUN_PREFIX-tagged that survived
-    run-id.ts           # RUN_PREFIX + testLabel() helper
-  loans.spec.ts
-  fundings.spec.ts
-  clients.spec.ts
-  entities-lenders-lookups.spec.ts
-  pages-smoke.spec.ts   # renders every admin page once, asserts no console errors
+    apiFetch.ts     # fetch() via page.evaluate — the only way to hit a mocked
+                     # endpoint directly from a test; page.request bypasses page.route()
+    human.ts        # humanFill() — slow, per-character typing under SLOWMO
+  fixtures/
+    salaries.fixtures.ts   # mock-data builders + installSalaryMocks() for /admin/salaries
+    loans.fixtures.ts      # installLoansMocks() for /admin/loans and loan detail
+    fundings.fixtures.ts   # installFundingsMocks() for the Private Fundings tab
+    clients.fixtures.ts    # installClientsMocks() for /admin/clients and client detail
+    entities.fixtures.ts   # installEntitiesMocks() for entities/lenders/lookup-options
+    trips.fixtures.ts      # installTripsMocks() for the trip-bookings API
+    smoke.fixtures.ts      # installSmokeMocks() — broad catch-all for the smoke suite
+  pages/
+    loansPage.ts       # Page Object for /admin/loans
+    fundingsPage.ts    # Page Object for the Private Fundings tab
+    clientsPage.ts     # Page Object for /admin/clients
+    entitiesPage.ts    # Page Object for /admin/entities
+    salariesPage.ts    # page-interaction helpers for /admin/salaries
+  features/
+    loans/loans.spec.ts
+    fundings/fundings.spec.ts
+    clients/clients.spec.ts
+    entities-lenders-lookups/entities-lenders-lookups.spec.ts
+    trips/trips.spec.ts
+    salaries/salaries-mocked.spec.ts
+    smoke/pages-smoke.spec.ts   # renders every admin page once, asserts no console errors
 ```
+
+## Writing a new mocked spec
+
+1. Read the handler(s) it stands in for under `src/app/api/**/route.ts` so
+   the fixture's field names and response envelope are accurate, not
+   guessed.
+2. Add (or extend) a fixtures file: builder functions for the fixture rows,
+   plus `installXMocks(page, options?)` that installs one
+   `page.route("**/api/**", ...)` and answers every path that resource's
+   page can call, backed by an in-memory `Map` if the test needs state
+   (creates, deletes, delete-guards) to persist across requests.
+3. Write the spec against a Page Object where one already exists for that
+   page; add one under `e2e/pages/` if not.
+4. If the test needs a raw API call outside the UI flow, use `apiFetch()`
+   (see above), not `page.request`.
+
+## What changed from the real-backend suite
+
+This suite used to run against the real dev Supabase project with a real
+logged-in session (`global-setup.ts`/`global-teardown.ts`, a shared
+`storageState`, `RUN_PREFIX`-tagged test data swept up afterward). That has
+been retired entirely — every spec is now mocked the same way the salary
+page's suite always was. The trade-off: this suite can no longer catch a
+regression in real Postgres constraint behavior, RLS, or the Supabase RPCs
+themselves (`revoke_old_user_sessions`, `save_driver_attendance`, and so on)
+— only in the route handlers' own logic, which the mocks reproduce by hand.
+That gap is accepted; it is not something this suite is trying to cover.

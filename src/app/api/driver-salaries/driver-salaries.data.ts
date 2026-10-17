@@ -31,6 +31,14 @@ interface DriverRef {
   is_active: boolean;
 }
 
+function compareDrivers(a: DriverRef, b: DriverRef): number {
+  return (
+    Number(b.is_active) - Number(a.is_active) ||
+    a.name.localeCompare(b.name) ||
+    a.id - b.id
+  );
+}
+
 /**
  * driver_salary_settlements is created by sql/50, applied by hand like every
  * other sql/ file. Until it exists, every month reads as unsettled rather
@@ -221,8 +229,8 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
       .in("id", missing);
     if (error) throw error;
     drivers.push(...((data ?? []) as DriverRef[]));
-    drivers.sort((a, b) => a.name.localeCompare(b.name));
   }
+  drivers.sort(compareDrivers);
 
   const rows = drivers.map((driver) =>
     buildRow(

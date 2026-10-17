@@ -31,9 +31,31 @@ jobs:
       - name: Run Typecheck
         run: npm run typecheck
 
-      # Uncomment if/when you add a test script to package.json
-      # - name: Run Tests
-      #   run: npm test
+      - name: Run Unit Tests
+        run: npm run test
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E Tests
+        # Fully mocked (page.route() fixtures) — the app never makes a real
+        # Supabase call in this suite, but src/lib/supabase.ts and
+        # src/utils/supabase/middleware.ts throw at module-load time if these
+        # vars are merely absent, regardless of E2E_MOCK_AUTH. Dummy values
+        # only — no real secrets needed here. See e2e/README.md.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key"
+          SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key"
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e-report/
+          retention-days: 14
 
       - name: Test Build
         env:

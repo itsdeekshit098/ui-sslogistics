@@ -59,6 +59,7 @@ async function fetchDrivers(): Promise<DriverRow[]> {
   const { data, error } = await supabaseAdmin
     .from("drivers")
     .select("id, name, place, is_active")
+    .order("is_active", { ascending: false })
     .order("name", { ascending: true });
   if (error) throw error;
   return (data ?? []) as DriverRow[];

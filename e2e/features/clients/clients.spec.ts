@@ -1,21 +1,14 @@
-import { test, expect, request, type APIRequestContext } from "@playwright/test";
-import { testLabel } from "./support/run-id";
-import { humanFill } from "./support/human";
-
-let api: APIRequestContext;
-
-test.beforeAll(async ({ baseURL }) => {
-  api = await request.newContext({ baseURL, storageState: "e2e/.auth/admin.json" });
-});
-test.afterAll(async () => {
-  await api.dispose();
-});
+import { expect, test } from "@playwright/test";
+import { humanFill } from "../../support/human";
+import { apiFetch } from "../../support/apiFetch";
+import { ClientsPage, assertApiCallsAreMocked, openClientsPage } from "../../pages/clientsPage";
+import { CLIENT_ID, CLIENT_NAME, installClientsMocks } from "../../fixtures/clients.fixtures";
 
 test.describe("New client — validation", () => {
   test("blocks submission with the company name empty", async ({ page }) => {
-    await page.goto("/admin/clients");
-    await page.getByTestId("clients-add-btn").click();
-    await expect(page.getByRole("heading", { name: "New Client" })).toBeVisible();
+    await installClientsMocks(page);
+    const clients = new ClientsPage(page);
+    await clients.openNewClientModal();
 
     // Default mode is COMPANY, so "Company Name" is the field under test.
     await page.getByRole("dialog").getByRole("button", { name: "Save Client" }).click();
@@ -24,43 +17,24 @@ test.describe("New client — validation", () => {
 });
 
 test.describe("Client lifecycle", () => {
-  let clientName: string;
-  let clientId: number;
-
-  test.beforeEach(async ({ page }) => {
-    clientName = testLabel("Client");
-    await page.goto("/admin/clients");
-    await page.getByTestId("clients-add-btn").click();
-    await humanFill(page.getByLabel("Company Name"), clientName);
-    await page.getByRole("dialog").getByRole("button", { name: "Save Client" }).click();
-    await expect(page.getByRole("heading", { name: "New Client" })).toBeHidden();
-
-    const res = await page.request.get(`/api/clients?search=${encodeURIComponent(clientName)}`);
-    const body = await res.json();
-    clientId = body.data.data[0].id;
-  });
-
-  test.afterEach(async () => {
-    await api.delete(`/api/clients?id=${clientId}`).catch(() => {});
-  });
-
   test("bills, partially pays, reverses the bill, and re-settles to an advance", async ({
     page,
   }) => {
-    await page.goto(`/admin/clients/${clientId}`);
+    const mocks = await installClientsMocks(page);
+    await page.goto(`/admin/clients/${CLIENT_ID}`);
 
     // The empty statement's own EmptyState renders a second "Add Bill" button
     // alongside the page header's — the header's is first in DOM order.
     await page.getByRole("button", { name: "Add Bill" }).first().click();
     await expect(page.getByRole("heading", { name: "Add Bill" })).toBeVisible();
-    await humanFill(page.getByLabel("Amount"), "25000");
+    await humanFill(page.getByLabel("Amount (₹)"), "25000");
     await humanFill(page.getByLabel("Date", { exact: true }), "2026-08-01");
     await page.getByRole("dialog").getByRole("button", { name: "Add Bill" }).click();
     await expect(page.getByRole("heading", { name: "Add Bill" })).toBeHidden();
     await expect(page.getByText("₹25,000").first()).toBeVisible(); // Total Billed
 
     await page.getByRole("button", { name: "Record Payment" }).click();
-    await humanFill(page.getByLabel("Amount"), "10000");
+    await humanFill(page.getByLabel("Amount (₹)"), "10000");
     await humanFill(page.getByLabel("Date", { exact: true }), "2026-08-10");
     await page.getByRole("dialog").getByRole("button", { name: "Record Payment" }).click();
     await expect(page.getByRole("heading", { name: "Record Payment" })).toBeHidden();
@@ -76,13 +50,15 @@ test.describe("Client lifecycle", () => {
     // Both the bill and its reversal net out and drop from the balance,
     // leaving the ₹10,000 payment as a pure advance.
     await expect(page.getByText("₹10,000").first()).toBeVisible(); // Advance Held
+    assertApiCallsAreMocked(mocks);
   });
 
   test("adds a contact and a describe-by-type vehicle deployment", async ({ page }) => {
-    await page.goto(`/admin/clients/${clientId}`);
+    const mocks = await installClientsMocks(page);
+    await page.goto(`/admin/clients/${CLIENT_ID}`);
     await page.getByRole("tab", { name: "Contacts" }).click();
 
-    const contactName = testLabel("Contact");
+    const contactName = "Mock Contact";
     await page.getByRole("button", { name: "Add Contact" }).click();
     await expect(page.getByRole("heading", { name: "Add Contact" })).toBeVisible();
     await humanFill(page.getByLabel("Name"), contactName);
@@ -102,34 +78,55 @@ test.describe("Client lifecycle", () => {
     await page.getByRole("dialog").getByRole("button", { name: "Add", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Add Vehicle" })).toBeHidden();
     await expect(page.getByText("1 × Truck").first()).toBeVisible();
+    assertApiCallsAreMocked(mocks);
   });
 
   test("blocks deletion while a balance is outstanding, then deletes once settled", async ({
     page,
   }) => {
-    await api.post(`/api/clients/${clientId}/entries`, {
+    const mocks = await installClientsMocks(page);
+    // A page.goto() first establishes the browser context apiFetch() needs
+    // (see e2e/support/apiFetch.ts for why page.request can't be used here).
+    await page.goto("/admin/clients");
+
+    // Seed an outstanding bill directly via the mocked API, the same way the
+    // original spec seeded it through the real backend.
+    const createRes = await apiFetch(page, `/api/clients/${CLIENT_ID}/entries`, {
+      method: "POST",
       data: { entry_type: "BILL", direction: "DEBIT", amount: 5000, entry_date: "2026-08-01" },
     });
-
-    await page.goto("/admin/clients");
-    await humanFill(page.getByTestId("clients-search-input"), clientName);
+    expect(createRes.ok).toBe(true);
+    await humanFill(page.getByTestId("clients-search-input"), CLIENT_NAME);
     // Clients-list rows are click-to-navigate, so DataTable renders them with
     // role="button" rather than role="row" (unlike e.g. the entities list,
     // which isn't row-clickable).
     await page
-      .getByRole("button", { name: new RegExp(clientName) })
+      .getByRole("button", { name: new RegExp(CLIENT_NAME) })
       .getByRole("button", { name: "Delete" })
       .click();
     await expect(page.getByRole("heading", { name: "Delete Client" })).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByRole("dialog").getByRole("alert")).toContainText("not settled");
 
-    const entries = await (await api.get(`/api/clients/${clientId}/entries`)).json();
+    const entriesRes = await apiFetch(page, `/api/clients/${CLIENT_ID}/entries`);
+    const entries = await entriesRes.json();
     const bill = entries.data.data.find((e: { entry_type: string }) => e.entry_type === "BILL");
-    await api.post(`/api/clients/${clientId}/entries/${bill.id}/reverse`, { data: {} });
+    const reverseRes = await apiFetch(page, `/api/clients/${CLIENT_ID}/entries/${bill.id}/reverse`, {
+      method: "POST",
+      data: {},
+    });
+    expect(reverseRes.ok).toBe(true);
 
     await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Delete Client" })).toBeHidden();
-    clientId = -1; // already deleted — skip afterEach's own delete attempt
+    assertApiCallsAreMocked(mocks);
+  });
+});
+
+test.describe("Clients page smoke", () => {
+  test("loads the clients list", async ({ page }) => {
+    const mocks = await openClientsPage(page);
+    await expect(page.getByText(CLIENT_NAME)).toBeVisible();
+    assertApiCallsAreMocked(mocks);
   });
 });
