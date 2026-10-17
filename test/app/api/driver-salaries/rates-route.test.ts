@@ -95,10 +95,27 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     expect(res.status).toBe(404);
   });
 
+  it("409s when the starting month is already settled", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: { id: 50 }, error: null }],
+    });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { monthly_salary: 30000, effective_month: "2026-06" }),
+      paramsFor("1"),
+    );
+
+    expect(res.status).toBe(409);
+  });
+
   it("inserts a new rate and logs the audit entry when none exists for that month", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_rates: [
         { data: null, error: null },
         { data: { id: 1, driver_id: 1, monthly_salary: 30000, effective_from: "2026-06-01" }, error: null },
@@ -123,6 +140,7 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_rates: [
         { data: { id: 1, monthly_salary: 25000 }, error: null },
         { data: { id: 1, driver_id: 1, monthly_salary: 30000, effective_from: "2026-06-01" }, error: null },
@@ -144,6 +162,7 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_rates: [
         { data: null, error: null },
         { data: null, error: { code: "23505" } },

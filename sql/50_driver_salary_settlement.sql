@@ -92,7 +92,11 @@ create or replace function settle_driver_salary(
   p_net_pay_computed numeric,
   p_amount_paid numeric,
   p_note text,
-  p_user uuid
+  p_user uuid,
+  -- Today in IST, as the route computes it (todayInIndia()) — current_date
+  -- here would be the database session's timezone (UTC on Supabase), which
+  -- dates the carry-forward entry a day behind between 00:00 and 05:30 IST.
+  p_today date
 )
 returns table (settlement_id bigint, carry_forward_entry_id bigint)
 language plpgsql
@@ -102,7 +106,21 @@ declare
   v_entry_id bigint;
   v_gap numeric := p_amount_paid - p_net_pay_computed;
   v_next_month date := (p_period_month + interval '1 month')::date;
+  v_next_settled boolean;
 begin
+  -- Settling month M puts a carry-forward entry into M+1. If M+1 is itself
+  -- already settled (settling August in October, after September was
+  -- already closed), that entry would silently change a month the owner
+  -- already considers paid and done. Refuse rather than let it happen quietly.
+  select exists(
+    select 1 from driver_salary_settlements
+    where driver_id = p_driver_id and period_month = v_next_month
+  ) into v_next_settled;
+
+  if v_gap != 0 and v_next_settled then
+    raise exception 'next_month_settled' using errcode = 'P0001';
+  end if;
+
   insert into driver_salary_settlements
     (driver_id, period_month, net_pay_computed, amount_paid, note, created_by)
   values
@@ -117,7 +135,7 @@ begin
         p_driver_id,
         case when v_gap > 0 then 'ADVANCE' else 'DEDUCTION' end,
         abs(v_gap),
-        current_date,
+        p_today,
         v_next_month,
         case when v_gap > 0
           then format('Carried forward: overpaid for %s', to_char(p_period_month, 'YYYY-MM'))
@@ -146,7 +164,10 @@ $$;
 create or replace function unsettle_driver_salary(
   p_settlement_id bigint,
   p_driver_id bigint,
-  p_user uuid
+  p_user uuid,
+  -- Today in IST, as the route computes it (todayInIndia()) — see the note
+  -- on settle_driver_salary's p_today.
+  p_today date
 )
 returns void
 language plpgsql
@@ -157,6 +178,7 @@ declare
   v_amount numeric;
   v_period_month date;
   v_already_reversed bigint;
+  v_entry_month_settled boolean;
 begin
   select carry_forward_entry_id into v_entry_id
   from driver_salary_settlements
@@ -174,6 +196,19 @@ begin
     where id = v_entry_id and reverses_entry_id is null;
 
     if found then
+      -- The carry-forward landed on v_period_month (settle's M+1). If that
+      -- month has since been settled itself, reversing it here would change
+      -- a month the owner already closed out — same hazard as settling out
+      -- of order, mirrored for undo.
+      select exists(
+        select 1 from driver_salary_settlements
+        where driver_id = p_driver_id and period_month = v_period_month
+      ) into v_entry_month_settled;
+
+      if v_entry_month_settled then
+        raise exception 'carry_forward_month_settled' using errcode = 'P0001';
+      end if;
+
       select id into v_already_reversed
       from driver_salary_entries
       where reverses_entry_id = v_entry_id;
@@ -186,7 +221,7 @@ begin
             p_driver_id,
             v_entry_type,
             v_amount,
-            current_date,
+            p_today,
             v_period_month,
             format('Reversal of #%s: settlement undone', v_entry_id),
             v_entry_id,
@@ -202,16 +237,16 @@ begin
 end;
 $$;
 
-revoke all on function settle_driver_salary(bigint, date, numeric, numeric, text, uuid) from public, anon, authenticated;
-grant execute on function settle_driver_salary(bigint, date, numeric, numeric, text, uuid) to service_role;
-revoke all on function unsettle_driver_salary(bigint, bigint, uuid) from public, anon, authenticated;
-grant execute on function unsettle_driver_salary(bigint, bigint, uuid) to service_role;
+revoke all on function settle_driver_salary(bigint, date, numeric, numeric, text, uuid, date) from public, anon, authenticated;
+grant execute on function settle_driver_salary(bigint, date, numeric, numeric, text, uuid, date) to service_role;
+revoke all on function unsettle_driver_salary(bigint, bigint, uuid, date) from public, anon, authenticated;
+grant execute on function unsettle_driver_salary(bigint, bigint, uuid, date) to service_role;
 
 -- ---------------------------------------------------------------------
 -- DOWN (manual rollback — uncomment to run)
 -- ---------------------------------------------------------------------
--- drop function if exists settle_driver_salary(bigint, date, numeric, numeric, text, uuid);
--- drop function if exists unsettle_driver_salary(bigint, bigint, uuid);
+-- drop function if exists settle_driver_salary(bigint, date, numeric, numeric, text, uuid, date);
+-- drop function if exists unsettle_driver_salary(bigint, bigint, uuid, date);
 -- alter table driver_salary_entries drop constraint if exists driver_salary_entries_settlement_fk;
 -- alter table driver_salary_entries drop column if exists settlement_id;
 -- drop table if exists driver_salary_settlements;

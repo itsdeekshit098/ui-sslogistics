@@ -11,6 +11,7 @@ import {
 } from "@/components/salariesPage/salariesPage.types";
 import { isPositiveNumber, isValidDateString } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
+import { isMonthSettled } from "../../driver-salaries.data";
 
 // Records an advance or a deduction against a driver's salary for a month.
 // Entries are never edited or deleted: a mistake is undone through the
@@ -72,6 +73,13 @@ export async function POST(
       .maybeSingle();
     if (driverErr) return serverError(driverErr);
     if (!driver) return apiError("Driver not found", 404);
+
+    if (await isMonthSettled(driverId, periodMonth)) {
+      return apiError(
+        "This month is already settled — undo the settlement first if you need to change it",
+        409,
+      );
+    }
 
     const { data: entry, error } = await supabaseAdmin
       .from("driver_salary_entries")

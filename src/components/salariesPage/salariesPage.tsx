@@ -253,6 +253,8 @@ export function SalariesPage() {
       label: "Add advance",
       icon: <HandCoinsIcon size={14} />,
       onClick: (row) => setAdvanceDriver(row),
+      disabled: (row) => row.is_settled,
+      disabledTooltip: "This month is settled — undo it first to add an advance",
     },
   ];
 

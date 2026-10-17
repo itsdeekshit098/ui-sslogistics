@@ -81,7 +81,10 @@ describe("POST /api/specializations", () => {
   it("creates the specialization and logs the audit entry", async () => {
     requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
-      specialization_options: [{ data: { id: 1, name: "Electrical" }, error: null }],
+      specialization_options: [
+        { data: null, error: null }, // existence check: none yet
+        { data: { id: 1, name: "Electrical" }, error: null }, // the upsert
+      ],
     });
     const { POST } = await importRoute();
 
@@ -93,5 +96,25 @@ describe("POST /api/specializations", () => {
     expect(logActivity).toHaveBeenCalledWith(
       expect.objectContaining({ action: "CREATE_SPECIALIZATION" }),
     );
+  });
+
+  it("returns 200 and skips the audit log when the name already exists", async () => {
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      specialization_options: [
+        { data: { id: 1 }, error: null }, // existence check: already there
+        { data: { id: 1, name: "Electrical" }, error: null }, // the upsert
+      ],
+    });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/specializations", "POST", { name: "Electrical" }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.message).toMatch(/already exists/);
+    expect(logActivity).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { todayInIndia } from "@/lib/dateOnly";
+import { isMonthSettled } from "../../../driver-salaries.data";
 
 // Undoes a settlement: reverses its carry-forward entry (if it made one, so
 // the pair nets to zero and the history stays on record, same as any other
@@ -21,7 +22,7 @@ export async function DELETE(
     const { driverId: driverIdParam, settlementId: settlementIdParam } = await params;
     const driverId = Number(driverIdParam);
     const settlementId = Number(settlementIdParam);
-    if (!Number.isInteger(driverId) || driverId <= 0 || !Number.isFinite(settlementId)) {
+    if (!Number.isInteger(driverId) || driverId <= 0 || !Number.isInteger(settlementId) || settlementId <= 0) {
       return apiError("Invalid driver or settlement ID", 400);
     }
 
@@ -45,6 +46,7 @@ export async function DELETE(
       p_settlement_id: settlementId,
       p_driver_id: driverId,
       p_user: authUser.id,
+      p_today: todayInIndia(),
     });
 
     if (rpcErr && (rpcErr.code === "PGRST202" || rpcErr.code === "42883")) {
@@ -58,8 +60,19 @@ export async function DELETE(
           .eq("id", settlement.carry_forward_entry_id)
           .maybeSingle();
         if (entryFetchErr) return serverError(entryFetchErr);
+        // The carry-forward landed on `original.period_month`. If that month
+        // has since been settled itself, undoing it here would change a
+        // month the owner already closed out — mirrors the settle route's
+        // out-of-order guard for the undo direction.
+        if (original && (await isMonthSettled(driverId, original.period_month.slice(0, 7)))) {
+          return apiError(
+            `${original.period_month.slice(0, 7)} is already settled — undo that settlement first`,
+            409,
+          );
+        }
         // Already reversed by someone acting directly on the entry — unlikely
-        // (the UI never exposes that), but don't fail the unsettle over it.
+        // (the route refuses that directly, see entries/[entryId]/reverse),
+        // but don't fail the unsettle over it.
         if (original && original.reverses_entry_id == null) {
           const { data: alreadyReversed, error: checkErr } = await supabaseAdmin
             .from("driver_salary_entries")
@@ -99,6 +112,12 @@ export async function DELETE(
         .eq("id", settlementId);
       if (deleteErr) return serverError(deleteErr);
     } else if (rpcErr) {
+      if (rpcErr.message?.includes("carry_forward_month_settled")) {
+        return apiError(
+          "The month this carry-forward landed on is already settled — undo that settlement first",
+          409,
+        );
+      }
       return serverError(rpcErr);
     }
 

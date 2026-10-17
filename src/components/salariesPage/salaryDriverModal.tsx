@@ -189,6 +189,11 @@ const SalaryDriverBody: React.FC<
 function PayHero({ detail }: { detail: SalaryDriverDetail }) {
   const { row, settlement } = detail;
   const hasSalary = row.monthly_salary != null;
+  // Entries and rates can't change for a settled month (the API refuses
+  // them), but attendance marks are a separate module and still can — a
+  // correction there moves row.net_pay without touching the settlement.
+  const driftedSinceSettled =
+    settlement != null && row.net_pay != null && row.net_pay !== settlement.amount_paid;
 
   return (
     <div className="border-b border-border bg-gradient-to-b from-primary/[0.06] to-transparent px-6 pb-5 pt-1">
@@ -218,6 +223,13 @@ function PayHero({ detail }: { detail: SalaryDriverDetail }) {
           </Badge>
         )}
       </div>
+      {driftedSinceSettled && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-warning-subtle-foreground">
+          <AlertTriangleIcon size={13} className="shrink-0" />
+          Attendance has changed since this was settled — now computes to{" "}
+          <Money value={row.net_pay} className="font-medium" />
+        </p>
+      )}
       {detail.is_provisional && (
         <p className="mt-2 flex items-center gap-1.5 text-xs text-warning-subtle-foreground">
           <AlertTriangleIcon size={13} className="shrink-0" />

@@ -122,10 +122,27 @@ describe("POST /api/driver-salaries/[driverId]/entries", () => {
     expect(res.status).toBe(404);
   });
 
+  it("409s when the salary month is already settled", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: { id: 50 }, error: null }],
+    });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { entry_type: "ADVANCE", amount: 1000, period_month: "2026-06" }),
+      paramsFor("1"),
+    );
+
+    expect(res.status).toBe(409);
+  });
+
   it("defaults entry_date to today and period_month to that date's month", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_entries: [
         { data: { id: 1, entry_type: "ADVANCE", amount: 1000, entry_date: "2026-06-15", period_month: "2026-06-01" }, error: null },
       ],
@@ -146,6 +163,7 @@ describe("POST /api/driver-salaries/[driverId]/entries", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_entries: [
         { data: { id: 1, entry_type: "ADVANCE", amount: 1000 }, error: null },
       ],
@@ -169,6 +187,7 @@ describe("POST /api/driver-salaries/[driverId]/entries", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_entries: [
         { data: { id: 1, entry_type: "DEDUCTION", amount: 200 }, error: null },
       ],
@@ -188,6 +207,7 @@ describe("POST /api/driver-salaries/[driverId]/entries", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: null, error: null }],
       driver_salary_entries: [
         { data: { id: 1, entry_type: "ADVANCE", amount: 1000 }, error: null },
       ],

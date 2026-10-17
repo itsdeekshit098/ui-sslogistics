@@ -31,6 +31,36 @@ interface DriverRef {
   is_active: boolean;
 }
 
+/**
+ * driver_salary_settlements is created by sql/50, applied by hand like every
+ * other sql/ file. Until it exists, every month reads as unsettled rather
+ * than 500ing the whole salaries page — the same tolerance
+ * driver-attendance.data.ts already gives driver_shift_counts (sql/48).
+ */
+function isMissingTableError(error: { code?: string } | null): boolean {
+  return error?.code === "PGRST205" || error?.code === "42P01";
+}
+
+/**
+ * Whether a driver's month has been settled — used to block entries, rate
+ * changes and reversals against a month that was already paid out and
+ * closed, so the figure on the settlement receipt can't quietly drift from
+ * what's now computed. False (not blocked) when the table doesn't exist yet.
+ */
+export async function isMonthSettled(driverId: number, month: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("driver_salary_settlements")
+    .select("id")
+    .eq("driver_id", driverId)
+    .eq("period_month", `${month}-01`)
+    .maybeSingle();
+  if (error) {
+    if (isMissingTableError(error)) return false;
+    throw error;
+  }
+  return data != null;
+}
+
 type DriverRateRow = RateRow & { driver_id: number };
 type DriverEntryRow = EntryRow & { driver_id: number };
 
@@ -111,7 +141,9 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
   ]);
   if (ratesRes.error) throw ratesRes.error;
   if (entriesRes.error) throw entriesRes.error;
-  if (settlementsRes.error) throw settlementsRes.error;
+  if (settlementsRes.error && !isMissingTableError(settlementsRes.error)) {
+    throw settlementsRes.error;
+  }
 
   const ratesByDriver = groupBy((ratesRes.data ?? []) as DriverRateRow[]);
   const entriesByDriver = groupBy((entriesRes.data ?? []) as DriverEntryRow[]);
@@ -200,7 +232,9 @@ export async function loadDriverSalary(
   if (driverRes.error) throw driverRes.error;
   if (ratesRes.error) throw ratesRes.error;
   if (entriesRes.error) throw entriesRes.error;
-  if (settlementRes.error) throw settlementRes.error;
+  if (settlementRes.error && !isMissingTableError(settlementRes.error)) {
+    throw settlementRes.error;
+  }
   if (!driverRes.data) return null;
 
   const rates = ((ratesRes.data ?? []) as SalaryRate[]).map((rate) => ({

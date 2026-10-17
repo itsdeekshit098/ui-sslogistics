@@ -352,6 +352,7 @@ describe("DELETE /api/drivers", () => {
     "driver_attendance",
     "driver_salary_rates",
     "driver_salary_entries",
+    "driver_salary_settlements",
     "driver_shift_counts",
   ];
   const zeroCountFor = (except?: string): Record<string, { count: number | null; error: unknown }[]> =>

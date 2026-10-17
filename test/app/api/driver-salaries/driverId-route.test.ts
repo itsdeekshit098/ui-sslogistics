@@ -151,4 +151,29 @@ describe("GET /api/driver-salaries/[driverId]", () => {
     expect(original.is_reversed).toBe(true);
     expect(reversal.is_reversal).toBe(true);
   });
+
+  it("reads as unsettled, not a 500, when driver_salary_settlements doesn't exist yet in this database", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [
+        { data: { id: 1, name: "Ravi", place: null, is_active: true }, error: null },
+        { data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null },
+      ],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [
+        { data: [{ id: 1, driver_id: 1, monthly_salary: "30000", effective_from: "2026-01-01" }], error: null },
+      ],
+      driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: null, error: { code: "42P01" } }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest(`${URL}?month=2026-06`), paramsFor("1"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.settlement).toBeNull();
+    expect(body.data.row.is_settled).toBe(false);
+  });
 });

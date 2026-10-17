@@ -6,7 +6,7 @@ import { logActivity } from "@/lib/activityLog";
 import { addMonths, todayInIndia } from "@/lib/dateOnly";
 import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
-import { loadDriverSalary } from "../../driver-salaries.data";
+import { isMonthSettled, loadDriverSalary } from "../../driver-salaries.data";
 import { SALARY_DESCRIPTION_MAX_LENGTH } from "@/components/salariesPage/salariesPage.types";
 
 // Closes out a driver's month: records what was actually paid, and — when
@@ -103,12 +103,21 @@ export async function POST(
       p_amount_paid: amountPaid,
       p_note: note,
       p_user: authUser.id,
+      p_today: today,
     });
 
     if (rpcErr && (rpcErr.code === "PGRST202" || rpcErr.code === "42883")) {
       // The function hasn't been created in this database yet (sql/ files
       // are applied by hand). Fall back to the three separate writes rather
       // than refusing every settle; this path is not atomic.
+      const nextMonth = addMonths(periodMonth, 1);
+      if (gap !== 0 && (await isMonthSettled(driverId, nextMonth))) {
+        return apiError(
+          `${nextMonth} is already settled — undo that settlement first, or it would be changed by this carry-forward`,
+          409,
+        );
+      }
+
       const { data: settlement, error: settlementErr } = await supabaseAdmin
         .from("driver_salary_settlements")
         .insert([
@@ -135,7 +144,6 @@ export async function POST(
       settlementId = settlement.id;
 
       if (gap !== 0) {
-        const nextMonth = addMonths(periodMonth, 1);
         const { data: entry, error: entryErr } = await supabaseAdmin
           .from("driver_salary_entries")
           .insert([
@@ -168,6 +176,12 @@ export async function POST(
       if (rpcErr.code === "23505") {
         return apiError(
           "This month is already settled — undo it first if you need to change it",
+          409,
+        );
+      }
+      if (rpcErr.message?.includes("next_month_settled")) {
+        return apiError(
+          `${addMonths(periodMonth, 1)} is already settled — undo that settlement first, or it would be changed by this carry-forward`,
           409,
         );
       }

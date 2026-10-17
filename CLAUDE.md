@@ -49,7 +49,7 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 
 ## Database
 
-Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `49_drivers_normalized_name_unique.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
+Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `50_driver_salary_settlement.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
 
 ### Money modules (loans, fundings, clients)
 
@@ -91,7 +91,7 @@ There is currently no UI toggle for the flag and the API never sets it. The dele
 
 `DELETE /api/drivers` (`src/app/api/drivers/route.ts`) counts rows in every table that references `driver_id`, and answers 400 with one message naming what's attached ("Cannot delete driver because they are linked to 12 attendance record(s). Deactivate them instead.") — nothing is deleted while anything is attached. A table that doesn't exist yet is skipped, not treated as an error, same as the vehicle delete.
 
-**The checked tables, kept in sync with `sql/` by hand:** `external_trips`, `trip_bookings`, `driver_attendance`, `driver_salary_rates`, `driver_salary_entries`, `driver_shift_counts`.
+**The checked tables, kept in sync with `sql/` by hand:** `external_trips`, `trip_bookings`, `driver_attendance`, `driver_salary_rates`, `driver_salary_entries`, `driver_salary_settlements`, `driver_shift_counts`.
 
 **Standing rule:** any new table with a `driver_id bigint references drivers(id)` column must be added to `dependentChecks` in that route in the same change that creates the table. The foreign key means an unguarded delete still fails safely (Postgres refuses it) rather than orphaning rows, but it surfaces as a raw 500 instead of the friendly message, which is the bug this rule exists to prevent. The same applies to vehicles — see below — and to any future `references drivers(id)` / `references vehicles(id)` table.
 
@@ -127,7 +127,13 @@ A month's pay is computed per request in `src/app/api/driver-salaries/driver-sal
 
 The rule: day's pay = monthly salary ÷ calendar days in that month; attendance cut = day's pay × (absent + leave days), rounded to the rupee and capped at the salary; net = salary − cut − advances − deductions (it may go negative). Leave is unpaid like absent. A day with any shift worked is a paid day regardless of how many shifts, and a day with **no mark at all is paid** — only an explicit Absent/Leave costs pay — but the sheet reports `unmarked_days` so gaps are visible. A month that hasn't finished is flagged `is_provisional`.
 
-Routes: `GET /api/driver-salaries?month=` (the sheet + totals), `GET /api/driver-salaries/export?month=` (CSV), `GET /api/driver-salaries/[driverId]?month=` (one driver's line, rate history and entries), `POST …/[driverId]/rates`, `POST …/[driverId]/entries`, `POST …/[driverId]/entries/[entryId]/reverse`. The page is `/admin/salaries` (`src/components/salariesPage/`), admin/superadmin only. A driver with salary rows can no longer be deleted, only deactivated.
+Routes: `GET /api/driver-salaries?month=` (the sheet + totals), `GET /api/driver-salaries/export?month=` (CSV), `GET /api/driver-salaries/[driverId]?month=` (one driver's line, rate history and entries), `POST …/[driverId]/rates`, `POST …/[driverId]/entries`, `POST …/[driverId]/entries/[entryId]/reverse`, `POST …/[driverId]/settle`, `DELETE …/[driverId]/settle/[settlementId]`. The page is `/admin/salaries` (`src/components/salariesPage/`), admin/superadmin only. A driver with salary rows can no longer be deleted, only deactivated.
+
+#### Settling a month
+
+Settling records what was actually paid for a month (`driver_salary_settlements`, `sql/50`) — a fact separate from the computed `net_pay`, not another derived figure. `POST …/[driverId]/settle` takes `{ period_month, amount_paid, note? }`; if `amount_paid` differs from the computed `net_pay`, the gap becomes an ordinary `driver_salary_entries` row (`ADVANCE` if overpaid, `DEDUCTION` if underpaid) dated into *next* month and tagged `settlement_id`, so the existing pay rule picks it up automatically — no new money-derivation logic. `DELETE …/[driverId]/settle/[settlementId]` undoes it: reverses that carry-forward entry (if any), clears its `settlement_id`, then deletes the settlement row. Both writes go through single-transaction database functions (`settle_driver_salary` / `unsettle_driver_salary`, `sql/50`) — the same all-or-nothing pattern as `save_driver_attendance` (`sql/46`) — with a non-atomic three-write fallback while those functions don't exist in a database yet, same convention as attendance.
+
+A settled month is locked: `POST …/entries`, `POST …/rates` for that starting month, and reversing any entry dated into that month all 409. A carry-forward entry can only be undone by unsettling the settlement that made it — the reverse route refuses it directly. Settling month M is refused with a 409 if M+1 is already settled (the carry-forward would silently change a month already closed out), and unsettling mirrors that check in reverse. Attendance marks are not gated by settlement — correcting one for a settled month still works, since attendance is a separate module — so a settled driver's live `net_pay` can still drift from `amount_paid`; the modal surfaces that drift rather than hiding it.
 
 ### Activity log retention
 

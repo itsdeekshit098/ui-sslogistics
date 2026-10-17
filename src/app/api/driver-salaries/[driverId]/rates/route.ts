@@ -5,12 +5,18 @@ import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResp
 import { logActivity } from "@/lib/activityLog";
 import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
+import { isMonthSettled } from "../../driver-salaries.data";
 
 // Sets a driver's monthly salary from a given month onward. A raise is a new
 // row rather than an edit, so earlier months keep the salary they were paid
 // at. Saving again for the *same* starting month corrects that row instead —
 // a typo in the amount has to be fixable — and the old and new figures both
 // go to the activity log.
+//
+// Only the starting month itself is checked against being settled: a rate
+// takes effect going forward, so blocking every change while any past month
+// is settled would be too heavy. What actually has to stay fixed is the
+// month the settlement receipt was computed from.
 
 const NOTE_MAX_LENGTH = 200;
 
@@ -50,6 +56,13 @@ export async function POST(
       .maybeSingle();
     if (driverErr) return serverError(driverErr);
     if (!driver) return apiError("Driver not found", 404);
+
+    if (await isMonthSettled(driverId, body.effective_month)) {
+      return apiError(
+        "This month is already settled — undo the settlement first if you need to change the salary it was paid against",
+        409,
+      );
+    }
 
     const { data: existing, error: existingErr } = await supabaseAdmin
       .from("driver_salary_rates")

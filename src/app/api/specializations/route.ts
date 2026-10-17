@@ -34,6 +34,13 @@ export async function POST(req: Request) {
 
     const name = body.name.trim();
 
+    const { data: existing, error: existingErr } = await supabaseAdmin
+      .from("specialization_options")
+      .select("id")
+      .eq("name", name)
+      .maybeSingle();
+    if (existingErr) return serverError(existingErr);
+
     const { data, error } = await supabaseAdmin
       .from("specialization_options")
       .upsert([{ name }], { onConflict: "name" })
@@ -44,19 +51,28 @@ export async function POST(req: Request) {
       return serverError(error);
     }
 
-    after(async () => {
-      await logActivity({
-        action: "CREATE_SPECIALIZATION",
-        userId: authUser.id,
-        userEmail: authUser.email,
-        userDisplayName: authUser.displayName,
-        tableName: "specialization_options",
-        recordId: data.id,
-        details: { name },
+    // The name already existed — upsert() returned that row, not a new one.
+    // Logging CREATE here would claim a specialization was added when
+    // nothing changed.
+    if (!existing) {
+      after(async () => {
+        await logActivity({
+          action: "CREATE_SPECIALIZATION",
+          userId: authUser.id,
+          userEmail: authUser.email,
+          userDisplayName: authUser.displayName,
+          tableName: "specialization_options",
+          recordId: data.id,
+          details: { name },
+        });
       });
-    });
+    }
 
-    return apiSuccess({ specialization: data }, "Specialization added", 201);
+    return apiSuccess(
+      { specialization: data },
+      existing ? "Specialization already exists" : "Specialization added",
+      existing ? 200 : 201,
+    );
   } catch (err: unknown) {
     return handleApiError(err);
   }

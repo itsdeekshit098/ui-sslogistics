@@ -352,6 +352,7 @@ export async function DELETE(req: Request) {
       ["driver_attendance", "attendance record(s)"],
       ["driver_salary_rates", "salary record(s)"],
       ["driver_salary_entries", "salary advance(s) or deduction(s)"],
+      ["driver_salary_settlements", "salary settlement(s)"],
       ["driver_shift_counts", "shift-count record(s)"],
     ];
 

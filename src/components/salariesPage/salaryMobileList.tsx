@@ -112,13 +112,18 @@ export function SalaryMobileList({
             </button>
             <button
               type="button"
-              aria-label={`Add advance for ${row.name}`}
+              aria-label={
+                row.is_settled
+                  ? `This month is settled — undo it first to add an advance for ${row.name}`
+                  : `Add advance for ${row.name}`
+              }
               data-testid={`salary-add-advance-${row.driver_id}`}
+              disabled={row.is_settled}
               onClick={(e) => {
                 e.stopPropagation();
                 onAddAdvance(row);
               }}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground active:bg-muted/60"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground active:bg-muted/60 disabled:opacity-30"
             >
               <HandCoinsIcon size={18} />
             </button>

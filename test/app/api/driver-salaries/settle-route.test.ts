@@ -300,8 +300,9 @@ describe("POST /api/driver-salaries/[driverId]/settle", () => {
             { data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null },
           ],
           driver_salary_settlements: [
-            { data: null, error: null },
-            { data: null, error: null },
+            { data: null, error: null }, // existing-settlement check: none
+            { data: null, error: null }, // loadDriverSalary's settlement lookup: none
+            { data: null, error: null }, // out-of-order guard: next month not settled
             { data: { id: 50 }, error: null }, // the fallback insert
             { data: {}, error: null }, // link update
           ],
@@ -329,5 +330,72 @@ describe("POST /api/driver-salaries/[driverId]/settle", () => {
       expect(body.data.settlement.carry_forward_entry_id).toBe(77);
       expect(body.message).toMatch(/overpayment carried/);
     });
+
+    it("409s when the next month is already settled", async () => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin(
+        {
+          drivers: [
+            { data: { id: 1 }, error: null },
+            { data: { id: 1, name: "Ravi", place: null, is_active: true }, error: null },
+            { data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null },
+          ],
+          driver_salary_settlements: [
+            { data: null, error: null }, // existing-settlement check: none
+            { data: null, error: null }, // loadDriverSalary's settlement lookup: none
+            { data: { id: 99 }, error: null }, // out-of-order guard: July is already settled
+          ],
+          driver_attendance: [{ data: [], error: null }],
+          driver_shift_counts: [{ data: [], error: null }],
+          driver_salary_rates: [
+            { data: [{ id: 1, driver_id: 1, monthly_salary: "15000", effective_from: "2026-01-01" }], error: null },
+          ],
+          driver_salary_entries: [{ data: [], error: null }],
+        },
+        { settle_driver_salary: [{ data: null, error: { code: "PGRST202", message: "not found" } }] },
+      );
+      const { POST } = await importRoute();
+
+      // Driver owed 15000, paid 20000 — overpaid, would carry into July.
+      const res = await POST(
+        jsonRequest(URL, { period_month: "2026-06", amount_paid: 20000 }),
+        paramsFor("1"),
+      );
+
+      expect(res.status).toBe(409);
+    });
+  });
+
+  it("409s when the RPC reports the next month is already settled", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin(
+      {
+        drivers: [
+          { data: { id: 1 }, error: null },
+          { data: { id: 1, name: "Ravi", place: null, is_active: true }, error: null },
+          { data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null },
+        ],
+        driver_salary_settlements: [{ data: null, error: null }, { data: null, error: null }],
+        driver_attendance: [{ data: [], error: null }],
+        driver_shift_counts: [{ data: [], error: null }],
+        driver_salary_rates: [
+          { data: [{ id: 1, driver_id: 1, monthly_salary: "15000", effective_from: "2026-01-01" }], error: null },
+        ],
+        driver_salary_entries: [{ data: [], error: null }],
+      },
+      {
+        settle_driver_salary: [
+          { data: null, error: { code: "P0001", message: "next_month_settled" } },
+        ],
+      },
+    );
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, { period_month: "2026-06", amount_paid: 20000 }),
+      paramsFor("1"),
+    );
+
+    expect(res.status).toBe(409);
   });
 });

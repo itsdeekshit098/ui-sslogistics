@@ -142,6 +142,7 @@ describe("DELETE /api/driver-salaries/[driverId]/settle/[settlementId]", () => {
         {
           driver_salary_settlements: [
             { data: { id: 50, driver_id: 1, period_month: "2026-06-01", carry_forward_entry_id: 77 }, error: null },
+            { data: null, error: null }, // out-of-order guard: July not settled
             { data: null, error: null }, // the fallback delete
           ],
           driver_salary_entries: [
@@ -160,12 +161,34 @@ describe("DELETE /api/driver-salaries/[driverId]/settle/[settlementId]", () => {
       expect(res.status).toBe(200);
     });
 
+    it("409s when the carry-forward's month is already settled", async () => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin(
+        {
+          driver_salary_settlements: [
+            { data: { id: 50, driver_id: 1, period_month: "2026-06-01", carry_forward_entry_id: 77 }, error: null },
+            { data: { id: 99 }, error: null }, // out-of-order guard: July is already settled
+          ],
+          driver_salary_entries: [
+            { data: { id: 77, entry_type: "ADVANCE", amount: 5000, period_month: "2026-07-01", reverses_entry_id: null }, error: null },
+          ],
+        },
+        { unsettle_driver_salary: [{ data: null, error: { code: "42883", message: "function does not exist" } }] },
+      );
+      const { DELETE } = await importRoute();
+
+      const res = await DELETE(new NextRequest(URL, { method: "DELETE" }), paramsFor("1", "50"));
+
+      expect(res.status).toBe(409);
+    });
+
     it("skips reversing an already-reversed carry-forward entry", async () => {
       requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
       const supa = mockSupabaseAdmin(
         {
           driver_salary_settlements: [
             { data: { id: 50, driver_id: 1, period_month: "2026-06-01", carry_forward_entry_id: 77 }, error: null },
+            { data: null, error: null }, // out-of-order guard: July not settled
             { data: null, error: null }, // the fallback delete
           ],
           driver_salary_entries: [
@@ -184,5 +207,26 @@ describe("DELETE /api/driver-salaries/[driverId]/settle/[settlementId]", () => {
       // Fetch + already-reversed check + the untag update — no reversal insert.
       expect(supa.callCount("driver_salary_entries")).toBe(3);
     });
+  });
+
+  it("409s when the RPC reports the carry-forward's month is already settled", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin(
+      {
+        driver_salary_settlements: [
+          { data: { id: 50, driver_id: 1, period_month: "2026-06-01", carry_forward_entry_id: 77 }, error: null },
+        ],
+      },
+      {
+        unsettle_driver_salary: [
+          { data: null, error: { code: "P0001", message: "carry_forward_month_settled" } },
+        ],
+      },
+    );
+    const { DELETE } = await importRoute();
+
+    const res = await DELETE(new NextRequest(URL, { method: "DELETE" }), paramsFor("1", "50"));
+
+    expect(res.status).toBe(409);
   });
 });
