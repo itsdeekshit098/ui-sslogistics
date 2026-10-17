@@ -1,4 +1,5 @@
 import { type Page } from "@playwright/test";
+import { successfulJson } from "./mockEnvelope";
 
 /**
  * Broad catch-all mock for the "did anything break" smoke suite
@@ -10,10 +11,6 @@ import { type Page } from "@playwright/test";
  * under `data` (matching the real `apiSuccess({ data, total })` envelope),
  * everything else gets `{}`.
  */
-
-export function successfulJson(data: unknown, message = "Success") {
-  return { success: true, data, message };
-}
 
 const PAGED_LIST_PATHS = new Set([
   "/api/loans",

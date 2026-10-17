@@ -5,6 +5,7 @@ import type {
   SalaryRow,
   SalarySheet,
 } from "@/components/salariesPage/salariesPage.types";
+import { successfulJson } from "./mockEnvelope";
 
 export const DRIVER_ID = 101;
 export const UNSALARIED_DRIVER_ID = 102;
@@ -112,10 +113,6 @@ export function unsalariedDetail(month = INITIAL_MONTH): SalaryDriverDetail {
 
 export function rowFor(detail: SalaryDriverDetail): SalaryRow {
   return { ...detail.row };
-}
-
-export function successfulJson(data: unknown) {
-  return { success: true, data };
 }
 
 export async function installSalaryMocks(page: Page, options: MockOptions = {}): Promise<MockApi> {

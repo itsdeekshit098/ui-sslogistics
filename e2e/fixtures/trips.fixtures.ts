@@ -1,4 +1,5 @@
 import { type Page, type Request } from "@playwright/test";
+import { successfulJson } from "./mockEnvelope";
 
 /**
  * In-memory mock for the Trips flows exercised by trips.spec.ts:
@@ -16,10 +17,6 @@ export type MockApi = {
   requests: Request[];
   payloads: Array<{ url: string; method: string; body: unknown }>;
 };
-
-export function successfulJson(data: unknown, message = "Success") {
-  return { success: true, data, message };
-}
 
 export function vehicleFixture(overrides: Partial<{ id: number; vehicle_type: string }> = {}) {
   return {

@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { humanFill } from "../support/human";
-import { installClientsMocks, type MockApi, type MockOptions } from "../fixtures/clients.fixtures";
+import { installClientsMocks, type MockApi } from "../fixtures/clients.fixtures";
 
 /** Page object for /admin/clients and its client-detail page. */
 export class ClientsPage {
@@ -23,8 +23,8 @@ export class ClientsPage {
   }
 }
 
-export async function openClientsPage(page: Page, options?: MockOptions): Promise<MockApi> {
-  const mocks = await installClientsMocks(page, options);
+export async function openClientsPage(page: Page): Promise<MockApi> {
+  const mocks = await installClientsMocks(page);
   await page.goto("/admin/clients");
   await expect(page.getByTestId("clients-add-btn")).toBeVisible();
   return mocks;

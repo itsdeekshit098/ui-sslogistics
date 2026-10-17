@@ -1,4 +1,5 @@
 import { type Page, type Request } from "@playwright/test";
+import { successfulJson } from "./mockEnvelope";
 
 /**
  * Mock fixtures for the Loans module (/admin/loans, loan detail, New Loan
@@ -18,10 +19,6 @@ export type MockApi = {
   requests: Request[];
   payloads: Array<{ url: string; method: string; body: unknown }>;
 };
-
-export function successfulJson(data: unknown) {
-  return { success: true, data };
-}
 
 function fail(error: string) {
   return { success: false, error };
@@ -143,9 +140,7 @@ function computeBalance(loan: LoanFixture, installments: InstallmentState[], pay
   };
 }
 
-export type MockOptions = Record<string, never>;
-
-export async function installLoansMocks(page: Page, _options: MockOptions = {}): Promise<MockApi> {
+export async function installLoansMocks(page: Page): Promise<MockApi> {
   const requests: Request[] = [];
   const payloads: MockApi["payloads"] = [];
 

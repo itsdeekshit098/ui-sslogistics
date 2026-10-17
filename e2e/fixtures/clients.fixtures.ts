@@ -6,20 +6,15 @@ import type {
   ClientDeployment,
   LedgerEntry,
 } from "@/components/clientsPage/clientsPage.types";
+import { successfulJson } from "./mockEnvelope";
 
 export const CLIENT_ID = 501;
 export const CLIENT_NAME = "Mock Logistics Client";
-
-export type MockOptions = Record<string, never>;
 
 export type MockApi = {
   requests: Request[];
   payloads: Array<{ url: string; method: string; body: unknown }>;
 };
-
-export function successfulJson(data: unknown) {
-  return { success: true, data };
-}
 
 function emptyBalance(clientId: number): ClientBalance {
   return {
@@ -267,7 +262,7 @@ class ClientsStore {
   }
 }
 
-export async function installClientsMocks(page: Page, _options: MockOptions = {}): Promise<MockApi> {
+export async function installClientsMocks(page: Page): Promise<MockApi> {
   const requests: Request[] = [];
   const payloads: MockApi["payloads"] = [];
   const store = new ClientsStore();

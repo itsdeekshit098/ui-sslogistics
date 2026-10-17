@@ -1,4 +1,5 @@
 import { type Page, type Request } from "@playwright/test";
+import { successfulJson, failJson } from "./mockEnvelope";
 
 /**
  * Mocked-API fixtures for the Private Fundings suite, mirroring
@@ -67,14 +68,6 @@ export interface MockFunding {
   borrower: { id: number; name: string; entity_kind: string } | null;
   counterparty: { id: number; name: string; entity_kind: string } | null;
   loans: null;
-}
-
-export function successfulJson(data: unknown, message?: string) {
-  return { success: true, data, message };
-}
-
-export function failJson(message: string) {
-  return { success: false, error: message };
 }
 
 export function lenderFixture(overrides: Partial<{ id: number; name: string }> = {}) {

@@ -22,10 +22,13 @@ suite needs to reach.
 `playwright.config.ts` starts an isolated Next.js dev server on port 3100
 (`.next-mock-e2e` build directory, so it never collides with a normal
 `npm run dev` on 3000) with `E2E_MOCK_AUTH=true`. `src/proxy.ts` checks that
-flag (and `NODE_ENV === "development"`, so it can never leak into a real
-deployment) and skips the auth middleware entirely — every route behaves as
-if a session already exists, so the app renders straight through to the
-page under test without a login screen in the way.
+flag, `NODE_ENV === "development"`, and the absence of `VERCEL` (which
+Vercel sets on every build/runtime it manages) before skipping the auth
+middleware — three independent conditions, all required, so a production
+build or a Vercel deployment can't accidentally enable the bypass even if one
+env var were misconfigured. When all three hold, every route behaves as if a
+session already exists, so the app renders straight through to the page
+under test without a login screen in the way.
 
 The actual API responses then come entirely from `page.route("**/api/**", ...)`
 installed at the top of each test (or in a `beforeEach`), reading from and
