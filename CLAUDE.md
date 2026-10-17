@@ -16,7 +16,7 @@ npm run test:e2e        # playwright e2e
 npm run test:e2e:ui     # playwright e2e, interactive UI
 ```
 
-Run a single Vitest file with `npx vitest run path/to/file.test.ts`, a single Playwright spec with `npx playwright test e2e/<name>.spec.ts`. The husky `pre-commit` hook runs `lint && typecheck && build` (not the test suites) — always run `npm run test` yourself before considering a change done.
+Run a single Vitest file with `npx vitest run path/to/file.test.ts`, a single Playwright spec with `npx playwright test e2e/<name>.spec.ts`. The husky `pre-commit` hook runs `lint && typecheck && build && test && test:e2e` — every commit is gated on the full suite, so a commit that succeeds has already passed unit and e2e tests.
 
 ## What this app is
 
