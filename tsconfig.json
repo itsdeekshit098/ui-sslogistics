@@ -29,7 +29,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next-mock-e2e/types/**/*.ts",
+    ".next-mock-e2e/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

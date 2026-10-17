@@ -1,7 +1,11 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 
 export default async function proxy(request: NextRequest) {
+  if (process.env.NODE_ENV === "development" && process.env.E2E_MOCK_AUTH === "true") {
+    return NextResponse.next();
+  }
+
   // Update session and protect routes
   return await updateSession(request);
 }

@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-mock-e2e/
 /out/
 
 # production
@@ -32,10 +33,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.e2e.local.example
 
-# playwright e2e
-/e2e/.auth/
+# playwright e2e (fully mocked — see e2e/README.md; no real login/session, so
+# there's no .auth/ directory anymore)
 /e2e-report/
 /test-results/
 /playwright-report/

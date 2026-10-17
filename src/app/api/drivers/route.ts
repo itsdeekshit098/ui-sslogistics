@@ -96,6 +96,7 @@ export async function GET(req: Request) {
     let query = supabaseAdmin
       .from("drivers")
       .select("*", { count: "exact" })
+      .order("is_active", { ascending: false })
       .order("name", { ascending: true });
 
     if (!includeInactive) {
