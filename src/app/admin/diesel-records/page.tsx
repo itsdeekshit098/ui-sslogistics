@@ -13,19 +13,19 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Tooltip } from "@/components/ui/tooltip";
-import { LoadingSpinner } from "@/components/loadingSpinner";
-import { CardListSkeleton } from "@/components/skeletonLoader";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { Pagination } from "@/components/pagination";
-import { Typeahead } from "@/components/typeahead";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { CardListSkeleton } from "@/components/ui/skeletonLoader";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { Pagination } from "@/components/ui/pagination";
+import { Typeahead } from "@/components/ui/typeahead";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
 import { RefreshCwIcon, FuelIcon } from "@/components/ui/icon";
 import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
 import { vehicleLabel } from "@/lib/vehicleLabel";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they

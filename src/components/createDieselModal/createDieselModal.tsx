@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { CreateDieselModalProps } from "./createDieselModal.types";
 import { SaveIcon, AlertTriangleIcon, UserPlusIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
-import { Typeahead } from "@/components/typeahead";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Typeahead } from "@/components/ui/typeahead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

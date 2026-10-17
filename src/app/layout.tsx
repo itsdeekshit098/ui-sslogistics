@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NavigationProgress } from "@/components/navigationProgress";
+import { NavigationProgress } from "@/components/ui/navigationProgress";
 import { ThemeProvider } from "@wrksz/themes/next";
 import { AuthProvider } from "@/context/AuthContext";
 import { MaintenanceProvider } from "@/context/MaintenanceContext";

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import type { DocumentPreviewModalProps } from "./documentPreviewModal.types";
 import * as styles from "./documentPreviewModal.style";
 

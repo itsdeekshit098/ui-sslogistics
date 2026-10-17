@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronRightIcon } from "@/components/ui/icon";
+import { ChevronRightIcon, HandCoinsIcon } from "@/components/ui/icon";
 import { formatCurrency } from "@/lib/format";
 import { Money } from "@/components/ui/money";
 import type { SalaryRow, SalarySheet } from "./salariesPage.types";
@@ -70,9 +70,11 @@ function cutsLine(row: SalaryRow): string[] {
 export function SalaryMobileList({
   rows,
   onOpen,
+  onAddAdvance,
 }: {
   rows: SalaryRow[];
   onOpen: (driverId: number) => void;
+  onAddAdvance: (row: SalaryRow) => void;
 }) {
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
@@ -86,12 +88,12 @@ export function SalaryMobileList({
           .join(" · ");
 
         return (
-          <li key={row.driver_id}>
+          <li key={row.driver_id} className="flex items-center">
             <button
               type="button"
               data-testid={`salary-row-${row.driver_id}`}
               onClick={() => onOpen(row.driver_id)}
-              className="flex w-full items-center gap-3 px-3.5 py-3 text-left active:bg-muted/60"
+              className="flex min-w-0 flex-1 items-center gap-3 px-3.5 py-3 text-left active:bg-muted/60"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">{row.name}</p>
@@ -107,7 +109,30 @@ export function SalaryMobileList({
                   </p>
                 )}
               </div>
-
+            </button>
+            <button
+              type="button"
+              aria-label={
+                row.is_settled
+                  ? `This month is settled — undo it first to add an advance for ${row.name}`
+                  : `Add advance for ${row.name}`
+              }
+              data-testid={`salary-add-advance-${row.driver_id}`}
+              disabled={row.is_settled}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddAdvance(row);
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground active:bg-muted/60 disabled:opacity-30"
+            >
+              <HandCoinsIcon size={18} />
+            </button>
+            <button
+              type="button"
+              data-testid={`salary-row-net-${row.driver_id}`}
+              onClick={() => onOpen(row.driver_id)}
+              className="flex shrink-0 items-center gap-2 py-3 pl-1 pr-3.5 text-left active:bg-muted/60"
+            >
               {hasSalary ? (
                 <div className="shrink-0 text-right">
                   <Money
@@ -115,10 +140,14 @@ export function SalaryMobileList({
                     tone={(row.net_pay ?? 0) < 0 ? "negative" : "neutral"}
                     className="block text-sm font-bold"
                   />
-                  {row.net_pay !== row.monthly_salary && (
-                    <span className="block text-xs tabular-nums text-muted-foreground">
-                      of {formatCurrency(row.monthly_salary)}
-                    </span>
+                  {row.is_settled ? (
+                    <span className="block text-xs font-medium text-success">Paid</span>
+                  ) : (
+                    row.net_pay !== row.monthly_salary && (
+                      <span className="block text-xs tabular-nums text-muted-foreground">
+                        of {formatCurrency(row.monthly_salary)}
+                      </span>
+                    )
                   )}
                 </div>
               ) : (

@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { mockSupabaseAdmin } from "@test/supabaseMock";
-import {
-  requireUserAuth,
-  requireAdminAuth,
-  requireStrictAdminAuth,
-} from "@test/authMock";
+import { requireAdminAuth, requireStrictAdminAuth } from "@test/authMock";
 import { logActivity } from "@test/activityLogMock";
 import { ADMIN_USER, STAFF_USER, forbiddenError } from "@test/fixtures";
 
@@ -33,15 +29,14 @@ const VALID_ENTITY_BODY = {
 };
 
 beforeEach(() => {
-  requireUserAuth.mockReset();
   requireAdminAuth.mockReset();
   requireStrictAdminAuth.mockReset();
   logActivity.mockReset();
 });
 
 describe("GET /api/entities", () => {
-  it("rejects when requireUserAuth fails", async () => {
-    requireUserAuth.mockRejectedValue(forbiddenError());
+  it("rejects when requireAdminAuth fails", async () => {
+    requireAdminAuth.mockRejectedValue(forbiddenError());
     mockSupabaseAdmin({});
     const { GET } = await importRoute();
 
@@ -50,8 +45,8 @@ describe("GET /api/entities", () => {
     expect(res.status).toBe(403);
   });
 
-  it("allows any authenticated staff user (requireUserAuth gate)", async () => {
-    requireUserAuth.mockResolvedValue(STAFF_USER);
+  it("allows any authenticated staff user (requireAdminAuth gate)", async () => {
+    requireAdminAuth.mockResolvedValue(STAFF_USER);
     mockSupabaseAdmin({
       entities: [{ data: [], error: null, count: 0 }],
     });
@@ -63,7 +58,7 @@ describe("GET /api/entities", () => {
   });
 
   it("lists entities and resolves proprietor names in a follow-up query", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     const supa = mockSupabaseAdmin({
       entities: [
         {
@@ -94,7 +89,7 @@ describe("GET /api/entities", () => {
   });
 
   it("skips the proprietor lookup query when no rows reference one", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     const supa = mockSupabaseAdmin({
       entities: [
         { data: [{ id: 1, name: "Solo", proprietor_entity_id: null }], error: null, count: 1 },
@@ -109,7 +104,7 @@ describe("GET /api/entities", () => {
   });
 
   it("includes vehicle_count per entity when with_counts=true", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [
         { data: [{ id: 1, name: "Firm A", proprietor_entity_id: null }], error: null, count: 1 },
@@ -127,7 +122,7 @@ describe("GET /api/entities", () => {
   });
 
   it("applies entity_kind, relationship, is_active and search filters", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [{ data: [], error: null, count: 0 }],
     });
@@ -144,7 +139,7 @@ describe("GET /api/entities", () => {
   });
 
   it("applies is_active=false filter distinctly from true", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [{ data: [], error: null, count: 0 }],
     });
@@ -158,7 +153,7 @@ describe("GET /api/entities", () => {
   });
 
   it("paginates using page and page_size, clamping page_size to 100", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [{ data: [], error: null, count: 0 }],
     });
@@ -172,7 +167,7 @@ describe("GET /api/entities", () => {
   });
 
   it("surfaces a 500 when the list query errors", async () => {
-    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [{ data: null, error: { message: "connection reset" } }],
     });
@@ -318,7 +313,9 @@ describe("POST /api/entities", () => {
 
   it("400s on a non-numeric proprietor_entity_id", async () => {
     requireAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({});
+    mockSupabaseAdmin({
+      entities: [{ data: [], error: null }], // name-conflict check
+    });
     const { POST } = await importRoute();
 
     const res = await POST(
@@ -335,7 +332,9 @@ describe("POST /api/entities", () => {
 
   it("400s when a proprietor is set on a non-FIRM entity", async () => {
     requireAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({});
+    mockSupabaseAdmin({
+      entities: [{ data: [], error: null }], // name-conflict check
+    });
     const { POST } = await importRoute();
 
     const res = await POST(
@@ -373,7 +372,10 @@ describe("POST /api/entities", () => {
   it("400s when the selected proprietor is itself a firm", async () => {
     requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
-      entities: [{ data: { id: 5, entity_kind: "FIRM" }, error: null }],
+      entities: [
+        { data: [], error: null }, // name-conflict check
+        { data: { id: 5, entity_kind: "FIRM" }, error: null },
+      ],
     });
     const { POST } = await importRoute();
 
@@ -411,7 +413,10 @@ describe("POST /api/entities", () => {
   it("creates the entity, defaults relationship, and logs the audit entry", async () => {
     requireAdminAuth.mockResolvedValue(ADMIN_USER);
     const supa = mockSupabaseAdmin({
-      entities: [{ data: { id: 42, name: "Acme Transport", entity_kind: "FIRM", relationship: "INTERNAL" }, error: null }],
+      entities: [
+        { data: [], error: null }, // name-conflict check
+        { data: { id: 42, name: "Acme Transport", entity_kind: "FIRM", relationship: "INTERNAL" }, error: null },
+      ],
     });
     const { POST } = await importRoute();
 
@@ -422,7 +427,7 @@ describe("POST /api/entities", () => {
 
     expect(res.status).toBe(201);
     expect(body.data.entity.id).toBe(42);
-    expect(supa.callCount("entities")).toBe(1);
+    expect(supa.callCount("entities")).toBe(2);
     expect(logActivity).toHaveBeenCalledWith(
       expect.objectContaining({ action: "CREATE_ENTITY", recordId: 42 }),
     );
@@ -432,6 +437,7 @@ describe("POST /api/entities", () => {
     requireAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [
+        { data: [], error: null }, // name-conflict check
         { data: { id: 6, entity_kind: "PERSON" }, error: null }, // proprietor lookup
         { data: { id: 42, name: "Acme Transport" }, error: null }, // insert
       ],
@@ -644,8 +650,9 @@ describe("PUT /api/entities", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       entities: [
-        { data: EXISTING_FIRM, error: null },
-        { data: { id: 10, name: "New Name", entity_kind: "FIRM" }, error: null },
+        { data: EXISTING_FIRM, error: null }, // fetch existing
+        { data: [], error: null }, // name-conflict check
+        { data: { id: 10, name: "New Name", entity_kind: "FIRM" }, error: null }, // update
       ],
     });
     const { PUT } = await importRoute();
@@ -779,6 +786,8 @@ describe("DELETE /api/entities", () => {
       vehicles: [{ count: 3, error: null }],
       loans: [{ count: 0, error: null }],
       fundings: [{ count: 0, error: null }],
+      clients: [{ count: 0, error: null }],
+      bank_accounts: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 
@@ -799,6 +808,8 @@ describe("DELETE /api/entities", () => {
       vehicles: [{ count: 0, error: null }],
       loans: [{ count: 1, error: null }],
       fundings: [{ count: 2, error: null }],
+      clients: [{ count: 0, error: null }],
+      bank_accounts: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 
@@ -819,6 +830,8 @@ describe("DELETE /api/entities", () => {
       vehicles: [{ count: 0, error: null }],
       loans: [{ count: 0, error: null }],
       fundings: [{ count: 0, error: null }],
+      clients: [{ count: 0, error: null }],
+      bank_accounts: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 
@@ -839,6 +852,8 @@ describe("DELETE /api/entities", () => {
       vehicles: [{ count: null, error: { message: "timeout" } }],
       loans: [{ count: 0, error: null }],
       fundings: [{ count: 0, error: null }],
+      clients: [{ count: 0, error: null }],
+      bank_accounts: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 
@@ -858,6 +873,8 @@ describe("DELETE /api/entities", () => {
       vehicles: [{ count: 0, error: null }],
       loans: [{ count: 0, error: null }],
       fundings: [{ count: 0, error: null }],
+      clients: [{ count: 0, error: null }],
+      bank_accounts: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 
@@ -880,6 +897,8 @@ describe("DELETE /api/entities", () => {
       vehicles: [{ count: 0, error: null }],
       loans: [{ count: 0, error: null }],
       fundings: [{ count: 0, error: null }],
+      clients: [{ count: 0, error: null }],
+      bank_accounts: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 

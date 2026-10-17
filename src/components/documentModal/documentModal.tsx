@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EyeIcon, Trash2Icon, UploadCloudIcon } from "@/components/ui/icon";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import { Skeleton } from "@/components/skeletonLoader";
+import { Skeleton } from "@/components/ui/skeletonLoader";
 import { ConfirmModal } from "@/components/confirmModal";
 import { DocumentPreviewModal } from "@/components/documentPreviewModal";
 import {

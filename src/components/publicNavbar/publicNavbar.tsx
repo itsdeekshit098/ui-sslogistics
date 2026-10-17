@@ -13,7 +13,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { ThemeToggle } from "@/components/themeToggle";
 import { useIsDarkMode } from "@/hooks/useResolvedTheme";
 

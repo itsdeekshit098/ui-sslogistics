@@ -53,8 +53,8 @@ import * as styles from "./vehiclesPage.style";
 import {
   CA_VEHICLES_CONTAINER,
 } from "./vehicles.styles";
-import { LoadingSpinner } from "@/components/loadingSpinner";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
 // shouldn't bloat the initial page chunk that has to load before anything
@@ -76,10 +76,10 @@ const EditVehicleModal = dynamic(
   () => import("@/components/editVehicleModal").then((m) => m.EditVehicleModal),
   { ssr: false },
 );
-import { ErrorState } from "@/components/errorState";
+import { ErrorState } from "@/components/ui/errorState";
 import { deleteVehicle } from "@/services/vehiclesService";
-import { EmptyState } from "@/components/emptyState";
-import { Pagination } from "@/components/pagination";
+import { EmptyState } from "@/components/ui/emptyState";
+import { Pagination } from "@/components/ui/pagination";
 import { DataTable } from "@/components/ui/dataTable";
 import { Badge } from "@/components/ui/badge";
 import {

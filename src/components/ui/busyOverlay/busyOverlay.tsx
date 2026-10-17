@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { cn } from "@/lib/utils";
 import type { BusyOverlayProps } from "./busyOverlay.types";
 

@@ -4,7 +4,7 @@ import React, { useCallback, useState } from "react";
 import { EditVehicleModalProps } from "./editVehicleModal.types";
 import { Vehicle, VehicleOwner } from "@/app/admin/vehicles/vehicles.types";
 import { SaveIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { Button } from "@/components/ui/button";
 import {
   Modal,

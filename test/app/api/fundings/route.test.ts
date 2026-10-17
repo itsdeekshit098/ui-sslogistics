@@ -142,7 +142,7 @@ describe("GET /api/fundings", () => {
     expect(res.status).toBe(200);
     expect(body.data.data).toEqual([]);
     expect(supa.callCount("funding_entries")).toBe(0);
-    expect(supa.callCount("funding_rate_history")).toBe(1);
+    expect(supa.callCount("funding_rate_history")).toBe(0);
   });
 
   it("applies status, funder_id, loan_id and direction filters together", async () => {
@@ -826,6 +826,7 @@ describe("DELETE /api/fundings", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       fundings: [{ data: { id: 10, funder_id: 7 }, error: null }, { error: null }],
+      funding_entries: [{ count: 0, error: null }],
     });
     const { DELETE } = await importRoute();
 

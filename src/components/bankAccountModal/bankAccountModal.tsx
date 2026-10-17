@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/typeahead";
+import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { EntityModal } from "@/components/entityModal";
 import {
   Select,

@@ -1,14 +1,24 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
-import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { todayInIndia } from "@/lib/dateOnly";
 import { reverseLedgerEntry } from "@/lib/ledgerReversal";
+import { isMonthSettled } from "../../../../driver-salaries.data";
+import { supabaseAdmin } from "@/lib/supabase";
 
 // Cancels an advance or deduction by inserting a second row that points back
 // at it. Both rows then drop out of the sheet's totals — the same pattern as
 // loan payments, funding entries and client ledger entries — so a mistake is
 // undone without losing the record that it was ever entered.
+//
+// Two cases are refused outright rather than reversed:
+//   - the entry's own month is settled (reversing it would silently change
+//     what a settlement receipt already says was paid)
+//   - the entry is itself a settlement's carry-forward (settlement_id set) —
+//     undoing that belongs to the settle/[id] DELETE route, which also
+//     clears the settlement's own carry_forward figure; reversing it here
+//     directly would leave that figure stale.
 
 type SalaryEntryRow = {
   id: number;
@@ -17,6 +27,7 @@ type SalaryEntryRow = {
   amount: number;
   period_month: string;
   reverses_entry_id: number | null;
+  settlement_id: number | null;
 };
 
 export async function POST(
@@ -41,13 +52,40 @@ export async function POST(
       // A reason is optional, so an empty body is fine.
     }
 
+    // Pre-checks that don't belong in reverseLedgerEntry (shared by every
+    // money ledger): a carry-forward entry can only be undone by unsettling
+    // the settlement that made it, and nothing reverses against a month
+    // that's already been paid out.
+    const { data: target, error: targetErr } = await supabaseAdmin
+      .from("driver_salary_entries")
+      .select("period_month, settlement_id, reverses_entry_id")
+      .eq("id", entryId)
+      .eq("driver_id", driverId)
+      .maybeSingle();
+    if (targetErr) return serverError(targetErr);
+    if (target) {
+      if (target.settlement_id != null && target.reverses_entry_id == null) {
+        return apiError(
+          "This was carried forward by a settlement — undo that settlement instead of reversing it here",
+          400,
+        );
+      }
+      const periodMonth = (target.period_month as string).slice(0, 7);
+      if (await isMonthSettled(driverId, periodMonth)) {
+        return apiError(
+          "This month is already settled — undo the settlement first if you need to change it",
+          409,
+        );
+      }
+    }
+
     const result = await reverseLedgerEntry<SalaryEntryRow>({
       table: "driver_salary_entries",
       reversesColumn: "reverses_entry_id",
       ownerColumn: "driver_id",
       ownerId: driverId,
       entryId,
-      selectColumns: "id, driver_id, entry_type, amount, period_month, reverses_entry_id",
+      selectColumns: "id, driver_id, entry_type, amount, period_month, reverses_entry_id, settlement_id",
       notFoundMessage: "Entry not found",
       ownerMismatchMessage: "That entry belongs to a different driver",
       alreadyReversedMessage: "This entry has already been reversed",

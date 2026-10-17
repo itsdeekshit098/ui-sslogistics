@@ -27,6 +27,16 @@ export interface SalaryRow {
   deductions: number;
   /** Null when there is no salary to work from. Can be negative. */
   net_pay: number | null;
+  /**
+   * Carried in from last month's settlement, already folded into advances
+   * (positive) or deductions (negative magnitude) above — this is only so
+   * the UI can label that part of the figure instead of it reading as a
+   * fresh advance/deduction taken this month. Zero when last month wasn't
+   * settled, or settled exactly.
+   */
+  carry_forward_in: number;
+  /** This month has been settled (paid out and closed); see `settlement`. */
+  is_settled: boolean;
 }
 
 export interface SalaryTotals {
@@ -76,6 +86,24 @@ export interface SalaryEntry {
   is_reversed: boolean;
   /** This entry is the cancellation of an earlier one; neither counts. */
   is_reversal: boolean;
+  /** This entry is the carry-forward a prior settlement produced, not something entered by hand. */
+  is_carry_forward: boolean;
+}
+
+/** A month closed out: what was owed, what was actually paid, and what (if anything) carried forward. */
+export interface SalarySettlement {
+  id: number;
+  /** YYYY-MM-01 */
+  period_month: string;
+  net_pay_computed: number;
+  amount_paid: number;
+  note: string | null;
+  /** Positive: driver was overpaid, carried forward as next month's advance.
+   *  Negative: driver was underpaid, carried forward as next month's deduction.
+   *  Zero: paid exactly what was owed. */
+  carry_forward: number;
+  carry_forward_entry_id: number | null;
+  created_at: string;
 }
 
 export interface SalaryDriverDetail {
@@ -87,6 +115,15 @@ export interface SalaryDriverDetail {
   rates: SalaryRate[];
   /** This month's advances and deductions, newest first. */
   entries: SalaryEntry[];
+  /** This month's settlement, or null if not yet settled. */
+  settlement: SalarySettlement | null;
+}
+
+export interface SettleSalaryPayload {
+  /** YYYY-MM — the month being closed out. */
+  period_month: string;
+  amount_paid: number;
+  note?: string | null;
 }
 
 export interface SetSalaryPayload {

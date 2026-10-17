@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     });
 
     if (authError) {
-      return apiError("Invalid email or password", 401);
+      return apiError("Invalid credentials. Please check your email and password.", 401);
     }
 
     const userId = data.user?.id;

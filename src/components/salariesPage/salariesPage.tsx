@@ -19,14 +19,14 @@ import { formatMonth } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/dataTable";
-import type { ColumnDef } from "@/components/ui/dataTable";
+import type { ColumnDef, RowAction } from "@/components/ui/dataTable";
 import { Input } from "@/components/ui/input";
 import { Money } from "@/components/ui/money";
 import { PageHeader } from "@/components/ui/pageHeader";
 import { StatCard } from "@/components/ui/statCard";
-import { EmptyState } from "@/components/emptyState";
-import { ErrorState } from "@/components/errorState";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
+import { EmptyState } from "@/components/ui/emptyState";
+import { ErrorState } from "@/components/ui/errorState";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
 import { formatMonthShort } from "@/components/attendancePage/attendancePage.utils";
 import { SalaryMobileList, SalaryMobileSummary } from "./salaryMobileList";
 import type { SalaryRow, SalarySheet } from "./salariesPage.types";
@@ -34,6 +34,12 @@ import type { SalaryRow, SalarySheet } from "./salariesPage.types";
 // Lazy-loaded: only needed once a driver is opened.
 const SalaryDriverModal = dynamic(
   () => import("./salaryDriverModal").then((m) => m.SalaryDriverModal),
+  { ssr: false },
+);
+
+// Lazy-loaded: only needed once an advance is being recorded.
+const AddAdvanceModal = dynamic(
+  () => import("./addAdvanceModal").then((m) => m.AddAdvanceModal),
   { ssr: false },
 );
 
@@ -53,6 +59,7 @@ export function SalariesPage() {
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [openDriverId, setOpenDriverId] = useState<number | null>(null);
+  const [advanceDriver, setAdvanceDriver] = useState<SalaryRow | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -224,12 +231,30 @@ export function SalariesPage() {
         row.net_pay == null ? (
           <span className="text-muted-foreground">—</span>
         ) : (
-          <Money
-            value={row.net_pay}
-            tone={row.net_pay < 0 ? "negative" : "neutral"}
-            className="font-semibold"
-          />
+          <div className="flex flex-col items-end gap-1">
+            <Money
+              value={row.net_pay}
+              tone={row.net_pay < 0 ? "negative" : "neutral"}
+              className="font-semibold"
+            />
+            {row.is_settled && (
+              <Badge variant="success-subtle" className="self-end">
+                Paid
+              </Badge>
+            )}
+          </div>
         ),
+    },
+  ];
+
+  const rowActions: RowAction<SalaryRow>[] = [
+    {
+      key: "add-advance",
+      label: "Add advance",
+      icon: <HandCoinsIcon size={14} />,
+      onClick: (row) => setAdvanceDriver(row),
+      disabled: (row) => row.is_settled,
+      disabledTooltip: "This month is settled — undo it first to add an advance",
     },
   ];
 
@@ -376,11 +401,20 @@ export function SalariesPage() {
 
         {emptyState ?? (
           <div className={fetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
-            <SalaryMobileList rows={rows} onOpen={setOpenDriverId} />
+            <SalaryMobileList rows={rows} onOpen={setOpenDriverId} onAddAdvance={setAdvanceDriver} />
           </div>
         )}
 
         {driverModal}
+        {advanceDriver && (
+          <AddAdvanceModal
+            driverId={advanceDriver.driver_id}
+            driverName={advanceDriver.name}
+            month={sheet.month}
+            onClose={() => setAdvanceDriver(null)}
+            onSaved={() => fetchSheet(sheet.month)}
+          />
+        )}
       </div>
     );
   }
@@ -517,7 +551,11 @@ export function SalariesPage() {
                   sidebar, so below lg the sheet is the same slim list as on a
                   phone rather than a table that scrolls sideways. */}
               <div className="lg:hidden">
-                <SalaryMobileList rows={rows} onOpen={setOpenDriverId} />
+                <SalaryMobileList
+                  rows={rows}
+                  onOpen={setOpenDriverId}
+                  onAddAdvance={setAdvanceDriver}
+                />
               </div>
               <div className="max-lg:hidden">
                 <DataTable
@@ -527,6 +565,7 @@ export function SalariesPage() {
                   loading={fetching}
                   rowClickable
                   onRowClick={(row) => setOpenDriverId(row.driver_id)}
+                  rowActions={rowActions}
                 />
               </div>
             </>
@@ -535,6 +574,15 @@ export function SalariesPage() {
       </div>
 
       {driverModal}
+      {advanceDriver && (
+        <AddAdvanceModal
+          driverId={advanceDriver.driver_id}
+          driverName={advanceDriver.name}
+          month={sheet.month}
+          onClose={() => setAdvanceDriver(null)}
+          onSaved={() => fetchSheet(sheet.month)}
+        />
+      )}
     </div>
   );
 }

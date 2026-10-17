@@ -5,7 +5,7 @@ import { SaveIcon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import {
   Select,
   SelectContent,

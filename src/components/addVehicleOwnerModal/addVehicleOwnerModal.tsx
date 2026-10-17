@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import {
   Modal,
   ModalContent,

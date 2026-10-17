@@ -16,9 +16,9 @@ import {
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdmin } from "@/lib/routePermissions";
-import { PageLoadingSkeleton } from "@/components/pageLoadingSkeleton";
-import { ErrorState } from "@/components/errorState";
-import { EmptyState } from "@/components/emptyState";
+import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { ErrorState } from "@/components/ui/errorState";
+import { EmptyState } from "@/components/ui/emptyState";
 import type { SessionUser } from "./sessionsPage.types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

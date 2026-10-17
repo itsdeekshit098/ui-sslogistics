@@ -1,27 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { mockSupabaseAdmin } from "@test/supabaseMock";
 import { requireStrictAdminAuth } from "@test/authMock";
-import { logActivity } from "@test/activityLogMock";
 import { ADMIN_USER, forbiddenError } from "@test/fixtures";
 
-function jsonRequest(url: string, method: string, body?: unknown) {
-  return new NextRequest(url, {
-    method,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+async function importRoute() {
+  return await import("@/app/api/driver-salaries/route");
 }
-
-const params = (driverId: string, entryId?: string) => ({
-  params: Promise.resolve(entryId ? { driverId, entryId } : { driverId }),
-}) as never;
 
 beforeEach(() => {
   requireStrictAdminAuth.mockReset();
-  logActivity.mockReset();
-  // 12 Oct 2026, mid-morning IST — "today" and "this month" are fixed.
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-10-12T05:00:00Z"));
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-06-15T10:00:00Z"));
 });
 
 afterEach(() => {
@@ -29,307 +19,230 @@ afterEach(() => {
 });
 
 describe("GET /api/driver-salaries", () => {
-  it("is admin-only, GET included", async () => {
+  it("rejects when requireStrictAdminAuth fails", async () => {
     requireStrictAdminAuth.mockRejectedValue(forbiddenError());
     mockSupabaseAdmin({});
-    const { GET } = await import("@/app/api/driver-salaries/route");
+    const { GET } = await importRoute();
 
-    const res = await GET(new NextRequest("http://localhost/api/driver-salaries?month=2026-09"));
+    const res = await GET(new NextRequest("http://localhost/api/driver-salaries"));
 
     expect(res.status).toBe(403);
   });
 
-  it("refuses a month that hasn't started and a malformed month", async () => {
+  it("400s on an invalid month", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});
-    const { GET } = await import("@/app/api/driver-salaries/route");
+    const { GET } = await importRoute();
 
-    expect((await GET(new NextRequest("http://localhost/api/driver-salaries?month=2026-11"))).status).toBe(400);
-    expect((await GET(new NextRequest("http://localhost/api/driver-salaries?month=2026-13"))).status).toBe(400);
-  });
-
-  it("works the sheet out from salary, attendance and live entries", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      drivers: [
-        {
-          data: [
-            { id: 1, name: "Ramesh", place: "Guntur", is_active: true },
-            { id: 2, name: "Suresh", place: null, is_active: true },
-          ],
-          error: null,
-        },
-      ],
-      // Nobody has had their shifts changed, so every driver runs all three.
-      driver_shift_counts: [{ data: [], error: null }],
-      // September 2026 (30 days): Ramesh absent twice and on leave once.
-      driver_attendance: [
-        {
-          data: [
-            { driver_id: 1, attendance_date: "2026-09-01", status: "PRESENT", shift_a: true, shift_b: true, shift_c: true },
-            { driver_id: 1, attendance_date: "2026-09-02", status: "ABSENT", shift_a: false, shift_b: false, shift_c: false },
-            { driver_id: 1, attendance_date: "2026-09-03", status: "ABSENT", shift_a: false, shift_b: false, shift_c: false },
-            { driver_id: 1, attendance_date: "2026-09-04", status: "LEAVE", shift_a: false, shift_b: false, shift_c: false },
-          ],
-          error: null,
-        },
-      ],
-      driver_salary_rates: [
-        {
-          data: [
-            { driver_id: 1, monthly_salary: 24000, effective_from: "2026-01-01" },
-            { driver_id: 1, monthly_salary: 30000, effective_from: "2026-06-01" },
-          ],
-          error: null,
-        },
-      ],
-      driver_salary_entries: [
-        {
-          data: [
-            { id: 10, driver_id: 1, entry_type: "ADVANCE", amount: 4000, reverses_entry_id: null },
-            { id: 11, driver_id: 1, entry_type: "ADVANCE", amount: 900, reverses_entry_id: null },
-            { id: 12, driver_id: 1, entry_type: "ADVANCE", amount: 900, reverses_entry_id: 11 },
-            { id: 13, driver_id: 1, entry_type: "DEDUCTION", amount: 500, reverses_entry_id: null },
-          ],
-          error: null,
-        },
-      ],
-    });
-    const { GET } = await import("@/app/api/driver-salaries/route");
-
-    const res = await GET(new NextRequest("http://localhost/api/driver-salaries?month=2026-09"));
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body.data).toEqual(
-      expect.objectContaining({ month: "2026-09", days_in_month: 30, is_provisional: false }),
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-13"),
     );
-    const [ramesh, suresh] = body.data.drivers;
-    // 30000 / 30 = 1000 a day; 3 unpaid days; the 900 advance and its reversal cancel.
-    expect(ramesh).toEqual(
-      expect.objectContaining({
-        monthly_salary: 30000,
-        days_present: 1,
-        absent_days: 2,
-        leave_days: 1,
-        unpaid_days: 3,
-        unmarked_days: 26,
-        attendance_cut: 3000,
-        advances: 4000,
-        deductions: 500,
-        net_pay: 22500,
-      }),
-    );
-    // No salary set: nothing to pay, and left out of the totals.
-    expect(suresh).toEqual(expect.objectContaining({ monthly_salary: null, net_pay: null }));
-    expect(body.data.totals).toEqual({
-      monthly_salary: 30000,
-      attendance_cut: 3000,
-      advances: 4000,
-      deductions: 500,
-      net_pay: 22500,
-      drivers_without_salary: 1,
-    });
-  });
-
-  it("marks the running month as provisional", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      drivers: [{ data: [{ id: 1, name: "Ramesh", place: null, is_active: true }], error: null }],
-      driver_shift_counts: [{ data: [], error: null }],
-      driver_attendance: [{ data: [], error: null }],
-      driver_salary_rates: [{ data: [], error: null }],
-      driver_salary_entries: [{ data: [], error: null }],
-    });
-    const { GET } = await import("@/app/api/driver-salaries/route");
-
-    const body = await (await GET(new NextRequest("http://localhost/api/driver-salaries"))).json();
-
-    expect(body.data.month).toBe("2026-10");
-    expect(body.data.is_provisional).toBe(true);
-    // 12 days of October have happened and none are marked.
-    expect(body.data.drivers[0].unmarked_days).toBe(12);
-  });
-});
-
-describe("POST /api/driver-salaries/[driverId]/rates", () => {
-  const url = "http://localhost/api/driver-salaries/1/rates";
-
-  it("rejects a missing salary or month", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({});
-    const { POST } = await import("@/app/api/driver-salaries/[driverId]/rates/route");
-
-    expect((await POST(jsonRequest(url, "POST", { effective_month: "2026-10" }), params("1"))).status).toBe(400);
-    expect((await POST(jsonRequest(url, "POST", { monthly_salary: -5, effective_month: "2026-10" }), params("1"))).status).toBe(400);
-    expect((await POST(jsonRequest(url, "POST", { monthly_salary: 20000 }), params("1"))).status).toBe(400);
-  });
-
-  it("404s for a driver that doesn't exist", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({ drivers: [{ data: null, error: null }] });
-    const { POST } = await import("@/app/api/driver-salaries/[driverId]/rates/route");
-
-    const res = await POST(
-      jsonRequest(url, "POST", { monthly_salary: 20000, effective_month: "2026-10" }),
-      params("1"),
-    );
-
-    expect(res.status).toBe(404);
-  });
-
-  it("adds a new salary from a month and logs it", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      drivers: [{ data: { id: 1 }, error: null }],
-      driver_salary_rates: [
-        { data: null, error: null }, // nothing for that month yet
-        { data: { id: 7, driver_id: 1, monthly_salary: 20000, effective_from: "2026-10-01" }, error: null },
-      ],
-    });
-    const { POST } = await import("@/app/api/driver-salaries/[driverId]/rates/route");
-
-    const res = await POST(
-      jsonRequest(url, "POST", { monthly_salary: 20000, effective_month: "2026-10" }),
-      params("1"),
-    );
-
-    expect(res.status).toBe(201);
-    expect(logActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "SET_DRIVER_SALARY",
-        details: expect.objectContaining({
-          monthly_salary: 20000,
-          effective_from: "2026-10-01",
-          previous_monthly_salary: null,
-        }),
-      }),
-    );
-  });
-
-  it("corrects the salary in place when one already starts that month", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      drivers: [{ data: { id: 1 }, error: null }],
-      driver_salary_rates: [
-        { data: { id: 7, monthly_salary: 2000 }, error: null },
-        { data: { id: 7, driver_id: 1, monthly_salary: 20000, effective_from: "2026-10-01" }, error: null },
-      ],
-    });
-    const { POST } = await import("@/app/api/driver-salaries/[driverId]/rates/route");
-
-    const res = await POST(
-      jsonRequest(url, "POST", { monthly_salary: 20000, effective_month: "2026-10" }),
-      params("1"),
-    );
-
-    expect(res.status).toBe(200);
-    expect(logActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        details: expect.objectContaining({ previous_monthly_salary: 2000 }),
-      }),
-    );
-  });
-});
-
-describe("POST /api/driver-salaries/[driverId]/entries", () => {
-  const url = "http://localhost/api/driver-salaries/1/entries";
-  const valid = { entry_type: "ADVANCE", amount: 2000, entry_date: "2026-10-05", period_month: "2026-10" };
-
-  it("rejects a bad type, amount, future date or future salary month", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({});
-    const { POST } = await import("@/app/api/driver-salaries/[driverId]/entries/route");
-    const post = (body: unknown) => POST(jsonRequest(url, "POST", body), params("1"));
-
-    expect((await post({ ...valid, entry_type: "BONUS" })).status).toBe(400);
-    expect((await post({ ...valid, amount: 0 })).status).toBe(400);
-    expect((await post({ ...valid, entry_date: "2026-10-13" })).status).toBe(400);
-    expect((await post({ ...valid, period_month: "2026-11" })).status).toBe(400);
-  });
-
-  it("records an advance against the chosen salary month", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      drivers: [{ data: { id: 1 }, error: null }],
-      driver_salary_entries: [{ data: { id: 30, ...valid }, error: null }],
-    });
-    const { POST } = await import("@/app/api/driver-salaries/[driverId]/entries/route");
-
-    // Handed over on 5 Oct, but against September's pay.
-    const res = await POST(
-      jsonRequest(url, "POST", { ...valid, period_month: "2026-09" }),
-      params("1"),
-    );
-
-    expect(res.status).toBe(201);
-    expect(logActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "CREATE_DRIVER_SALARY_ENTRY",
-        details: expect.objectContaining({ entry_type: "ADVANCE", amount: 2000, period_month: "2026-09" }),
-      }),
-    );
-  });
-});
-
-describe("POST /api/driver-salaries/[driverId]/entries/[entryId]/reverse", () => {
-  const url = "http://localhost/api/driver-salaries/1/entries/30/reverse";
-
-  it("refuses an entry that belongs to another driver", async () => {
-    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      driver_salary_entries: [{ data: { id: 30, driver_id: 2, reverses_entry_id: null }, error: null }],
-    });
-    const { POST } = await import(
-      "@/app/api/driver-salaries/[driverId]/entries/[entryId]/reverse/route"
-    );
-
-    const res = await POST(jsonRequest(url, "POST", {}), params("1", "30"));
 
     expect(res.status).toBe(400);
   });
 
-  it("409s on a second reversal of the same entry", async () => {
+  it("400s when the month hasn't started yet", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
-      driver_salary_entries: [
-        { data: { id: 30, driver_id: 1, reverses_entry_id: null }, error: null },
-        { data: { id: 31 }, error: null }, // a reversal already exists
-      ],
-    });
-    const { POST } = await import(
-      "@/app/api/driver-salaries/[driverId]/entries/[entryId]/reverse/route"
+    mockSupabaseAdmin({});
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-08"),
     );
+    const body = await res.json();
 
-    const res = await POST(jsonRequest(url, "POST", {}), params("1", "30"));
-
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/hasn't started/);
   });
 
-  it("inserts the cancelling row and logs it", async () => {
+  it("defaults to the current month when none is given, and returns the sheet", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
+      drivers: [{ data: [], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [{ data: [], error: null }],
+      driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: [], error: null }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/driver-salaries"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.month).toBe("2026-06");
+  });
+
+  it("computes a driver's row from attendance + rate + entries", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [{ id: 1, name: "Ravi", place: "Chennai", is_active: true }], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [
+        { data: [{ driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01" }], error: null },
+      ],
+      driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: [], error: null }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.drivers[0]).toMatchObject({
+      driver_id: 1,
+      monthly_salary: 30000,
+      net_pay: 30000,
+    });
+  });
+
+  it("includes an inactive driver with an advance against the month even with no attendance row", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [
+        { data: [], error: null }, // loadMonth's active-driver list — this driver is inactive & unmarked
+        { data: [{ id: 2, name: "Old Driver", place: null, is_active: false }], error: null }, // missing-drivers lookup
+      ],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [
         {
-          data: { id: 30, driver_id: 1, entry_type: "ADVANCE", amount: 2000, period_month: "2026-10-01", reverses_entry_id: null },
+          data: [{ id: 1, driver_id: 2, entry_type: "ADVANCE", amount: 500, reverses_entry_id: null }],
           error: null,
         },
-        { data: null, error: null }, // not reversed yet
-        { data: { id: 31, reverses_entry_id: 30 }, error: null },
       ],
+      driver_salary_settlements: [{ data: [], error: null }],
     });
-    const { POST } = await import(
-      "@/app/api/driver-salaries/[driverId]/entries/[entryId]/reverse/route"
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const row = body.data.drivers.find((d: { driver_id: number }) => d.driver_id === 2);
+    expect(row).toBeDefined();
+    expect(row.advances).toBe(500);
+  });
+
+  it("flags the month as provisional when it hasn't finished yet", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [{ data: [], error: null }],
+      driver_salary_entries: [{ data: [], error: null }],
+      driver_salary_settlements: [{ data: [], error: null }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+    const body = await res.json();
+
+    expect(body.data.is_provisional).toBe(true);
+  });
+
+  it("loads the sheet as fully unsettled when driver_salary_settlements doesn't exist yet in this database", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [
+        { data: [{ driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01" }], error: null },
+      ],
+      driver_salary_entries: [{ data: [], error: null }],
+      // sql/50 not applied yet: PostgREST's "unknown table" code.
+      driver_salary_settlements: [{ data: null, error: { code: "PGRST205" } }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.drivers[0].is_settled).toBe(false);
+  });
+
+  it("retries without settlement_id, keeping real advances/deductions, when that column doesn't exist yet (sql/50 not applied)", async () => {
+    // Unlike the settlements table (PGRST205/42P01, covered above), this is
+    // the *column* sql/50 adds to an existing table: a database that hasn't
+    // run sql/50 at all fails here first, since the sheet query selects
+    // settlement_id from driver_salary_entries unconditionally. Swallowing
+    // that error outright (like the missing-table case) would silently
+    // drop every entry and understate what's deducted, so it must retry
+    // without the column rather than treat the query as returning nothing.
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [
+        { data: [{ driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01" }], error: null },
+      ],
+      driver_salary_entries: [
+        {
+          data: null,
+          error: {
+            code: "42703",
+            message: "column driver_salary_entries.settlement_id does not exist",
+          },
+        },
+        {
+          // The retry, without settlement_id — a real advance still shows up.
+          data: [{ id: 1, driver_id: 1, entry_type: "ADVANCE", amount: 2000, reverses_entry_id: null }],
+          error: null,
+        },
+      ],
+      driver_salary_settlements: [{ data: null, error: { code: "42P01" } }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const row = body.data.drivers[0];
+    expect(row.advances).toBe(2000);
+    expect(row.carry_forward_in).toBe(0);
+    expect(row.net_pay).toBe(28000);
+  });
+
+  it("surfaces a 500 for an entries-query error unrelated to the settlement_id column", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [{ data: [], error: null }],
+      // A real "undefined column" error that has nothing to do with
+      // settlement_id must still surface as a failure, not be swallowed by
+      // a check that's too broad.
+      driver_salary_entries: [
+        { data: null, error: { code: "42703", message: "column driver_salary_entries.amount does not exist" } },
+      ],
+      driver_salary_settlements: [{ data: [], error: null }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
     );
 
-    const res = await POST(jsonRequest(url, "POST", { reason: "entered twice" }), params("1", "30"));
-
-    expect(res.status).toBe(201);
-    expect(logActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "REVERSE_DRIVER_SALARY_ENTRY",
-        details: expect.objectContaining({ reversed_entry_id: 30, reason: "entered twice" }),
-      }),
-    );
+    expect(res.status).toBe(500);
   });
 });

@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireUserAuth, requireAdminAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activityLog";
 
 export async function GET() {
   try {
@@ -36,7 +38,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     // Only staff and admin can add options
-    await requireAdminAuth();
+    const authUser = await requireAdminAuth();
     const body = await req.json();
 
     if (!body.name || body.name.trim() === "") {
@@ -64,6 +66,18 @@ export async function POST(req: Request) {
       }
       return serverError(error);
     }
+
+    after(async () => {
+      await logActivity({
+        action: "CREATE_REPAIR_ISSUE",
+        userId: authUser.id,
+        userEmail: authUser.email,
+        userDisplayName: authUser.displayName,
+        tableName: "repair_issue_options",
+        recordId: data.id,
+        details: { category: body.category, name },
+      });
+    });
 
     return apiSuccess({ issue: data }, "Issue option added", 201);
   } catch (err: unknown) {

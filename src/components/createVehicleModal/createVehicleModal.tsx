@@ -3,7 +3,7 @@
 import React, { useCallback, useState } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
 import { SaveIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { Button } from "@/components/ui/button";
 import {
   Modal,

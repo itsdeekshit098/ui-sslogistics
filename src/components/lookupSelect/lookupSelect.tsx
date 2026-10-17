@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/typeahead";
+import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/loadingSpinner";
+import { LoadingSpinner } from "@/components/ui/loadingSpinner";
 import { PlusIcon } from "@/components/ui/icon";
 import {
   Modal,

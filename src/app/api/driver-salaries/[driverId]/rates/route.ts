@@ -5,12 +5,20 @@ import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResp
 import { logActivity } from "@/lib/activityLog";
 import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
+import { hasSettlementOnOrAfter } from "../../driver-salaries.data";
 
 // Sets a driver's monthly salary from a given month onward. A raise is a new
 // row rather than an edit, so earlier months keep the salary they were paid
 // at. Saving again for the *same* starting month corrects that row instead —
 // a typo in the amount has to be fixable — and the old and new figures both
 // go to the activity log.
+//
+// A rate takes effect from its starting month forward — salaryForMonth picks
+// the latest rate on or before each month — so a rate backdated to June
+// still governs every later month, August included. The write is refused if
+// the driver has *any* settlement on or after the starting month, not just
+// one for that exact month, or a backdated raise could silently change what
+// an already-settled month was paid against.
 
 const NOTE_MAX_LENGTH = 200;
 
@@ -50,6 +58,13 @@ export async function POST(
       .maybeSingle();
     if (driverErr) return serverError(driverErr);
     if (!driver) return apiError("Driver not found", 404);
+
+    if (await hasSettlementOnOrAfter(driverId, body.effective_month)) {
+      return apiError(
+        "A later month is already settled — undo that settlement first if you need to change the salary it was paid against",
+        409,
+      );
+    }
 
     const { data: existing, error: existingErr } = await supabaseAdmin
       .from("driver_salary_rates")
