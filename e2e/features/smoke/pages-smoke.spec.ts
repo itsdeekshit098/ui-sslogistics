@@ -1,9 +1,13 @@
 import { test, expect } from "@playwright/test";
+import { installSmokeMocks } from "../../fixtures/smoke.fixtures";
 
 /**
  * Every admin page in the money-module surface, rendered once, checked for
  * console errors. Deliberately shallow — this is the "did anything actually
  * break" tripwire, not a substitute for the deeper per-module specs.
+ *
+ * Fully mocked: installSmokeMocks() intercepts every /api/** call so each
+ * page renders without a real backend (and without logging in at all).
  */
 const PAGES = [
   "/admin/loans",
@@ -17,6 +21,8 @@ const PAGES = [
 
 for (const path of PAGES) {
   test(`${path} renders with no console errors`, async ({ page }) => {
+    await installSmokeMocks(page);
+
     const errors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") errors.push(msg.text());

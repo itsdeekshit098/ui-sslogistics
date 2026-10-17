@@ -1,78 +1,25 @@
-import { test, expect, request, type APIRequestContext } from "@playwright/test";
-import { testLabel } from "./support/run-id";
-import { humanFill } from "./support/human";
+import { test, expect } from "@playwright/test";
+import { humanFill } from "../../support/human";
+import { apiFetch } from "../../support/apiFetch";
+import { LoansPage } from "../../pages/loansPage";
+import {
+  ENTITY_NAME,
+  LENDER_NAME,
+  installLoansMocks,
+  type MockApi,
+} from "../../fixtures/loans.fixtures";
 
 /**
- * Real login, real Supabase-backed dev database — see e2e/README.md before
- * editing this file, especially the single-session note.
- *
- * Setup data (a borrower entity + a lender) is created via the API rather
- * than through the UI: it's not what these tests are about, and doing it
- * through two more typeahead "add new" side-modals would just add brittle
- * surface area between each test and the thing it's actually checking.
+ * Fully mocked — see e2e/README.md. page.route() intercepts every /api/**
+ * call with an in-memory fixture store (e2e/fixtures/loans.fixtures.ts); no
+ * login, no real Supabase, no record cleanup needed.
  */
 
-let api: APIRequestContext;
-let entityId: number;
-let entityName: string;
-let lenderId: number;
-let lenderName: string;
+let mocks: MockApi;
 
-test.beforeAll(async ({ baseURL }) => {
-  api = await request.newContext({ baseURL, storageState: "e2e/.auth/admin.json" });
-
-  entityName = testLabel("Borrower");
-  const entityRes = await api.post("/api/entities", {
-    data: { name: entityName, entity_kind: "PERSON", relationship: "EXTERNAL" },
-  });
-  expect(entityRes.ok(), await entityRes.text()).toBeTruthy();
-  entityId = (await entityRes.json()).data.entity.id;
-
-  lenderName = testLabel("Lender");
-  const lenderRes = await api.post("/api/lenders", {
-    data: { name: lenderName, lender_kind: "INSTITUTION" },
-  });
-  expect(lenderRes.ok(), await lenderRes.text()).toBeTruthy();
-  lenderId = (await lenderRes.json()).data.lender.id;
+test.beforeEach(async ({ page }) => {
+  mocks = await installLoansMocks(page);
 });
-
-test.afterAll(async () => {
-  // Loans referencing these are deleted by each test's own cleanup; this is
-  // the fixture data's own teardown, in reverse creation order.
-  await api.delete(`/api/lenders?id=${lenderId}`);
-  await api.delete(`/api/entities?id=${entityId}`);
-  await api.dispose();
-});
-
-async function openNewLoanModal(page: import("@playwright/test").Page) {
-  await page.goto("/admin/loans");
-  await page.getByTestId("loans-primary-action-btn").click();
-  await expect(page.getByRole("heading", { name: "New Loan" })).toBeVisible();
-}
-
-async function pickTypeahead(
-  page: import("@playwright/test").Page,
-  label: string,
-  searchText: string,
-  optionName: string,
-) {
-  const field = page.getByLabel(label);
-  await field.click();
-  await humanFill(field, searchText);
-  await page.getByRole("option", { name: optionName }).click();
-}
-
-async function fillValidLoanTerms(page: import("@playwright/test").Page) {
-  await pickTypeahead(page, "Loan Type", "Vehicle Loan", "Vehicle Loan");
-  await pickTypeahead(page, "In Whose Name", entityName, entityName);
-  await pickTypeahead(page, "Lender", lenderName, lenderName);
-  await humanFill(page.getByLabel("Principal Amount"), "500000");
-  await humanFill(page.getByLabel("Start Date"), "2026-01-01");
-  await humanFill(page.getByLabel("First EMI Date"), "2026-02-05");
-  await humanFill(page.getByLabel("EMI Amount"), "45000");
-  await humanFill(page.getByLabel("EMI Day of Month"), "5");
-  await humanFill(page.getByLabel("Total Installments"), "6");
-}
 
 test.describe("Loans list", () => {
   test("renders stat cards and the status/overdue filters", async ({ page }) => {
@@ -86,7 +33,8 @@ test.describe("Loans list", () => {
 
 test.describe("New loan — validation", () => {
   test("blocks submission with every required field empty", async ({ page }) => {
-    await openNewLoanModal(page);
+    const loans = new LoansPage(page);
+    await loans.openNewLoanModal();
     await page.getByRole("button", { name: "Save Loan" }).click();
 
     await expect(page.getByText("Loan type is required")).toBeVisible();
@@ -100,9 +48,10 @@ test.describe("New loan — validation", () => {
   });
 
   test("rejects a first EMI date before the start date", async ({ page }) => {
-    await openNewLoanModal(page);
-    await pickTypeahead(page, "Loan Type", "Vehicle Loan", "Vehicle Loan");
-    await pickTypeahead(page, "In Whose Name", entityName, entityName);
+    const loans = new LoansPage(page);
+    await loans.openNewLoanModal();
+    await loans.pickTypeahead("Loan Type", "Vehicle Loan", "Vehicle Loan");
+    await loans.pickTypeahead("In Whose Name", ENTITY_NAME, ENTITY_NAME);
     await humanFill(page.getByLabel("Principal Amount"), "100000");
     await humanFill(page.getByLabel("Start Date"), "2026-03-01");
     await humanFill(page.getByLabel("First EMI Date"), "2026-01-01");
@@ -115,7 +64,8 @@ test.describe("New loan — validation", () => {
   });
 
   test("rejects an EMI day outside 1–31", async ({ page }) => {
-    await openNewLoanModal(page);
+    const loans = new LoansPage(page);
+    await loans.openNewLoanModal();
     await humanFill(page.getByLabel("EMI Day of Month"), "45");
     await page.getByRole("button", { name: "Save Loan" }).click();
     await expect(page.getByText("EMI day must be between 1 and 31")).toBeVisible();
@@ -126,9 +76,10 @@ test.describe("New loan — creates and renders", () => {
   test("creates a loan and its schedule, then shows both on the detail page", async ({
     page,
   }) => {
-    await openNewLoanModal(page);
-    await fillValidLoanTerms(page);
-    const loanNumber = testLabel("Loan");
+    const loans = new LoansPage(page);
+    await loans.openNewLoanModal();
+    await loans.fillValidLoanTerms(ENTITY_NAME, LENDER_NAME);
+    const loanNumber = "Mock Loan 001";
     await humanFill(page.getByLabel("Loan Number"), loanNumber);
     await page.getByRole("button", { name: "Save Loan" }).click();
 
@@ -141,28 +92,27 @@ test.describe("New loan — creates and renders", () => {
     await expect(page.getByRole("tab", { name: "Schedule" })).toBeVisible();
     await expect(page.getByRole("row", { name: /1.*5 Feb 2026/ })).toBeVisible();
 
-    // Clean up via API — this test's own record, not global teardown's job.
-    const res = await page.request.get("/api/loans?page_size=50");
-    const body = await res.json();
-    const created = body.data.data.find((l: { loan_number: string }) => l.loan_number === loanNumber);
-    expect(created).toBeTruthy();
-    await page.request.delete(`/api/loans?id=${created.id}`);
+    const createWrite = mocks.payloads.find(
+      ({ url, method }) => url === "/api/loans" && method === "POST",
+    );
+    expect(createWrite?.body).toMatchObject({ loan_number: loanNumber });
   });
 });
 
 test.describe("Loan detail — payments and reversal", () => {
   let loanId: number;
-  let loanNumber: string;
-  let installmentId: number;
 
-  test.beforeEach(async () => {
-    loanNumber = testLabel("PayLoan");
-    const res = await api.post("/api/loans", {
+  test.beforeEach(async ({ page }) => {
+    // A page must be navigated first so page.route() mocks are installed
+    // and there's a document context for fetch() to run in.
+    await page.goto("/admin/loans");
+    const res = await apiFetch(page, "/api/loans", {
+      method: "POST",
       data: {
         loan_type: "PERSONAL",
-        borrower_entity_id: entityId,
-        lender_id: lenderId,
-        loan_number: loanNumber,
+        borrower_entity_id: 501,
+        lender_id: 601,
+        loan_number: "Mock Pay Loan",
         principal_amount: 200000,
         start_date: "2026-01-01",
         first_emi_date: "2026-02-05",
@@ -171,15 +121,7 @@ test.describe("Loan detail — payments and reversal", () => {
         total_installments: 4,
       },
     });
-    expect(res.ok(), await res.text()).toBeTruthy();
     loanId = (await res.json()).data.loan.id;
-
-    const detail = await (await api.get(`/api/loans/${loanId}`)).json();
-    installmentId = detail.data.installments[0].id;
-  });
-
-  test.afterEach(async () => {
-    await api.delete(`/api/loans?id=${loanId}`).catch(() => {});
   });
 
   test("marking an installment paid updates the balance, and it can be reversed", async ({
@@ -212,22 +154,26 @@ test.describe("Loan detail — payments and reversal", () => {
 
   test(
     "a schedule-shaping edit after a reversed payment rebuilds that installment — getProtectedInstallmentIds excludes reversed pairs",
-    async () => {
+    async ({ page }) => {
       // Pay installment 1, then reverse it — the loan is now genuinely
       // unpaid, but loan_payments still has two rows referencing it (the
       // original payment and its reversal, both carrying installment_id).
-      await api.post(`/api/loans/${loanId}/payments`, {
+      const detail = await (await apiFetch(page, `/api/loans/${loanId}`)).json();
+      const installmentId = detail.data.installments[0].id;
+
+      await apiFetch(page, `/api/loans/${loanId}/payments`, {
+        method: "POST",
         data: { payment_type: "EMI", installment_id: installmentId, amount: 20000, paid_on: "2026-02-04" },
       });
-      const payments = await (await api.get(`/api/loans/${loanId}`)).json();
+      const payments = await (await apiFetch(page, `/api/loans/${loanId}`)).json();
       const paymentId = payments.data.payments[0].id;
-      await api.post(`/api/loans/${loanId}/payments/${paymentId}/reverse`, { data: {} });
+      await apiFetch(page, `/api/loans/${loanId}/payments/${paymentId}/reverse`, { method: "POST", data: {} });
 
       // Bump the EMI amount — a schedule-shaping edit that should rebuild
       // every unpaid installment, including #1.
-      await api.put("/api/loans", { data: { id: loanId, emi_amount: 99000 } });
+      await apiFetch(page, "/api/loans", { method: "PUT", data: { id: loanId, emi_amount: 99000 } });
 
-      const after = await (await api.get(`/api/loans/${loanId}`)).json();
+      const after = await (await apiFetch(page, `/api/loans/${loanId}`)).json();
       const first = after.data.installments[0];
       expect(first.amount_due).toBe(99000);
     },
