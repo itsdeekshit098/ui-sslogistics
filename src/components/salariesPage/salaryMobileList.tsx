@@ -109,7 +109,25 @@ export function SalaryMobileList({
                   </p>
                 )}
               </div>
-
+            </button>
+            <button
+              type="button"
+              aria-label={`Add advance for ${row.name}`}
+              data-testid={`salary-add-advance-${row.driver_id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddAdvance(row);
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground active:bg-muted/60"
+            >
+              <HandCoinsIcon size={18} />
+            </button>
+            <button
+              type="button"
+              data-testid={`salary-row-net-${row.driver_id}`}
+              onClick={() => onOpen(row.driver_id)}
+              className="flex shrink-0 items-center gap-2 py-3 pl-1 pr-3.5 text-left active:bg-muted/60"
+            >
               {hasSalary ? (
                 <div className="shrink-0 text-right">
                   <Money
@@ -127,18 +145,6 @@ export function SalaryMobileList({
                 <span className="shrink-0 text-[13px] font-semibold text-primary">Set salary</span>
               )}
               <ChevronRightIcon size={16} className="shrink-0 text-muted-foreground" />
-            </button>
-            <button
-              type="button"
-              aria-label={`Add advance for ${row.name}`}
-              data-testid={`salary-add-advance-${row.driver_id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddAdvance(row);
-              }}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground active:bg-muted/60"
-            >
-              <HandCoinsIcon size={18} />
             </button>
           </li>
         );
