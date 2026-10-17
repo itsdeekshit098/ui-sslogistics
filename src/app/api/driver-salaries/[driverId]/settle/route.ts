@@ -3,6 +3,7 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
+import { logger } from "@/lib/logger";
 import { addMonths, todayInIndia } from "@/lib/dateOnly";
 import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
@@ -109,7 +110,14 @@ export async function POST(
     if (rpcErr && (rpcErr.code === "PGRST202" || rpcErr.code === "42883")) {
       // The function hasn't been created in this database yet (sql/ files
       // are applied by hand). Fall back to the three separate writes rather
-      // than refusing every settle; this path is not atomic.
+      // than refusing every settle; this path is not atomic, so log it
+      // loudly — a money write silently losing its transaction guarantee
+      // should be visible, not discovered later from a support ticket.
+      logger.error("settle_driver_salary RPC missing — using non-atomic fallback", {
+        driverId,
+        periodMonth,
+        rpcErrorCode: rpcErr.code,
+      });
       const nextMonth = addMonths(periodMonth, 1);
       if (gap !== 0 && (await isMonthSettled(driverId, nextMonth))) {
         return apiError(

@@ -42,6 +42,19 @@ function isMissingTableError(error: { code?: string } | null): boolean {
 }
 
 /**
+ * True only for "the settlement_id column doesn't exist yet" — the other
+ * thing sql/50 adds, this time to an existing table (driver_salary_entries)
+ * rather than a new one. Deliberately narrower than matching any
+ * undefined-column error (42703/PGRST204): those codes fire for a genuinely
+ * different missing column too, and papering over that would hide a real
+ * bug instead of a known, temporary pre-migration state.
+ */
+function isMissingSettlementColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (error?.code !== "PGRST204" && error?.code !== "42703") return false;
+  return error.message?.includes("settlement_id") ?? false;
+}
+
+/**
  * Whether a driver's month has been settled — used to block entries, rate
  * changes and reversals against a month that was already paid out and
  * closed, so the figure on the settlement receipt can't quietly drift from
@@ -53,6 +66,30 @@ export async function isMonthSettled(driverId: number, month: string): Promise<b
     .select("id")
     .eq("driver_id", driverId)
     .eq("period_month", `${month}-01`)
+    .maybeSingle();
+  if (error) {
+    if (isMissingTableError(error)) return false;
+    throw error;
+  }
+  return data != null;
+}
+
+/**
+ * Whether the driver has any settlement on or after `month` — used when
+ * setting a salary rate. A rate takes effect from its starting month
+ * *forward* (salaryForMonth picks the latest rate on or before each month),
+ * so a rate effective back in an earlier month still governs every settled
+ * month after it. Checking only the starting month itself (isMonthSettled)
+ * misses that: a rate set for June, while August is settled, would pass
+ * that check and silently change what August was paid against.
+ */
+export async function hasSettlementOnOrAfter(driverId: number, month: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("driver_salary_settlements")
+    .select("id")
+    .eq("driver_id", driverId)
+    .gte("period_month", `${month}-01`)
+    .limit(1)
     .maybeSingle();
   if (error) {
     if (isMissingTableError(error)) return false;
@@ -140,13 +177,30 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
       .eq("period_month", monthStart),
   ]);
   if (ratesRes.error) throw ratesRes.error;
-  if (entriesRes.error) throw entriesRes.error;
   if (settlementsRes.error && !isMissingTableError(settlementsRes.error)) {
     throw settlementsRes.error;
   }
 
+  // Missing the settlement_id column (sql/50 not applied) is not safe to
+  // swallow the way a missing table is: entriesRes.data would come back
+  // null, so every driver's advances/deductions would silently read as
+  // zero and net_pay would overstate what's actually payable — wrong
+  // numbers with no error, worse than the page failing to load. Retry the
+  // same query without that column instead, which still loads correctly;
+  // carry-forward entries just can't be tagged until sql/50 runs.
+  let entriesData = entriesRes.data;
+  if (entriesRes.error) {
+    if (!isMissingSettlementColumnError(entriesRes.error)) throw entriesRes.error;
+    const retry = await supabaseAdmin
+      .from("driver_salary_entries")
+      .select("id, driver_id, entry_type, amount, reverses_entry_id")
+      .eq("period_month", monthStart);
+    if (retry.error) throw retry.error;
+    entriesData = (retry.data ?? []).map((e) => ({ ...e, settlement_id: null }));
+  }
+
   const ratesByDriver = groupBy((ratesRes.data ?? []) as DriverRateRow[]);
-  const entriesByDriver = groupBy((entriesRes.data ?? []) as DriverEntryRow[]);
+  const entriesByDriver = groupBy((entriesData ?? []) as DriverEntryRow[]);
   const settledDrivers = new Set((settlementsRes.data ?? []).map((s) => s.driver_id as number));
   const attendanceByDriver = new Map(attendance.drivers.map((d) => [d.driver_id, d]));
 

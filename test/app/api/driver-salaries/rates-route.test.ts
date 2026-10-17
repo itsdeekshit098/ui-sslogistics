@@ -111,6 +111,26 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     expect(res.status).toBe(409);
   });
 
+  it("409s on a backdated raise that would reach a later settled month", async () => {
+    // Driver is set a rate effective June; August is already settled.
+    // salaryForMonth picks the latest rate on or before each month, so a
+    // June rate still governs August — settling August locks this out even
+    // though June itself isn't settled.
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: { id: 1 }, error: null }],
+      driver_salary_settlements: [{ data: { id: 50, period_month: "2026-08-01" }, error: null }],
+    });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { monthly_salary: 30000, effective_month: "2026-06" }),
+      paramsFor("1"),
+    );
+
+    expect(res.status).toBe(409);
+  });
+
   it("inserts a new rate and logs the audit entry when none exists for that month", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({

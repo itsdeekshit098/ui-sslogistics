@@ -192,8 +192,12 @@ function PayHero({ detail }: { detail: SalaryDriverDetail }) {
   // Entries and rates can't change for a settled month (the API refuses
   // them), but attendance marks are a separate module and still can — a
   // correction there moves row.net_pay without touching the settlement.
+  // Compare against net_pay_computed (what the sheet said when settled),
+  // never amount_paid — that's deliberately often different (it's the
+  // whole point of the carry-forward feature), so comparing against it
+  // would flag drift on almost every settlement that ever had a gap.
   const driftedSinceSettled =
-    settlement != null && row.net_pay != null && row.net_pay !== settlement.amount_paid;
+    settlement != null && row.net_pay != null && row.net_pay !== settlement.net_pay_computed;
 
   return (
     <div className="border-b border-border bg-gradient-to-b from-primary/[0.06] to-transparent px-6 pb-5 pt-1">
@@ -899,6 +903,11 @@ function EntriesSection({
             // A cancelled entry and the row that cancelled it both stay on
             // record, struck through, and neither counts.
             const dead = entry.is_reversed || entry.is_reversal;
+            // Carry-forward entries can only be undone by unsettling the
+            // settlement that made them — the route refuses a direct
+            // reverse. Hide the button here too instead of letting the
+            // click round-trip into that 400.
+            const canReverse = !dead && !entry.is_carry_forward;
             return (
               <li
                 key={entry.id}
@@ -923,7 +932,7 @@ function EntriesSection({
                     {entry.description && ` · ${entry.description}`}
                   </div>
                 </div>
-                {!dead &&
+                {canReverse &&
                   (confirmReverse === entry.id ? (
                     <div className="flex shrink-0 gap-1.5">
                       <Button

@@ -175,4 +175,74 @@ describe("GET /api/driver-salaries", () => {
     expect(res.status).toBe(200);
     expect(body.data.drivers[0].is_settled).toBe(false);
   });
+
+  it("retries without settlement_id, keeping real advances/deductions, when that column doesn't exist yet (sql/50 not applied)", async () => {
+    // Unlike the settlements table (PGRST205/42P01, covered above), this is
+    // the *column* sql/50 adds to an existing table: a database that hasn't
+    // run sql/50 at all fails here first, since the sheet query selects
+    // settlement_id from driver_salary_entries unconditionally. Swallowing
+    // that error outright (like the missing-table case) would silently
+    // drop every entry and understate what's deducted, so it must retry
+    // without the column rather than treat the query as returning nothing.
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [
+        { data: [{ driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01" }], error: null },
+      ],
+      driver_salary_entries: [
+        {
+          data: null,
+          error: {
+            code: "42703",
+            message: "column driver_salary_entries.settlement_id does not exist",
+          },
+        },
+        {
+          // The retry, without settlement_id — a real advance still shows up.
+          data: [{ id: 1, driver_id: 1, entry_type: "ADVANCE", amount: 2000, reverses_entry_id: null }],
+          error: null,
+        },
+      ],
+      driver_salary_settlements: [{ data: null, error: { code: "42P01" } }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const row = body.data.drivers[0];
+    expect(row.advances).toBe(2000);
+    expect(row.carry_forward_in).toBe(0);
+    expect(row.net_pay).toBe(28000);
+  });
+
+  it("surfaces a 500 for an entries-query error unrelated to the settlement_id column", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null }],
+      driver_attendance: [{ data: [], error: null }],
+      driver_shift_counts: [{ data: [], error: null }],
+      driver_salary_rates: [{ data: [], error: null }],
+      // A real "undefined column" error that has nothing to do with
+      // settlement_id must still surface as a failure, not be swallowed by
+      // a check that's too broad.
+      driver_salary_entries: [
+        { data: null, error: { code: "42703", message: "column driver_salary_entries.amount does not exist" } },
+      ],
+      driver_salary_settlements: [{ data: [], error: null }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/driver-salaries?month=2026-06"),
+    );
+
+    expect(res.status).toBe(500);
+  });
 });

@@ -5,7 +5,7 @@ import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResp
 import { logActivity } from "@/lib/activityLog";
 import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
-import { isMonthSettled } from "../../driver-salaries.data";
+import { hasSettlementOnOrAfter } from "../../driver-salaries.data";
 
 // Sets a driver's monthly salary from a given month onward. A raise is a new
 // row rather than an edit, so earlier months keep the salary they were paid
@@ -13,10 +13,12 @@ import { isMonthSettled } from "../../driver-salaries.data";
 // a typo in the amount has to be fixable — and the old and new figures both
 // go to the activity log.
 //
-// Only the starting month itself is checked against being settled: a rate
-// takes effect going forward, so blocking every change while any past month
-// is settled would be too heavy. What actually has to stay fixed is the
-// month the settlement receipt was computed from.
+// A rate takes effect from its starting month forward — salaryForMonth picks
+// the latest rate on or before each month — so a rate backdated to June
+// still governs every later month, August included. The write is refused if
+// the driver has *any* settlement on or after the starting month, not just
+// one for that exact month, or a backdated raise could silently change what
+// an already-settled month was paid against.
 
 const NOTE_MAX_LENGTH = 200;
 
@@ -57,9 +59,9 @@ export async function POST(
     if (driverErr) return serverError(driverErr);
     if (!driver) return apiError("Driver not found", 404);
 
-    if (await isMonthSettled(driverId, body.effective_month)) {
+    if (await hasSettlementOnOrAfter(driverId, body.effective_month)) {
       return apiError(
-        "This month is already settled — undo the settlement first if you need to change the salary it was paid against",
+        "A later month is already settled — undo that settlement first if you need to change the salary it was paid against",
         409,
       );
     }

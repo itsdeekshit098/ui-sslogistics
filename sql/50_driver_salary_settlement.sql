@@ -86,6 +86,16 @@ alter table driver_salary_settlements enable row level security;
 -- Returns the new settlement's id and, when a carry-forward was created,
 -- that entry's id — the route uses these instead of chasing a second
 -- select.
+-- An earlier version of this file created settle_driver_salary and
+-- unsettle_driver_salary without p_today (6 and 3 arguments). Postgres
+-- treats a different argument count as a distinct overload rather than
+-- replacing it, so re-running this file with `create or replace` alone
+-- would leave both the old and new signatures in the database side by
+-- side. Drop the old ones explicitly so there is exactly one of each —
+-- harmless if they were never created.
+drop function if exists settle_driver_salary(bigint, date, numeric, numeric, text, uuid);
+drop function if exists unsettle_driver_salary(bigint, bigint, uuid);
+
 create or replace function settle_driver_salary(
   p_driver_id bigint,
   p_period_month date,

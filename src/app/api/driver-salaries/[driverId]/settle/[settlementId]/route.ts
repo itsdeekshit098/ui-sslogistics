@@ -3,6 +3,7 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
+import { logger } from "@/lib/logger";
 import { todayInIndia } from "@/lib/dateOnly";
 import { isMonthSettled } from "../../../driver-salaries.data";
 
@@ -52,7 +53,14 @@ export async function DELETE(
     if (rpcErr && (rpcErr.code === "PGRST202" || rpcErr.code === "42883")) {
       // The function hasn't been created in this database yet (sql/ files
       // are applied by hand). Fall back to the separate writes rather than
-      // refusing every undo; this path is not atomic.
+      // refusing every undo; this path is not atomic, so log it loudly —
+      // a money write silently losing its transaction guarantee should be
+      // visible, not discovered later from a support ticket.
+      logger.error("unsettle_driver_salary RPC missing — using non-atomic fallback", {
+        driverId,
+        settlementId,
+        rpcErrorCode: rpcErr.code,
+      });
       if (settlement.carry_forward_entry_id != null) {
         const { data: original, error: entryFetchErr } = await supabaseAdmin
           .from("driver_salary_entries")
