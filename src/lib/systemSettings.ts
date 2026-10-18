@@ -20,26 +20,48 @@ const DEFAULT_STATUS: MaintenanceStatus = {
 const CACHE_TTL_MS = 5_000;
 let cached: { status: MaintenanceStatus; fetchedAt: number } | null = null;
 
+// Bounds a stalled connection (e.g. a cold function's first reach to
+// Supabase) so a single request can't hang forever in middleware — every
+// page/API request pays this await. Falls back to "no maintenance" rather
+// than blocking the request, same accepted tradeoff as a stale cache read.
+const QUERY_TIMEOUT_MS = 3_000;
+
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  const safePromise = Promise.resolve(promise).catch(() => null);
+  return Promise.race([safePromise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function getMaintenanceStatus(): Promise<MaintenanceStatus> {
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.status;
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("system_settings")
-    .select("maintenance_mode, maintenance_message")
-    .eq("singleton", true)
-    .maybeSingle();
+  const result = await withTimeout(
+    supabaseAdmin
+      .from("system_settings")
+      .select("maintenance_mode, maintenance_message")
+      .eq("singleton", true)
+      .maybeSingle(),
+    QUERY_TIMEOUT_MS,
+  );
 
   const status: MaintenanceStatus =
-    !error && data
+    result && !result.error && result.data
       ? {
-          maintenanceMode: !!data.maintenance_mode,
-          message: data.maintenance_message ?? null,
+          maintenanceMode: !!result.data.maintenance_mode,
+          message: result.data.maintenance_message ?? null,
         }
       : DEFAULT_STATUS;
 
-  cached = { status, fetchedAt: Date.now() };
+  // Don't cache a timeout as if it were a confirmed "off" — let the next
+  // request try again instead of locking in a false negative for 5s.
+  if (result) {
+    cached = { status, fetchedAt: Date.now() };
+  }
   return status;
 }
 

@@ -13,6 +13,15 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 const AUTH_USER_CACHE_TTL_MS = 5_000;
 const MAX_ENTRIES = 2_000; // sized for admin web + all active mobile sessions
 
+// Bounds a stalled connection (e.g. a cold function's first reach to
+// Supabase) so a single request can't hang forever in middleware — every
+// page/API request pays this await. getUser() revalidates against Supabase's
+// auth server, so on timeout we genuinely don't know the user's identity;
+// treating it as "not logged in" (same as a real auth failure) is the only
+// safe fallback. Nothing is cached, so the next request gets a fresh check
+// rather than being locked out for the cache TTL.
+const AUTH_TIMEOUT_MS = 3_000;
+
 type CacheEntry = { promise: Promise<User | null>; fetchedAt: number };
 const cache = new Map<string, CacheEntry>();
 
@@ -55,7 +64,20 @@ export function getCachedUser(
   // awaiting, so concurrent requests for the same session (Next.js
   // prefetch/RSC fetches commonly fire in bursts) piggyback onto one
   // Supabase call instead of firing duplicates.
-  const promise = supabase.auth.getUser().then(({ data }) => data.user);
+  const promise = supabase.auth
+    .getUser()
+    .then(({ data }) => data.user)
+    .catch(() => null);
   cache.set(key, { promise, fetchedAt: Date.now() });
-  return promise;
+
+  // Race only this call's wait, not the underlying request: a slow-but-live
+  // getUser() still resolves and lands in the cache for the next request,
+  // it just can't hold this one open indefinitely. A rejection (not just a
+  // timeout) is caught above so it degrades to "not logged in" too, rather
+  // than throwing uncaught through middleware.
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), AUTH_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
