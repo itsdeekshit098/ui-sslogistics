@@ -27,6 +27,7 @@ import { StatCard } from "@/components/ui/statCard";
 import { EmptyState } from "@/components/ui/emptyState";
 import { ErrorState } from "@/components/ui/errorState";
 import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { BusyOverlay } from "@/components/ui/busyOverlay";
 import { formatMonthShort } from "@/components/attendancePage/attendancePage.utils";
 import { SalaryMobileList, SalaryMobileSummary } from "./salaryMobileList";
 import type { SalaryRow, SalarySheet } from "./salariesPage.types";
@@ -336,6 +337,7 @@ export function SalariesPage() {
                 type="button"
                 aria-label="Previous month"
                 onClick={() => fetchSheet(addMonths(sheet.month, -1))}
+                disabled={fetching}
                 className={iconButton}
               >
                 <ChevronLeftIcon size={18} />
@@ -348,7 +350,8 @@ export function SalariesPage() {
                   type="month"
                   data-testid="salaries-month-input"
                   aria-label="Choose month"
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  disabled={fetching}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
                   value={sheet.month}
                   max={currentMonth}
                   onChange={(e) => e.target.value && fetchSheet(e.target.value)}
@@ -358,7 +361,7 @@ export function SalariesPage() {
                 type="button"
                 aria-label="Next month"
                 onClick={() => fetchSheet(addMonths(sheet.month, 1))}
-                disabled={sheet.month >= currentMonth}
+                disabled={fetching || sheet.month >= currentMonth}
                 className={iconButton}
               >
                 <ChevronRightIcon size={18} />
@@ -369,6 +372,7 @@ export function SalariesPage() {
                 type="button"
                 aria-label="Search drivers"
                 onClick={() => setSearchOpen(true)}
+                disabled={fetching}
                 className={iconButton}
               >
                 <SearchIcon size={18} />
@@ -377,7 +381,7 @@ export function SalariesPage() {
                 type="button"
                 data-testid="salaries-export-btn"
                 aria-label={exporting ? "Preparing export" : "Export this month"}
-                disabled={exporting || sheet.drivers.length === 0}
+                disabled={fetching || exporting || sheet.drivers.length === 0}
                 onClick={exportSheet}
                 className={iconButton}
               >
@@ -390,20 +394,20 @@ export function SalariesPage() {
         {exportError && <p className="text-sm text-destructive">{exportError}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {!query && <SalaryMobileSummary sheet={sheet} />}
+        <BusyOverlay busy={fetching}>
+          {!query && <SalaryMobileSummary sheet={sheet} />}
 
-        {!query && withoutSalary > 0 && (
-          <p className="px-1 text-xs text-muted-foreground">
-            {withoutSalary} {withoutSalary === 1 ? "driver has" : "drivers have"} no salary set
-            yet and {withoutSalary === 1 ? "is" : "are"} not in these totals.
-          </p>
-        )}
+          {!query && withoutSalary > 0 && (
+            <p className="px-1 text-xs text-muted-foreground">
+              {withoutSalary} {withoutSalary === 1 ? "driver has" : "drivers have"} no salary set
+              yet and {withoutSalary === 1 ? "is" : "are"} not in these totals.
+            </p>
+          )}
 
-        {emptyState ?? (
-          <div className={fetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
+          {emptyState ?? (
             <SalaryMobileList rows={rows} onOpen={setOpenDriverId} onAddAdvance={setAdvanceDriver} />
-          </div>
-        )}
+          )}
+        </BusyOverlay>
 
         {driverModal}
         {advanceDriver && (
@@ -426,35 +430,37 @@ export function SalariesPage() {
         description="Each driver's monthly pay, worked out from attendance, advances and deductions."
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <StatCard
-          title="Monthly Salaries"
-          value={<Money value={totals.monthly_salary} />}
-          icon={<WalletIcon size={18} />}
-        />
-        <StatCard
-          title="Attendance Cuts"
-          value={<Money value={totals.attendance_cut} />}
-          icon={<AlertTriangleIcon size={18} />}
-        />
-        <StatCard
-          title="Advances & Deductions"
-          value={<Money value={totals.advances + totals.deductions} />}
-          subtext={
-            <>
-              <Money value={totals.advances} /> advances · <Money value={totals.deductions} /> other
-            </>
-          }
-          icon={<HandCoinsIcon size={18} />}
-        />
-        <StatCard
-          title="Net Payable"
-          value={<Money value={totals.net_pay} />}
-          subtext={sheet.is_provisional ? "So far this month" : undefined}
-          icon={<WalletIcon size={18} />}
-          tone="positive"
-        />
-      </div>
+      <BusyOverlay busy={fetching}>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+          <StatCard
+            title="Monthly Salaries"
+            value={<Money value={totals.monthly_salary} />}
+            icon={<WalletIcon size={18} />}
+          />
+          <StatCard
+            title="Attendance Cuts"
+            value={<Money value={totals.attendance_cut} />}
+            icon={<AlertTriangleIcon size={18} />}
+          />
+          <StatCard
+            title="Advances & Deductions"
+            value={<Money value={totals.advances + totals.deductions} />}
+            subtext={
+              <>
+                <Money value={totals.advances} /> advances · <Money value={totals.deductions} /> other
+              </>
+            }
+            icon={<HandCoinsIcon size={18} />}
+          />
+          <StatCard
+            title="Net Payable"
+            value={<Money value={totals.net_pay} />}
+            subtext={sheet.is_provisional ? "So far this month" : undefined}
+            icon={<WalletIcon size={18} />}
+            tone="positive"
+          />
+        </div>
+      </BusyOverlay>
 
       <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:px-6">
@@ -463,6 +469,7 @@ export function SalariesPage() {
               variant="outline"
               size="sm"
               onClick={() => fetchSheet(addMonths(sheet.month, -1))}
+              disabled={fetching}
               aria-label="Previous month"
             >
               <ChevronLeftIcon size={16} />
@@ -474,7 +481,7 @@ export function SalariesPage() {
               variant="outline"
               size="sm"
               onClick={() => fetchSheet(addMonths(sheet.month, 1))}
-              disabled={sheet.month >= currentMonth}
+              disabled={fetching || sheet.month >= currentMonth}
               aria-label="Next month"
             >
               <ChevronRightIcon size={16} />
@@ -483,6 +490,7 @@ export function SalariesPage() {
               type="month"
               data-testid="salaries-month-input"
               aria-label="Choose month"
+              disabled={fetching}
               className="ml-1 w-auto max-sm:hidden"
               value={sheet.month}
               max={currentMonth}
@@ -501,6 +509,7 @@ export function SalariesPage() {
                 placeholder="Search driver or place..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                disabled={fetching}
                 className="bg-background pl-9 pr-9"
               />
               {search && (
@@ -518,7 +527,7 @@ export function SalariesPage() {
               variant="outline"
               size="sm"
               data-testid="salaries-export-btn"
-              disabled={exporting || sheet.drivers.length === 0}
+              disabled={fetching || exporting || sheet.drivers.length === 0}
               onClick={exportSheet}
             >
               <DownloadIcon size={16} className="mr-2" />

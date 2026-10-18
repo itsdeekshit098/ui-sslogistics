@@ -1,3 +1,4 @@
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -30,17 +31,27 @@ export async function POST(req: Request) {
     }
 
     // ── Step 1: Authenticate and create new session ──
+    // Retried once on AuthRetryableFetchError: a cold serverless function's
+    // first outbound call to Supabase occasionally fails at the network
+    // layer (not a credentials rejection), which previously surfaced to the
+    // user as "something went wrong" on a correct password, resolved only
+    // by resubmitting.
     const supabase = await createClient();
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    let data: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["data"];
+    let authError: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["error"];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      ({ data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      }));
+      if (!authError || !isAuthRetryableFetchError(authError)) break;
+    }
 
-    if (authError) {
+    if (authError!) {
       return apiError("Invalid credentials. Please check your email and password.", 401);
     }
 
-    const userId = data.user?.id;
+    const userId = data!.user?.id;
     if (!userId) {
       return serverError(
         new Error("signInWithPassword succeeded but returned no user id"),

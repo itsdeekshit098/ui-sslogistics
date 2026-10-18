@@ -614,7 +614,9 @@ export function AttendancePage() {
       variant="outline"
       size="sm"
       data-testid="attendance-export-btn"
-      disabled={saving || exporting || !monthData || monthData.drivers.length === 0}
+      disabled={
+        saving || exporting || monthLoading || !monthData || monthData.drivers.length === 0
+      }
       onClick={() => exportMonth(activeMonth)}
     >
       <DownloadIcon size={16} className="mr-2" />

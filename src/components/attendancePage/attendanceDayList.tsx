@@ -174,10 +174,11 @@ function DesktopList({
               {onEditShiftCount && (
                 <button
                   type="button"
+                  disabled={!editable}
                   title={`Shifts per day for ${driver.name}`}
                   aria-label={`Shifts per day for ${driver.name}`}
                   onClick={() => onEditShiftCount(driver)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
                 >
                   <SettingsIcon size={16} />
                 </button>
@@ -385,12 +386,13 @@ function PhoneList({
                 {onEditShiftCount && (
                   <button
                     type="button"
+                    disabled={!editable}
                     aria-label={`Shifts per day for ${driver.name}`}
                     onClick={() => {
                       setMenuFor(null);
                       onEditShiftCount(driver);
                     }}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground active:bg-muted"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground active:bg-muted disabled:opacity-50"
                   >
                     <SettingsIcon size={16} />
                   </button>
