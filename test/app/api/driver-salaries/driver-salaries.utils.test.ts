@@ -5,7 +5,10 @@ import {
   salaryForMonth,
   sumLiveEntries,
   carryForwardIn,
-  computePay,
+  computeMonthlyPay,
+  computePerTripPay,
+  payTypeForMonth,
+  tripCountForMonth,
   totalsFor,
   type RateRow,
   type EntryRow,
@@ -162,9 +165,9 @@ describe("carryForwardIn", () => {
   });
 });
 
-describe("computePay", () => {
+describe("computeMonthlyPay", () => {
   it("returns net_pay=null and attendance_cut=0 when no salary has been set", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: null,
       daysInMonth: 30,
       absentDays: 2,
@@ -176,7 +179,7 @@ describe("computePay", () => {
   });
 
   it("charges nothing for a perfect-attendance month", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 0,
@@ -188,7 +191,7 @@ describe("computePay", () => {
   });
 
   it("cuts day's-pay-times-unpaid-days, rounded to the rupee", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 2,
@@ -202,7 +205,7 @@ describe("computePay", () => {
   });
 
   it("treats leave the same as absent — both are unpaid", () => {
-    const withLeave = computePay({
+    const withLeave = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 0,
@@ -210,7 +213,7 @@ describe("computePay", () => {
       advances: 0,
       deductions: 0,
     });
-    const withAbsent = computePay({
+    const withAbsent = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 2,
@@ -222,7 +225,7 @@ describe("computePay", () => {
   });
 
   it("combines absent and leave days for the cut", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 1,
@@ -235,7 +238,7 @@ describe("computePay", () => {
   });
 
   it("caps the attendance cut at the monthly salary — cannot exceed 100%", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 30,
@@ -248,7 +251,7 @@ describe("computePay", () => {
   });
 
   it("subtracts advances and deductions from net pay", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 0,
@@ -260,7 +263,7 @@ describe("computePay", () => {
   });
 
   it("allows net pay to go negative when advances exceed what was earned", () => {
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 10000,
       daysInMonth: 30,
       absentDays: 0,
@@ -273,7 +276,7 @@ describe("computePay", () => {
 
   it("rounds a fractional cut to the nearest rupee", () => {
     // day's pay = 30000/31 ≈ 967.74; cut for 1 day ≈ 968 (rounds up)
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 31,
       absentDays: 1,
@@ -287,7 +290,7 @@ describe("computePay", () => {
   it("an unmarked day costs nothing — only explicit absent/leave reduce pay", () => {
     // unpaid_days only comes from absentDays + leaveDays; a day with no mark
     // at all never appears in either count, so it's implicitly paid.
-    const result = computePay({
+    const result = computeMonthlyPay({
       monthlySalary: 30000,
       daysInMonth: 30,
       absentDays: 0,
@@ -296,6 +299,99 @@ describe("computePay", () => {
       deductions: 0,
     });
     expect(result.attendance_cut).toBe(0);
+  });
+});
+
+describe("computePerTripPay", () => {
+  it("returns net_pay=null when the rate is not set", () => {
+    expect(computePerTripPay({ ratePerTrip: null, tripCount: 10, advances: 0, deductions: 0 })).toEqual({
+      net_pay: null,
+    });
+  });
+
+  it("returns net_pay=null when the trip count has not been entered", () => {
+    expect(computePerTripPay({ ratePerTrip: 500, tripCount: null, advances: 0, deductions: 0 })).toEqual({
+      net_pay: null,
+    });
+  });
+
+  it("multiplies rate by trip count", () => {
+    expect(
+      computePerTripPay({ ratePerTrip: 500, tripCount: 40, advances: 0, deductions: 0 }),
+    ).toEqual({ net_pay: 20000 });
+  });
+
+  it("subtracts advances and deductions, same as the monthly rule", () => {
+    expect(
+      computePerTripPay({ ratePerTrip: 500, tripCount: 40, advances: 2000, deductions: 500 }),
+    ).toEqual({ net_pay: 17500 });
+  });
+
+  it("allows net pay to go negative when advances exceed what was earned", () => {
+    expect(
+      computePerTripPay({ ratePerTrip: 500, tripCount: 2, advances: 5000, deductions: 0 }),
+    ).toEqual({ net_pay: -4000 });
+  });
+
+  it("has no per-day attendance cut at all — a zero trip count is simply zero pay", () => {
+    expect(
+      computePerTripPay({ ratePerTrip: 500, tripCount: 0, advances: 0, deductions: 0 }),
+    ).toEqual({ net_pay: 0 });
+  });
+});
+
+describe("payTypeForMonth", () => {
+  it("defaults to MONTHLY with no rate when nothing has been set", () => {
+    expect(payTypeForMonth([], "2026-06")).toEqual({ payType: "MONTHLY", ratePerTrip: null });
+  });
+
+  it("picks the latest row effective on or before the month", () => {
+    const rows = [
+      { pay_type: "MONTHLY", rate_per_trip: null, effective_from: "2026-01-01" },
+      { pay_type: "PER_TRIP", rate_per_trip: 500, effective_from: "2026-05-01" },
+    ];
+    expect(payTypeForMonth(rows, "2026-06")).toEqual({ payType: "PER_TRIP", ratePerTrip: 500 });
+  });
+
+  it("does not let a later switch rewrite an earlier month", () => {
+    const rows = [
+      { pay_type: "MONTHLY", rate_per_trip: null, effective_from: "2026-01-01" },
+      { pay_type: "PER_TRIP", rate_per_trip: 500, effective_from: "2026-05-01" },
+    ];
+    expect(payTypeForMonth(rows, "2026-03")).toEqual({ payType: "MONTHLY", ratePerTrip: null });
+  });
+
+  it("coerces a string rate_per_trip to a number", () => {
+    const rows = [{ pay_type: "PER_TRIP", rate_per_trip: "500", effective_from: "2026-01-01" }];
+    expect(payTypeForMonth(rows, "2026-06")).toEqual({ payType: "PER_TRIP", ratePerTrip: 500 });
+  });
+
+  it("switching back to MONTHLY from a later month reads as MONTHLY", () => {
+    const rows = [
+      { pay_type: "PER_TRIP", rate_per_trip: 500, effective_from: "2026-01-01" },
+      { pay_type: "MONTHLY", rate_per_trip: null, effective_from: "2026-05-01" },
+    ];
+    expect(payTypeForMonth(rows, "2026-06")).toEqual({ payType: "MONTHLY", ratePerTrip: null });
+  });
+});
+
+describe("tripCountForMonth", () => {
+  it("returns null when nothing was entered for the month", () => {
+    expect(tripCountForMonth([], "2026-06")).toBeNull();
+  });
+
+  it("reads the count for exactly that month only", () => {
+    const rows = [
+      { period_month: "2026-05-01", trip_count: 30 },
+      { period_month: "2026-06-01", trip_count: 42 },
+    ];
+    expect(tripCountForMonth(rows, "2026-06")).toBe(42);
+    expect(tripCountForMonth(rows, "2026-05")).toBe(30);
+  });
+
+  it("coerces a string trip_count to a number", () => {
+    const rows = [{ period_month: "2026-06-01", trip_count: "42" }];
+    expect(tripCountForMonth(rows, "2026-06")).toBe(42);
   });
 });
 
@@ -325,6 +421,17 @@ describe("totalsFor", () => {
     const totals = totalsFor(rows);
     expect(totals.drivers_without_salary).toBe(1);
     expect(totals.monthly_salary).toBe(30000);
+  });
+
+  it("counts a PER_TRIP row's net pay even though monthly_salary is null", () => {
+    // A PER_TRIP driver never has a monthly_salary — only net_pay being null
+    // means "nothing to work from yet", so a fully-configured trip-paid
+    // driver must still land in the totals.
+    const rows = [row({ monthly_salary: null, net_pay: 20000 })];
+    const totals = totalsFor(rows);
+    expect(totals.drivers_without_salary).toBe(0);
+    expect(totals.net_pay).toBe(20000);
+    expect(totals.monthly_salary).toBe(0);
   });
 
   it("returns all-zero totals for an empty row list", () => {

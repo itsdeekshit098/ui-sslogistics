@@ -23,6 +23,11 @@ export function isMarked(mark: AttendanceMark): boolean {
   return mark.shifts.length > 0 || mark.status !== null;
 }
 
+/** True for a PER_TRIP driver's shift-less "Present" mark. */
+export function isShiftlessPresent(mark: AttendanceMark): boolean {
+  return mark.status === "PRESENT" && mark.shifts.length === 0;
+}
+
 /**
  * A full day is all of *this driver's* shifts, so a two-shift driver on
  * A + B is a full day, exactly as a three-shift driver on A + B + C.
@@ -53,6 +58,8 @@ export function markLabel(
 ): string {
   if (mark.status === "ABSENT") return "Absent";
   if (mark.status === "LEAVE") return "On leave";
+  if (mark.status === "HOLIDAY") return "Holiday";
+  if (mark.status === "PRESENT") return "Present";
   if (isFullDay(mark, count)) return "Full day";
   if (mark.shifts.length > 1) return `Shifts ${mark.shifts.join(" + ")}`;
   if (mark.shifts.length === 1) return `Shift ${mark.shifts[0]}`;
@@ -62,8 +69,12 @@ export function markLabel(
 export function matchesFilter(mark: AttendanceMark, filter: AttendanceFilter): boolean {
   if (filter === "all") return true;
   if (filter === "unmarked") return !isMarked(mark);
-  if (filter === "present") return mark.shifts.length > 0;
-  if (filter === "off") return mark.status !== null;
+  if (filter === "present") return mark.shifts.length > 0 || mark.status === "PRESENT";
+  // "Off" means a day the driver didn't work and wasn't paid full salary
+  // for by default — Holiday is excluded, since it's a paid non-working day,
+  // not a gap in the roster the way Absent/Leave are.
+  if (filter === "off") return mark.status === "ABSENT" || mark.status === "LEAVE";
+  if (filter === "holiday") return mark.status === "HOLIDAY";
   return mark.shifts.includes(filter);
 }
 

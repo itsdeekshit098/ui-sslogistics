@@ -104,7 +104,7 @@ test.describe("Salaries page with fully mocked API responses", () => {
     await expect(page.getByText("Salary not set")).toBeVisible();
     await expect(page.getByRole("button", { name: /mark paid/i })).toBeDisabled();
     await page.getByLabel("Salary (₹ per month)").fill("25000");
-    await page.getByRole("button", { name: "Save salary" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Net pay", { exact: true })).toBeVisible();
 
     const rateWrite = mocks.payloads.find(
@@ -125,7 +125,7 @@ test.describe("Salaries page with fully mocked API responses", () => {
     await page.getByRole("button", { name: "Change" }).click();
     await page.getByLabel("Salary (₹ per month)").fill("32000");
     await page.getByLabel("From month").fill("2026-05");
-    await page.getByRole("button", { name: "Save salary" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText("From May 2026")).toBeVisible();
     const write = mocks.payloads.find(
@@ -143,7 +143,7 @@ test.describe("Salaries page with fully mocked API responses", () => {
 
     await page.getByRole("button", { name: "Change" }).click();
     await page.getByLabel("Salary (₹ per month)").fill("");
-    await page.getByRole("button", { name: "Save salary" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByRole("alert").getByText("Enter the monthly salary")).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
 

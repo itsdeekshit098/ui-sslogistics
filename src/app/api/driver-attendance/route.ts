@@ -7,7 +7,7 @@ import type {
   AttendanceMark,
   SaveAttendancePayload,
 } from "@/components/attendancePage/attendancePage.types";
-import { loadDay, loadMonth, shiftCountsForDate } from "./driver-attendance.data";
+import { loadDay, loadMonth, payTypesForDate, shiftCountsForDate } from "./driver-attendance.data";
 import {
   isValidDate,
   isValidMonth,
@@ -64,10 +64,14 @@ export async function PUT(req: Request) {
       return apiError(`Too many entries (max ${MAX_ENTRIES})`, 400);
     }
 
-    // Each driver's mark is checked against that driver's own shifts, so a
-    // screen opened before their duties changed can't store a shift they no
-    // longer work.
-    const shiftCountRows = await shiftCountsForDate(date);
+    // Each driver's mark is checked against that driver's own shifts (and
+    // whether they have shifts at all — a PER_TRIP driver doesn't), so a
+    // screen opened before their duties/pay type changed can't store
+    // something they no longer work or no longer have.
+    const [shiftCountRows, payTypes] = await Promise.all([
+      shiftCountsForDate(date),
+      payTypesForDate(date),
+    ]);
 
     const marks = new Map<number, AttendanceMark>();
     for (const entry of body.entries) {
@@ -77,7 +81,8 @@ export async function PUT(req: Request) {
       }
       if (marks.has(driverId)) return apiError("A driver appears twice in this save", 400);
       const shiftCount = shiftCountForDate(shiftCountRows.get(driverId) ?? [], date);
-      const mark = parseMark(entry.shifts, entry.status, shiftCount);
+      const hasShifts = (payTypes.get(driverId) ?? "MONTHLY") !== "PER_TRIP";
+      const mark = parseMark(entry.shifts, entry.status, shiftCount, hasShifts);
       if (typeof mark === "string") return apiError(mark, 400);
       marks.set(driverId, mark);
     }
@@ -93,6 +98,8 @@ export async function PUT(req: Request) {
     }
 
     // One entry per changed driver; a null status clears that driver's mark.
+    // mark.status is already "PRESENT" for a shift-less present (PER_TRIP
+    // driver), so it only needs deriving here for the shift-based case.
     const entries = driverIds.map((id) => {
       const mark = marks.get(id)!;
       const present = mark.shifts.length > 0;

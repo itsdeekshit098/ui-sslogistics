@@ -157,45 +157,74 @@ export function SalariesPage() {
       ),
     },
     {
+      // Shared column for both pay types: a monthly figure for MONTHLY
+      // drivers, a per-trip rate for PER_TRIP ones — the two never both
+      // apply to the same driver, so one column reads cleanly either way.
       key: "monthly_salary",
-      header: "Monthly Salary",
+      header: "Salary / Rate",
       align: "right",
-      cell: (row) =>
-        row.monthly_salary == null ? (
+      cell: (row) => {
+        if (row.pay_type === "PER_TRIP") {
+          return row.rate_per_trip == null ? (
+            <span className="font-medium text-primary">Set rate</span>
+          ) : (
+            <span>
+              <Money value={row.rate_per_trip} />
+              <span className="text-muted-foreground">/trip</span>
+            </span>
+          );
+        }
+        return row.monthly_salary == null ? (
           // Reads as the thing to do next; the whole row opens the driver.
           <span className="font-medium text-primary">Set salary</span>
         ) : (
           <Money value={row.monthly_salary} />
-        ),
+        );
+      },
     },
     {
       key: "unpaid_days",
-      header: "Unpaid Days",
-      cell: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <span>
-            {row.unpaid_days}
-            <span className="text-muted-foreground"> of {sheet.days_in_month}</span>
-          </span>
-          {row.unpaid_days > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {row.absent_days} absent · {row.leave_days} leave
+      header: "Unpaid Days / Trips",
+      cell: (row) => {
+        if (row.pay_type === "PER_TRIP") {
+          return row.trip_count == null ? (
+            row.rate_per_trip == null ? (
+              <span className="text-muted-foreground">—</span>
+            ) : (
+              <span className="text-xs font-medium text-primary">Enter trips</span>
+            )
+          ) : (
+            <span>{row.trip_count} trips</span>
+          );
+        }
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span>
+              {row.unpaid_days}
+              <span className="text-muted-foreground"> of {sheet.days_in_month}</span>
             </span>
-          )}
-          {row.unmarked_days > 0 && (
-            <Badge variant="warning-subtle" className="self-start">
-              {row.unmarked_days} not marked
-            </Badge>
-          )}
-        </div>
-      ),
+            {row.unpaid_days > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {row.absent_days} absent · {row.leave_days} leave
+              </span>
+            )}
+            {row.unmarked_days > 0 && (
+              <Badge variant="warning-subtle" className="self-start">
+                {row.unmarked_days} not marked
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "attendance_cut",
       header: "Attendance Cut",
       align: "right",
       cell: (row) =>
-        row.monthly_salary == null || row.attendance_cut === 0 ? (
+        // No per-day cut applies to a PER_TRIP driver at all — the trip
+        // count already reflects however much they drove.
+        row.pay_type === "PER_TRIP" || row.monthly_salary == null || row.attendance_cut === 0 ? (
           <span className="text-muted-foreground">—</span>
         ) : (
           <Money value={row.attendance_cut} />

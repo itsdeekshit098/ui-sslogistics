@@ -5,7 +5,7 @@ import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResp
 import { logActivity } from "@/lib/activityLog";
 import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
-import { hasSettlementOnOrAfter } from "../../driver-salaries.data";
+import { hasSettlementOnOrAfter, payTypeFor } from "../../driver-salaries.data";
 
 // Sets a driver's monthly salary from a given month onward. A raise is a new
 // row rather than an edit, so earlier months keep the salary they were paid
@@ -63,6 +63,17 @@ export async function POST(
       return apiError(
         "A later month is already settled — undo that settlement first if you need to change the salary it was paid against",
         409,
+      );
+    }
+
+    // A monthly salary rate has nothing to do with a PER_TRIP driver's pay
+    // (rate × trip count), so setting one for them would sit unused and
+    // confuse anyone who later switches them back to MONTHLY.
+    const { payType } = await payTypeFor(driverId, body.effective_month);
+    if (payType === "PER_TRIP") {
+      return apiError(
+        "This driver is paid per trip, not monthly — set their pay type to monthly first",
+        400,
       );
     }
 

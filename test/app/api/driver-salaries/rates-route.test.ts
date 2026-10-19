@@ -136,6 +136,7 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
       driver_salary_settlements: [{ data: null, error: null }],
+      driver_pay_types: [{ data: [], error: null }],
       driver_salary_rates: [
         { data: null, error: null },
         { data: { id: 1, driver_id: 1, monthly_salary: 30000, effective_from: "2026-06-01" }, error: null },
@@ -161,6 +162,7 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
       driver_salary_settlements: [{ data: null, error: null }],
+      driver_pay_types: [{ data: [], error: null }],
       driver_salary_rates: [
         { data: { id: 1, monthly_salary: 25000 }, error: null },
         { data: { id: 1, driver_id: 1, monthly_salary: 30000, effective_from: "2026-06-01" }, error: null },
@@ -183,6 +185,7 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     mockSupabaseAdmin({
       drivers: [{ data: { id: 1 }, error: null }],
       driver_salary_settlements: [{ data: null, error: null }],
+      driver_pay_types: [{ data: [], error: null }],
       driver_salary_rates: [
         { data: null, error: null },
         { data: null, error: { code: "23505" } },

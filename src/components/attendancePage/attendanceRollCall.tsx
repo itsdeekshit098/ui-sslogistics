@@ -9,6 +9,7 @@ export interface AttendanceRollCallCounts {
   present: number;
   absent: number;
   leave: number;
+  holiday: number;
   unmarked: number;
   shift: Record<Shift, number>;
 }
@@ -24,7 +25,7 @@ export interface AttendanceRollCallProps {
 }
 
 interface Segment {
-  key: "present" | "absent" | "leave" | "unmarked";
+  key: "present" | "absent" | "leave" | "holiday" | "unmarked";
   label: string;
   tone: string;
   filter: AttendanceFilter;
@@ -34,6 +35,9 @@ const SEGMENTS: Segment[] = [
   { key: "present", label: "Present", tone: "bg-success-subtle-foreground", filter: "present" },
   { key: "absent", label: "Absent", tone: "bg-destructive", filter: "off" },
   { key: "leave", label: "Leave", tone: "bg-warning", filter: "off" },
+  // A lighter tone than Leave: a holiday is paid, not a gap in the roster —
+  // it shouldn't read with the same weight as a day actually missed.
+  { key: "holiday", label: "Holiday", tone: "bg-warning/50", filter: "holiday" },
   {
     key: "unmarked",
     label: "Not marked",

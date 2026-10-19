@@ -47,6 +47,7 @@ describe("GET /api/driver-attendance", () => {
       drivers: [{ data: [DRIVERS_ROW], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -87,6 +88,7 @@ describe("GET /api/driver-attendance", () => {
       drivers: [{ data: [DRIVERS_ROW], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -105,6 +107,7 @@ describe("GET /api/driver-attendance", () => {
       drivers: [{ data: [DRIVERS_ROW], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -122,6 +125,7 @@ describe("GET /api/driver-attendance", () => {
       drivers: [{ data: [DRIVERS_ROW], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -139,6 +143,7 @@ describe("GET /api/driver-attendance", () => {
       drivers: [{ data: [DRIVERS_ROW], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { GET } = await importRoute();
 
@@ -219,6 +224,7 @@ describe("PUT /api/driver-attendance", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { PUT } = await importRoute();
 
@@ -241,6 +247,7 @@ describe("PUT /api/driver-attendance", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { PUT } = await importRoute();
 
@@ -258,6 +265,7 @@ describe("PUT /api/driver-attendance", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { PUT } = await importRoute();
 
@@ -280,6 +288,7 @@ describe("PUT /api/driver-attendance", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { PUT } = await importRoute();
 
@@ -299,6 +308,7 @@ describe("PUT /api/driver-attendance", () => {
       driver_shift_counts: [
         { data: [{ driver_id: 1, shift_count: 1, effective_from: "2026-01-01" }], error: null },
       ],
+      driver_pay_types: [{ data: [], error: null }],
     });
     const { PUT } = await importRoute();
 
@@ -318,6 +328,7 @@ describe("PUT /api/driver-attendance", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
       drivers: [{ data: [], error: null }], // known drivers: none
     });
     const { PUT } = await importRoute();
@@ -338,6 +349,7 @@ describe("PUT /api/driver-attendance", () => {
     mockSupabaseAdmin(
       {
         driver_shift_counts: [{ data: [], error: null }, { data: [], error: null }],
+        driver_pay_types: [{ data: [], error: null }, { data: [], error: null }],
         drivers: [
           { data: [{ id: 1 }], error: null }, // known-drivers check
           { data: [DRIVERS_ROW], error: null }, // loadDay's fetchDrivers

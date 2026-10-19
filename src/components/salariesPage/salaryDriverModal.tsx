@@ -20,13 +20,17 @@ import { addMonths } from "@/lib/dateOnly";
 import { formatCurrency, formatDate, formatMonth, todayString } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
+  PAY_TYPES,
   SALARY_DESCRIPTION_MAX_LENGTH,
   type CreateSalaryEntryPayload,
+  type PayType,
   type SalaryDriverDetail,
   type SalaryEntry,
   type SalaryEntryType,
+  type SetPayTypePayload,
   type SettleSalaryPayload,
   type SetSalaryPayload,
+  type SetTripCountPayload,
 } from "./salariesPage.types";
 
 export interface SalaryDriverModalProps {
@@ -162,7 +166,7 @@ const SalaryDriverBody: React.FC<
             onBusyChange={onBusyChange}
           />
           <PayBreakdown detail={detail} />
-          <SalarySection
+          <PaySetupSection
             detail={detail}
             driverId={driverId}
             month={month}
@@ -170,6 +174,16 @@ const SalaryDriverBody: React.FC<
             busy={busy}
             onBusyChange={onBusyChange}
           />
+          {detail.row.pay_type === "PER_TRIP" && (
+            <TripCountSection
+              detail={detail}
+              driverId={driverId}
+              month={month}
+              onSaved={afterChange}
+              busy={busy}
+              onBusyChange={onBusyChange}
+            />
+          )}
           <EntriesSection
             detail={detail}
             driverId={driverId}
@@ -188,7 +202,10 @@ const SalaryDriverBody: React.FC<
 
 function PayHero({ detail }: { detail: SalaryDriverDetail }) {
   const { row, settlement } = detail;
-  const hasSalary = row.monthly_salary != null;
+  // Whether there is a figure to show at all — a monthly salary for MONTHLY,
+  // or a rate for PER_TRIP. row.monthly_salary alone would always read as
+  // "not set" for a PER_TRIP driver, who never has one.
+  const hasBasis = row.pay_type === "PER_TRIP" ? row.rate_per_trip != null : row.monthly_salary != null;
   // Entries and rates can't change for a settled month (the API refuses
   // them), but attendance marks are a separate module and still can — a
   // correction there moves row.net_pay without touching the settlement.
@@ -210,7 +227,7 @@ function PayHero({ detail }: { detail: SalaryDriverDetail }) {
         {settlement ? "Paid" : "Net pay"}
       </p>
       <div className="mt-1 flex items-baseline gap-3">
-        {hasSalary ? (
+        {hasBasis ? (
           <Money
             value={settlement ? settlement.amount_paid : row.net_pay}
             tone={!settlement && (row.net_pay ?? 0) < 0 ? "negative" : "neutral"}
@@ -218,10 +235,10 @@ function PayHero({ detail }: { detail: SalaryDriverDetail }) {
           />
         ) : (
           <span className="text-[1.5rem] font-semibold text-muted-foreground">
-            Salary not set
+            {row.pay_type === "PER_TRIP" ? "Rate not set" : "Salary not set"}
           </span>
         )}
-        {hasSalary && (
+        {hasBasis && (
           <Badge variant={settlement ? "success-subtle" : "warning-subtle"} className="mb-1">
             {settlement ? "✓ Paid" : "Unsettled"}
           </Badge>
@@ -248,7 +265,8 @@ function PayHero({ detail }: { detail: SalaryDriverDetail }) {
 
 function PayBreakdown({ detail }: { detail: SalaryDriverDetail }) {
   const { row, settlement } = detail;
-  const hasSalary = row.monthly_salary != null;
+  const isPerTrip = row.pay_type === "PER_TRIP";
+  const hasBasis = isPerTrip ? row.rate_per_trip != null : row.monthly_salary != null;
 
   const line = (label: React.ReactNode, value: React.ReactNode) => (
     <div className="flex items-baseline justify-between gap-4 py-1.5 text-sm">
@@ -266,19 +284,42 @@ function PayBreakdown({ detail }: { detail: SalaryDriverDetail }) {
         </span>
       </summary>
       <div className="border-t border-border px-4 py-1">
-        {line(
-          "Monthly salary",
-          hasSalary ? <Money value={row.monthly_salary} /> : <span className="text-muted-foreground">Not set</span>,
-        )}
-        {line(
+        {isPerTrip ? (
           <>
-            Attendance cut
-            <span className="block text-xs">
-              {row.unpaid_days} unpaid {row.unpaid_days === 1 ? "day" : "days"} of{" "}
-              {detail.days_in_month} ({row.absent_days} absent, {row.leave_days} leave)
-            </span>
-          </>,
-          hasSalary ? <>− <Money value={row.attendance_cut} /></> : "—",
+            {line(
+              "Rate per trip",
+              row.rate_per_trip != null ? (
+                <Money value={row.rate_per_trip} />
+              ) : (
+                <span className="text-muted-foreground">Not set</span>
+              ),
+            )}
+            {line(
+              "Trips this month",
+              row.trip_count != null ? (
+                row.trip_count
+              ) : (
+                <span className="text-muted-foreground">Not entered</span>
+              ),
+            )}
+          </>
+        ) : (
+          <>
+            {line(
+              "Monthly salary",
+              hasBasis ? <Money value={row.monthly_salary} /> : <span className="text-muted-foreground">Not set</span>,
+            )}
+            {line(
+              <>
+                Attendance cut
+                <span className="block text-xs">
+                  {row.unpaid_days} unpaid {row.unpaid_days === 1 ? "day" : "days"} of{" "}
+                  {detail.days_in_month} ({row.absent_days} absent, {row.leave_days} leave)
+                </span>
+              </>,
+              hasBasis ? <>− <Money value={row.attendance_cut} /></> : "—",
+            )}
+          </>
         )}
         {line("Advances", <>− <Money value={row.advances} /></>)}
         {line("Other deductions", <>− <Money value={row.deductions} /></>)}
@@ -298,17 +339,19 @@ function PayBreakdown({ detail }: { detail: SalaryDriverDetail }) {
             />,
           )}
       </div>
-      <p className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
-        {row.days_present} {row.days_present === 1 ? "day" : "days"} present
-        {row.unmarked_days > 0 && (
-          <>
-            {" · "}
-            <span className="font-medium text-warning-subtle-foreground">
-              {row.unmarked_days} not marked (paid, not cut)
-            </span>
-          </>
-        )}
-      </p>
+      {!isPerTrip && (
+        <p className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
+          {row.days_present} {row.days_present === 1 ? "day" : "days"} present
+          {row.unmarked_days > 0 && (
+            <>
+              {" · "}
+              <span className="font-medium text-warning-subtle-foreground">
+                {row.unmarked_days} not marked (paid, not cut)
+              </span>
+            </>
+          )}
+        </p>
+      )}
     </details>
   );
 }
@@ -576,14 +619,16 @@ function SettlementSection({
         <>
           <Button
             className="w-full"
-            disabled={busy || row.monthly_salary == null}
+            disabled={busy || row.net_pay == null}
             onClick={startSettling}
           >
             Mark paid
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            {row.monthly_salary == null
-              ? "Set a salary before settling this month."
+            {row.net_pay == null
+              ? row.pay_type === "PER_TRIP"
+                ? "Set a rate and enter this month's trips before settling."
+                : "Set a salary before settling this month."
               : "Record what was actually handed over — any gap carries to next month automatically."}
           </p>
         </>
@@ -594,7 +639,21 @@ function SettlementSection({
 
 // ─── The salary itself, with its history ───
 
-function SalarySection({
+const PAY_TYPE_LABEL: Record<PayType, string> = {
+  MONTHLY: "Monthly salary",
+  PER_TRIP: "Per trip",
+};
+
+/**
+ * How this driver is paid, and the figure that goes with it: a monthly
+ * salary, or a rate per trip (with the trip count itself entered separately,
+ * in TripCountSection, since it changes every month).
+ *
+ * Switching pay type is itself a dated change (like a raise or a shift-count
+ * change) — it takes effect from a chosen month, so flipping someone to
+ * PER_TRIP next month never rewrites how this month or earlier was paid.
+ */
+function PaySetupSection({
   detail,
   driverId,
   month,
@@ -609,16 +668,33 @@ function SalarySection({
   busy: boolean;
   onBusyChange: (busy: boolean) => void;
 }) {
-  const current = detail.row.monthly_salary;
-  const [editing, setEditing] = useState(current == null);
-  const [amount, setAmount] = useState(current != null ? String(current) : "");
+  const { row } = detail;
+  const [editing, setEditing] = useState(
+    row.pay_type === "PER_TRIP" ? row.rate_per_trip == null : row.monthly_salary == null,
+  );
+  const [payType, setPayType] = useState<PayType>(row.pay_type);
+  const [amount, setAmount] = useState(() => {
+    const current = row.pay_type === "PER_TRIP" ? row.rate_per_trip : row.monthly_salary;
+    return current != null ? String(current) : "";
+  });
   const [fromMonth, setFromMonth] = useState(month);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const startEditing = () => {
+    setPayType(row.pay_type);
+    const current = row.pay_type === "PER_TRIP" ? row.rate_per_trip : row.monthly_salary;
+    setAmount(current != null ? String(current) : "");
+    setFromMonth(month);
+    setError(null);
+    setEditing(true);
+  };
+
+  const hasAnyBasis = row.pay_type === "PER_TRIP" ? row.rate_per_trip != null : row.monthly_salary != null;
+
   const save = async () => {
-    if (amount === "" || Number(amount) < 0) {
-      setError("Enter the monthly salary");
+    if (amount === "" || Number(amount) < 0 || (payType === "PER_TRIP" && Number(amount) <= 0)) {
+      setError(payType === "PER_TRIP" ? "Enter a rate greater than zero" : "Enter the monthly salary");
       return;
     }
     if (!fromMonth) {
@@ -631,17 +707,45 @@ function SalarySection({
     setSaving(true);
     onBusyChange(true);
     setError(null);
-    const payload: SetSalaryPayload = {
-      monthly_salary: Number(amount),
-      effective_month: fromMonth,
-    };
-    const failure = await send(`/api/driver-salaries/${driverId}/rates`, payload);
-    if (failure) {
-      setSaving(false);
-      onBusyChange(false);
-      setError(failure);
-      return;
+
+    // The pay-type switch and the figure are two separate rows/tables
+    // (driver_pay_types vs driver_salary_rates), so a change of type is
+    // always sent first — setting a rate for a driver who is still MONTHLY
+    // would be refused by the rates route, and vice versa.
+    if (payType !== row.pay_type) {
+      const typePayload: SetPayTypePayload = {
+        pay_type: payType,
+        effective_month: fromMonth,
+        ...(payType === "PER_TRIP" ? { rate_per_trip: Number(amount) } : {}),
+      };
+      const typeFailure = await send(`/api/driver-salaries/${driverId}/pay-type`, typePayload);
+      if (typeFailure) {
+        setSaving(false);
+        onBusyChange(false);
+        setError(typeFailure);
+        return;
+      }
     }
+
+    // MONTHLY always needs its rate on driver_salary_rates, whether or not
+    // the type itself changed — this is also how an existing MONTHLY driver
+    // gets a raise. PER_TRIP's rate was already sent above as part of the
+    // pay-type row (driver_pay_types.rate_per_trip is the one place it
+    // lives), so there is nothing further to save here for PER_TRIP.
+    if (payType === "MONTHLY") {
+      const salaryPayload: SetSalaryPayload = {
+        monthly_salary: Number(amount),
+        effective_month: fromMonth,
+      };
+      const salaryFailure = await send(`/api/driver-salaries/${driverId}/rates`, salaryPayload);
+      if (salaryFailure) {
+        setSaving(false);
+        onBusyChange(false);
+        setError(salaryFailure);
+        return;
+      }
+    }
+
     setEditing(false);
     await onSaved();
     setSaving(false);
@@ -651,24 +755,55 @@ function SalarySection({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <SectionTitle>Monthly salary</SectionTitle>
+        <SectionTitle>Pay</SectionTitle>
         {!editing && (
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => setEditing(true)}>
-            Change
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{PAY_TYPE_LABEL[row.pay_type]}</Badge>
+            <Button variant="outline" size="sm" disabled={busy} onClick={startEditing}>
+              Change
+            </Button>
+          </div>
         )}
       </div>
 
       {editing && (
         <div className="space-y-3 rounded-xl border border-border p-3">
+          <div className="flex flex-col gap-1.5">
+            <Label>Paid</Label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Pay type">
+              {PAY_TYPES.map((option) => {
+                const active = payType === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={busy}
+                    onClick={() => setPayType(option)}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60",
+                      active
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {PAY_TYPE_LABEL[option]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="salary-amount">Salary (₹ per month)</Label>
+              <Label htmlFor="salary-amount">
+                {payType === "PER_TRIP" ? "Rate (₹ per trip)" : "Salary (₹ per month)"}
+              </Label>
               <Input
                 id="salary-amount"
                 type="number"
                 inputMode="numeric"
-                min={0}
+                min={payType === "PER_TRIP" ? 1 : 0}
                 disabled={busy}
                 value={amount}
                 onChange={(e) => {
@@ -689,23 +824,25 @@ function SalarySection({
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Applies from that month onward. Earlier months keep the salary they had.
+            {payType !== row.pay_type
+              ? `Switches this driver to ${PAY_TYPE_LABEL[payType].toLowerCase()} from that month onward. Earlier months keep how they were paid.`
+              : "Applies from that month onward. Earlier months keep the figure they had."}
           </p>
           <ErrorNote message={error} />
           <div className="flex justify-end gap-2">
-            {current != null && (
+            {hasAnyBasis && (
               <Button variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
                 Cancel
               </Button>
             )}
             <Button size="sm" disabled={busy} onClick={save}>
-              {saving ? "Saving…" : "Save salary"}
+              {saving ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>
       )}
 
-      {detail.rates.length > 0 && (
+      {!editing && row.pay_type === "MONTHLY" && detail.rates.length > 0 && (
         <ul className="divide-y divide-border rounded-xl border border-border text-sm">
           {detail.rates.map((rate) => (
             <li key={rate.id} className="flex items-center justify-between gap-3 px-3 py-2">
@@ -716,6 +853,137 @@ function SalarySection({
             </li>
           ))}
         </ul>
+      )}
+
+      {!editing && row.pay_type === "PER_TRIP" && detail.payTypes.length > 0 && (
+        <ul className="divide-y divide-border rounded-xl border border-border text-sm">
+          {detail.payTypes
+            .filter((pt) => pt.pay_type === "PER_TRIP")
+            .map((pt) => (
+              <li key={pt.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-muted-foreground">
+                  From {formatMonth(pt.effective_from)}
+                </span>
+                {pt.rate_per_trip != null && (
+                  <span className="font-medium">
+                    <Money value={pt.rate_per_trip} />/trip
+                  </span>
+                )}
+              </li>
+            ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * How many trips this PER_TRIP driver ran this month — a single figure,
+ * corrected in place like a salary rate, not an append-only ledger.
+ * Only rendered when the driver is currently paid per trip.
+ */
+function TripCountSection({
+  detail,
+  driverId,
+  month,
+  onSaved,
+  busy,
+  onBusyChange,
+}: {
+  detail: SalaryDriverDetail;
+  driverId: number;
+  month: string;
+  onSaved: () => Promise<void>;
+  busy: boolean;
+  onBusyChange: (busy: boolean) => void;
+}) {
+  const current = detail.tripCount?.trip_count ?? null;
+  const [editing, setEditing] = useState(current == null);
+  const [count, setCount] = useState(current != null ? String(current) : "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    const parsed = Number(count);
+    if (count === "" || !Number.isInteger(parsed) || parsed < 0) {
+      setError("Enter a whole number of trips (0 or more)");
+      return;
+    }
+    setSaving(true);
+    onBusyChange(true);
+    setError(null);
+    const payload: SetTripCountPayload = { period_month: month, trip_count: parsed };
+    const failure = await send(`/api/driver-salaries/${driverId}/trip-count`, payload);
+    if (failure) {
+      setSaving(false);
+      onBusyChange(false);
+      setError(failure);
+      return;
+    }
+    setEditing(false);
+    await onSaved();
+    setSaving(false);
+    onBusyChange(false);
+  };
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <SectionTitle>Trips · {formatMonth(month)}</SectionTitle>
+        {!editing && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => {
+              setCount(current != null ? String(current) : "");
+              setError(null);
+              setEditing(true);
+            }}
+          >
+            {current == null ? "Enter trips" : "Change"}
+          </Button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="space-y-3 rounded-xl border border-border p-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="trip-count">Trips this month</Label>
+            <Input
+              id="trip-count"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              autoFocus
+              disabled={busy}
+              value={count}
+              onChange={(e) => {
+                setCount(e.target.value);
+                setError(null);
+              }}
+            />
+          </div>
+          <ErrorNote message={error} />
+          <div className="flex justify-end gap-2">
+            {current != null && (
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            )}
+            <Button size="sm" disabled={busy} onClick={save}>
+              {saving ? "Saving…" : "Save trips"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        current != null && (
+          <p className="rounded-xl border border-border px-3 py-2 text-sm">
+            <span className="font-semibold">{current}</span>{" "}
+            <span className="text-muted-foreground">{current === 1 ? "trip" : "trips"} entered</span>
+          </p>
+        )
       )}
     </section>
   );

@@ -355,6 +355,8 @@ export async function DELETE(req: Request) {
       ["driver_salary_entries", "salary advance(s) or deduction(s)"],
       ["driver_salary_settlements", "salary settlement(s)"],
       ["driver_shift_counts", "shift-count record(s)"],
+      ["driver_pay_types", "pay-type record(s)"],
+      ["driver_trip_counts", "trip-count record(s)"],
     ];
 
     for (const [table, label] of dependentChecks) {

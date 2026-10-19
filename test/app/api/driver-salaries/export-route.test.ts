@@ -59,6 +59,8 @@ describe("GET /api/driver-salaries/export", () => {
       drivers: [{ data: [], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [{ data: [], error: null }],
       driver_salary_settlements: [{ data: [], error: null }],
@@ -80,6 +82,8 @@ describe("GET /api/driver-salaries/export", () => {
       drivers: [{ data: [{ id: 1, name: "Ravi", place: "Chennai", is_active: true }], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [
         { data: [{ driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01" }], error: null },
       ],
@@ -105,6 +109,8 @@ describe("GET /api/driver-salaries/export", () => {
       drivers: [{ data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [{ data: [], error: null }],
       driver_salary_settlements: [{ data: [], error: null }],
@@ -118,7 +124,8 @@ describe("GET /api/driver-salaries/export", () => {
     const lines = text.replace(/^﻿/, "").split("\r\n");
     const driverLine = lines[1].split(",");
 
-    // monthly_salary is column index 2 — should be empty, not "0".
-    expect(driverLine[2]).toBe("");
+    // header: Driver(0), Place(1), Pay type(2), Monthly salary(3) — should be
+    // empty, not "0".
+    expect(driverLine[3]).toBe("");
   });
 });
