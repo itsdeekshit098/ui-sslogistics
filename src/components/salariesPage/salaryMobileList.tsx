@@ -49,10 +49,14 @@ export function SalaryMobileSummary({ sheet }: { sheet: SalarySheet }) {
   );
 }
 
-/** What was taken off this driver's salary, as one short line. */
+/** What was taken off this driver's pay, as one short line. */
 function cutsLine(row: SalaryRow): string[] {
   const parts: string[] = [];
-  if (row.unpaid_days > 0) {
+  if (row.pay_type === "PER_TRIP") {
+    if (row.trip_count != null && row.rate_per_trip != null) {
+      parts.push(`${row.trip_count} trips × ${formatCurrency(row.rate_per_trip)}`);
+    }
+  } else if (row.unpaid_days > 0) {
     parts.push(
       `${row.unpaid_days} unpaid ${row.unpaid_days === 1 ? "day" : "days"} − ${formatCurrency(row.attendance_cut)}`,
     );
@@ -79,11 +83,24 @@ export function SalaryMobileList({
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
       {rows.map((row) => {
-        const hasSalary = row.monthly_salary != null;
-        const cuts = hasSalary ? cutsLine(row) : [];
+        const isPerTrip = row.pay_type === "PER_TRIP";
+        // "Configured" means "has something to compute pay from" — a salary
+        // for MONTHLY, a rate for PER_TRIP. Whether the figure has actually
+        // resolved to a number (net_pay != null) is a separate question: a
+        // PER_TRIP driver can have a rate set but no trip count entered yet.
+        const isConfigured = isPerTrip ? row.rate_per_trip != null : row.monthly_salary != null;
+        const cuts = isConfigured ? cutsLine(row) : [];
         const unmarked =
-          hasSalary && row.unmarked_days > 0 ? `${row.unmarked_days} not marked` : null;
-        const under = [row.place, !row.is_active && "Inactive", unmarked]
+          !isPerTrip && isConfigured && row.unmarked_days > 0
+            ? `${row.unmarked_days} not marked`
+            : null;
+        const noTripCount = isPerTrip && row.rate_per_trip != null && row.trip_count == null;
+        const under = [
+          row.place,
+          !row.is_active && "Inactive",
+          unmarked,
+          noTripCount && "No trips entered",
+        ]
           .filter(Boolean)
           .join(" · ");
 
@@ -133,16 +150,17 @@ export function SalaryMobileList({
               onClick={() => onOpen(row.driver_id)}
               className="flex shrink-0 items-center gap-2 py-3 pl-1 pr-3.5 text-left active:bg-muted/60"
             >
-              {hasSalary ? (
+              {row.net_pay != null ? (
                 <div className="shrink-0 text-right">
                   <Money
                     value={row.net_pay}
-                    tone={(row.net_pay ?? 0) < 0 ? "negative" : "neutral"}
+                    tone={row.net_pay < 0 ? "negative" : "neutral"}
                     className="block text-sm font-bold"
                   />
                   {row.is_settled ? (
                     <span className="block text-xs font-medium text-success">Paid</span>
                   ) : (
+                    !isPerTrip &&
                     row.net_pay !== row.monthly_salary && (
                       <span className="block text-xs tabular-nums text-muted-foreground">
                         of {formatCurrency(row.monthly_salary)}
@@ -151,7 +169,9 @@ export function SalaryMobileList({
                   )}
                 </div>
               ) : (
-                <span className="shrink-0 text-[13px] font-semibold text-primary">Set salary</span>
+                <span className="shrink-0 text-[13px] font-semibold text-primary">
+                  {isConfigured ? "Enter trips" : isPerTrip ? "Set rate" : "Set salary"}
+                </span>
               )}
               <ChevronRightIcon size={16} className="shrink-0 text-muted-foreground" />
             </button>

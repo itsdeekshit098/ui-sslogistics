@@ -219,9 +219,11 @@ export function AttendancePage() {
     return {
       total: all.length,
       unmarked: all.filter((m) => !isMarked(m)).length,
-      present: all.filter((m) => m.shifts.length > 0).length,
+      // A PER_TRIP driver's shift-less "Present" still counts as present.
+      present: all.filter((m) => m.shifts.length > 0 || m.status === "PRESENT").length,
       absent: all.filter((m) => m.status === "ABSENT").length,
       leave: all.filter((m) => m.status === "LEAVE").length,
+      holiday: all.filter((m) => m.status === "HOLIDAY").length,
       // Full day is per driver: a two-shift driver on A + B counts here.
       fullDay: drivers.filter((d) => isFullDay(markOf(d.driver_id), d.shift_count)).length,
       shift: Object.fromEntries(
@@ -390,6 +392,9 @@ export function AttendancePage() {
       count: counts.shift[s],
     })),
     { key: "off", label: "Off", count: counts.absent + counts.leave },
+    // Dropped entirely when nobody's on holiday — not a chip anyone needs to
+    // see "Holiday 0" for on a normal day.
+    ...(counts.holiday > 0 ? [{ key: "holiday" as AttendanceFilter, label: "Holiday", count: counts.holiday }] : []),
   ];
 
   const dateStepper = (
@@ -495,7 +500,11 @@ export function AttendancePage() {
         size="sm"
         data-testid="attendance-fill-full-day"
         disabled={saving}
-        onClick={() => fillUnmarked((d) => fullDayFor(d.shift_count))}
+        onClick={() =>
+          fillUnmarked((d) =>
+            d.pay_type === "PER_TRIP" ? { shifts: [], status: "PRESENT" } : fullDayFor(d.shift_count),
+          )
+        }
       >
         {isMobile ? "Full day" : "Mark full day"}
       </Button>

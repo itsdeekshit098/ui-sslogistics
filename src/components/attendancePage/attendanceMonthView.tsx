@@ -47,22 +47,26 @@ function MarkCell({
       className={cn(
         "inline-flex h-5 w-[1.625rem] items-center justify-center gap-0.5 rounded-xs text-[0.6875rem] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         mark.status === "ABSENT" && "bg-destructive-subtle text-destructive-subtle-foreground",
-        mark.status === "LEAVE" && "bg-warning-subtle text-warning-subtle-foreground",
+        (mark.status === "LEAVE" || mark.status === "HOLIDAY") &&
+          "bg-warning-subtle text-warning-subtle-foreground",
+        mark.status === "PRESENT" && "bg-success-subtle text-success-subtle-foreground",
       )}
     >
-      {mark.status
-        ? mark.status === "ABSENT"
-          ? "A"
-          : "L"
-        : shiftsFor(shiftCount).map((shift) => (
-            <span
-              key={shift}
-              className={cn(
-                "h-3.5 w-1.5 rounded-[2px]",
-                mark.shifts.includes(shift) ? "bg-success-subtle-foreground" : "bg-border",
-              )}
-            />
-          ))}
+      {mark.status === "ABSENT" && "A"}
+      {mark.status === "LEAVE" && "L"}
+      {mark.status === "HOLIDAY" && "H"}
+      {/* Shift-less present, for a PER_TRIP driver with no shifts to show. */}
+      {mark.status === "PRESENT" && "P"}
+      {!mark.status &&
+        shiftsFor(shiftCount).map((shift) => (
+          <span
+            key={shift}
+            className={cn(
+              "h-3.5 w-1.5 rounded-[2px]",
+              mark.shifts.includes(shift) ? "bg-success-subtle-foreground" : "bg-border",
+            )}
+          />
+        ))}
     </button>
   );
 }
@@ -89,6 +93,18 @@ function Legend() {
           L
         </span>
         Leave
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex h-4 w-5 items-center justify-center rounded-xs bg-warning-subtle text-[0.625rem] font-bold text-warning-subtle-foreground">
+          H
+        </span>
+        Holiday (paid)
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex h-4 w-5 items-center justify-center rounded-xs bg-success-subtle text-[0.625rem] font-bold text-success-subtle-foreground">
+          P
+        </span>
+        Present (per-trip driver)
       </span>
     </div>
   );
@@ -141,7 +157,7 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
                   </span>
                 </th>
               ))}
-              {["Days", "Full", "Shifts", "Abs", "Lv"].map((heading, i) => (
+              {["Days", "Full", "Shifts", "Abs", "Lv", "Hol"].map((heading, i) => (
                 <th
                   key={heading}
                   className={cn(
@@ -201,6 +217,9 @@ function DesktopRegister({ data, dates, onOpenDay }: MonthLayoutProps) {
                 <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
                   {driver.totals.leave}
                 </td>
+                <td className="border-b border-border bg-muted/40 px-2.5 text-center text-sm group-hover:bg-muted">
+                  {driver.totals.holiday}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -221,6 +240,10 @@ function stripTone(
   if (!mark) return "bg-card shadow-[inset_0_0_0_1px_var(--border)]";
   if (mark.status === "ABSENT") return "bg-destructive";
   if (mark.status === "LEAVE") return "bg-warning";
+  // Lighter than Leave: paid, not a gap in the roster.
+  if (mark.status === "HOLIDAY") return "bg-warning/50";
+  // Shift-less present (a PER_TRIP driver) is a full day by definition.
+  if (mark.status === "PRESENT") return "bg-success-subtle-foreground";
   return isFullDay(mark, shiftCount)
     ? "bg-success-subtle-foreground"
     : "bg-success-subtle-foreground/45";
@@ -237,6 +260,7 @@ function PhoneMonth({ data, dates, onOpenDay }: MonthLayoutProps) {
           ["bg-success-subtle-foreground/45", "Part"],
           ["bg-destructive", "Absent"],
           ["bg-warning", "Leave"],
+          ["bg-warning/50", "Holiday"],
         ].map(([tone, label]) => (
           <span key={label} className="inline-flex items-center gap-1.5">
             <span className={cn("h-2.5 w-2.5 rounded-[2px]", tone)} />
@@ -289,6 +313,7 @@ function PhoneMonthCard({
           <span className="block truncate text-sm font-semibold text-foreground">{driver.name}</span>
           <span className="block text-xs text-muted-foreground">
             {driver.totals.absent} absent · {driver.totals.leave} leave
+            {driver.totals.holiday > 0 ? ` · ${driver.totals.holiday} holiday` : ""}
           </span>
         </span>
         <span className="text-right text-[0.6875rem] leading-tight text-muted-foreground">

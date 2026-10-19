@@ -98,13 +98,58 @@ export async function shiftCountsForDate(
   return fetchShiftCounts(date);
 }
 
+/** A driver's pay type for a date, for routes that need just the one. */
+export async function payTypesForDate(
+  date: string,
+): Promise<Map<number, "MONTHLY" | "PER_TRIP">> {
+  return fetchPayTypes(date);
+}
+
+interface PayTypeLookupRow {
+  driver_id: number;
+  pay_type: string;
+  effective_from: string;
+}
+
+/**
+ * Every driver's pay type as of [upto] (a YYYY-MM-DD date). Fetched here
+ * (rather than imported from driver-salaries.data.ts, which already imports
+ * loadMonth from this file) purely to avoid a circular import — the lookup
+ * itself is the same "latest row on or before" rule as a shift count or
+ * salary rate. A driver with no row is MONTHLY, same default as the salary
+ * routes use.
+ */
+export async function fetchPayTypes(upto: string): Promise<Map<number, "MONTHLY" | "PER_TRIP">> {
+  const { data, error } = await supabaseAdmin
+    .from("driver_pay_types")
+    .select("driver_id, pay_type, effective_from")
+    .lte("effective_from", `${upto.slice(0, 7)}-01`);
+  // The table is created by hand (sql/51). Until it exists, every driver is
+  // MONTHLY, which is exactly how the app behaved before it.
+  if (error) {
+    if (error.code === "PGRST205" || error.code === "42P01") return new Map();
+    throw error;
+  }
+  const latest = new Map<number, PayTypeLookupRow>();
+  for (const row of (data ?? []) as PayTypeLookupRow[]) {
+    const current = latest.get(row.driver_id);
+    if (!current || row.effective_from > current.effective_from) latest.set(row.driver_id, row);
+  }
+  const byDriver = new Map<number, "MONTHLY" | "PER_TRIP">();
+  for (const [driverId, row] of latest) {
+    byDriver.set(driverId, row.pay_type === "PER_TRIP" ? "PER_TRIP" : "MONTHLY");
+  }
+  return byDriver;
+}
+
 export async function loadDay(user: AuthUser, date: string): Promise<AttendanceDay> {
   const today = todayInIndia();
   const previousDate = addDays(date, -1);
-  const [drivers, rows, shiftCounts] = await Promise.all([
+  const [drivers, rows, shiftCounts, payTypes] = await Promise.all([
     fetchDrivers(),
     fetchRows(previousDate, date),
     fetchShiftCounts(date),
+    fetchPayTypes(date),
   ]);
 
   const current = new Map<number, AttendanceMark>();
@@ -127,6 +172,7 @@ export async function loadDay(user: AuthUser, date: string): Promise<AttendanceD
         place: d.place,
         is_active: d.is_active,
         shift_count: shiftCountForDate(shiftCounts.get(d.id) ?? [], date),
+        pay_type: payTypes.get(d.id) ?? "MONTHLY",
         ...(current.get(d.id) ?? { shifts: [], status: null }),
         previous: previous.get(d.id) ?? null,
       })),
@@ -135,10 +181,11 @@ export async function loadDay(user: AuthUser, date: string): Promise<AttendanceD
 
 export async function loadMonth(month: string): Promise<AttendanceMonth> {
   const { from, to } = monthRange(month);
-  const [drivers, rows, shiftCounts] = await Promise.all([
+  const [drivers, rows, shiftCounts, payTypes] = await Promise.all([
     fetchDrivers(),
     fetchRows(from, to),
     fetchShiftCounts(from),
+    fetchPayTypes(from),
   ]);
 
   const byDriver = new Map<number, Record<string, AttendanceMark>>();
@@ -162,6 +209,7 @@ export async function loadMonth(month: string): Promise<AttendanceMonth> {
           place: d.place,
           is_active: d.is_active,
           shift_count: shiftCount,
+          pay_type: payTypes.get(d.id) ?? "MONTHLY",
           days,
           // Full days are counted against this driver's own shifts.
           totals: totalsFor(Object.values(days), shiftCount),

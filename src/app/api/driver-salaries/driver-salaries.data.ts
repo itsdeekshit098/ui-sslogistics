@@ -2,6 +2,8 @@
 
 import { supabaseAdmin } from "@/lib/supabase";
 import type {
+  DriverPayType,
+  DriverTripCount,
   SalaryDriverDetail,
   SalaryEntry,
   SalaryRate,
@@ -14,14 +16,19 @@ import { loadMonth } from "../driver-attendance/driver-attendance.data";
 import { monthRange } from "../driver-attendance/driver-attendance.utils";
 import {
   carryForwardIn,
-  computePay,
+  computeMonthlyPay,
+  computePerTripPay,
   daysInMonth,
   elapsedDays,
+  payTypeForMonth,
   salaryForMonth,
   sumLiveEntries,
   totalsFor,
+  tripCountForMonth,
   type EntryRow,
+  type PayTypeRow,
   type RateRow,
+  type TripCountRow,
 } from "./driver-salaries.utils";
 
 interface DriverRef {
@@ -40,9 +47,10 @@ function compareDrivers(a: DriverRef, b: DriverRef): number {
 }
 
 /**
- * driver_salary_settlements is created by sql/50, applied by hand like every
- * other sql/ file. Until it exists, every month reads as unsettled rather
- * than 500ing the whole salaries page — the same tolerance
+ * driver_salary_settlements (sql/50), driver_pay_types and
+ * driver_trip_counts (both sql/51) are applied by hand like every other
+ * sql/ file. Until each exists, it reads as empty/default rather than
+ * 500ing the whole salaries page — the same tolerance
  * driver-attendance.data.ts already gives driver_shift_counts (sql/48).
  */
 function isMissingTableError(error: { code?: string } | null): boolean {
@@ -106,8 +114,33 @@ export async function hasSettlementOnOrAfter(driverId: number, month: string): P
   return data != null;
 }
 
+/**
+ * This driver's pay type for `month`: MONTHLY unless a driver_pay_types row
+ * says PER_TRIP. Exported so the entries/rates/trip-count routes can refuse
+ * the wrong kind of write (a salary rate on a PER_TRIP driver, a trip count
+ * on a MONTHLY one) with a clear message instead of silently accepting data
+ * that the pay calc then ignores.
+ */
+export async function payTypeFor(
+  driverId: number,
+  month: string,
+): Promise<{ payType: "MONTHLY" | "PER_TRIP"; ratePerTrip: number | null }> {
+  const { data, error } = await supabaseAdmin
+    .from("driver_pay_types")
+    .select("pay_type, rate_per_trip, effective_from")
+    .eq("driver_id", driverId)
+    .lte("effective_from", `${month}-01`);
+  if (error) {
+    if (isMissingTableError(error)) return { payType: "MONTHLY", ratePerTrip: null };
+    throw error;
+  }
+  return payTypeForMonth((data ?? []) as PayTypeRow[], month);
+}
+
 type DriverRateRow = RateRow & { driver_id: number };
 type DriverEntryRow = EntryRow & { driver_id: number };
+type DriverPayTypeRow = PayTypeRow & { driver_id: number };
+type DriverTripCountRow = TripCountRow & { driver_id: number };
 
 function groupBy<T extends { driver_id: number }>(rows: T[]): Map<number, T[]> {
   const map = new Map<number, T[]>();
@@ -123,17 +156,56 @@ function buildRow(
   driver: DriverRef,
   attendance: AttendanceMonthDriver | undefined,
   rates: RateRow[],
+  payTypeRows: PayTypeRow[],
+  tripCountRows: TripCountRow[],
   entries: EntryRow[],
   month: string,
   today: string,
   isSettled: boolean,
 ): SalaryRow {
-  const monthlySalary = salaryForMonth(rates, month);
+  const { payType, ratePerTrip } = payTypeForMonth(payTypeRows, month);
   const { advances, deductions } = sumLiveEntries(entries);
   const absentDays = attendance?.totals.absent ?? 0;
   const leaveDays = attendance?.totals.leave ?? 0;
+  const holidayDays = attendance?.totals.holiday ?? 0;
   const markedDays = attendance ? Object.keys(attendance.days).length : 0;
-  const pay = computePay({
+  const unmarkedDays = Math.max(0, elapsedDays(month, today) - markedDays);
+
+  const base = {
+    driver_id: driver.id,
+    name: driver.name,
+    place: driver.place,
+    is_active: driver.is_active,
+    pay_type: payType,
+    days_present: attendance?.totals.days_present ?? 0,
+    absent_days: absentDays,
+    leave_days: leaveDays,
+    holiday_days: holidayDays,
+    unmarked_days: unmarkedDays,
+    advances,
+    deductions,
+    carry_forward_in: carryForwardIn(entries),
+    is_settled: isSettled,
+  };
+
+  if (payType === "PER_TRIP") {
+    const tripCount = tripCountForMonth(tripCountRows, month);
+    const pay = computePerTripPay({ ratePerTrip, tripCount, advances, deductions });
+    return {
+      ...base,
+      monthly_salary: null,
+      rate_per_trip: ratePerTrip,
+      trip_count: tripCount,
+      // No per-day cut applies to a trip-paid driver: the trip count already
+      // reflects however much they actually drove.
+      unpaid_days: 0,
+      attendance_cut: 0,
+      ...pay,
+    };
+  }
+
+  const monthlySalary = salaryForMonth(rates, month);
+  const pay = computeMonthlyPay({
     monthlySalary,
     daysInMonth: daysInMonth(month),
     absentDays,
@@ -141,21 +213,11 @@ function buildRow(
     advances,
     deductions,
   });
-
   return {
-    driver_id: driver.id,
-    name: driver.name,
-    place: driver.place,
-    is_active: driver.is_active,
+    ...base,
     monthly_salary: monthlySalary,
-    days_present: attendance?.totals.days_present ?? 0,
-    absent_days: absentDays,
-    leave_days: leaveDays,
-    unmarked_days: Math.max(0, elapsedDays(month, today) - markedDays),
-    advances,
-    deductions,
-    carry_forward_in: carryForwardIn(entries),
-    is_settled: isSettled,
+    rate_per_trip: null,
+    trip_count: null,
     ...pay,
   };
 }
@@ -169,24 +231,39 @@ function buildRow(
 export async function loadSalarySheet(month: string): Promise<SalarySheet> {
   const monthStart = `${month}-01`;
 
-  const [attendance, ratesRes, entriesRes, settlementsRes] = await Promise.all([
-    loadMonth(month),
-    supabaseAdmin
-      .from("driver_salary_rates")
-      .select("driver_id, monthly_salary, effective_from")
-      .lte("effective_from", monthStart),
-    supabaseAdmin
-      .from("driver_salary_entries")
-      .select("id, driver_id, entry_type, amount, reverses_entry_id, settlement_id")
-      .eq("period_month", monthStart),
-    supabaseAdmin
-      .from("driver_salary_settlements")
-      .select("driver_id")
-      .eq("period_month", monthStart),
-  ]);
+  const [attendance, ratesRes, entriesRes, settlementsRes, payTypesRes, tripCountsRes] =
+    await Promise.all([
+      loadMonth(month),
+      supabaseAdmin
+        .from("driver_salary_rates")
+        .select("driver_id, monthly_salary, effective_from")
+        .lte("effective_from", monthStart),
+      supabaseAdmin
+        .from("driver_salary_entries")
+        .select("id, driver_id, entry_type, amount, reverses_entry_id, settlement_id")
+        .eq("period_month", monthStart),
+      supabaseAdmin
+        .from("driver_salary_settlements")
+        .select("driver_id")
+        .eq("period_month", monthStart),
+      supabaseAdmin
+        .from("driver_pay_types")
+        .select("driver_id, pay_type, rate_per_trip, effective_from")
+        .lte("effective_from", monthStart),
+      supabaseAdmin
+        .from("driver_trip_counts")
+        .select("driver_id, period_month, trip_count")
+        .eq("period_month", monthStart),
+    ]);
   if (ratesRes.error) throw ratesRes.error;
   if (settlementsRes.error && !isMissingTableError(settlementsRes.error)) {
     throw settlementsRes.error;
+  }
+  if (payTypesRes.error && !isMissingTableError(payTypesRes.error)) {
+    throw payTypesRes.error;
+  }
+  if (tripCountsRes.error && !isMissingTableError(tripCountsRes.error)) {
+    throw tripCountsRes.error;
   }
 
   // Missing the settlement_id column (sql/50 not applied) is not safe to
@@ -209,6 +286,8 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
 
   const ratesByDriver = groupBy((ratesRes.data ?? []) as DriverRateRow[]);
   const entriesByDriver = groupBy((entriesData ?? []) as DriverEntryRow[]);
+  const payTypesByDriver = groupBy((payTypesRes.data ?? []) as DriverPayTypeRow[]);
+  const tripCountsByDriver = groupBy((tripCountsRes.data ?? []) as DriverTripCountRow[]);
   const settledDrivers = new Set((settlementsRes.data ?? []).map((s) => s.driver_id as number));
   const attendanceByDriver = new Map(attendance.drivers.map((d) => [d.driver_id, d]));
 
@@ -237,6 +316,8 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
       driver,
       attendanceByDriver.get(driver.id),
       ratesByDriver.get(driver.id) ?? [],
+      payTypesByDriver.get(driver.id) ?? [],
+      tripCountsByDriver.get(driver.id) ?? [],
       entriesByDriver.get(driver.id) ?? [],
       month,
       attendance.today,
@@ -255,9 +336,9 @@ export async function loadSalarySheet(month: string): Promise<SalarySheet> {
 }
 
 /**
- * One driver's month: their line on the sheet, their salary history, and the
- * advances and deductions behind the figures. Null when the driver doesn't
- * exist.
+ * One driver's month: their line on the sheet, their salary/pay-type
+ * history, trip count, and the advances and deductions behind the figures.
+ * Null when the driver doesn't exist.
  */
 export async function loadDriverSalary(
   driverId: number,
@@ -265,37 +346,55 @@ export async function loadDriverSalary(
 ): Promise<SalaryDriverDetail | null> {
   const monthStart = `${month}-01`;
 
-  const [driverRes, attendance, ratesRes, entriesRes, settlementRes] = await Promise.all([
-    supabaseAdmin
-      .from("drivers")
-      .select("id, name, place, is_active")
-      .eq("id", driverId)
-      .maybeSingle(),
-    loadMonth(month),
-    supabaseAdmin
-      .from("driver_salary_rates")
-      .select("id, driver_id, monthly_salary, effective_from, note, created_at")
-      .eq("driver_id", driverId)
-      .order("effective_from", { ascending: false }),
-    supabaseAdmin
-      .from("driver_salary_entries")
-      .select("*")
-      .eq("driver_id", driverId)
-      .eq("period_month", monthStart)
-      .order("entry_date", { ascending: false })
-      .order("id", { ascending: false }),
-    supabaseAdmin
-      .from("driver_salary_settlements")
-      .select("*")
-      .eq("driver_id", driverId)
-      .eq("period_month", monthStart)
-      .maybeSingle(),
-  ]);
+  const [driverRes, attendance, ratesRes, entriesRes, settlementRes, payTypesRes, tripCountRes] =
+    await Promise.all([
+      supabaseAdmin
+        .from("drivers")
+        .select("id, name, place, is_active")
+        .eq("id", driverId)
+        .maybeSingle(),
+      loadMonth(month),
+      supabaseAdmin
+        .from("driver_salary_rates")
+        .select("id, driver_id, monthly_salary, effective_from, note, created_at")
+        .eq("driver_id", driverId)
+        .order("effective_from", { ascending: false }),
+      supabaseAdmin
+        .from("driver_salary_entries")
+        .select("*")
+        .eq("driver_id", driverId)
+        .eq("period_month", monthStart)
+        .order("entry_date", { ascending: false })
+        .order("id", { ascending: false }),
+      supabaseAdmin
+        .from("driver_salary_settlements")
+        .select("*")
+        .eq("driver_id", driverId)
+        .eq("period_month", monthStart)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("driver_pay_types")
+        .select("id, driver_id, pay_type, rate_per_trip, effective_from, note, created_at")
+        .eq("driver_id", driverId)
+        .order("effective_from", { ascending: false }),
+      supabaseAdmin
+        .from("driver_trip_counts")
+        .select("id, driver_id, period_month, trip_count, note, created_at")
+        .eq("driver_id", driverId)
+        .eq("period_month", monthStart)
+        .maybeSingle(),
+    ]);
   if (driverRes.error) throw driverRes.error;
   if (ratesRes.error) throw ratesRes.error;
   if (entriesRes.error) throw entriesRes.error;
   if (settlementRes.error && !isMissingTableError(settlementRes.error)) {
     throw settlementRes.error;
+  }
+  if (payTypesRes.error && !isMissingTableError(payTypesRes.error)) {
+    throw payTypesRes.error;
+  }
+  if (tripCountRes.error && !isMissingTableError(tripCountRes.error)) {
+    throw tripCountRes.error;
   }
   if (!driverRes.data) return null;
 
@@ -303,6 +402,23 @@ export async function loadDriverSalary(
     ...rate,
     monthly_salary: Number(rate.monthly_salary),
   }));
+  const payTypes = ((payTypesRes.data ?? []) as DriverPayType[]).map((pt) => ({
+    ...pt,
+    rate_per_trip: pt.rate_per_trip == null ? null : Number(pt.rate_per_trip),
+  }));
+  const payTypeRowsForCalc: PayTypeRow[] = payTypes.map((pt) => ({
+    pay_type: pt.pay_type,
+    rate_per_trip: pt.rate_per_trip,
+    effective_from: pt.effective_from,
+  }));
+  const tripCountRow = tripCountRes.data as
+    | { id: number; driver_id: number; period_month: string; trip_count: number; note: string | null; created_at: string }
+    | null;
+  const tripCount: DriverTripCount | null = tripCountRow;
+  const tripCountRowsForCalc: TripCountRow[] = tripCountRow
+    ? [{ period_month: tripCountRow.period_month, trip_count: tripCountRow.trip_count }]
+    : [];
+
   const rawEntries = (entriesRes.data ?? []) as (Omit<
     SalaryEntry,
     "is_reversed" | "is_reversal" | "is_carry_forward"
@@ -348,12 +464,16 @@ export async function loadDriverSalary(
       driverRes.data as DriverRef,
       attendance.drivers.find((d) => d.driver_id === driverId),
       rates,
+      payTypeRowsForCalc,
+      tripCountRowsForCalc,
       rawEntries,
       month,
       attendance.today,
       settlementRow != null,
     ),
     rates,
+    payTypes,
+    tripCount,
     entries,
     settlement,
   };

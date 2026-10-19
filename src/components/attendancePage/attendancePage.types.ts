@@ -19,12 +19,27 @@ export function shiftsFor(count: ShiftCount): Shift[] {
   return SHIFTS.slice(0, count) as Shift[];
 }
 
-/** A whole-day status that rules out any shift. Present is implied by shifts. */
-export type OffStatus = "ABSENT" | "LEAVE";
+/**
+ * A whole-day status that rules out any shift. Present is implied by shifts
+ * for a MONTHLY/shift-based driver.
+ *
+ * ABSENT and LEAVE both cut a day's pay. HOLIDAY does not — it is a day the
+ * driver didn't work (the company they serve was closed) but is still paid
+ * for, so it behaves like ABSENT/LEAVE for shift marking (no shifts) but like
+ * a normal paid day for the salary calculation. PRESENT is only used for a
+ * PER_TRIP driver, who has no shift buttons at all — their pay comes from a
+ * trip count entered on the Salaries page, so "present" here just records
+ * that they worked, not which shift.
+ */
+export type OffStatus = "ABSENT" | "LEAVE" | "HOLIDAY" | "PRESENT";
 
 /**
  * What one driver did on one day. Shifts and status are mutually exclusive;
  * no shifts and a null status means the day has not been marked.
+ *
+ * A MONTHLY/shift-based driver is "present" by having shifts and status
+ * null. A PER_TRIP driver (no shifts to offer) is "present" by status
+ * "PRESENT" and an empty shifts array instead.
  */
 export interface AttendanceMark {
   shifts: Shift[];
@@ -38,6 +53,12 @@ export interface AttendanceDayDriver extends AttendanceMark {
   is_active: boolean;
   /** This driver's shifts for this date — a full day is all of them. */
   shift_count: ShiftCount;
+  /**
+   * How this driver is paid. A PER_TRIP driver has no shift buttons here —
+   * only Present/Absent/Leave/Holiday — since their pay comes from a trip
+   * count on the Salaries page, not from which shifts they worked.
+   */
+  pay_type: "MONTHLY" | "PER_TRIP";
   /** The day before, for "as yesterday". Null when that day was not marked. */
   previous: AttendanceMark | null;
 }
@@ -58,6 +79,8 @@ export interface AttendanceTotals {
   full_days: number;
   absent: number;
   leave: number;
+  /** Paid non-working days — never counted in unpaid_days / the wage cut. */
+  holiday: number;
 }
 
 export interface AttendanceMonthDriver {
@@ -67,6 +90,8 @@ export interface AttendanceMonthDriver {
   is_active: boolean;
   /** This driver's shifts for this month — a full day is all of them. */
   shift_count: ShiftCount;
+  /** See AttendanceDayDriver.pay_type. */
+  pay_type: "MONTHLY" | "PER_TRIP";
   /** Marked days only, keyed by YYYY-MM-DD. */
   days: Record<string, AttendanceMark>;
   totals: AttendanceTotals;
@@ -107,4 +132,4 @@ export interface SaveAttendancePayload {
   entries: SaveAttendanceEntry[];
 }
 
-export type AttendanceFilter = "all" | "unmarked" | "present" | "off" | Shift;
+export type AttendanceFilter = "all" | "unmarked" | "present" | "off" | "holiday" | Shift;

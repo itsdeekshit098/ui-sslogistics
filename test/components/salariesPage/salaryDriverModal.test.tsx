@@ -14,10 +14,14 @@ function detailFixture(overrides: Partial<SalaryDriverDetail> = {}): SalaryDrive
       name: "Ravi Kumar",
       place: "Chennai",
       is_active: true,
+      pay_type: "MONTHLY",
       monthly_salary: 30000,
+      rate_per_trip: null,
+      trip_count: null,
       days_present: 28,
       absent_days: 2,
       leave_days: 0,
+      holiday_days: 0,
       unmarked_days: 0,
       unpaid_days: 2,
       attendance_cut: 2000,
@@ -28,6 +32,8 @@ function detailFixture(overrides: Partial<SalaryDriverDetail> = {}): SalaryDrive
       is_settled: false,
     },
     rates: [{ id: 1, driver_id: 1, monthly_salary: 30000, effective_from: "2026-01-01", note: null, created_at: "2026-01-01" }],
+    payTypes: [],
+    tripCount: null,
     entries: [],
     settlement: null,
     ...overrides,
@@ -323,5 +329,155 @@ describe("SalaryDriverModal", () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     const reverseCall = fetchMock.mock.calls.find((c) => c[0].toString().includes("/reverse"));
     expect(reverseCall?.[0]).toBe("/api/driver-salaries/1/entries/2/reverse");
+  });
+
+  it("shows a PER_TRIP driver's rate and trip count instead of a monthly salary", async () => {
+    const perTripDetail = detailFixture({
+      row: {
+        ...detailFixture().row,
+        pay_type: "PER_TRIP",
+        monthly_salary: null,
+        rate_per_trip: 500,
+        trip_count: 40,
+        unpaid_days: 0,
+        attendance_cut: 0,
+        net_pay: 20000,
+      },
+      rates: [],
+      payTypes: [
+        {
+          id: 1,
+          driver_id: 1,
+          pay_type: "PER_TRIP",
+          rate_per_trip: 500,
+          effective_from: "2026-01-01",
+          note: null,
+          created_at: "2026-01-01",
+        },
+      ],
+      tripCount: {
+        id: 1,
+        driver_id: 1,
+        period_month: "2026-06-01",
+        trip_count: 40,
+        note: null,
+        created_at: "2026-06-01",
+      },
+    });
+    vi.stubGlobal("fetch", mockDetailFetch(perTripDetail));
+
+    render(
+      <SalaryDriverModal driverId={1} month="2026-06" onClose={vi.fn()} onChanged={vi.fn()} />,
+    );
+
+    expect(await screen.findByText("Per trip")).toBeInTheDocument();
+    // Split across two spans ("40" and "trips entered"), so match the
+    // container's full text instead of one literal string.
+    expect(
+      screen.getByText((_, el) => el?.textContent === "40 trips entered"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/₹20,000/)).toBeInTheDocument();
+  });
+
+  it("switching a MONTHLY driver to PER_TRIP sends the pay-type change before the net pay reloads", async () => {
+    const detail = detailFixture();
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST" && url.toString().endsWith("/pay-type")) {
+        return Promise.resolve({ ok: true, json: async () => ({ success: true, data: {} }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ success: true, data: detail }) });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const onChanged = vi.fn();
+
+    render(
+      <SalaryDriverModal driverId={1} month="2026-06" onClose={vi.fn()} onChanged={onChanged} />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Change" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Per trip" }));
+    fireEvent.change(screen.getByLabelText(/rate.*per trip/i), { target: { value: "500" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+    const payTypeCall = fetchMock.mock.calls.find((c) => c[0].toString().endsWith("/pay-type"));
+    expect(payTypeCall).toBeDefined();
+    const body = JSON.parse(payTypeCall![1]!.body as string);
+    expect(body).toMatchObject({ pay_type: "PER_TRIP", rate_per_trip: 500, effective_month: "2026-06" });
+    // A pay-type switch never also writes a monthly rate.
+    expect(fetchMock.mock.calls.some((c) => c[0].toString().endsWith("/rates"))).toBe(false);
+  });
+
+  it("entering trips for a PER_TRIP driver posts to the trip-count route", async () => {
+    const perTripDetail = detailFixture({
+      row: {
+        ...detailFixture().row,
+        pay_type: "PER_TRIP",
+        monthly_salary: null,
+        rate_per_trip: 500,
+        trip_count: null,
+        unpaid_days: 0,
+        attendance_cut: 0,
+        net_pay: null,
+      },
+      rates: [],
+    });
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "POST" && url.toString().endsWith("/trip-count")) {
+        return Promise.resolve({ ok: true, json: async () => ({ success: true, data: {} }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ success: true, data: perTripDetail }) });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const onChanged = vi.fn();
+
+    render(
+      <SalaryDriverModal driverId={1} month="2026-06" onClose={vi.fn()} onChanged={onChanged} />,
+    );
+
+    // With nothing entered yet, the trip-count form opens directly — same
+    // convention as a first-time salary/rate entry.
+    fireEvent.change(await screen.findByLabelText(/trips this month/i), {
+      target: { value: "40" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save trips/i }));
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+    const tripCall = fetchMock.mock.calls.find((c) => c[0].toString().endsWith("/trip-count"));
+    expect(tripCall).toBeDefined();
+    const body = JSON.parse(tripCall![1]!.body as string);
+    expect(body).toMatchObject({ period_month: "2026-06", trip_count: 40 });
+  });
+
+  it("rejects a non-whole trip count without calling the API", async () => {
+    const perTripDetail = detailFixture({
+      row: {
+        ...detailFixture().row,
+        pay_type: "PER_TRIP",
+        monthly_salary: null,
+        rate_per_trip: 500,
+        trip_count: 40,
+        unpaid_days: 0,
+        attendance_cut: 0,
+        net_pay: 20000,
+      },
+      rates: [],
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: perTripDetail }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <SalaryDriverModal driverId={1} month="2026-06" onClose={vi.fn()} onChanged={vi.fn()} />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Change" }));
+    fireEvent.change(screen.getByLabelText(/trips this month/i), { target: { value: "3.5" } });
+    fireEvent.click(screen.getByRole("button", { name: /save trips/i }));
+
+    expect(await screen.findByText(/whole number of trips/i)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some((c) => c[0].toString().endsWith("/trip-count"))).toBe(false);
   });
 });

@@ -74,6 +74,8 @@ describe("GET /api/driver-salaries/[driverId]", () => {
       drivers: [{ data: null, error: null }],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [{ data: [], error: null }],
       driver_salary_settlements: [{ data: null, error: null }],
@@ -94,6 +96,8 @@ describe("GET /api/driver-salaries/[driverId]", () => {
       ],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [
         { data: [{ id: 1, driver_id: 1, monthly_salary: "30000", effective_from: "2026-01-01" }], error: null },
       ],
@@ -129,6 +133,8 @@ describe("GET /api/driver-salaries/[driverId]", () => {
       ],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [{ data: [], error: null }],
       driver_salary_entries: [
         {
@@ -161,6 +167,8 @@ describe("GET /api/driver-salaries/[driverId]", () => {
       ],
       driver_attendance: [{ data: [], error: null }],
       driver_shift_counts: [{ data: [], error: null }],
+      driver_pay_types: [{ data: [], error: null }],
+      driver_trip_counts: [{ data: [], error: null }],
       driver_salary_rates: [
         { data: [{ id: 1, driver_id: 1, monthly_salary: "30000", effective_from: "2026-01-01" }], error: null },
       ],

@@ -201,6 +201,31 @@ describe("totalsFor", () => {
       full_days: 1,
       absent: 1,
       leave: 1,
+      holiday: 0,
+    });
+  });
+
+  it("counts a holiday day — paid, not an absence", () => {
+    const marks = [{ shifts: [] as Shift[], status: "HOLIDAY" as const }];
+    expect(totalsFor(marks, 3)).toEqual({
+      shifts: 0,
+      days_present: 0,
+      full_days: 0,
+      absent: 0,
+      leave: 0,
+      holiday: 1,
+    });
+  });
+
+  it("counts a PER_TRIP driver's shift-less Present as a day present", () => {
+    const marks = [{ shifts: [] as Shift[], status: "PRESENT" as const }];
+    expect(totalsFor(marks, 3)).toEqual({
+      shifts: 0,
+      days_present: 1,
+      full_days: 0,
+      absent: 0,
+      leave: 0,
+      holiday: 0,
     });
   });
 
@@ -226,6 +251,7 @@ describe("totalsFor", () => {
       full_days: 0,
       absent: 0,
       leave: 0,
+      holiday: 0,
     });
   });
 });
@@ -248,7 +274,7 @@ describe("parseMark", () => {
   });
 
   it("rejects an invalid status value", () => {
-    expect(parseMark([], "SICK", 3)).toBe("Status must be ABSENT, LEAVE or empty");
+    expect(parseMark([], "SICK", 3)).toBe("Status must be ABSENT, LEAVE, HOLIDAY, PRESENT or empty");
   });
 
   it("accepts ABSENT with no shifts", () => {
@@ -261,7 +287,7 @@ describe("parseMark", () => {
 
   it("rejects a status combined with any shift", () => {
     expect(parseMark(["A"], "ABSENT", 3)).toBe(
-      "A driver cannot be absent or on leave and also work a shift",
+      "A driver cannot be absent, on leave or on holiday and also work a shift",
     );
   });
 
