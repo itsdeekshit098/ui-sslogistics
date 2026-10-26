@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
@@ -16,14 +16,14 @@ import { PAY_TYPES, type DriverPayType } from "@/components/salariesPage/salarie
 
 const NOTE_MAX_LENGTH = 200;
 
-/** Every role may read — the attendance/salary screens need to know which
- *  controls to show (a PER_TRIP driver gets no shift buttons). */
+/** Strict admin only, like every other driver-salaries route (GET included) —
+ *  this returns rate_per_trip, which is pay data, not just the pay type. */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ driverId: string }> },
 ) {
   try {
-    await requireUserAuth();
+    await requireStrictAdminAuth();
 
     const { driverId: driverIdParam } = await params;
     const driverId = Number(driverIdParam);
