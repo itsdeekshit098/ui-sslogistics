@@ -231,6 +231,7 @@ function MobileCards<TData>({
   rowActions,
   className,
   layout,
+  mobileCard,
 }: {
   columns: ColumnDef<TData>[];
   data: TData[];
@@ -245,6 +246,7 @@ function MobileCards<TData>({
   rowActions?: RowAction<TData>[];
   className?: string;
   layout: "cards" | "timeline";
+  mobileCard?: (row: TData, index: number) => React.ReactNode;
 }) {
   const bySlot = (slot: Slot) =>
     columns.filter((col, i) => slotOf(col, i) === slot);
@@ -524,8 +526,15 @@ function MobileCards<TData>({
               )}
               {...interactive}
             >
-              {header}
-              {fields.length > 0 && (
+              {mobileCard ? (
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">{mobileCard(row, index)}</div>
+                  {menuButton}
+                </div>
+              ) : (
+                header
+              )}
+              {!mobileCard && fields.length > 0 && (
                 <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5">
                   {fields.map((f) => (
                     <div key={f.key} className="min-w-0">
@@ -574,6 +583,7 @@ export function DataTable<TData>({
   stickyHeader = false,
   maxHeight,
   mobileLayout = "cards",
+  mobileCard,
 }: DataTableProps<TData>) {
   const desktopActions = rowActions?.filter((a) => !a.mobileOnly) ?? [];
   const hasActions = showActions && desktopActions.length > 0;
@@ -647,6 +657,7 @@ export function DataTable<TData>({
         rowActions={hasMobileActions ? rowActions : undefined}
         className={className}
         layout={mobileLayout}
+        mobileCard={mobileCard}
       />
     );
   }

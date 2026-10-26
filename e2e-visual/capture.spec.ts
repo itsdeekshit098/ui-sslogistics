@@ -35,6 +35,32 @@ async function seedLoan(page: Page) {
   });
 }
 
+const attendanceDrivers = [
+  { driver_id: 1, name: "Ravi Kumar", place: "Chennai", shifts: ["A", "B", "C"], status: null, shift_count: 3 },
+  { driver_id: 2, name: "Meena Iyer", place: "Coimbatore", shifts: ["A"], status: null, shift_count: 3 },
+  { driver_id: 3, name: "Arun Das", place: "Chennai", shifts: [], status: "ABSENT", shift_count: 2 },
+  { driver_id: 4, name: "Suresh Babu", place: "Hosur", shifts: [], status: null, shift_count: 3 },
+  { driver_id: 5, name: "Lakshmi N", place: null, shifts: [], status: "LEAVE", shift_count: 3 },
+].map((d) => ({ ...d, is_active: true, pay_type: "MONTHLY", previous: null }));
+
+async function installAttendanceMocks(page: Page) {
+  await installSmokeMocks(page);
+  await page.route("**/api/driver-attendance**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname !== "/api/driver-attendance" || url.searchParams.has("month")) {
+      return route.fallback();
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        data: { date: "2026-06-15", today: "2026-06-15", editable: true, drivers: attendanceDrivers },
+      }),
+    });
+  });
+}
+
 const smoke = (path: string): Shot => ({
   name: path.replace(/^\/admin\/?/, "").replace(/\//g, "_") || "dashboard",
   path,
@@ -85,15 +111,18 @@ const SHOTS: Shot[] = [
   },
   { name: "clients", path: "/admin/clients", mocks: installClientsMocks },
   { name: "clients_detail", path: `/admin/clients/${CLIENT_ID}`, mocks: installClientsMocks },
-  { name: "fundings", path: "/admin/fundings", mocks: installFundingsMocks },
-  { name: "fundings_detail", path: `/admin/fundings/${FUNDING_ID}`, mocks: installFundingsMocks },
+  {
+    name: "fundings_detail",
+    path: `/admin/fundings/${FUNDING_ID}`,
+    mocks: (page) => installFundingsMocks(page, { seedFunding: true }),
+  },
   { name: "salaries", path: "/admin/salaries", mocks: installSalaryMocks },
   { name: "trip-bookings", path: "/admin/trip-bookings", mocks: installTripsMocks },
   { name: "entities", path: "/admin/entities", mocks: installEntitiesMocks },
+  { name: "attendance", path: "/admin/attendance", mocks: installAttendanceMocks },
   ...[
     "/admin/vehicles",
     "/admin/drivers",
-    "/admin/attendance",
     "/admin/diesel-records",
     "/admin/repair-records",
     "/admin/warranty",

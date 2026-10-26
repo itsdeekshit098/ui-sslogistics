@@ -20,7 +20,7 @@ export function SalaryMobileSummary({ sheet }: { sheet: SalarySheet }) {
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-card">
+    <div className="rounded-[var(--m-radius-control)] border border-border bg-card shadow-[var(--m-card-shadow)]">
       <div className="px-4 pb-3 pt-3.5">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
           Net payable
@@ -81,7 +81,7 @@ export function SalaryMobileList({
   onAddAdvance: (row: SalaryRow) => void;
 }) {
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+    <ul className="divide-y divide-border overflow-hidden rounded-[var(--m-radius-control)] border border-border bg-card">
       {rows.map((row) => {
         const isPerTrip = row.pay_type === "PER_TRIP";
         // "Configured" means "has something to compute pay from" — a salary

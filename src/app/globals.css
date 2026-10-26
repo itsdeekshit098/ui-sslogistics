@@ -264,30 +264,60 @@
   .ss-panel > * {
     padding-left: 0 !important;
     padding-right: 0 !important;
+    padding-bottom: 0 !important;
     border-bottom-width: 0 !important;
   }
-  /* Inline-styled summary strips (Trips) read as boxes-in-a-box; on phones
-     each figure becomes a stat tile matching StatCard. */
+  .ss-panel > :first-child {
+    padding-top: 0 !important;
+  }
+  .ss-panel > * + * {
+    padding-top: 0.875rem !important;
+  }
+  /* Inline-styled summary strips (Trips) take the same summary-strip look
+     as StatCard rows: one line of compact tiles, value over label. */
   .ss-stat-strip {
+    display: flex !important;
+    gap: 0.5rem !important;
     padding: 0 !important;
     border: 0 !important;
     background: transparent !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
   .ss-stat-strip > div {
-    padding: 0.875rem !important;
+    flex: 1 0 5.5rem;
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    align-items: center !important;
+    gap: 0.125rem !important;
+    padding: 0.625rem 0.5rem !important;
     border: 1px solid var(--border) !important;
-    border-radius: 0.5rem !important;
+    border-radius: var(--m-radius-control) !important;
     background: var(--card) !important;
-    box-shadow: var(--card-shadow);
+    text-align: center;
   }
   .ss-stat-strip > div > span:first-child {
-    font-size: 0.6875rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
+    font-size: 10.5px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
   }
   .ss-stat-strip > div > span:last-child {
-    font-size: 1.125rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+  }
+  /* Search boxes and the square filter button beside them: the Flutter
+     list screen's 46px search field and filter button. */
+  input[placeholder^="Search"] {
+    height: 2.875rem !important;
+    border-radius: var(--m-radius-control) !important;
+  }
+  button[aria-label="Filters"] {
+    height: 2.875rem !important;
+    min-width: 2.875rem;
+    border-radius: var(--m-radius-control) !important;
+    background: var(--card) !important;
   }
   /* Any row of StatCards becomes the Flutter app's summary strip: one
      line of compact tiles, scrolling sideways when they don't all fit. */

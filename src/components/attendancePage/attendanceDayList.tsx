@@ -278,7 +278,9 @@ function PhoneList({
   const [menuFor, setMenuFor] = useState<number | null>(null);
 
   return (
-    <ul className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+    // One card per driver, as in the Flutter app; an unmarked driver's card
+    // carries an amber edge so the gaps stand out.
+    <ul className="flex flex-col gap-1.5">
       {drivers.map((driver) => {
         const mark = marks[driver.driver_id] ?? EMPTY_MARK;
         const set = (next: AttendanceMark) => {
@@ -297,8 +299,8 @@ function PhoneList({
             key={driver.driver_id}
             data-testid={`attendance-row-${driver.driver_id}`}
             className={cn(
-              "flex flex-wrap items-center gap-1 border-b border-l-[3px] border-b-border py-1 pl-0 pr-1 last:border-b-0",
-              statusEdge(mark),
+              "flex flex-wrap items-center gap-1 rounded-[var(--m-radius-card)] border bg-card py-1 pl-0.5 pr-1",
+              isMarked(mark) ? "border-border" : "border-warning/55",
             )}
           >
             {/* The tick is the one-tap "present all day"; for a shift-based
@@ -312,26 +314,26 @@ function PhoneList({
               onClick={() =>
                 set(tripBased ? withShiftlessPresent(mark) : withFullDay(mark, driver.shift_count))
               }
-              className="flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-60"
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center disabled:opacity-60"
             >
               <span
                 className={cn(
-                  "flex h-[1.375rem] w-[1.375rem] items-center justify-center rounded-sm border-2 text-sm font-bold leading-none",
+                  "flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 text-sm font-bold leading-none transition-colors",
                   present && "border-success bg-success text-success-foreground",
                   partial && "border-success text-success-subtle-foreground",
                   !present && !partial && "border-muted-foreground/45 text-transparent",
                   mark.status && mark.status !== "PRESENT" && "border-dashed",
                 )}
               >
-                {partial ? "–" : <CheckIcon size={12} />}
+                {partial ? "–" : <CheckIcon size={15} />}
               </span>
             </button>
 
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-foreground">{driver.name}</div>
+              <div className="truncate text-[15px] font-bold text-foreground">{driver.name}</div>
               <div
                 className={cn(
-                  "truncate text-xs",
+                  "truncate text-[12.5px]",
                   isMarked(mark)
                     ? "text-muted-foreground"
                     : "font-semibold text-warning-subtle-foreground",
@@ -354,7 +356,7 @@ function PhoneList({
                 aria-label={`Clear ${OFF_LABEL[mark.status]}, ${driver.name}`}
                 onClick={() => set(EMPTY_MARK)}
                 className={cn(
-                  "inline-flex h-9 w-[6.875rem] shrink-0 items-center justify-center gap-2 rounded-lg border text-sm font-semibold disabled:opacity-60",
+                  "inline-flex h-10 w-[7.125rem] shrink-0 items-center justify-center gap-2 rounded-[10px] border text-[13.5px] font-bold disabled:opacity-60",
                   mark.status === "ABSENT"
                     ? "border-destructive/35 bg-destructive-subtle text-destructive-subtle-foreground"
                     : "border-warning/45 bg-warning-subtle text-warning-subtle-foreground",
@@ -373,7 +375,7 @@ function PhoneList({
                 role="group"
                 aria-label={`Shifts, ${driver.name}`}
                 className={cn(
-                  "flex shrink-0 overflow-hidden rounded-lg border",
+                  "flex shrink-0 overflow-hidden rounded-[10px] border",
                   // The solid tick says "present all day"; the cells only
                   // tint, so a full roster isn't a wall of colour.
                   mark.shifts.length > 0 ? "border-success/30" : "border-border",
@@ -390,9 +392,9 @@ function PhoneList({
                       aria-label={`Shift ${shift}`}
                       onClick={() => set(toggleShift(mark, shift))}
                       className={cn(
-                        "h-9 w-9 border-l border-border text-sm font-bold first:border-l-0 disabled:opacity-60",
+                        "h-10 w-[38px] border-l border-border text-[13.5px] font-extrabold first:border-l-0 disabled:opacity-60",
                         on
-                          ? "border-l-success/30 bg-success-subtle text-success-subtle-foreground"
+                          ? "border-l-success/30 bg-success-subtle text-success"
                           : "bg-card text-muted-foreground",
                       )}
                     >

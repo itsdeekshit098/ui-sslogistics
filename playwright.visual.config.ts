@@ -4,7 +4,9 @@ import { defineConfig, devices } from "@playwright/test";
  * Screenshot capture for layout work — not part of `npm run test:e2e`.
  * Same mocked dev server as playwright.config.ts. See e2e-visual/README.md.
  */
-const baseURL = "http://localhost:3100";
+// VISUAL_BASE_URL points the run at another already-running mocked server
+// (e.g. a worktree of an older commit, to rebuild a desktop reference).
+const baseURL = process.env.VISUAL_BASE_URL ?? "http://localhost:3100";
 
 export default defineConfig({
   testDir: "./e2e-visual",

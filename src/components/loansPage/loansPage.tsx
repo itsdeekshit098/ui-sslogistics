@@ -42,6 +42,7 @@ import { FilterDrawer } from "@/components/ui/filterDrawer";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Typeahead } from "@/components/ui/typeahead";
+import { LoanMobileCard } from "./loanMobileCard";
 import { LookupSelect } from "@/components/lookupSelect";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {
@@ -870,6 +871,7 @@ export function LoansPage() {
                     onRowClick={(loan) => router.push(`/admin/loans/${loan.id}`)}
                     showActions={canManage}
                     rowActions={loanActions}
+                    mobileCard={(loan) => <LoanMobileCard loan={loan} />}
                   />
                   <Pagination
                     page={page}
