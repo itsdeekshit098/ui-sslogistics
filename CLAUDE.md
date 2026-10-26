@@ -53,6 +53,8 @@ Below `md` (768px) the admin area is styled to match `../mobile_sslogistics`; de
 
 Phone-only shape and colour tokens live in `globals.css` as `--m-*` (card 16px, tile 18px, sheet 20px, control 12px, hero/drawer gradients), plus phone dark surfaces on the Flutter slate scale. Shared primitives carry their phone look as `max-md:` classes: `StatCard` becomes the summary-strip tile (any parent of `.ss-stat-card` lays out as a scrolling strip), `Tabs`/`SegmentedControl` become selectable chips, `Badge` a pill, `DataTable` cards the Flutter list card, modals and `BottomSheet` the Flutter form sheet, `PageFab` takes the module colour from `navConfig` (`accent`). `DataTable`'s `mobileCard` prop replaces a phone card's body when a list needs its own layout (Loans uses it). Restyle a phone screen by comparing it with the matching Flutter screen, and keep every change phone-scoped.
 
+Work in progress on this (branch `feat/mobile-web-parity`): state, what's unchecked, and how to preview phone widths in Chrome are in `docs/mobile-parity-handoff.md` — open it only when continuing that work.
+
 `npm run visual:baseline` / `npm run visual:compare` (`e2e-visual/`) screenshot every admin page at 390px (light and dark) and fail on any desktop pixel change. Run baseline before layout work and compare after.
 
 ## Database
