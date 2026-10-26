@@ -831,7 +831,7 @@ export function AttendancePage() {
           // day's marking.
           <div
             data-testid="attendance-save-bar"
-            className="pointer-events-none sticky bottom-0 z-10 flex flex-col items-end gap-2"
+            className="pointer-events-none sticky bottom-[calc(var(--mobile-bottom-clearance,0px)+1rem)] z-10 flex flex-col items-end gap-2"
           >
             {saveError && (
               <span
@@ -891,7 +891,7 @@ export function AttendancePage() {
         (isMobile ? (
           // Where the Save button just was — at the end of a 60-row list
           // nobody would see it.
-          <div className="pointer-events-none sticky bottom-0 z-10 flex justify-end">
+          <div className="pointer-events-none sticky bottom-[calc(var(--mobile-bottom-clearance,0px)+1rem)] z-10 flex justify-end">
             <p
               role="status"
               className="flex h-11 items-center gap-2 rounded-xl border border-success/30 bg-success-subtle px-4 text-sm font-medium text-success-subtle-foreground shadow-lg animate-in fade-in-0 slide-in-from-bottom-2"

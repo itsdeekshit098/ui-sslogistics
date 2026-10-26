@@ -31,10 +31,14 @@ Second round (all at 390, light and/or dark, real data): Warranty, Technicians, 
 
 Known, left alone: one unreproduced glitch (Loans summary strip looked scrolled ~35px once at 320px; scroll was 0 on every retry). The client statement's "payment proof" icon button sits at an odd spot on some timeline rows (pre-existing cell in `clientDetailPage.tsx`, not touched by this work).
 
+Notch / home bar / keyboard (checked without a physical phone): safe-area insets are handled for the app bar, drawer, dashboard hero, bottom sheets, modals, filter sheet and "+" (all `env(safe-area-inset-*)` or `--mobile-bottom-clearance`); the Attendance Save/Discard bar and "Saved" toast now use the same clearance (they were flush to the bottom edge). No form field is under 16px, so iPhone Safari will not zoom on focus (audited ~14 pages plus the Loan/Client/Driver/Vehicle/Technician forms). With the viewport shrunk to 420px tall (an Android keyboard that resizes the page), the form sheet, drawer and sign-out dialog stay on screen with their buttons visible. Body-less dialogs show one divider, not two.
+
+Still impossible to verify without a device: real notch/home-bar rendering, and iOS keyboard behaviour (iOS overlays the keyboard instead of resizing, so a bottom sheet's footer buttons can sit under it until the keyboard closes). Android Chrome behaves like the 420px test only if the page opts in with `interactiveWidget: "resizes-content"` in the viewport export in `src/app/layout.tsx` (not set; default is overlay).
+
 ## Next steps
 
 1. Push `feat/mobile-web-parity`, open the PR (Flutter changes are not in it; mention them).
-2. Optional: touch-test on a real phone (notch, home bar, keyboard) — never done.
+2. Optional: touch-test on a real phone for the two items above.
 3. Known intentional gaps vs Flutter: phone lists use "Load more", not numbered pages; the theme toggle lives in the drawer (the app has none); the Loans summary strip scrolls sideways (5 cards).
 
 ## How to check it in a browser (saves a lot of time)
