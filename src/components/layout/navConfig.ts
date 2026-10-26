@@ -26,6 +26,8 @@ export type NavItem = {
   href: string;
   icon: typeof LayoutDashboardIcon;
   enabled: boolean;
+  /** Phone "+" button colour — the Flutter app's module colour. */
+  accent?: string;
   /** Other route roots that belong to this item (e.g. funding detail pages
    * are reached from Loans, so they light up Loans in the nav). */
   alsoMatches?: string[];
@@ -46,11 +48,11 @@ export const navSections: NavSection[] = [
       { name: "Dashboard", href: "/admin", icon: LayoutDashboardIcon, enabled: true },
       { name: "Vehicles", href: "/admin/vehicles", icon: TruckIcon, enabled: true },
       { name: "Trip Sheets", href: "/admin/trip-sheets", icon: FileTextIcon, enabled: false },
-      { name: "Diesel Records", href: "/admin/diesel-records", icon: FuelIcon, enabled: true },
-      { name: "Repair Records", href: "/admin/repair-records", icon: WrenchIcon, enabled: true },
-      { name: "Warranty", href: "/admin/warranty", icon: PackageIcon, enabled: true },
-      { name: "Technicians", href: "/admin/technicians", icon: UserCogIcon, enabled: true },
-      { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
+      { name: "Diesel Records", href: "/admin/diesel-records", accent: "#ea580c", icon: FuelIcon, enabled: true },
+      { name: "Repair Records", href: "/admin/repair-records", accent: "#dc2626", icon: WrenchIcon, enabled: true },
+      { name: "Warranty", href: "/admin/warranty", accent: "#e11d48", icon: PackageIcon, enabled: true },
+      { name: "Technicians", href: "/admin/technicians", accent: "#059669", icon: UserCogIcon, enabled: true },
+      { name: "Drivers", href: "/admin/drivers", accent: "#16a34a", icon: UsersIcon, enabled: true },
       { name: "Attendance", href: "/admin/attendance", icon: CalendarIcon, enabled: true },
       { name: "Trips", href: "/admin/trip-bookings", icon: ClockIcon, enabled: true },
     ],
@@ -63,11 +65,12 @@ export const navSections: NavSection[] = [
         href: "/admin/loans",
         icon: LandmarkIcon,
         enabled: true,
+        accent: "#1e40af",
         alsoMatches: ["/admin/fundings"],
       },
-      { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: true },
-      { name: "Firms & Owners", href: "/admin/entities", icon: UserIcon, enabled: true },
-      { name: "Bank Accounts", href: "/admin/bank-accounts", icon: WalletIcon, enabled: true },
+      { name: "Clients", href: "/admin/clients", accent: "#9333ea", icon: Building2Icon, enabled: true },
+      { name: "Firms & Owners", href: "/admin/entities", accent: "#7c3aed", icon: UserIcon, enabled: true },
+      { name: "Bank Accounts", href: "/admin/bank-accounts", accent: "#0f766e", icon: WalletIcon, enabled: true },
       { name: "Salaries", href: "/admin/salaries", icon: HandCoinsIcon, enabled: true },
     ],
   },

@@ -200,7 +200,7 @@
   .ss-modal-content {
     max-width: 100% !important;
     max-height: 92dvh !important;
-    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-radius: var(--m-radius-sheet) var(--m-radius-sheet) 0 0 !important;
     border-bottom: 0 !important;
     padding-bottom: env(safe-area-inset-bottom);
     animation: ss-sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) !important;
@@ -212,10 +212,20 @@
     flex-shrink: 0;
     width: 2.5rem;
     height: 0.25rem;
-    margin: 0.5rem auto 0;
+    margin: 0.625rem auto 0;
     border-radius: 9999px;
-    background: var(--muted-foreground);
-    opacity: 0.3;
+    background: var(--border);
+  }
+  /* Header: the Flutter sheet's 17px heavy title over a divider. */
+  .ss-modal-content #modal-title {
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+  }
+  .ss-modal-content > div:has(> #modal-title) {
+    padding: 0.5rem 3.5rem 0.75rem 1.25rem !important;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.75rem;
   }
   /* Full-width, thumb-sized footer buttons */
   .ss-modal-footer {
@@ -225,7 +235,9 @@
   .ss-modal-footer > button,
   .ss-modal-footer > a {
     flex: 1 1 0;
-    min-height: 2.75rem;
+    min-height: 3rem;
+    font-size: 15px;
+    font-weight: 600;
   }
   /* 40px close target (24px on desktop is fine for a mouse) */
   .ss-modal-close {
@@ -276,6 +288,22 @@
   }
   .ss-stat-strip > div > span:last-child {
     font-size: 1.125rem !important;
+  }
+  /* Any row of StatCards becomes the Flutter app's summary strip: one
+     line of compact tiles, scrolling sideways when they don't all fit. */
+  *:has(> .ss-stat-card) {
+    display: flex !important;
+    gap: 0.5rem !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+  *:has(> .ss-stat-card)::-webkit-scrollbar {
+    display: none;
+  }
+  *:has(> .ss-stat-card) > * {
+    flex: 1 0 6.5rem;
   }
   /* Panel headings ("Vehicle List", "Repair History…") drop to the phone
      section-title size — the top bar already carries the page title. */
@@ -337,7 +365,7 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
     max-height: 85dvh;
     border-left: 0 !important;
     border-top: 1px solid var(--border);
-    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-radius: var(--m-radius-sheet) var(--m-radius-sheet) 0 0 !important;
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
@@ -573,7 +601,7 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
      --radius. */
   --m-radius-card: 1rem;
   --m-radius-tile: 1.125rem;
-  --m-radius-sheet: 1.5rem;
+  --m-radius-sheet: 1.25rem;
   --m-radius-control: 0.75rem;
   --m-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   --m-navy: #12203d;

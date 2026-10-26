@@ -56,16 +56,16 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
         aria-labelledby={titleId}
         tabIndex={-1}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-[41] flex max-h-[92dvh] flex-col outline-none rounded-t-2xl border-t border-border bg-card text-card-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.18)]",
+          "fixed inset-x-0 bottom-0 z-[41] flex max-h-[92dvh] flex-col outline-none rounded-t-[var(--m-radius-sheet)] border-t border-border bg-card text-card-foreground shadow-[0_-12px_40px_rgba(0,0,0,0.18)]",
           "pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-300",
           className,
         )}
       >
-        <div className="flex justify-center pt-2.5 pb-1" aria-hidden="true">
-          <span className="h-1 w-10 rounded-full bg-muted-foreground/30" />
+        <div className="flex justify-center py-2.5" aria-hidden="true">
+          <span className="h-1 w-10 rounded-full bg-border" />
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 pb-2">
-          <div id={titleId} className="min-w-0 text-base font-semibold">
+        <div className="flex items-center justify-between gap-3 border-b border-border pl-5 pr-3 pb-2">
+          <div id={titleId} className="min-w-0 text-[17px] font-extrabold">
             {title}
           </div>
           <button
@@ -77,7 +77,7 @@ export function BottomSheet({ open, onClose, title, children, className }: Botto
             <XIcon size={20} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 scrollbar-custom">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-4 scrollbar-custom">
           {children}
         </div>
       </div>

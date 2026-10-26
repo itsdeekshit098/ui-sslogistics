@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { PlusIcon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
+import { matchNavItem } from "@/components/layout/navConfig";
 import type { PageFabProps } from "./pageFab.types";
 
 /**
@@ -16,6 +18,8 @@ import type { PageFabProps } from "./pageFab.types";
  */
 export function PageFab({ label, onClick, icon, disabled, disabledReason, testId }: PageFabProps) {
   const [showReason, setShowReason] = useState(false);
+  const pathname = usePathname();
+  const accent = pathname ? matchNavItem(pathname)?.item.accent : undefined;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -61,6 +65,14 @@ export function PageFab({ label, onClick, icon, disabled, disabledReason, testId
         aria-disabled={disabled || undefined}
         aria-label={label}
         title={label}
+        style={
+          accent && !disabled
+            ? {
+                background: accent,
+                boxShadow: `0 6px 16px -4px color-mix(in srgb, ${accent} 50%, transparent), 0 2px 4px rgba(0,0,0,0.12)`,
+              }
+            : undefined
+        }
         className={cn(
           "flex h-14 w-14 items-center justify-center rounded-[var(--m-radius-card)] bg-primary text-white shadow-[0_6px_16px_-4px_rgba(37,99,235,0.5),0_2px_4px_rgba(0,0,0,0.12)] transition-transform active:scale-95",
           disabled && "opacity-60 shadow-none",
