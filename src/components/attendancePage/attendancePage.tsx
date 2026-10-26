@@ -709,7 +709,7 @@ export function AttendancePage() {
                   value={filter}
                   onValueChange={(key) => setFilter(key as AttendanceFilter)}
                   disabled={saving}
-                  className="flex w-full gap-0.5 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-0 [&>button]:py-1 [&>button]:text-[13px]"
+                  className="flex w-full gap-0.5 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-0 [&>button]:py-1 [&>button]:text-[13px] max-[360px]:[&>button]:gap-0.5 max-[360px]:[&>button]:text-[11.5px]"
                 />
               </>
             )}
@@ -721,8 +721,8 @@ export function AttendancePage() {
                 {dayError && <p className="text-sm text-destructive">{dayError}</p>}
                 {readOnlyNote}
                 {bulkActions && (
-                  <div className="flex items-center gap-1.5 rounded-xl border border-warning/40 bg-warning-subtle px-3 py-2 text-[13px] font-semibold text-warning-subtle-foreground [&>button]:h-8 [&>button]:bg-card [&>button]:px-2.5 [&>button]:text-foreground">
-                    <span className="min-w-0 flex-1">{counts.unmarked} left</span>
+                  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-warning/40 bg-warning-subtle px-3 py-2 text-[13px] font-semibold text-warning-subtle-foreground [&>button]:h-8 [&>button]:bg-card [&>button]:px-2.5 [&>button]:text-foreground">
+                    <span className="min-w-[3.25rem] flex-1 whitespace-nowrap">{counts.unmarked} left</span>
                     {bulkActions}
                   </div>
                 )}
