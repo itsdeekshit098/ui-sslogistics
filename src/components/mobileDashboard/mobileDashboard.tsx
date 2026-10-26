@@ -35,10 +35,13 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 function ModuleTile({ item, index }: { item: MobileDashboardModule; index: number }) {
   const disabled = !item.enabled;
   const testId = `mobile-dashboard-module-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
+  // Same entrance as the Flutter tiles: every tile starts at once and later
+  // ones simply take longer, rising 18px with an ease-out-cubic curve.
   const entrance = {
     animationDuration: `${380 + Math.min(index * 45, 400)}ms`,
-    animationDelay: `${Math.min(index * 45, 400)}ms`,
-  };
+    animationTimingFunction: "cubic-bezier(0.33, 1, 0.68, 1)",
+    "--tw-enter-translate-y": "18px",
+  } as React.CSSProperties;
 
   const body = (
     <>
@@ -88,7 +91,7 @@ function ModuleTile({ item, index }: { item: MobileDashboardModule; index: numbe
   );
 
   const tileClass =
-    "relative block aspect-square overflow-hidden rounded-[var(--m-radius-tile)] border border-border bg-card px-4 pt-[18px] pb-3.5 animate-in fade-in-0 slide-in-from-bottom-2";
+    "relative block aspect-square overflow-hidden rounded-[var(--m-radius-tile)] border border-border bg-card px-4 pt-[18px] pb-3.5 animate-in fade-in-0";
 
   if (disabled) {
     return (

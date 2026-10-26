@@ -47,6 +47,14 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 
 **Note:** `agents.md` also bans Tailwind and external UI primitives and calls for `.style.ts` files, but the codebase mostly uses Tailwind CSS 4, Radix UI primitives, and CVA (shadcn-style `src/components/ui/`). Follow the existing code, not that section of agents.md — except that ~24 older components (several modals, `homePage`, `warrantyPage`, `sessionsPage`, and a few `src/components/ui/` primitives like `modal` and `tooltip`) still genuinely use a `componentName.style.ts` file of plain `CSSProperties` objects, imported as `import * as styles from "./componentName.style"`. These are live code, not dead leftovers — don't delete them on sight. New components should use Tailwind/CVA; migrating an existing `.style.ts` component to Tailwind is a deliberate refactor, not a drive-by cleanup.
 
+## Phone layout (mirrors the Flutter app)
+
+Below `md` (768px) the admin area is styled to match `../mobile_sslogistics`; desktop is untouched by any of it. Navigation is the Flutter-style navy drawer (`src/components/layout/mobileDrawer/`), opened from the app bar's menu button (`mobileTopBar`) or, on `/admin`, from the dashboard's own gradient header (`mobileDashboard`, via `useOpenMobileDrawer`). There is no bottom nav. Page lists come from `navConfig.ts`, the same source as the desktop Sidebar.
+
+Phone-only shape and colour tokens live in `globals.css` as `--m-*` (card 16px, tile 18px, sheet 20px, control 12px, hero/drawer gradients), plus phone dark surfaces on the Flutter slate scale. Shared primitives carry their phone look as `max-md:` classes: `StatCard` becomes the summary-strip tile (any parent of `.ss-stat-card` lays out as a scrolling strip), `Tabs`/`SegmentedControl` become selectable chips, `Badge` a pill, `DataTable` cards the Flutter list card, modals and `BottomSheet` the Flutter form sheet, `PageFab` takes the module colour from `navConfig` (`accent`). `DataTable`'s `mobileCard` prop replaces a phone card's body when a list needs its own layout (Loans uses it). Restyle a phone screen by comparing it with the matching Flutter screen, and keep every change phone-scoped.
+
+`npm run visual:baseline` / `npm run visual:compare` (`e2e-visual/`) screenshot every admin page at 390px (light and dark) and fail on any desktop pixel change. Run baseline before layout work and compare after.
+
 ## Database
 
 Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `50_driver_salary_settlement.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
