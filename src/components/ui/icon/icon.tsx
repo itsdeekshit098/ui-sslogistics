@@ -7,7 +7,7 @@ import type { IconProps } from "./icon.types";
 //
 // Every icon: 24×24 grid, fill="none", stroke="currentColor", and the stroke
 // width lives on the <svg> itself so a parent can restyle it from CSS
-// (e.g. the bottom nav draws its active tab heavier).
+// (e.g. to draw an active state heavier).
 
 // ─── Directional / Navigation ─────────────────────────────────────────────────
 

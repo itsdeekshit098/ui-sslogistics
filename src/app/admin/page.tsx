@@ -32,11 +32,14 @@ import { MobileDashboard, type MobileDashboardAlert } from "@/components/mobileD
 import { Money } from "@/components/ui/money";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
+// `accent` is the module colour the phone dashboard tiles use (same values
+// as the Flutter app's tile colours); the desktop cards don't read it.
 const menuItems = [
   {
     title: "Vehicles",
     description: "Manage fleet vehicles",
     href: "/admin/vehicles",
+    accent: "#2563eb",
     icon: TruckIcon,
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-500/10",
@@ -46,6 +49,7 @@ const menuItems = [
     title: "Trip Sheets",
     description: "Daily trip entries",
     href: "/admin/trip-sheets",
+    accent: "#4f46e5",
     icon: FileTextIcon,
     color: "text-indigo-600 dark:text-indigo-400",
     bgColor: "bg-indigo-50 dark:bg-indigo-500/10",
@@ -55,6 +59,7 @@ const menuItems = [
     title: "Diesel Records",
     description: "Track fuel consumption",
     href: "/admin/diesel-records",
+    accent: "#ea580c",
     icon: FuelIcon,
     color: "text-orange-600 dark:text-orange-400",
     bgColor: "bg-orange-50 dark:bg-orange-500/10",
@@ -64,6 +69,7 @@ const menuItems = [
     title: "Repair Records",
     description: "Maintenance logs",
     href: "/admin/repair-records",
+    accent: "#dc2626",
     icon: WrenchIcon,
     color: "text-red-600 dark:text-red-400",
     bgColor: "bg-red-50 dark:bg-red-500/10",
@@ -73,6 +79,7 @@ const menuItems = [
     title: "Warranty",
     description: "Manage parts & warranties",
     href: "/admin/warranty",
+    accent: "#e11d48",
     icon: ShieldCheckIcon,
     color: "text-rose-600 dark:text-rose-400",
     bgColor: "bg-rose-50 dark:bg-rose-500/10",
@@ -82,6 +89,7 @@ const menuItems = [
     title: "Technicians",
     description: "Manage technician profiles",
     href: "/admin/technicians",
+    accent: "#059669",
     icon: UserCogIcon,
     color: "text-emerald-600 dark:text-emerald-400",
     bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
@@ -91,6 +99,7 @@ const menuItems = [
     title: "Drivers",
     description: "Manage driver profiles",
     href: "/admin/drivers",
+    accent: "#16a34a",
     icon: UsersIcon,
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-500/10",
@@ -100,6 +109,7 @@ const menuItems = [
     title: "Attendance",
     description: "Daily driver attendance by shift",
     href: "/admin/attendance",
+    accent: "#0d9488",
     icon: CalendarIcon,
     color: "text-teal-600 dark:text-teal-400",
     bgColor: "bg-teal-50 dark:bg-teal-500/10",
@@ -109,6 +119,7 @@ const menuItems = [
     title: "Trips",
     description: "Bookings, completed trips, costs and profit",
     href: "/admin/trip-bookings",
+    accent: "#d97706",
     icon: ClockIcon,
     color: "text-amber-600 dark:text-amber-400",
     bgColor: "bg-amber-50 dark:bg-amber-500/10",
@@ -118,6 +129,7 @@ const menuItems = [
     title: "Loans",
     description: "Bank loans, private fundings & EMI schedule",
     href: "/admin/loans",
+    accent: "#1e40af",
     icon: LandmarkIcon,
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-500/10",
@@ -127,6 +139,7 @@ const menuItems = [
     title: "Salaries",
     description: "Driver pay from attendance, advances & deductions",
     href: "/admin/salaries",
+    accent: "#059669",
     icon: HandCoinsIcon,
     color: "text-emerald-600 dark:text-emerald-400",
     bgColor: "bg-emerald-50 dark:bg-emerald-500/10",
@@ -136,6 +149,7 @@ const menuItems = [
     title: "Clients",
     description: "Client statements and what they owe",
     href: "/admin/clients",
+    accent: "#9333ea",
     icon: Building2Icon,
     color: "text-purple-600 dark:text-purple-400",
     bgColor: "bg-purple-50 dark:bg-purple-500/10",
@@ -145,6 +159,7 @@ const menuItems = [
     title: "Firms & Owners",
     description: "Proprietorships, people & external parties",
     href: "/admin/entities",
+    accent: "#7c3aed",
     icon: UserIcon,
     color: "text-fuchsia-600 dark:text-fuchsia-400",
     bgColor: "bg-fuchsia-50 dark:bg-fuchsia-500/10",
@@ -154,6 +169,7 @@ const menuItems = [
     title: "Reports",
     description: "View analytics",
     href: "/admin/reports",
+    accent: "#0891b2",
     icon: BarChart3Icon,
     color: "text-cyan-600 dark:text-cyan-400",
     bgColor: "bg-cyan-50 dark:bg-cyan-500/10",
@@ -163,6 +179,7 @@ const menuItems = [
     title: "Activity Log",
     description: "Track all actions",
     href: "/admin/activity-log",
+    accent: "#0d9488",
     icon: ActivityIcon,
     color: "text-teal-600 dark:text-teal-400",
     bgColor: "bg-teal-50 dark:bg-teal-500/10",
@@ -172,6 +189,7 @@ const menuItems = [
     title: "Sessions",
     description: "Track all users sessions",
     href: "/admin/sessions",
+    accent: "#0d9488",
     icon: ShieldIcon,
     color: "text-teal-600 dark:text-teal-400",
     bgColor: "bg-teal-50 dark:bg-teal-500/10",
@@ -181,6 +199,7 @@ const menuItems = [
     title: "Settings",
     description: "Maintenance mode and app configuration",
     href: "/admin/settings",
+    accent: "#64748b",
     icon: SettingsIcon,
     color: "text-slate-600 dark:text-slate-400",
     bgColor: "bg-slate-50 dark:bg-slate-500/10",
@@ -302,7 +321,8 @@ export default function DashboardPage() {
     <div className="container mx-auto space-y-6 md:space-y-8">
       {isMobile && (
         <MobileDashboard
-          name={user?.displayName ?? null}
+          name={user?.displayName || user?.email || null}
+          role={userRole ?? null}
           loading={authLoading}
           alertsLoading={alertsLoading}
           alerts={alerts}

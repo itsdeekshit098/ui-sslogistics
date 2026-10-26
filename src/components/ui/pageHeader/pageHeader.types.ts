@@ -23,7 +23,7 @@ export interface PageHeaderProps {
   actions?: ReactNode;
   /**
    * The page's main "create" action. A normal button beside `actions` on
-   * desktop; a floating pill above the bottom nav on phones.
+   * desktop; a floating "+" in the bottom-right corner on phones.
    */
   primaryAction?: PageHeaderPrimaryAction;
   className?: string;

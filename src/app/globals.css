@@ -315,17 +315,18 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   display: none;
 }
 
-/* Phone pages end 16px above the floating dock; content scrolls on under
-   it. Pages with the floating "+" (52px button, 12px above the dock) get
-   room for that too, so the last card is never stuck behind it. */
+/* Phone pages end 16px above the bottom edge. Pages with the floating "+"
+   (56px, 16px up) get room for that too, so the last card is never stuck
+   behind it. */
 @media (max-width: 767px) {
   [data-testid="admin-main"] {
-    padding-bottom: calc(var(--mobile-dock-clearance, 4.5rem) + 1rem);
+    padding-bottom: calc(var(--mobile-bottom-clearance, 0px) + 1rem);
   }
   body:has(.ss-fab) [data-testid="admin-main"] {
-    padding-bottom: calc(var(--mobile-dock-clearance, 4.5rem) + 4.75rem);
+    padding-bottom: calc(var(--mobile-bottom-clearance, 0px) + 5.5rem);
   }
 }
+
 
 /* Filter drawer: side panel on desktop, bottom sheet on phones/tablets. */
 @media (max-width: 767px) {
@@ -561,18 +562,29 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* ─── Input Heights ─── */
-  /* ─── Phone dock ───
-     The bottom nav floats over the page as an inset dock. Anything that has
-     to clear it (the page's own bottom padding, the floating "+", a sticky
-     save bar) measures from --mobile-dock-clearance, the distance from the
-     bottom of the screen to the dock's top edge. */
-  --mobile-dock-height: 3.75rem;
-  --mobile-dock-gap: 0.75rem;
-  --mobile-dock-clearance: calc(
-    var(--mobile-dock-height) + var(--mobile-dock-gap) + env(safe-area-inset-bottom, 0px)
-  );
+  /* ─── Phone bottom edge ───
+     Phones have no bottom nav (navigation is the drawer), so anything pinned
+     to the bottom — the floating "+", a sticky save bar, the page's own
+     bottom padding — only has to clear the device's home-indicator inset. */
+  --mobile-bottom-clearance: env(safe-area-inset-bottom, 0px);
 
+  /* ─── Phone design (mirrors the Flutter app's shapes) ───
+     Only read by phone-width components; desktop keeps the single 8px
+     --radius. */
+  --m-radius-card: 1rem;
+  --m-radius-tile: 1.125rem;
+  --m-radius-sheet: 1.5rem;
+  --m-radius-control: 0.75rem;
+  --m-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --m-navy: #12203d;
+  --m-navy-mid: #16305c;
+  --m-hero-gradient: linear-gradient(135deg, #12203d 0%, #16305c 50%, #2563eb 100%);
+  --m-drawer-gradient: linear-gradient(180deg, #12203d 0%, #16305c 50%, #12203d 100%);
+  --m-drawer-text: #cbd5e1;
+  --m-drawer-text-muted: #64748b;
+  --m-appbar: var(--card);
+
+  /* ─── Input Heights ─── */
   --input-height-sm: 2.25rem;
   --input-height: 2.5rem;
   --input-height-lg: 2.75rem;
@@ -834,4 +846,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+}
+
+/* Phone dark surfaces follow the Flutter app's slate scale (page slate-900,
+   card slate-800, border slate-700) rather than the desktop's deeper navy. */
+@media (max-width: 767.98px) {
+  .dark {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --popover: #243247;
+    --popover-foreground: #f1f5f9;
+    --muted: #273449;
+    --secondary: #273449;
+    --accent: #273449;
+    --border: #334155;
+    --input: #334155;
+  }
+}
+@media (max-width: 767.98px) and (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --popover: #243247;
+    --popover-foreground: #f1f5f9;
+    --muted: #273449;
+    --secondary: #273449;
+    --accent: #273449;
+    --border: #334155;
+    --input: #334155;
+  }
 }

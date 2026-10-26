@@ -39,6 +39,17 @@ export const iconTrigger: CSSProperties = {
   color: "var(--muted-foreground)",
 };
 
+export const drawerTrigger: CSSProperties = {
+  width: "100%",
+  height: "3rem",
+  gap: "0.5rem",
+  padding: 0,
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  color: "var(--m-drawer-text)",
+  justifyContent: "flex-start",
+};
+
 export const mobileTrigger: CSSProperties = {
   width: "100%",
   gap: "0.75rem",

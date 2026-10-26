@@ -825,8 +825,8 @@ export function AttendancePage() {
           stop this from sticking to the bottom of the scrolling page. */}
       {dirty.length > 0 ? (
         isMobile ? (
-          // Phones: a small floating pair in the thumb corner, just above
-          // the dock, instead of a bar across the list. Discard is the
+          // Phones: a small floating pair in the thumb corner instead of a
+          // bar across the list. Discard is the
           // quiet icon and asks first, since one tap could undo a whole
           // day's marking.
           <div

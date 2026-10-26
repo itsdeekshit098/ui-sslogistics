@@ -70,11 +70,14 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
             ? styles.iconTrigger
             : isDesktop
               ? styles.desktopTrigger
-              : styles.mobileTrigger),
+              : variant === "drawer"
+                ? styles.drawerTrigger
+                : styles.mobileTrigger),
         }}
         className={cn(
           "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
           isIcon && "hover:bg-red-50",
+          variant === "drawer" && "hover:bg-transparent focus:ring-offset-0",
         )}
       >
         <LogOutIcon

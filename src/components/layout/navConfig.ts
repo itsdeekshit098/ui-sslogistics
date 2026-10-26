@@ -16,7 +16,6 @@ import {
   ClockIcon,
   LandmarkIcon,
   WalletIcon,
-  HomeIcon,
   CalendarIcon,
   HandCoinsIcon,
 } from "@/components/ui/icon";
@@ -34,7 +33,7 @@ export type NavItem = {
 
 export type NavSection = { label: string; items: NavItem[] };
 
-// Single source for both the desktop Sidebar and the mobile bottom nav, so a
+// Single source for both the desktop Sidebar and the phone drawer, so a
 // new page only has to be added once and role filtering can't drift between
 // the two.
 // Grouped rather than one flat 17-item list — now that Loans/Clients/Firms
@@ -117,57 +116,4 @@ export function matchNavItem(
   }
   if (!best) return null;
   return { item: best.item, isDetail: pathname !== best.item.href };
-}
-
-// ─── Mobile bottom tabs ──────────────────────────────────────────────────────
-
-export type MobileTab = {
-  key: string;
-  label: string;
-  icon: typeof LayoutDashboardIcon;
-  /** Nav item hrefs that live under this tab, in chip order. */
-  hrefs: string[];
-};
-
-// Four destinations plus "More" (which opens the full menu sheet). Every role
-// gets the same groups; a tab only appears when the role can open at least
-// one enabled page in it — a driver sees Home, Fleet (Diesel) and More.
-export const mobileTabs: MobileTab[] = [
-  { key: "home", label: "Home", icon: HomeIcon, hrefs: ["/admin"] },
-  {
-    key: "fleet",
-    label: "Fleet",
-    icon: TruckIcon,
-    hrefs: ["/admin/vehicles", "/admin/trip-bookings", "/admin/drivers", "/admin/attendance", "/admin/diesel-records"],
-  },
-  {
-    key: "repairs",
-    label: "Repairs",
-    icon: WrenchIcon,
-    hrefs: ["/admin/repair-records", "/admin/warranty", "/admin/technicians"],
-  },
-  {
-    key: "money",
-    label: "Money",
-    icon: WalletIcon,
-    hrefs: ["/admin/loans", "/admin/clients", "/admin/entities", "/admin/bank-accounts", "/admin/salaries"],
-  },
-];
-
-export type ResolvedMobileTab = MobileTab & { items: NavItem[]; href: string };
-
-/** Tabs this role can use, each with its enabled, accessible items and the
- * href the tab itself opens (its first item). */
-export function getMobileTabs(role: UserRole | null): ResolvedMobileTab[] {
-  if (!role) return [];
-  return mobileTabs
-    .map((tab) => {
-      const items = tab.hrefs
-        .map((href) => allItems.find((i) => i.href === href))
-        .filter(
-          (i): i is NavItem => !!i && i.enabled && canRoleAccessPage(i.href, role),
-        );
-      return { ...tab, items, href: items[0]?.href ?? "" };
-    })
-    .filter((tab) => tab.items.length > 0);
 }

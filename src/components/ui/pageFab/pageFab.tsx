@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import type { PageFabProps } from "./pageFab.types";
 
 /**
- * The page's main "create" action as a floating round "+" above the bottom
- * dock, phone widths only. Always on screen — it used to slide away on
+ * The page's main "create" action as a floating "+" in the bottom-right
+ * corner, phone widths only. Always on screen — it used to slide away on
  * scroll-down, which read as the button disappearing just when needed.
  * Icon-only to keep content visible beneath it; the label stays as the
  * accessible name (and title) for screen readers. Hidden (via globals.css)
@@ -35,14 +35,14 @@ export function PageFab({ label, onClick, icon, disabled, disabledReason, testId
 
   // Portalled to <body>: pages wrap their content in `animate-in`, and a
   // transformed ancestor turns `position: fixed` into "fixed to that
-  // container" — the button then drifted with the page instead of sitting
-  // above the bottom nav.
+  // container" — the button then drifted with the page instead of staying
+  // in the corner.
   if (!mounted) return null;
 
   return createPortal(
     <div
       className={cn(
-        "ss-fab fixed right-2 bottom-[calc(var(--mobile-dock-clearance,4.5rem)+0.75rem)] z-20 flex flex-col items-end gap-2 md:hidden",
+        "ss-fab fixed right-4 bottom-[calc(var(--mobile-bottom-clearance,0px)+1rem)] z-20 flex flex-col items-end gap-2 md:hidden",
       )}
     >
       {showReason && disabledReason && (
@@ -62,7 +62,7 @@ export function PageFab({ label, onClick, icon, disabled, disabledReason, testId
         aria-label={label}
         title={label}
         className={cn(
-          "flex h-13 w-13 items-center justify-center rounded-[calc(var(--radius)+4px)] bg-primary text-primary-foreground shadow-[0_6px_16px_-4px_rgba(37,99,235,0.5),0_2px_4px_rgba(0,0,0,0.12)] transition-transform active:scale-95",
+          "flex h-14 w-14 items-center justify-center rounded-[var(--m-radius-card)] bg-primary text-white shadow-[0_6px_16px_-4px_rgba(37,99,235,0.5),0_2px_4px_rgba(0,0,0,0.12)] transition-transform active:scale-95",
           disabled && "opacity-60 shadow-none",
         )}
       >

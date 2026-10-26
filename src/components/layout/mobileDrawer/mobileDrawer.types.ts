@@ -1,4 +1,4 @@
-export interface MobileMenuSheetProps {
+export interface MobileDrawerProps {
   open: boolean;
   onClose: () => void;
 }

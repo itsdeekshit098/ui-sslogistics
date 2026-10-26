@@ -49,16 +49,27 @@ export function NotificationBell({ className, variant = "default" }: Notificatio
         aria-label="Notifications"
         className={
           variant === "ghost"
-            ? "relative flex h-10 w-10 p-0 items-center justify-center rounded-xl border-0 bg-muted text-foreground shadow-none cursor-pointer hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-transform"
-            : "relative flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+            ? "relative flex h-10 w-10 p-0 items-center justify-center rounded-full border-0 bg-transparent text-foreground shadow-none cursor-pointer hover:bg-muted active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+            : variant === "glass"
+              ? "relative flex h-10 w-10 p-0 items-center justify-center rounded-xl border border-white/20 bg-white/15 text-white shadow-none backdrop-blur-md cursor-pointer hover:bg-white/20 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition-transform"
+              : "relative flex h-9 w-9 p-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground cursor-pointer hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
         }
       >
-        <BellIcon size={variant === "ghost" ? 21 : 18} />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
+        <BellIcon size={variant === "default" ? 18 : 20} />
+        {unreadCount > 0 &&
+          (variant === "default" ? (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ) : (
+            <span
+              className={`absolute flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-white bg-red-600 px-1 text-[9px] font-bold text-white ${
+                variant === "glass" ? "-top-1 -right-1" : "top-0.5 right-0.5"
+              }`}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ))}
       </Button>
 
       {isOpen && (
