@@ -39,6 +39,7 @@ yarn-error.log*
 /e2e-report/
 /test-results/
 /playwright-report/
+/visual-snapshots/
 
 # vercel
 .vercel
