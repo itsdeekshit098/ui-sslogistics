@@ -59,7 +59,7 @@ Work in progress on this (branch `feat/mobile-web-parity`): state, what's unchec
 
 ## Database
 
-Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `50_driver_salary_settlement.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
+Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `52_vehicle_document_date_order.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
 
 ### Money modules (loans, fundings, clients)
 

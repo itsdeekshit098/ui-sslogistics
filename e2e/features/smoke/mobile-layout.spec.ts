@@ -40,6 +40,24 @@ test.describe("phone layout", () => {
     await expect(page.getByTestId("admin-mobile-menu")).toBeHidden();
   });
 
+  test("Tab stays inside the open drawer", async ({ page }) => {
+    await page.goto("/admin/loans");
+    await page.getByRole("button", { name: "Open menu" }).click();
+    const drawer = page.getByTestId("admin-mobile-menu");
+    await expect(drawer).toBeVisible();
+
+    // More presses than the drawer has controls, both directions: focus must
+    // never land on the page behind it.
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      expect(await drawer.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+    }
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Shift+Tab");
+      expect(await drawer.evaluate((d) => d.contains(document.activeElement))).toBe(true);
+    }
+  });
+
   test("a dashboard tile opens its module", async ({ page }) => {
     await page.goto("/admin");
     await page.getByTestId("mobile-dashboard-module-loans").click();

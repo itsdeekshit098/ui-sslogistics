@@ -185,7 +185,7 @@ test.describe("Vehicles — documents (mocked API)", () => {
     await expect(end).toHaveValue("");
   });
 
-  test("emptying a date field mid-edit does not clear it until the field loses focus", async ({ page }) => {
+  test("emptying a date field and leaving it does not clear it; the clear button does", async ({ page }) => {
     const { vehicles, mocks } = await openVehiclesPage(page);
     await vehicles.openDocuments(SEEDED.deletable.id);
     await vehicles.uploadDocument("Insurance", PNG);
@@ -194,14 +194,17 @@ test.describe("Vehicles — documents (mocked API)", () => {
     await start.fill("2026-03-10");
     await expect.poll(() => mocks.vehicles.get(SEEDED.deletable.id)?.insurance_start_date).toBe("2026-03-10");
 
-    // The browser reports "" while a segment is being retyped. Waiting out the
-    // save delay must not wipe the stored date.
+    // The browser reports "" while a segment is being retyped. Neither a pause
+    // nor tabbing away may wipe the stored date; the field shows it again.
     await start.fill("");
     await page.waitForTimeout(1200);
+    await start.blur();
+    await expect(start).toHaveValue("2026-03-10");
     expect(mocks.vehicles.get(SEEDED.deletable.id)?.insurance_start_date).toBe("2026-03-10");
 
-    // Leaving the field empty is a deliberate clear.
-    await start.blur();
+    // Clearing on purpose is the button.
+    await vehicles.docCard("Insurance").getByRole("button", { name: "Clear date" }).first().click();
+    await expect(start).toHaveValue("");
     await expect.poll(() => mocks.vehicles.get(SEEDED.deletable.id)?.insurance_start_date).toBeNull();
   });
 

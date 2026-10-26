@@ -7,7 +7,7 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, Trash2Icon, UploadCloudIcon } from "@/components/ui/icon";
+import { EyeIcon, Trash2Icon, UploadCloudIcon, XIcon } from "@/components/ui/icon";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Skeleton } from "@/components/ui/skeletonLoader";
@@ -94,38 +94,61 @@ function DateField({
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     pending.current = null;
-    // An empty field is what the browser reports while a segment is being
-    // retyped, so it is only saved (as a clear) on blur, never on a pause.
+    // An empty value is what the browser reports while a segment is being
+    // retyped, so only a whole date is ever saved from typing.
     if (next === value || !isWholeDate(next)) return;
     pending.current = next;
     timer.current = setTimeout(flush, DATE_SAVE_DELAY_MS);
   };
 
+  const cancelPending = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    pending.current = null;
+  };
+
   return (
-    <input
-      type="date"
-      className={DM_DATE_INPUT}
-      value={draft}
-      min={`${MIN_YEAR}-01-01`}
-      max={`${MAX_YEAR}-12-31`}
-      disabled={disabled}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        schedule(e.target.value);
-      }}
-      onBlur={() => {
-        if (isWholeDate(draft) || draft === "") {
-          pending.current = draft;
-          flush();
-        } else {
-          // A half-typed date was never saved; show what is.
-          if (timer.current) clearTimeout(timer.current);
-          timer.current = null;
-          pending.current = null;
-          setDraft(value);
-        }
-      }}
-    />
+    <div className="flex flex-1 items-center gap-1">
+      <input
+        type="date"
+        className={DM_DATE_INPUT}
+        value={draft}
+        min={`${MIN_YEAR}-01-01`}
+        max={`${MAX_YEAR}-12-31`}
+        disabled={disabled}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          schedule(e.target.value);
+        }}
+        onBlur={() => {
+          if (isWholeDate(draft)) {
+            pending.current = draft;
+            flush();
+          } else {
+            // Empty or half-typed: never saved, so show what is. Clearing a
+            // date is the button's job — a blur can't tell "retyping a
+            // segment" from "meant to clear".
+            cancelPending();
+            setDraft(value);
+          }
+        }}
+      />
+      {value && !disabled && (
+        <button
+          type="button"
+          aria-label="Clear date"
+          title="Clear date"
+          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            cancelPending();
+            setDraft("");
+            onCommit("");
+          }}
+        >
+          <XIcon size={14} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -207,8 +230,12 @@ export function DocumentModal({
     } catch (error: unknown) {
       // Put back what the server still has so the field doesn't show a date
       // that was refused.
+      // Only if the field still holds the value that failed: a later edit may
+      // have already replaced it, and must not be undone by this older failure.
       setLocalVehicle((prev) =>
-        prev ? ({ ...prev, [field]: previous ?? null } as Vehicle) : null,
+        prev && ((prev as unknown as Record<string, unknown>)[field] ?? "") === value
+          ? ({ ...prev, [field]: previous ?? null } as Vehicle)
+          : prev,
       );
       setErrorMsg(
         `Failed to save date: ${error instanceof Error ? error.message : String(error)}`,

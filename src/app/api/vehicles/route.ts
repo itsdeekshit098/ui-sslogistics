@@ -6,6 +6,7 @@ import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { VEHICLE_STATUSES } from "@/app/admin/vehicles/vehicles.types";
 import { computeExpiryStatus, getStatusDates, type ExpiryStatus } from "@/utils/expiryStatus";
 
 /** Allowed columns for vehicle insert/update — prevents mass assignment */
@@ -36,14 +37,13 @@ const ALLOWED_VEHICLE_FIELDS = [
 const SEATING_CAPACITY_VEHICLE_TYPES = ["CAR", "BUS", "TEMPO_TRAVELLER"] as const;
 const VALID_FUEL_TYPES = ["DIESEL", "PETROL", "CNG", "LPG", "ELECTRIC", "HYBRID", "LNG"] as const;
 const VALID_OWNER_TYPES = ["OWN", "EXTERNAL"] as const;
-const VALID_STATUSES = ["Active", "Maintenance", "Idle"] as const;
 
 /** Rejects a status the vehicle_status column would refuse with a raw 500. */
 function validateStatus(body: Record<string, unknown>): Response | null {
   const value = body.status;
   if (value === null || value === undefined || value === "") return null;
-  if (!(VALID_STATUSES as readonly string[]).includes(String(value))) {
-    return apiError(`Invalid status. Allowed values: ${VALID_STATUSES.join(", ")}`, 400);
+  if (!(VEHICLE_STATUSES as readonly string[]).includes(String(value))) {
+    return apiError(`Invalid status. Allowed values: ${VEHICLE_STATUSES.join(", ")}`, 400);
   }
   return null;
 }
@@ -264,6 +264,25 @@ function pickAllowedFields(body: Record<string, unknown>) {
 
 /** Postgres unique_violation */
 const PG_UNIQUE_VIOLATION = "23505";
+/** Postgres check_violation */
+const PG_CHECK_VIOLATION = "23514";
+
+/**
+ * The database backstop for the start <= end rule (sql/52): two saves that
+ * each passed the read-then-write check can still collide, and the CHECK
+ * constraint is what refuses the second one.
+ */
+function dateOrderViolation(error: { code?: string; message?: string }): Response | null {
+  if (error.code !== PG_CHECK_VIOLATION) return null;
+  const message = error.message ?? "";
+  if (message.includes("vehicles_fc_dates_order")) {
+    return apiError("FC end date must be on or after the start date", 400);
+  }
+  if (message.includes("vehicles_insurance_dates_order")) {
+    return apiError("Insurance end date must be on or after the start date", 400);
+  }
+  return null;
+}
 
 export async function GET(req: Request) {
   try {
@@ -438,6 +457,8 @@ export async function POST(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
+      const orderError = dateOrderViolation(error);
+      if (orderError) return orderError;
       return serverError(error);
     }
 
@@ -535,6 +556,8 @@ export async function PUT(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
+      const orderError = dateOrderViolation(error);
+      if (orderError) return orderError;
       return serverError(error);
     }
 
