@@ -389,6 +389,48 @@ describe("PUT /api/vehicles", () => {
     expect(res.status).toBe(200);
   });
 
+  it("400s when a single end date lands before the stored start date", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      vehicles: [
+        { data: { fc_url: "https://example.com/fc.pdf" }, error: null },
+        { data: { fc_start_date: "2025-11-16" }, error: null },
+      ],
+    });
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/vehicles", "PUT", { id: 1, fc_end_date: "2025-01-01" }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a status the column does not allow instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/vehicles", "PUT", { id: 1, status: "ACTIVE" }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a half-typed year in a validity date", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/vehicles", "PUT", {
+        id: 1,
+        fc_start_date: "0002-11-16",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
   it("updates the vehicle, logs the audit entry, and notifies", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
@@ -397,7 +439,7 @@ describe("PUT /api/vehicles", () => {
     const { PUT } = await importRoute();
 
     const res = await PUT(
-      jsonRequest("http://localhost/api/vehicles", "PUT", { id: 1, status: "MAINTENANCE" }),
+      jsonRequest("http://localhost/api/vehicles", "PUT", { id: 1, status: "Maintenance" }),
     );
 
     expect(res.status).toBe(200);
