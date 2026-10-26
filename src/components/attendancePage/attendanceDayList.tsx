@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { CheckIcon, MoreHorizontalIcon, SettingsIcon, XIcon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import {
-  shiftsFor,
   type AttendanceDayDriver,
   type AttendanceMark,
   type OffStatus,
@@ -19,6 +18,7 @@ import {
   isMarked,
   isShiftlessPresent,
   markLabel,
+  shiftsToShow,
   toggleShift,
 } from "./attendancePage.utils";
 
@@ -117,7 +117,7 @@ function DesktopList({
         const tripBased = driver.pay_type === "PER_TRIP";
         // Only the shifts this driver runs are offered; the rest never existed
         // for them, so showing a greyed-out C would only invite a question.
-        const shifts = tripBased ? [] : shiftsFor(driver.shift_count);
+        const shifts = tripBased ? [] : shiftsToShow(driver.shift_count, mark);
         const full = isFullDay(mark, driver.shift_count);
         const present = tripBased ? isShiftlessPresent(mark) : full;
         return (
@@ -288,7 +288,7 @@ function PhoneList({
           setMenuFor(null);
         };
         const tripBased = driver.pay_type === "PER_TRIP";
-        const shifts = tripBased ? [] : shiftsFor(driver.shift_count);
+        const shifts = tripBased ? [] : shiftsToShow(driver.shift_count, mark);
         const full = isFullDay(mark, driver.shift_count);
         const partial = !tripBased && !full && mark.shifts.length > 0;
         const present = tripBased ? isShiftlessPresent(mark) : full;

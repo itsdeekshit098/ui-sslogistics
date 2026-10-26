@@ -700,16 +700,18 @@ export function AttendancePage() {
                   onFilter={setFilter}
                   disabled={saving}
                 />
-                {/* The same control as Day / Month, stretched edge to edge:
-                    six equal cells, so nothing runs off the screen and
-                    there is no sideways scrolling to discover. */}
+                {/* The same control as Day / Month, stretched edge to edge. Cells
+                    share the row evenly while they fit; the seventh chip
+                    (Holiday, only on a day someone is off) can push past
+                    a narrow screen, so the row scrolls rather than
+                    squeezing a label into its neighbour. */}
                 <SegmentedControl
                   idPrefix="attendance-filter"
                   items={filterItems}
                   value={filter}
                   onValueChange={(key) => setFilter(key as AttendanceFilter)}
                   disabled={saving}
-                  className="flex w-full gap-0.5 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-0 [&>button]:py-1 [&>button]:text-[13px] max-[360px]:[&>button]:gap-0.5 max-[360px]:[&>button]:text-[11.5px]"
+                  className="flex w-full gap-0.5 max-md:gap-1 max-[380px]:[&>button]:text-xs overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:min-w-fit [&>button]:flex-auto [&>button]:shrink-0 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-1 [&>button]:py-1 [&>button]:text-[13px] max-[360px]:[&>button]:gap-0.5 max-[360px]:[&>button]:text-[11.5px]"
                 />
               </>
             )}

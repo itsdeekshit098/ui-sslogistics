@@ -13,12 +13,13 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { formatMonth } from "@/lib/format";
+import { formatDate, formatMonth } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   shiftsFor,
   type DriverShiftCount,
   type ShiftCount,
+  type ShiftCountConflicts,
   type SetShiftCountPayload,
 } from "./attendancePage.types";
 
@@ -47,6 +48,11 @@ export function ShiftCountModal({ driver, month, onClose, onSaved }: ShiftCountM
   const [history, setHistory] = useState<DriverShiftCount[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set after a save that left marks on shifts the driver no longer runs.
+  const [conflicts, setConflicts] = useState<ShiftCountConflicts | null>(null);
+  // Bumped after a save so the history list refetches (and is cancelled with
+  // the modal like any other fetch).
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   const driverId = driver?.driver_id ?? null;
 
@@ -54,8 +60,15 @@ export function ShiftCountModal({ driver, month, onClose, onSaved }: ShiftCountM
     setCount(driver?.shift_count ?? 3);
     setFromMonth(month);
     setError(null);
-    setHistory(null);
   }, [driver?.shift_count, driverId, month]);
+
+  // Only a different driver clears the warning and the history: the page
+  // reloads the driver's new count right after a save, which re-runs the
+  // reset above.
+  useEffect(() => {
+    setConflicts(null);
+    setHistory(null);
+  }, [driverId]);
 
   const loadHistory = useCallback(async (id: number, signal: AbortSignal) => {
     try {
@@ -73,7 +86,7 @@ export function ShiftCountModal({ driver, month, onClose, onSaved }: ShiftCountM
     const controller = new AbortController();
     void loadHistory(driverId, controller.signal);
     return () => controller.abort();
-  }, [driverId, loadHistory]);
+  }, [driverId, historyVersion, loadHistory]);
 
   const save = async () => {
     if (driverId === null) return;
@@ -97,7 +110,14 @@ export function ShiftCountModal({ driver, month, onClose, onSaved }: ShiftCountM
         return;
       }
       onSaved();
-      onClose();
+      setHistoryVersion((v) => v + 1);
+      const found = json.data?.conflicts as ShiftCountConflicts | undefined;
+      if (found && found.count > 0) {
+        // Stay open: closing would bury the list of days to review.
+        setConflicts(found);
+      } else {
+        onClose();
+      }
     } catch {
       setSaving(false);
       setError("Network error");
@@ -201,13 +221,39 @@ export function ShiftCountModal({ driver, month, onClose, onSaved }: ShiftCountM
               </p>
             )}
 
+            {conflicts && (
+              <div
+                role="status"
+                className="flex flex-col gap-1.5 rounded-xl border border-warning/40 bg-warning-subtle px-3 py-2.5 text-sm text-warning-subtle-foreground"
+              >
+                <p className="font-semibold">
+                  Saved, but {conflicts.count} {conflicts.count === 1 ? "day is" : "days are"}{" "}
+                  still marked with a shift this driver no longer runs.
+                </p>
+                <p className="text-xs">
+                  {conflicts.dates.map((date) => formatDate(date)).join(", ")}
+                  {conflicts.count > conflicts.dates.length &&
+                    ` and ${conflicts.count - conflicts.dates.length} more`}
+                  . Open each day and remove the extra shift. Nothing was changed for you.
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}>
-                Cancel
-              </Button>
-              <Button size="sm" disabled={saving} onClick={save}>
-                {saving ? "Saving…" : "Save"}
-              </Button>
+              {conflicts ? (
+                <Button size="sm" onClick={onClose}>
+                  Done
+                </Button>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" disabled={saving} onClick={save}>
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </ModalBody>
