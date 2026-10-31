@@ -1,7 +1,8 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
+import { todayInIndia } from "@/lib/dateOnly";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
 import { escapeLike } from "@/lib/escapeLike";
@@ -12,9 +13,11 @@ import {
   type LoanSort,
   generateSchedule,
   sortLoans,
-  isNonNegativeNumber,
-  isPositiveNumber,
   isValidDateString,
+  moneyMessage,
+  moneyProblem,
+  parseId,
+  MAX_INTEREST_RATE,
 } from "./loans.utils";
 
 const MANDATE_TYPES = ["NACH", "ECS", "SI", "PDC", "MANUAL"] as const;
@@ -109,12 +112,10 @@ async function buildSummary() {
 
   // "This month" is bounded by the month's last day so a 31-day month doesn't
   // spill into the next one.
-  const now = new Date();
-  const monthEnd = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
-  )
-    .toISOString()
-    .slice(0, 10);
+  // Today in India, not the server's UTC date: in the first 5½ hours of the 1st
+  // (IST) UTC is still the previous month, which would shift "this month".
+  const [year, month] = todayInIndia().split("-").map(Number);
+  const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 
   for (const loan of active) {
     const balance = balances.get(loan.id as number);
@@ -168,10 +169,20 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status")?.trim() ?? "";
     const loanType = searchParams.get("loan_type")?.trim() ?? "";
-    const borrowerId = searchParams.get("borrower_entity_id");
-    const lenderId = searchParams.get("lender_id");
-    const vehicleId = searchParams.get("vehicle_id");
-    const debitAccountId = searchParams.get("debit_account_id");
+    const idFilters: Array<[string, string]> = [
+      ["borrower_entity_id", "borrower"],
+      ["lender_id", "lender"],
+      ["vehicle_id", "vehicle"],
+      ["debit_account_id", "bank account"],
+    ];
+    const ids: Record<string, number> = {};
+    for (const [param, label] of idFilters) {
+      const raw = searchParams.get(param);
+      if (raw === null || raw === "") continue;
+      const id = parseId(raw);
+      if (id === null) return apiError(`Invalid ${label}`, 400);
+      ids[param] = id;
+    }
     const search = searchParams.get("search")?.trim() ?? "";
     const overdueOnly = searchParams.get("overdue_only") === "true";
     const includeSummary = searchParams.get("include_summary") === "true";
@@ -184,7 +195,10 @@ export async function GET(req: Request) {
     // database can't order by it: that sort loads every matching loan, merges
     // the balances, sorts, then cuts out the page. There are tens of loans,
     // not thousands (and the 1000-row response cap is nowhere near).
-    const sortInDb = sort === "newest";
+    // "Overdue only" has the same problem — overdue lives in the same view —
+    // so it can't be paged by the database either: filtering after the page
+    // was cut left short pages and a total that counted loans filtered out.
+    const sortInDb = sort === "newest" && !overdueOnly;
 
     const { from, to } = parsePageParams(searchParams, {
       defaultPageSize: 10,
@@ -199,20 +213,28 @@ export async function GET(req: Request) {
 
     if (status) query = query.eq("status", status);
     if (loanType) query = query.eq("loan_type", loanType);
-    if (borrowerId) query = query.eq("borrower_entity_id", Number(borrowerId));
-    if (lenderId) query = query.eq("lender_id", Number(lenderId));
-    if (vehicleId) query = query.eq("vehicle_id", Number(vehicleId));
-    if (debitAccountId) query = query.eq("debit_account_id", Number(debitAccountId));
+    if (ids.borrower_entity_id) query = query.eq("borrower_entity_id", ids.borrower_entity_id);
+    if (ids.lender_id) query = query.eq("lender_id", ids.lender_id);
+    if (ids.vehicle_id) query = query.eq("vehicle_id", ids.vehicle_id);
+    if (ids.debit_account_id) query = query.eq("debit_account_id", ids.debit_account_id);
     if (search) {
-      const escaped = escapeLike(search);
+      // Quoted, so a comma or bracket in what was typed is part of the search
+      // text and not PostgREST filter syntax (an unquoted comma split the
+      // filter and failed with a 500).
+      const pattern = `"%${escapeLike(search).replace(/[\\"]/g, "\\$&")}%"`;
       query = query.or(
-        `loan_number.ilike.%${escaped}%,collateral_description.ilike.%${escaped}%`,
+        `loan_number.ilike.${pattern},collateral_description.ilike.${pattern}`,
       );
     }
 
     if (sortInDb) query = query.range(from, to);
 
     const { data, error, count } = await query;
+    // A page past the last one is an empty page, not a server error.
+    if (error?.code === "PGRST103") {
+      const head = await supabaseAdmin.from("loans").select("id", { count: "exact", head: true });
+      return apiSuccess({ data: [], total: head.count ?? 0, summary: undefined });
+    }
     if (error) return serverError(error);
 
     const rows = data ?? [];
@@ -229,8 +251,15 @@ export async function GET(req: Request) {
     // Overdue status lives in a view, not a column, so it can't be an .eq()
     // filter — it's applied after the balances are merged. Fine at this scale
     // (a page at a time), and it keeps outstanding strictly derived.
+    // A closed or foreclosed loan owes nothing any more, even though its
+    // leftover schedule rows still read as overdue in the view.
     if (overdueOnly) {
-      enriched = enriched.filter((row) => (row.balance.overdue_count ?? 0) > 0);
+      enriched = enriched.filter(
+        (row) =>
+          (row.balance.overdue_count ?? 0) > 0 &&
+          row.status !== "CLOSED" &&
+          row.status !== "FORECLOSED",
+      );
     }
 
     let total = count ?? enriched.length;
@@ -276,8 +305,8 @@ async function validateLoanFields(
   }
 
   if (has("borrower_entity_id")) {
-    const borrowerId = Number(body.borrower_entity_id);
-    if (!Number.isFinite(borrowerId)) return "Borrower is required";
+    const borrowerId = parseId(body.borrower_entity_id);
+    if (borrowerId === null) return "Borrower is required";
     const { data: entity } = await supabaseAdmin
       .from("entities")
       .select("id")
@@ -291,8 +320,8 @@ async function validateLoanFields(
     if (body.lender_id === null || body.lender_id === "") {
       payload.lender_id = null;
     } else {
-      const lenderId = Number(body.lender_id);
-      if (!Number.isFinite(lenderId)) return "Invalid lender";
+      const lenderId = parseId(body.lender_id);
+      if (lenderId === null) return "Invalid lender";
       const { data: lender } = await supabaseAdmin
         .from("lenders")
         .select("id")
@@ -307,8 +336,8 @@ async function validateLoanFields(
     if (body.vehicle_id === null || body.vehicle_id === "") {
       payload.vehicle_id = null;
     } else {
-      const vehicleId = Number(body.vehicle_id);
-      if (!Number.isFinite(vehicleId)) return "Invalid vehicle";
+      const vehicleId = parseId(body.vehicle_id);
+      if (vehicleId === null) return "Invalid vehicle";
       const { data: vehicle } = await supabaseAdmin
         .from("vehicles")
         .select("id")
@@ -323,8 +352,8 @@ async function validateLoanFields(
     if (body.debit_account_id === null || body.debit_account_id === "") {
       payload.debit_account_id = null;
     } else {
-      const accountId = Number(body.debit_account_id);
-      if (!Number.isFinite(accountId)) return "Invalid bank account";
+      const accountId = parseId(body.debit_account_id);
+      if (accountId === null) return "Invalid bank account";
       const { data: account } = await supabaseAdmin
         .from("bank_accounts")
         .select("id")
@@ -348,10 +377,11 @@ async function validateLoanFields(
   }
 
   if (has("principal_amount")) {
-    if (!isNonNegativeNumber(body.principal_amount)) {
-      return "Principal amount must be a positive number";
+    const principalProblem = moneyProblem(body.principal_amount);
+    if (principalProblem) {
+      return moneyMessage(principalProblem, "Principal amount must be a positive number");
     }
-    payload.principal_amount = Number(body.principal_amount);
+    payload.principal_amount = body.principal_amount as number;
   }
 
   if (has("start_date")) {
@@ -365,10 +395,11 @@ async function validateLoanFields(
   }
 
   if (has("emi_amount")) {
-    if (!isPositiveNumber(body.emi_amount)) {
-      return "EMI amount must be greater than zero";
+    const emiProblem = moneyProblem(body.emi_amount);
+    if (emiProblem) {
+      return moneyMessage(emiProblem, "EMI amount must be greater than zero");
     }
-    payload.emi_amount = Number(body.emi_amount);
+    payload.emi_amount = body.emi_amount as number;
   }
 
   if (has("emi_day_of_month")) {
@@ -397,10 +428,17 @@ async function validateLoanFields(
     if (body[key] !== undefined) {
       if (body[key] === null || body[key] === "") {
         payload[key] = null;
-      } else if (!isNonNegativeNumber(body[key])) {
-        return `${key.replace(/_/g, " ")} must be a positive number`;
       } else {
-        payload[key] = Number(body[key]);
+        const problem =
+          key === "interest_rate"
+            ? moneyProblem(body[key], { allowZero: true, max: MAX_INTEREST_RATE })
+            : moneyProblem(body[key], { allowZero: true });
+        if (problem) {
+          return problem === "too_large" && key === "interest_rate"
+            ? `Interest rate can't be more than ${MAX_INTEREST_RATE}%`
+            : moneyMessage(problem, `${key.replace(/_/g, " ")} must be a positive number`);
+        }
+        payload[key] = body[key] as number;
       }
     }
   }
@@ -442,7 +480,8 @@ async function validateLoanFields(
 export async function POST(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
     const payload: Record<string, unknown> = {};
     const validationError = await validateLoanFields(body, payload, { partial: false });
@@ -505,16 +544,17 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
-    const id = Number(body.id);
-    if (!body.id || !Number.isFinite(id)) {
+    const id = parseId(body.id);
+    if (id === null) {
       return apiError("Missing loan ID", 400);
     }
 
     const { data: existing, error: fetchErr } = await supabaseAdmin
       .from("loans")
-      .select("id, first_emi_date, emi_day_of_month, emi_amount, total_installments")
+      .select("id, start_date, status, closed_on, first_emi_date, emi_day_of_month, emi_amount, total_installments")
       .eq("id", id)
       .maybeSingle();
 
@@ -527,6 +567,23 @@ export async function PUT(req: Request) {
 
     if (Object.keys(payload).length === 0) {
       return apiError("No fields to update", 400);
+    }
+
+    // validateLoanFields only compares the two dates when both arrive in the
+    // same request; editing one of them alone has to be checked against the
+    // stored other, or the database's own constraint answers with a 500.
+    const effectiveStart = (payload.start_date as string | undefined) ?? existing.start_date;
+    const effectiveFirstEmi =
+      (payload.first_emi_date as string | undefined) ?? existing.first_emi_date;
+    if (effectiveFirstEmi < effectiveStart) {
+      return apiError("First EMI date cannot be before the loan start date", 400);
+    }
+
+    // closed_on records when the loan ended. It is set the first time the
+    // status becomes CLOSED/FORECLOSED and cleared if the loan is reopened.
+    if (payload.status !== undefined) {
+      const ended = payload.status === "CLOSED" || payload.status === "FORECLOSED";
+      payload.closed_on = ended ? (existing.closed_on ?? todayInIndia()) : null;
     }
 
     // If any schedule-shaping term moved, the future rows have to be rebuilt.
@@ -719,10 +776,9 @@ export async function DELETE(req: Request) {
     const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
-    const idParam = searchParams.get("id");
-    const id = Number(idParam);
+    const id = parseId(searchParams.get("id"));
 
-    if (!idParam || !Number.isFinite(id)) {
+    if (id === null) {
       return apiError("Missing loan ID", 400);
     }
 
