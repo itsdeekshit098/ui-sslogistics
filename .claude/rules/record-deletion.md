@@ -40,7 +40,7 @@ There is currently no UI toggle for the flag and the API never sets it. The dele
 
 `DELETE /api/drivers` (`src/app/api/drivers/route.ts`) counts rows in every table that references `driver_id`, and answers 400 with one message naming what's attached ("Cannot delete driver because they are linked to 12 attendance record(s). Deactivate them instead.") — nothing is deleted while anything is attached. A table that doesn't exist yet is skipped, not treated as an error, same as the vehicle delete.
 
-**The checked tables, kept in sync with `sql/` by hand:** `external_trips`, `trip_bookings`, `driver_attendance`, `driver_salary_rates`, `driver_salary_entries`, `driver_salary_settlements`, `driver_shift_counts`.
+**The checked tables, kept in sync with `sql/` by hand:** `external_trips`, `trip_bookings`, `driver_attendance`, `driver_salary_rates`, `driver_salary_entries`, `driver_salary_settlements`, `driver_shift_counts`, `driver_pay_types`, `driver_trip_counts`.
 
 **Standing rule:** any new table with a `driver_id bigint references drivers(id)` column must be added to `dependentChecks` in that route in the same change that creates the table. The foreign key means an unguarded delete still fails safely (Postgres refuses it) rather than orphaning rows, but it surfaces as a raw 500 instead of the friendly message, which is the bug this rule exists to prevent. The same applies to vehicles — see below — and to any future `references drivers(id)` / `references vehicles(id)` table.
 
