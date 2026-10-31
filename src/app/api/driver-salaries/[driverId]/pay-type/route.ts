@@ -1,11 +1,11 @@
 import { after } from "next/server";
-import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
+import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isPositiveNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
 import { hasSettlementOnOrAfter } from "../../driver-salaries.data";
+import { moneyMessage, moneyProblem } from "../../driver-salaries.utils";
 import { PAY_TYPES, type DriverPayType } from "@/components/salariesPage/salariesPage.types";
 
 // How a driver is paid: MONTHLY (today's only rule — a fixed salary, cut for
@@ -16,14 +16,16 @@ import { PAY_TYPES, type DriverPayType } from "@/components/salariesPage/salarie
 
 const NOTE_MAX_LENGTH = 200;
 
-/** Every role may read — the attendance/salary screens need to know which
- *  controls to show (a PER_TRIP driver gets no shift buttons). */
+/** Admin/superadmin only, like every salary method: the history carries
+ *  `rate_per_trip`, which is pay. Staff and drivers learn a driver's pay
+ *  *type* (to hide shift buttons) from /api/driver-attendance, which sends
+ *  the type alone. */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ driverId: string }> },
 ) {
   try {
-    await requireUserAuth();
+    await requireStrictAdminAuth();
 
     const { driverId: driverIdParam } = await params;
     const driverId = Number(driverIdParam);
@@ -68,7 +70,8 @@ export async function POST(
       return apiError("Invalid driver ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
     const payType = body.pay_type;
     if (!(PAY_TYPES as readonly unknown[]).includes(payType)) {
@@ -77,10 +80,14 @@ export async function POST(
 
     let ratePerTrip: number | null = null;
     if (payType === "PER_TRIP") {
-      if (!isPositiveNumber(body.rate_per_trip)) {
-        return apiError("Rate per trip is required and must be greater than zero", 400);
+      const rateProblem = moneyProblem(body.rate_per_trip);
+      if (rateProblem) {
+        return apiError(
+          moneyMessage(rateProblem, "Rate per trip is required and must be greater than zero"),
+          400,
+        );
       }
-      ratePerTrip = body.rate_per_trip;
+      ratePerTrip = body.rate_per_trip as number;
     }
 
     if (!isValidMonth(body.effective_month)) {

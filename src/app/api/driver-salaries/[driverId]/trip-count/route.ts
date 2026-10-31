@@ -1,10 +1,12 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
+import { todayInIndia } from "@/lib/dateOnly";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
 import { isMonthSettled, payTypeFor } from "../../driver-salaries.data";
+import { MAX_TRIP_COUNT } from "../../driver-salaries.utils";
 import type { DriverTripCount } from "@/components/salariesPage/salariesPage.types";
 
 // How many trips a PER_TRIP driver ran in a month — a single editable figure
@@ -63,12 +65,16 @@ export async function POST(
       return apiError("Invalid driver ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
     if (!isValidMonth(body.period_month)) {
       return apiError("Invalid month (expected YYYY-MM)", 400);
     }
     const periodMonth = body.period_month as string;
+    if (periodMonth > todayInIndia().slice(0, 7)) {
+      return apiError("A trip count can't be entered for a month that hasn't started", 400);
+    }
 
     const tripCount = body.trip_count;
     if (
@@ -78,6 +84,9 @@ export async function POST(
       tripCount < 0
     ) {
       return apiError("Trip count must be a whole number of zero or more", 400);
+    }
+    if (tripCount > MAX_TRIP_COUNT) {
+      return apiError(`A month can't have more than ${MAX_TRIP_COUNT} trips`, 400);
     }
 
     const note =
