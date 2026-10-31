@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { SEEDED } from "../../fixtures/vehicles.fixtures";
 import { openVehiclesPage } from "../../pages/vehiclesPage";
+import { typeDate } from "../../support/dateInput";
 
 /**
  * Vehicles: add / edit / delete, document upload + validity dates + preview +
@@ -9,8 +10,10 @@ import { openVehiclesPage } from "../../pages/vehiclesPage";
  * src/app/api/vehicles/route.ts, so a UI regression and a server-rule
  * regression are caught by the route unit tests and this spec respectively.
  *
- * en-GB so a date input reads dd/mm/yyyy and the typed-date test below can
- * type "16112025" the way a user in India does.
+ * en-GB for date text the app formats itself. It does NOT decide whether a
+ * date input is day-first or month-first (the operating system does), so the
+ * typed-date test below asks the browser (support/dateInput.ts) rather than
+ * assuming dd/mm/yyyy — a Mac in India and a Linux CI runner differ.
  */
 test.use({ locale: "en-GB" });
 
@@ -150,13 +153,12 @@ test.describe("Vehicles — documents (mocked API)", () => {
     ];
     await expect(start).toBeEnabled();
 
-    // Type the way a user does: day, month, then the four year digits. The
-    // year passes through 0002, 0020, 0202 on the way, and none of those may
-    // reach the server (the field used to save on every keystroke).
-    await start.click({ position: { x: 12, y: 10 } });
-    await page.keyboard.type("16112025");
-    await end.click({ position: { x: 12, y: 10 } });
-    await page.keyboard.type("15112026");
+    // Type the way a user does: the day and month, then the four year digits,
+    // in the order this browser's date field expects. The year passes through
+    // 0002, 0020, 0202 on the way, and none of those may reach the server (the
+    // field used to save on every keystroke).
+    await typeDate(page, start, "2025-11-16");
+    await typeDate(page, end, "2026-11-15");
 
     await expect.poll(() => mocks.vehicles.get(SEEDED.deletable.id)?.fc_start_date).toBe("2025-11-16");
     await expect.poll(() => mocks.vehicles.get(SEEDED.deletable.id)?.fc_end_date).toBe("2026-11-15");
