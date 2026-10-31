@@ -926,7 +926,7 @@ export default function VehiclesPage() {
             documentType === "insurance_start_date" ||
             documentType === "insurance_end_date";
 
-          if (documentType && docVehicle && !isExpiryDateField) {
+          if (documentType && docVehicle) {
             const value = newUrl || null;
             setVehicles((prev) =>
               prev.map((v) =>
@@ -936,7 +936,11 @@ export default function VehiclesPage() {
             setDocVehicle((prev) =>
               prev ? { ...prev, [documentType]: value } : null,
             );
-          } else {
+          }
+          // Statuses are computed server-side, so a date change still needs
+          // the refetch on top of the local patch above (which keeps the open
+          // dialog from re-syncing to the old dates).
+          if (isExpiryDateField || !docVehicle) {
             fetchVehiclesRefetch();
           }
         }}

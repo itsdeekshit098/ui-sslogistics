@@ -700,16 +700,18 @@ export function AttendancePage() {
                   onFilter={setFilter}
                   disabled={saving}
                 />
-                {/* The same control as Day / Month, stretched edge to edge:
-                    six equal cells, so nothing runs off the screen and
-                    there is no sideways scrolling to discover. */}
+                {/* The same control as Day / Month, stretched edge to edge. Cells
+                    share the row evenly while they fit; the seventh chip
+                    (Holiday, only on a day someone is off) can push past
+                    a narrow screen, so the row scrolls rather than
+                    squeezing a label into its neighbour. */}
                 <SegmentedControl
                   idPrefix="attendance-filter"
                   items={filterItems}
                   value={filter}
                   onValueChange={(key) => setFilter(key as AttendanceFilter)}
                   disabled={saving}
-                  className="flex w-full gap-0.5 [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-0 [&>button]:py-1 [&>button]:text-[13px]"
+                  className="flex w-full gap-0.5 max-md:gap-1 max-[380px]:[&>button]:text-xs overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:min-w-fit [&>button]:flex-auto [&>button]:shrink-0 [&>button]:justify-center [&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-1 [&>button]:py-1 [&>button]:text-[13px] max-[360px]:[&>button]:gap-0.5 max-[360px]:[&>button]:text-[11.5px]"
                 />
               </>
             )}
@@ -721,8 +723,8 @@ export function AttendancePage() {
                 {dayError && <p className="text-sm text-destructive">{dayError}</p>}
                 {readOnlyNote}
                 {bulkActions && (
-                  <div className="flex items-center gap-1.5 rounded-xl border border-warning/40 bg-warning-subtle px-3 py-2 text-[13px] font-semibold text-warning-subtle-foreground [&>button]:h-8 [&>button]:bg-card [&>button]:px-2.5 [&>button]:text-foreground">
-                    <span className="min-w-0 flex-1">{counts.unmarked} left</span>
+                  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-warning/40 bg-warning-subtle px-3 py-2 text-[13px] font-semibold text-warning-subtle-foreground [&>button]:h-8 [&>button]:bg-card [&>button]:px-2.5 [&>button]:text-foreground">
+                    <span className="min-w-[3.25rem] flex-1 whitespace-nowrap">{counts.unmarked} left</span>
                     {bulkActions}
                   </div>
                 )}
@@ -825,13 +827,13 @@ export function AttendancePage() {
           stop this from sticking to the bottom of the scrolling page. */}
       {dirty.length > 0 ? (
         isMobile ? (
-          // Phones: a small floating pair in the thumb corner, just above
-          // the dock, instead of a bar across the list. Discard is the
+          // Phones: a small floating pair in the thumb corner instead of a
+          // bar across the list. Discard is the
           // quiet icon and asks first, since one tap could undo a whole
           // day's marking.
           <div
             data-testid="attendance-save-bar"
-            className="pointer-events-none sticky bottom-0 z-10 flex flex-col items-end gap-2"
+            className="pointer-events-none sticky bottom-[calc(var(--mobile-bottom-clearance,0px)+1rem)] z-10 flex flex-col items-end gap-2"
           >
             {saveError && (
               <span
@@ -891,7 +893,7 @@ export function AttendancePage() {
         (isMobile ? (
           // Where the Save button just was — at the end of a 60-row list
           // nobody would see it.
-          <div className="pointer-events-none sticky bottom-0 z-10 flex justify-end">
+          <div className="pointer-events-none sticky bottom-[calc(var(--mobile-bottom-clearance,0px)+1rem)] z-10 flex justify-end">
             <p
               role="status"
               className="flex h-11 items-center gap-2 rounded-xl border border-success/30 bg-success-subtle px-4 text-sm font-medium text-success-subtle-foreground shadow-lg animate-in fade-in-0 slide-in-from-bottom-2"

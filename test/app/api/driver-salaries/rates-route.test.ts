@@ -67,6 +67,44 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s on a salary above the ceiling or finer than a paisa", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    for (const monthly_salary of [1e20, 10_000_001, 30000.555]) {
+      const res = await POST(
+        jsonRequest(URL, "POST", { monthly_salary, effective_month: "2026-06" }),
+        paramsFor("1"),
+      );
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("still accepts a salary of zero", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ drivers: [{ data: null, error: null }] });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { monthly_salary: 0, effective_month: "2026-06" }),
+      paramsFor("1"),
+    );
+
+    // Past validation: it reaches the driver lookup (404 here) rather than a 400.
+    expect(res.status).toBe(404);
+  });
+
+  it("400s on malformed JSON instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(new NextRequest(URL, { method: "POST", body: "{oops" }), paramsFor("1"));
+
+    expect(res.status).toBe(400);
+  });
+
   it("400s on an invalid effective_month", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({});

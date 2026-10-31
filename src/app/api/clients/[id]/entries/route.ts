@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
@@ -165,7 +166,7 @@ export async function POST(
       return apiError("Amount must be greater than zero", 400);
     }
 
-    const entryDate = body.entry_date ?? new Date().toISOString().slice(0, 10);
+    const entryDate = body.entry_date ?? todayInIndia();
     if (!isValidDateString(entryDate)) {
       return apiError("Invalid date", 400);
     }

@@ -147,13 +147,13 @@ function SkeletonCards() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="space-y-3 rounded-xl border border-border bg-card p-4"
+          className="space-y-3 rounded-[var(--m-radius-card)] border border-border bg-card px-3.5 py-3"
         >
           <div className="flex justify-between gap-4">
             <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
             <div className="h-4 w-16 animate-pulse rounded-sm bg-muted" />
           </div>
-          <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+          <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, j) => (
               <div
                 key={j}
@@ -231,6 +231,7 @@ function MobileCards<TData>({
   rowActions,
   className,
   layout,
+  mobileCard,
 }: {
   columns: ColumnDef<TData>[];
   data: TData[];
@@ -245,6 +246,7 @@ function MobileCards<TData>({
   rowActions?: RowAction<TData>[];
   className?: string;
   layout: "cards" | "timeline";
+  mobileCard?: (row: TData, index: number) => React.ReactNode;
 }) {
   const bySlot = (slot: Slot) =>
     columns.filter((col, i) => slotOf(col, i) === slot);
@@ -277,14 +279,16 @@ function MobileCards<TData>({
     return (
       <div
         className={cn(
-          "rounded-xl border border-dashed border-border bg-card p-10 text-center md:hidden",
+          "rounded-[var(--m-radius-card)] border border-dashed border-border bg-card p-8 text-center md:hidden",
           className,
         )}
       >
         {emptyNode ?? (
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <InboxIcon size={36} />
-            <p className="text-sm font-medium">{emptyMessage}</p>
+          <div className="flex flex-col items-center gap-4 text-muted-foreground">
+            <span className="flex h-16 w-16 items-center justify-center rounded-[var(--m-radius-card)] bg-border">
+              <InboxIcon size={28} />
+            </span>
+            <p className="text-base font-semibold text-foreground">{emptyMessage}</p>
           </div>
         )}
       </div>
@@ -399,7 +403,10 @@ function MobileCards<TData>({
                 {titles.map((t) => (
                   <div
                     key={t.key}
-                    className="ss-card-cell text-[0.9375rem] font-semibold text-foreground"
+                    className={cn(
+                      "ss-card-cell text-foreground",
+                      timeline ? "text-[0.9375rem] font-semibold" : "text-[0.9375rem] font-extrabold",
+                    )}
                   >
                     {t.node}
                   </div>
@@ -407,7 +414,7 @@ function MobileCards<TData>({
                 {subtitles.map((t) => (
                   <div
                     key={t.key}
-                    className="ss-card-cell text-[13px] text-muted-foreground"
+                    className="ss-card-cell text-[12.5px] text-muted-foreground"
                   >
                     {t.node}
                   </div>
@@ -512,24 +519,31 @@ function MobileCards<TData>({
               key={rowKey(row)}
               role="listitem"
               className={cn(
-                "rounded-xl border border-border bg-card p-4 shadow-card transition-transform",
+                "rounded-[var(--m-radius-card)] border border-border bg-card px-3.5 py-3 shadow-[var(--m-card-shadow)] transition-transform",
                 clickable &&
                   "cursor-pointer active:scale-[0.99] active:bg-muted/50",
                 rowClassName?.(row),
               )}
               {...interactive}
             >
-              {header}
-              {fields.length > 0 && (
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3">
+              {mobileCard ? (
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">{mobileCard(row, index)}</div>
+                  {menuButton}
+                </div>
+              ) : (
+                header
+              )}
+              {!mobileCard && fields.length > 0 && (
+                <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5">
                   {fields.map((f) => (
                     <div key={f.key} className="min-w-0">
                       {f.header && (
-                        <dt className="mb-0.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+                        <dt className="text-[10.5px] text-muted-foreground">
                           {f.header}
                         </dt>
                       )}
-                      <dd className="ss-card-cell text-sm text-foreground">
+                      <dd className="ss-card-cell text-[13px] font-semibold text-foreground">
                         {f.node}
                       </dd>
                     </div>
@@ -569,6 +583,7 @@ export function DataTable<TData>({
   stickyHeader = false,
   maxHeight,
   mobileLayout = "cards",
+  mobileCard,
 }: DataTableProps<TData>) {
   const desktopActions = rowActions?.filter((a) => !a.mobileOnly) ?? [];
   const hasActions = showActions && desktopActions.length > 0;
@@ -642,6 +657,7 @@ export function DataTable<TData>({
         rowActions={hasMobileActions ? rowActions : undefined}
         className={className}
         layout={mobileLayout}
+        mobileCard={mobileCard}
       />
     );
   }

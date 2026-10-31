@@ -150,6 +150,9 @@ export function parseMark(
   ) {
     return "Status must be ABSENT, LEAVE, HOLIDAY, PRESENT or empty";
   }
+  if (new Set(shifts as Shift[]).size !== (shifts as Shift[]).length) {
+    return "Each shift can be listed only once";
+  }
   const unique = SHIFTS.filter((s) => (shifts as Shift[]).includes(s));
 
   if (!hasShifts) {

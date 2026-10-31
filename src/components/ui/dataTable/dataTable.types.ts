@@ -124,4 +124,10 @@ export interface DataTableProps<TData> {
    * vertical rail, for chronological ledgers like payments and entries.
    */
   mobileLayout?: "cards" | "timeline";
+  /**
+   * Phone card body for a row, in place of the one built from the columns —
+   * for lists whose phone card has its own layout (matching the Flutter app).
+   * The card container, row click and "⋯" actions menu still come from here.
+   */
+  mobileCard?: (row: TData, index: number) => ReactNode;
 }

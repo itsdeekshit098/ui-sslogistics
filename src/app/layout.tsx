@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   ],
 };
 
-// viewportFit "cover" lets the mobile app bar / bottom nav extend under the
+// viewportFit "cover" lets the mobile app bar and drawer extend under the
 // notch and home indicator (they pad themselves with env(safe-area-inset-*)).
 // themeColor tints the phone browser chrome to match the app bar (--card).
 export const viewport: Viewport = {

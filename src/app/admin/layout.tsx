@@ -6,9 +6,7 @@ import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { Button } from "@/components/ui/button";
 import { MobileTopBar } from "@/components/layout/mobileTopBar";
-import { BottomNav } from "@/components/layout/bottomNav";
-import { MobileMenuSheet } from "@/components/layout/mobileMenuSheet";
-import { SectionChips } from "@/components/layout/sectionChips";
+import { MobileDrawer, MobileDrawerContext } from "@/components/layout/mobileDrawer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -73,6 +71,9 @@ export default function AdminLayout({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isUserMenuOpen]);
 
+  const openMobileMenu = useCallback(() => setIsMobileMenuOpen(true), []);
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+
   // Close mobile menu on route change
   useEffect(() => {
     const t = setTimeout(() => setIsMobileMenuOpen(false), 0);
@@ -108,13 +109,13 @@ export default function AdminLayout({
         />
 
         <div
-          // relative: the phone dock is positioned over this column.
           className="relative flex flex-1 flex-col min-w-0 overflow-hidden"
           data-testid="admin-layout"
         >
-          {/* Mobile app bar — replaces the desktop header below md */}
-          {isMobile && (
-            <MobileTopBar className="md:hidden" onOpenMenu={() => setIsMobileMenuOpen(true)} />
+          {/* Mobile app bar — replaces the desktop header below md. The
+              dashboard draws its own header with the menu button in it. */}
+          {isMobile && pathname !== "/admin" && (
+            <MobileTopBar className="md:hidden" onOpenMenu={openMobileMenu} />
           )}
 
           {/* Desktop Header */}
@@ -163,29 +164,17 @@ export default function AdminLayout({
 
           <main
             // Phones: globals.css gives this extra bottom padding so the
-            // last row can scroll clear of the floating dock.
+            // last row can scroll clear of the floating "+".
             className="flex-1 overflow-y-auto p-4 md:p-6 bg-background transition-colors duration-300 scrollbar-custom"
             data-testid="admin-main"
           >
-            {isMobile && <SectionChips />}
-            {children}
+            <MobileDrawerContext.Provider value={openMobileMenu}>
+              {children}
+            </MobileDrawerContext.Provider>
           </main>
-
-          {isMobile && (
-            <BottomNav
-              className="md:hidden"
-              menuOpen={isMobileMenuOpen}
-              onOpenMenu={() => setIsMobileMenuOpen(true)}
-            />
-          )}
         </div>
 
-        {isMobile && (
-          <MobileMenuSheet
-            open={isMobileMenuOpen}
-            onClose={() => setIsMobileMenuOpen(false)}
-          />
-        )}
+        {isMobile && <MobileDrawer open={isMobileMenuOpen} onClose={closeMobileMenu} />}
     </div>
   );
 }

@@ -42,6 +42,7 @@ import { FilterDrawer } from "@/components/ui/filterDrawer";
 import { DataTable } from "@/components/ui/dataTable/dataTable";
 import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
 import { Typeahead } from "@/components/ui/typeahead";
+import { LoanMobileCard } from "./loanMobileCard";
 import { LookupSelect } from "@/components/lookupSelect";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {
@@ -151,6 +152,14 @@ export function LoansPage() {
 
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loansFiltered = Boolean(
+    statusFilter ||
+      overdueOnly ||
+      loanTypeFilter ||
+      borrowerFilter ||
+      lenderFilter ||
+      debouncedSearch,
+  );
 
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [loanToEdit, setLoanToEdit] = useState<Loan | null>(null);
@@ -846,16 +855,31 @@ export function LoansPage() {
 
               {!fetching && loans.length === 0 ? (
                 <EmptyState
-                  title="No loans yet"
-                  description="Record your first loan to start tracking EMIs and outstanding balances."
-                  actionLabel={canManage ? "New Loan" : undefined}
+                  title={loansFiltered ? "No loans match" : "No loans yet"}
+                  description={
+                    loansFiltered
+                      ? "Nothing fits the filters or search you've set. Clear them to see every loan."
+                      : "Record your first loan to start tracking EMIs and outstanding balances."
+                  }
+                  actionLabel={loansFiltered ? "Clear filters" : canManage ? "New Loan" : undefined}
                   onAction={
-                    canManage
+                    loansFiltered
                       ? () => {
-                          setLoanToEdit(null);
-                          setShowLoanModal(true);
+                          setStatusFilter("");
+                          setOverdueOnly(false);
+                          setLoanTypeFilter("");
+                          setBorrowerFilter("");
+                          setLenderFilter("");
+                          setSearchQuery("");
+                          setDebouncedSearch("");
+                          setPage(1);
                         }
-                      : undefined
+                      : canManage
+                        ? () => {
+                            setLoanToEdit(null);
+                            setShowLoanModal(true);
+                          }
+                        : undefined
                   }
                   icon={LandmarkIcon}
                 />
@@ -870,6 +894,7 @@ export function LoansPage() {
                     onRowClick={(loan) => router.push(`/admin/loans/${loan.id}`)}
                     showActions={canManage}
                     rowActions={loanActions}
+                    mobileCard={(loan) => <LoanMobileCard loan={loan} />}
                   />
                   <Pagination
                     page={page}

@@ -115,7 +115,7 @@ function LoadMore({
             variant="outline"
             onClick={loadMore}
             disabled={loading}
-            className="h-11 w-full text-sm font-medium"
+            className="h-12 w-full rounded-[var(--m-radius-control)] bg-card text-sm font-semibold"
           >
             {loading ? (
               <>

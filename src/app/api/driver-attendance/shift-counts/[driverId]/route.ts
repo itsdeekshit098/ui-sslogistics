@@ -3,7 +3,11 @@ import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import type { DriverShiftCount } from "@/components/attendancePage/attendancePage.types";
+import { logger } from "@/lib/logger";
+import type {
+  DriverShiftCount,
+  ShiftCountConflicts,
+} from "@/components/attendancePage/attendancePage.types";
 import { isValidMonth } from "../../driver-attendance.utils";
 
 // How many shifts one driver runs in a day (sql/48). A change takes effect
@@ -11,6 +15,63 @@ import { isValidMonth } from "../../driver-attendance.utils";
 // paid against — the same rule as a salary rate.
 
 const NOTE_MAX_LENGTH = 200;
+const CONFLICT_DATES_SHOWN = 10;
+
+/**
+ * Marks this count leaves on shifts the driver no longer runs: from the month
+ * the count starts, up to the next change (if there is one). Not repaired
+ * here — attendance is what wages are worked out from, so an admin reviews
+ * the days — but reported so a mid-month cut isn't silent.
+ */
+async function conflictingMarks(
+  driverId: number,
+  effectiveFrom: string,
+  shiftCount: number,
+): Promise<ShiftCountConflicts> {
+  const none = { count: 0, dates: [] };
+  if (shiftCount >= 3) return none;
+
+  try {
+    const { data: next } = await supabaseAdmin
+      .from("driver_shift_counts")
+      .select("effective_from")
+      .eq("driver_id", driverId)
+      .gt("effective_from", effectiveFrom)
+      .order("effective_from", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    let query = supabaseAdmin
+      .from("driver_attendance")
+      // The exact count comes from the database; only the first few dates
+      // are fetched, so a long history can't be cut off at the row cap.
+      .select("attendance_date", { count: "exact" })
+      .eq("driver_id", driverId)
+      .gte("attendance_date", effectiveFrom)
+      .order("attendance_date", { ascending: true })
+      .limit(CONFLICT_DATES_SHOWN);
+    if (next?.effective_from) query = query.lt("attendance_date", next.effective_from);
+    query = shiftCount === 1 ? query.or("shift_b.eq.true,shift_c.eq.true") : query.eq("shift_c", true);
+
+    const { data, count, error } = await query;
+    // A failed check must not fail a save that already went through, but it
+    // is logged: an empty result would otherwise read as "nothing to review".
+    if (error || !data) {
+      logger.error("Shift-count review check failed", { driverId, code: error?.code });
+      return none;
+    }
+    return {
+      count: count ?? data.length,
+      dates: data.map((row) => String(row.attendance_date)),
+    };
+  } catch (err) {
+    logger.error("Shift-count review check threw", {
+      driverId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return none;
+  }
+}
 
 /** Every role may read a driver's history; the marking screen needs the count. */
 export async function GET(
@@ -138,8 +199,10 @@ export async function POST(
       });
     });
 
+    const conflicts = await conflictingMarks(driverId, effectiveFrom, shiftCount);
+
     return apiSuccess(
-      { count: row as DriverShiftCount },
+      { count: row as DriverShiftCount, conflicts },
       existing ? "Shifts per day corrected" : "Shifts per day set",
       existing ? 200 : 201,
     );

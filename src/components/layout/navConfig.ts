@@ -16,7 +16,6 @@ import {
   ClockIcon,
   LandmarkIcon,
   WalletIcon,
-  HomeIcon,
   CalendarIcon,
   HandCoinsIcon,
 } from "@/components/ui/icon";
@@ -27,6 +26,8 @@ export type NavItem = {
   href: string;
   icon: typeof LayoutDashboardIcon;
   enabled: boolean;
+  /** Phone "+" button colour — the Flutter app's module colour. */
+  accent?: string;
   /** Other route roots that belong to this item (e.g. funding detail pages
    * are reached from Loans, so they light up Loans in the nav). */
   alsoMatches?: string[];
@@ -34,7 +35,7 @@ export type NavItem = {
 
 export type NavSection = { label: string; items: NavItem[] };
 
-// Single source for both the desktop Sidebar and the mobile bottom nav, so a
+// Single source for both the desktop Sidebar and the phone drawer, so a
 // new page only has to be added once and role filtering can't drift between
 // the two.
 // Grouped rather than one flat 17-item list — now that Loans/Clients/Firms
@@ -45,15 +46,15 @@ export const navSections: NavSection[] = [
     label: "Operations",
     items: [
       { name: "Dashboard", href: "/admin", icon: LayoutDashboardIcon, enabled: true },
-      { name: "Vehicles", href: "/admin/vehicles", icon: TruckIcon, enabled: true },
-      { name: "Trip Sheets", href: "/admin/trip-sheets", icon: FileTextIcon, enabled: false },
-      { name: "Diesel Records", href: "/admin/diesel-records", icon: FuelIcon, enabled: true },
-      { name: "Repair Records", href: "/admin/repair-records", icon: WrenchIcon, enabled: true },
-      { name: "Warranty", href: "/admin/warranty", icon: PackageIcon, enabled: true },
-      { name: "Technicians", href: "/admin/technicians", icon: UserCogIcon, enabled: true },
-      { name: "Drivers", href: "/admin/drivers", icon: UsersIcon, enabled: true },
-      { name: "Attendance", href: "/admin/attendance", icon: CalendarIcon, enabled: true },
-      { name: "Trips", href: "/admin/trip-bookings", icon: ClockIcon, enabled: true },
+      { name: "Vehicles", href: "/admin/vehicles", accent: "#2563eb", icon: TruckIcon, enabled: true },
+      { name: "Trip Sheets", href: "/admin/trip-sheets", accent: "#4f46e5", icon: FileTextIcon, enabled: false },
+      { name: "Diesel Records", href: "/admin/diesel-records", accent: "#ea580c", icon: FuelIcon, enabled: true },
+      { name: "Repair Records", href: "/admin/repair-records", accent: "#dc2626", icon: WrenchIcon, enabled: true },
+      { name: "Warranty", href: "/admin/warranty", accent: "#e11d48", icon: PackageIcon, enabled: true },
+      { name: "Technicians", href: "/admin/technicians", accent: "#059669", icon: UserCogIcon, enabled: true },
+      { name: "Drivers", href: "/admin/drivers", accent: "#16a34a", icon: UsersIcon, enabled: true },
+      { name: "Attendance", href: "/admin/attendance", accent: "#0d9488", icon: CalendarIcon, enabled: true },
+      { name: "Trips", href: "/admin/trip-bookings", accent: "#d97706", icon: ClockIcon, enabled: true },
     ],
   },
   {
@@ -64,21 +65,22 @@ export const navSections: NavSection[] = [
         href: "/admin/loans",
         icon: LandmarkIcon,
         enabled: true,
+        accent: "#1e40af",
         alsoMatches: ["/admin/fundings"],
       },
-      { name: "Clients", href: "/admin/clients", icon: Building2Icon, enabled: true },
-      { name: "Firms & Owners", href: "/admin/entities", icon: UserIcon, enabled: true },
-      { name: "Bank Accounts", href: "/admin/bank-accounts", icon: WalletIcon, enabled: true },
-      { name: "Salaries", href: "/admin/salaries", icon: HandCoinsIcon, enabled: true },
+      { name: "Clients", href: "/admin/clients", accent: "#9333ea", icon: Building2Icon, enabled: true },
+      { name: "Firms & Owners", href: "/admin/entities", accent: "#7c3aed", icon: UserIcon, enabled: true },
+      { name: "Bank Accounts", href: "/admin/bank-accounts", accent: "#0f766e", icon: WalletIcon, enabled: true },
+      { name: "Salaries", href: "/admin/salaries", accent: "#059669", icon: HandCoinsIcon, enabled: true },
     ],
   },
   {
     label: "Administration",
     items: [
-      { name: "Reports", href: "/admin/reports", icon: BarChart3Icon, enabled: false },
-      { name: "Activity Log", href: "/admin/activity-log", icon: ActivityIcon, enabled: true },
-      { name: "Sessions", href: "/admin/sessions", icon: ShieldIcon, enabled: true },
-      { name: "Settings", href: "/admin/settings", icon: SettingsIcon, enabled: true },
+      { name: "Reports", href: "/admin/reports", accent: "#0891b2", icon: BarChart3Icon, enabled: false },
+      { name: "Activity Log", href: "/admin/activity-log", accent: "#0d9488", icon: ActivityIcon, enabled: true },
+      { name: "Sessions", href: "/admin/sessions", accent: "#0d9488", icon: ShieldIcon, enabled: true },
+      { name: "Settings", href: "/admin/settings", accent: "#64748b", icon: SettingsIcon, enabled: true },
     ],
   },
 ];
@@ -117,57 +119,4 @@ export function matchNavItem(
   }
   if (!best) return null;
   return { item: best.item, isDetail: pathname !== best.item.href };
-}
-
-// ─── Mobile bottom tabs ──────────────────────────────────────────────────────
-
-export type MobileTab = {
-  key: string;
-  label: string;
-  icon: typeof LayoutDashboardIcon;
-  /** Nav item hrefs that live under this tab, in chip order. */
-  hrefs: string[];
-};
-
-// Four destinations plus "More" (which opens the full menu sheet). Every role
-// gets the same groups; a tab only appears when the role can open at least
-// one enabled page in it — a driver sees Home, Fleet (Diesel) and More.
-export const mobileTabs: MobileTab[] = [
-  { key: "home", label: "Home", icon: HomeIcon, hrefs: ["/admin"] },
-  {
-    key: "fleet",
-    label: "Fleet",
-    icon: TruckIcon,
-    hrefs: ["/admin/vehicles", "/admin/trip-bookings", "/admin/drivers", "/admin/attendance", "/admin/diesel-records"],
-  },
-  {
-    key: "repairs",
-    label: "Repairs",
-    icon: WrenchIcon,
-    hrefs: ["/admin/repair-records", "/admin/warranty", "/admin/technicians"],
-  },
-  {
-    key: "money",
-    label: "Money",
-    icon: WalletIcon,
-    hrefs: ["/admin/loans", "/admin/clients", "/admin/entities", "/admin/bank-accounts", "/admin/salaries"],
-  },
-];
-
-export type ResolvedMobileTab = MobileTab & { items: NavItem[]; href: string };
-
-/** Tabs this role can use, each with its enabled, accessible items and the
- * href the tab itself opens (its first item). */
-export function getMobileTabs(role: UserRole | null): ResolvedMobileTab[] {
-  if (!role) return [];
-  return mobileTabs
-    .map((tab) => {
-      const items = tab.hrefs
-        .map((href) => allItems.find((i) => i.href === href))
-        .filter(
-          (i): i is NavItem => !!i && i.enabled && canRoleAccessPage(i.href, role),
-        );
-      return { ...tab, items, href: items[0]?.href ?? "" };
-    })
-    .filter((tab) => tab.items.length > 0);
 }

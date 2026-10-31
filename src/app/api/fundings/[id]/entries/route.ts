@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
@@ -47,7 +48,7 @@ export async function POST(
     }
     const amount = Number(body.amount);
 
-    const entryDate = body.entry_date ?? new Date().toISOString().slice(0, 10);
+    const entryDate = body.entry_date ?? todayInIndia();
     if (!isValidDateString(entryDate)) {
       return apiError("Invalid entry date", 400);
     }

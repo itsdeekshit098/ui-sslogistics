@@ -619,17 +619,19 @@ function SettlementSection({
         <>
           <Button
             className="w-full"
-            disabled={busy || row.net_pay == null}
+            disabled={busy || row.net_pay == null || detail.is_provisional}
             onClick={startSettling}
           >
             Mark paid
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            {row.net_pay == null
-              ? row.pay_type === "PER_TRIP"
-                ? "Set a rate and enter this month's trips before settling."
-                : "Set a salary before settling this month."
-              : "Record what was actually handed over — any gap carries to next month automatically."}
+            {detail.is_provisional
+              ? "You can settle this month once it is over."
+              : row.net_pay == null
+                ? row.pay_type === "PER_TRIP"
+                  ? "Set a rate and enter this month's trips before settling."
+                  : "Set a salary before settling this month."
+                : "Record what was actually handed over — any gap carries to next month automatically."}
           </p>
         </>
       )}

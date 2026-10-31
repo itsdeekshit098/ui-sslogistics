@@ -1,6 +1,7 @@
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { parseId } from "../loans.utils";
 
 // One loan in full: terms, the derived balance, every installment with its
 // effective status, and the payment log. Loaded whole because a loan's schedule
@@ -16,8 +17,8 @@ export async function GET(
     await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const id = Number(idParam);
-    if (!Number.isFinite(id)) {
+    const id = parseId(idParam);
+    if (id === null) {
       return apiError("Invalid loan ID", 400);
     }
 

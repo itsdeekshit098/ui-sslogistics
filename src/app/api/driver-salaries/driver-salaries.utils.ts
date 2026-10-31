@@ -240,3 +240,31 @@ export function tripCountForMonth(rows: TripCountRow[], month: string): number |
   const row = rows.find((r) => r.period_month === monthStart);
   return row ? Number(row.trip_count) : null;
 }
+
+/** The most any one salary, advance, deduction, rate or payment may be: ₹1 crore. */
+export const MAX_SALARY_AMOUNT = 10_000_000;
+/** Far more trips than one driver could run in a month; catches a mistyped extra digit. */
+export const MAX_TRIP_COUNT = 10_000;
+
+export type MoneyProblem = "invalid" | "too_large" | "too_precise";
+
+/**
+ * Checks a money figure arriving as JSON: a finite number, positive (or zero
+ * when `allowZero`), no more than MAX_SALARY_AMOUNT and no finer than a paisa.
+ * Without a ceiling a mistyped 1e20 is accepted and corrupts every total on
+ * the sheet; without the paisa check 10.555 is stored and then shown rounded.
+ */
+export function moneyProblem(value: unknown, allowZero = false): MoneyProblem | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "invalid";
+  if (allowZero ? value < 0 : value <= 0) return "invalid";
+  if (value > MAX_SALARY_AMOUNT) return "too_large";
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return "too_precise";
+  return null;
+}
+
+/** The message for a failed moneyProblem, with `invalid` worded by the caller. */
+export function moneyMessage(problem: MoneyProblem, invalidMessage: string): string {
+  if (problem === "too_large") return "That amount is too large (the most is ₹1,00,00,000)";
+  if (problem === "too_precise") return "Amounts can have at most 2 decimal places";
+  return invalidMessage;
+}

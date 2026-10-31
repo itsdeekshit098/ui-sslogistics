@@ -50,6 +50,17 @@ describe("POST .../entries/[entryId]/reverse", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s on a fractional, zero or negative ID instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    for (const [driverId, entryId] of [["1", "1.5"], ["1", "0"], ["1", "-5"], ["2.5", "5"]]) {
+      const res = await POST(jsonRequest(URL, "POST", {}), paramsFor(driverId, entryId));
+      expect(res.status).toBe(400);
+    }
+  });
+
   it("404s when the entry does not exist", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({

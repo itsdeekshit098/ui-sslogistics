@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Modal,
   ModalContent,
@@ -7,7 +7,7 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, Trash2Icon, UploadCloudIcon } from "@/components/ui/icon";
+import { EyeIcon, Trash2Icon, UploadCloudIcon, XIcon } from "@/components/ui/icon";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import { Skeleton } from "@/components/ui/skeletonLoader";
@@ -36,6 +36,120 @@ import {
 interface DocumentApiResponse {
   error?: string;
   filePath?: string;
+}
+
+/** Years a validity date can plausibly have; anything else is a half-typed year. */
+const MIN_YEAR = 1900;
+const MAX_YEAR = 2100;
+const DATE_SAVE_DELAY_MS = 700;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Date input that keeps what the user types in a draft and saves once the
+ * value is a whole, plausible date (or cleared). Typing "2025" passes through
+ * 0002, 0020, 0202 on the way, and each of those is a valid date to the browser,
+ * so saving on every change stored junk and — by disabling the field mid-save —
+ * dropped focus after the first digit.
+ */
+function DateField({
+  value,
+  disabled,
+  onCommit,
+}: {
+  value: string;
+  disabled: boolean;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A change waiting out the delay; flushed on blur and on unmount so closing
+  // the dialog right after typing (Escape never blurs) doesn't lose it.
+  const pending = useRef<string | null>(null);
+  const latest = useRef({ value, onCommit });
+  useEffect(() => {
+    latest.current = { value, onCommit };
+  });
+
+  // Follow the saved value when it changes from outside (delete, reopen).
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const flush = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    const next = pending.current;
+    pending.current = null;
+    if (next !== null && next !== latest.current.value) latest.current.onCommit(next);
+  };
+
+  useEffect(() => flush, []);
+
+  const isWholeDate = (v: string) => {
+    const year = Number(v.slice(0, 4));
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) && year >= MIN_YEAR && year <= MAX_YEAR;
+  };
+
+  const schedule = (next: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    pending.current = null;
+    // An empty value is what the browser reports while a segment is being
+    // retyped, so only a whole date is ever saved from typing.
+    if (next === value || !isWholeDate(next)) return;
+    pending.current = next;
+    timer.current = setTimeout(flush, DATE_SAVE_DELAY_MS);
+  };
+
+  const cancelPending = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    pending.current = null;
+  };
+
+  return (
+    <div className="flex flex-1 items-center gap-1">
+      <input
+        type="date"
+        className={DM_DATE_INPUT}
+        value={draft}
+        min={`${MIN_YEAR}-01-01`}
+        max={`${MAX_YEAR}-12-31`}
+        disabled={disabled}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          schedule(e.target.value);
+        }}
+        onBlur={() => {
+          if (isWholeDate(draft)) {
+            pending.current = draft;
+            flush();
+          } else {
+            // Empty or half-typed: never saved, so show what is. Clearing a
+            // date is the button's job — a blur can't tell "retyping a
+            // segment" from "meant to clear".
+            cancelPending();
+            setDraft(value);
+          }
+        }}
+      />
+      {value && !disabled && (
+        <button
+          type="button"
+          aria-label="Clear date"
+          title="Clear date"
+          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            cancelPending();
+            setDraft("");
+            onCommit("");
+          }}
+        >
+          <XIcon size={14} />
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function DocumentModal({
@@ -88,15 +202,13 @@ export function DocumentModal({
     { key: "tax_url", label: "Road Tax" },
   ];
 
-  const [dateSaving, setDateSaving] = useState<string | null>(null);
-
   const handleDateChange = async (field: string, value: string) => {
     if (!localVehicle) return;
 
+    const previous = (localVehicle as unknown as Record<string, unknown>)[field];
     setLocalVehicle((prev) =>
       prev ? ({ ...prev, [field]: value || null } as Vehicle) : null,
     );
-    setDateSaving(field);
     setErrorMsg(null);
 
     try {
@@ -116,11 +228,18 @@ export function DocumentModal({
       // tell the parent to refetch.
       onUpdate(field, value || null);
     } catch (error: unknown) {
+      // Put back what the server still has so the field doesn't show a date
+      // that was refused.
+      // Only if the field still holds the value that failed: a later edit may
+      // have already replaced it, and must not be undone by this older failure.
+      setLocalVehicle((prev) =>
+        prev && ((prev as unknown as Record<string, unknown>)[field] ?? "") === value
+          ? ({ ...prev, [field]: previous ?? null } as Vehicle)
+          : prev,
+      );
       setErrorMsg(
         `Failed to save date: ${error instanceof Error ? error.message : String(error)}`,
       );
-    } finally {
-      setDateSaving(null);
     }
   };
 
@@ -140,6 +259,11 @@ export function DocumentModal({
     const file = e.target.files[0];
 
     setErrorMsg(null);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setErrorMsg(`Upload failed: "${file.name}" exceeds the 10 MB limit`);
+      e.target.value = "";
+      return;
+    }
     setLoadingFields((prev) =>
       prev.includes(documentType) ? prev : [...prev, documentType],
     );
@@ -334,33 +458,29 @@ export function DocumentModal({
                     <div className="flex flex-col gap-1.5 pt-1">
                       <div className={DM_DATE_ROW}>
                         <label className={DM_DATE_LABEL}>Start</label>
-                        <input
-                          type="date"
-                          className={DM_DATE_INPUT}
+                        <DateField
                           value={
                             (localVehicle[
                               doc.dateFields.start as keyof Vehicle
                             ] as string | undefined) ?? ""
                           }
-                          disabled={!filePath || dateSaving === doc.dateFields.start}
-                          onChange={(e) =>
-                            handleDateChange(doc.dateFields!.start, e.target.value)
+                          disabled={!filePath}
+                          onCommit={(v) =>
+                            handleDateChange(doc.dateFields!.start, v)
                           }
                         />
                       </div>
                       <div className={DM_DATE_ROW}>
                         <label className={DM_DATE_LABEL}>End</label>
-                        <input
-                          type="date"
-                          className={DM_DATE_INPUT}
+                        <DateField
                           value={
                             (localVehicle[
                               doc.dateFields.end as keyof Vehicle
                             ] as string | undefined) ?? ""
                           }
-                          disabled={!filePath || dateSaving === doc.dateFields.end}
-                          onChange={(e) =>
-                            handleDateChange(doc.dateFields!.end, e.target.value)
+                          disabled={!filePath}
+                          onCommit={(v) =>
+                            handleDateChange(doc.dateFields!.end, v)
                           }
                         />
                       </div>

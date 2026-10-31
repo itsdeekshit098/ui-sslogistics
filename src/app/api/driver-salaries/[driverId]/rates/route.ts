@@ -1,11 +1,11 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
 import { hasSettlementOnOrAfter, payTypeFor } from "../../driver-salaries.data";
+import { moneyMessage, moneyProblem } from "../../driver-salaries.utils";
 
 // Sets a driver's monthly salary from a given month onward. A raise is a new
 // row rather than an edit, so earlier months keep the salary they were paid
@@ -35,12 +35,14 @@ export async function POST(
       return apiError("Invalid driver ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
-    if (!isNonNegativeNumber(body.monthly_salary)) {
-      return apiError("Monthly salary is required", 400);
+    const salaryProblem = moneyProblem(body.monthly_salary, true);
+    if (salaryProblem) {
+      return apiError(moneyMessage(salaryProblem, "Monthly salary is required"), 400);
     }
-    const monthlySalary = body.monthly_salary;
+    const monthlySalary = body.monthly_salary as number;
 
     if (!isValidMonth(body.effective_month)) {
       return apiError("The month the salary starts from is required (YYYY-MM)", 400);

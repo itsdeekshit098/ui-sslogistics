@@ -55,7 +55,7 @@ export function SegmentedControl({
     <div
       role="radiogroup"
       className={cn(
-        "inline-flex items-center gap-1 rounded-xl bg-muted p-1",
+        "inline-flex items-center gap-1 rounded-xl bg-muted p-1 max-md:gap-2 max-md:rounded-none max-md:bg-transparent max-md:p-0",
         className,
       )}
     >
@@ -76,12 +76,12 @@ export function SegmentedControl({
             onClick={() => onValueChange(item.key)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-xs px-3 py-1.5 text-sm font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-xs px-3 py-1.5 text-sm font-medium transition-colors max-md:rounded-[10px] max-md:border max-md:px-3.5 max-md:py-[9px]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted",
               "disabled:cursor-not-allowed disabled:opacity-60",
               isActive
-                ? "bg-card text-foreground shadow-xs"
-                : "text-muted-foreground enabled:hover:text-foreground",
+                ? "bg-card text-foreground shadow-xs max-md:border-primary max-md:bg-primary max-md:font-bold max-md:text-white max-md:shadow-none"
+                : "text-muted-foreground enabled:hover:text-foreground max-md:border-border max-md:font-semibold",
             )}
           >
             {item.label}
@@ -89,7 +89,7 @@ export function SegmentedControl({
               <span
                 className={cn(
                   "text-xs tabular-nums",
-                  isActive ? "text-muted-foreground" : "text-muted-foreground/70",
+                  isActive ? "text-muted-foreground max-md:text-white/80" : "text-muted-foreground/70",
                 )}
               >
                 {item.count}

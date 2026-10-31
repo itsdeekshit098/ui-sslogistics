@@ -7,6 +7,10 @@ import {
   isNonNegativeNumber,
   isPositiveNumber,
   sortLoans,
+  moneyProblem,
+  moneyMessage,
+  parseId,
+  MAX_LOAN_AMOUNT,
 } from "@/app/api/loans/loans.utils";
 
 describe("parseDate / toDateString", () => {
@@ -199,5 +203,49 @@ describe("sortLoans", () => {
     ];
     expect(ids(sortLoans(rows, "newest"))).toEqual([2, 1]);
     expect(ids(rows)).toEqual([1, 2]);
+  });
+});
+
+describe("moneyProblem", () => {
+  it("accepts ordinary amounts, with or without paise", () => {
+    expect(moneyProblem(45000)).toBeNull();
+    expect(moneyProblem(99.5)).toBeNull();
+    expect(moneyProblem(MAX_LOAN_AMOUNT)).toBeNull();
+  });
+
+  it("rejects non-numbers, zero and negatives (zero only when allowed)", () => {
+    for (const bad of ["100", null, undefined, NaN, Infinity, [], {}]) {
+      expect(moneyProblem(bad)).toBe("invalid");
+    }
+    expect(moneyProblem(0)).toBe("invalid");
+    expect(moneyProblem(-1, { allowZero: true })).toBe("invalid");
+    expect(moneyProblem(0, { allowZero: true })).toBeNull();
+  });
+
+  it("rejects an amount above the ceiling and fractions of a paisa", () => {
+    expect(moneyProblem(1e20)).toBe("too_large");
+    expect(moneyProblem(MAX_LOAN_AMOUNT + 1)).toBe("too_large");
+    expect(moneyProblem(150, { max: 100 })).toBe("too_large");
+    expect(moneyProblem(100.555)).toBe("too_precise");
+  });
+
+  it("words each problem, using the caller's text only for an invalid value", () => {
+    expect(moneyMessage("invalid", "Enter it")).toBe("Enter it");
+    expect(moneyMessage("too_large", "Enter it")).toMatch(/too large/);
+    expect(moneyMessage("too_precise", "Enter it")).toMatch(/2 decimal places/);
+  });
+});
+
+describe("parseId", () => {
+  it("accepts whole positive ids from strings or numbers", () => {
+    expect(parseId("42")).toBe(42);
+    expect(parseId(42)).toBe(42);
+    expect(parseId(" 7 ")).toBe(7);
+  });
+
+  it("rejects everything Number() would quietly let through", () => {
+    for (const bad of ["1.5", "", " ", "0", "-3", "abc", "1e3", "0x10", null, undefined, 1.5, NaN, [], {}, true]) {
+      expect(parseId(bad)).toBeNull();
+    }
   });
 });

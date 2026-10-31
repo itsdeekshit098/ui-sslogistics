@@ -200,7 +200,7 @@
   .ss-modal-content {
     max-width: 100% !important;
     max-height: 92dvh !important;
-    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-radius: var(--m-radius-sheet) var(--m-radius-sheet) 0 0 !important;
     border-bottom: 0 !important;
     padding-bottom: env(safe-area-inset-bottom);
     animation: ss-sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) !important;
@@ -212,10 +212,26 @@
     flex-shrink: 0;
     width: 2.5rem;
     height: 0.25rem;
-    margin: 0.5rem auto 0;
+    margin: 0.625rem auto 0;
     border-radius: 9999px;
-    background: var(--muted-foreground);
-    opacity: 0.3;
+    background: var(--border);
+  }
+  /* Header: the Flutter sheet's 17px heavy title over a divider. */
+  .ss-modal-content #modal-title {
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+  }
+  .ss-modal-content > div:has(> #modal-title) {
+    padding: 0.5rem 3.5rem 0.75rem 1.25rem !important;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.75rem;
+  }
+  /* A dialog with no body (e.g. sign-out) would show the header's divider
+     and the footer's divider stacked; keep just the footer's. */
+  .ss-modal-content > div:has(> #modal-title):has(+ .ss-modal-footer) {
+    border-bottom-width: 0;
+    margin-bottom: 0;
   }
   /* Full-width, thumb-sized footer buttons */
   .ss-modal-footer {
@@ -225,7 +241,9 @@
   .ss-modal-footer > button,
   .ss-modal-footer > a {
     flex: 1 1 0;
-    min-height: 2.75rem;
+    min-height: 3rem;
+    font-size: 15px;
+    font-weight: 600;
   }
   /* 40px close target (24px on desktop is fine for a mouse) */
   .ss-modal-close {
@@ -252,30 +270,76 @@
   .ss-panel > * {
     padding-left: 0 !important;
     padding-right: 0 !important;
+    padding-bottom: 0 !important;
     border-bottom-width: 0 !important;
   }
-  /* Inline-styled summary strips (Trips) read as boxes-in-a-box; on phones
-     each figure becomes a stat tile matching StatCard. */
+  .ss-panel > :first-child {
+    padding-top: 0 !important;
+  }
+  .ss-panel > * + * {
+    padding-top: 0.875rem !important;
+  }
+  /* Inline-styled summary strips (Trips) take the same summary-strip look
+     as StatCard rows: one line of compact tiles, value over label. */
   .ss-stat-strip {
+    display: flex !important;
+    gap: 0.5rem !important;
     padding: 0 !important;
     border: 0 !important;
     background: transparent !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
   .ss-stat-strip > div {
-    padding: 0.875rem !important;
+    flex: 1 0 5.5rem;
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    align-items: center !important;
+    gap: 0.125rem !important;
+    padding: 0.625rem 0.5rem !important;
     border: 1px solid var(--border) !important;
-    border-radius: 0.5rem !important;
+    border-radius: var(--m-radius-control) !important;
     background: var(--card) !important;
-    box-shadow: var(--card-shadow);
+    text-align: center;
   }
   .ss-stat-strip > div > span:first-child {
-    font-size: 0.6875rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
+    font-size: 10.5px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
   }
   .ss-stat-strip > div > span:last-child {
-    font-size: 1.125rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+  }
+  /* Search boxes and the square filter button beside them: the Flutter
+     list screen's 46px search field and filter button. */
+  input[placeholder^="Search"] {
+    height: 2.875rem !important;
+    border-radius: var(--m-radius-control) !important;
+  }
+  button[aria-label="Filters"] {
+    height: 2.875rem !important;
+    min-width: 2.875rem;
+    border-radius: var(--m-radius-control) !important;
+    background: var(--card) !important;
+  }
+  /* Any row of StatCards becomes the Flutter app's summary strip: one
+     line of compact tiles, scrolling sideways when they don't all fit. */
+  *:has(> .ss-stat-card) {
+    display: flex !important;
+    gap: 0.5rem !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+  *:has(> .ss-stat-card)::-webkit-scrollbar {
+    display: none;
+  }
+  *:has(> .ss-stat-card) > * {
+    flex: 1 0 6.5rem;
   }
   /* Panel headings ("Vehicle List", "Repair History…") drop to the phone
      section-title size — the top bar already carries the page title. */
@@ -315,17 +379,18 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   display: none;
 }
 
-/* Phone pages end 16px above the floating dock; content scrolls on under
-   it. Pages with the floating "+" (52px button, 12px above the dock) get
-   room for that too, so the last card is never stuck behind it. */
+/* Phone pages end 16px above the bottom edge. Pages with the floating "+"
+   (56px, 16px up) get room for that too, so the last card is never stuck
+   behind it. */
 @media (max-width: 767px) {
   [data-testid="admin-main"] {
-    padding-bottom: calc(var(--mobile-dock-clearance, 4.5rem) + 1rem);
+    padding-bottom: calc(var(--mobile-bottom-clearance, 0px) + 1rem);
   }
   body:has(.ss-fab) [data-testid="admin-main"] {
-    padding-bottom: calc(var(--mobile-dock-clearance, 4.5rem) + 4.75rem);
+    padding-bottom: calc(var(--mobile-bottom-clearance, 0px) + 5.5rem);
   }
 }
+
 
 /* Filter drawer: side panel on desktop, bottom sheet on phones/tablets. */
 @media (max-width: 767px) {
@@ -336,7 +401,7 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
     max-height: 85dvh;
     border-left: 0 !important;
     border-top: 1px solid var(--border);
-    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-radius: var(--m-radius-sheet) var(--m-radius-sheet) 0 0 !important;
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
@@ -561,18 +626,29 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* ─── Input Heights ─── */
-  /* ─── Phone dock ───
-     The bottom nav floats over the page as an inset dock. Anything that has
-     to clear it (the page's own bottom padding, the floating "+", a sticky
-     save bar) measures from --mobile-dock-clearance, the distance from the
-     bottom of the screen to the dock's top edge. */
-  --mobile-dock-height: 3.75rem;
-  --mobile-dock-gap: 0.75rem;
-  --mobile-dock-clearance: calc(
-    var(--mobile-dock-height) + var(--mobile-dock-gap) + env(safe-area-inset-bottom, 0px)
-  );
+  /* ─── Phone bottom edge ───
+     Phones have no bottom nav (navigation is the drawer), so anything pinned
+     to the bottom — the floating "+", a sticky save bar, the page's own
+     bottom padding — only has to clear the device's home-indicator inset. */
+  --mobile-bottom-clearance: env(safe-area-inset-bottom, 0px);
 
+  /* ─── Phone design (mirrors the Flutter app's shapes) ───
+     Only read by phone-width components; desktop keeps the single 8px
+     --radius. */
+  --m-radius-card: 1rem;
+  --m-radius-tile: 1.125rem;
+  --m-radius-sheet: 1.25rem;
+  --m-radius-control: 0.75rem;
+  --m-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --m-navy: #12203d;
+  --m-navy-mid: #16305c;
+  --m-hero-gradient: linear-gradient(135deg, #12203d 0%, #16305c 50%, #2563eb 100%);
+  --m-drawer-gradient: linear-gradient(180deg, #12203d 0%, #16305c 50%, #12203d 100%);
+  --m-drawer-text: #cbd5e1;
+  --m-drawer-text-muted: #64748b;
+  --m-appbar: var(--card);
+
+  /* ─── Input Heights ─── */
   --input-height-sm: 2.25rem;
   --input-height: 2.5rem;
   --input-height-lg: 2.75rem;
@@ -834,4 +910,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+}
+
+/* Phone dark surfaces follow the Flutter app's slate scale (page slate-900,
+   card slate-800, border slate-700) rather than the desktop's deeper navy. */
+@media (max-width: 767.98px) {
+  .dark {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --popover: #243247;
+    --popover-foreground: #f1f5f9;
+    --muted: #273449;
+    --secondary: #273449;
+    --accent: #273449;
+    --border: #334155;
+    --input: #334155;
+  }
+}
+@media (max-width: 767.98px) and (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --popover: #243247;
+    --popover-foreground: #f1f5f9;
+    --muted: #273449;
+    --secondary: #273449;
+    --accent: #273449;
+    --border: #334155;
+    --input: #334155;
+  }
 }

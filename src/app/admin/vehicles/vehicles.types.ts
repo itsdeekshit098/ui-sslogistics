@@ -1,4 +1,6 @@
-export type VehicleStatus = "Active" | "Maintenance" | "Idle";
+/** The values of the database's vehicle status column; the API validates against this. */
+export const VEHICLE_STATUSES = ["Active", "Maintenance", "Idle"] as const;
+export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
 
 /** active/expiring_soon/expired for FC & insurance, computed server-side (see /api/vehicles GET) */
 export type DocExpiryStatus = "active" | "expiring_soon" | "expired";

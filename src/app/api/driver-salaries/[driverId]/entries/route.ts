@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { todayInIndia } from "@/lib/dateOnly";
 import {
@@ -9,9 +9,10 @@ import {
   SALARY_ENTRY_TYPES,
   type SalaryEntryType,
 } from "@/components/salariesPage/salariesPage.types";
-import { isPositiveNumber, isValidDateString } from "../../../loans/loans.utils";
+import { isValidDateString } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
 import { isMonthSettled } from "../../driver-salaries.data";
+import { moneyMessage, moneyProblem } from "../../driver-salaries.utils";
 
 // Records an advance or a deduction against a driver's salary for a month.
 // Entries are never edited or deleted: a mistake is undone through the
@@ -30,15 +31,17 @@ export async function POST(
       return apiError("Invalid driver ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
     const entryType = body.entry_type;
     if (!(SALARY_ENTRY_TYPES as readonly unknown[]).includes(entryType)) {
       return apiError(`Invalid entry type. Allowed values: ${SALARY_ENTRY_TYPES.join(", ")}`, 400);
     }
 
-    if (!isPositiveNumber(body.amount)) {
-      return apiError("Enter an amount greater than zero", 400);
+    const amountProblem = moneyProblem(body.amount);
+    if (amountProblem) {
+      return apiError(moneyMessage(amountProblem, "Enter an amount greater than zero"), 400);
     }
 
     const today = todayInIndia();

@@ -31,7 +31,10 @@ import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 import { MobileDashboard, type MobileDashboardAlert } from "@/components/mobileDashboard";
 import { Money } from "@/components/ui/money";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { matchNavItem } from "@/components/layout/navConfig";
 
+// The phone tiles' module colour (`accent`) comes from navConfig, the same
+// place the "+" button reads it, so the two can't drift.
 const menuItems = [
   {
     title: "Vehicles",
@@ -188,6 +191,8 @@ const menuItems = [
   },
 ];
 
+const FALLBACK_ACCENT = "#64748b";
+
 export default function DashboardPage() {
   const { user, userRole, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
@@ -199,7 +204,8 @@ export default function DashboardPage() {
     })
     // Keep "Coming Soon" tiles out of the way at the end, without disturbing
     // relative order within the enabled/disabled groups (stable sort).
-    .sort((a, b) => Number(b.enabled) - Number(a.enabled));
+    .sort((a, b) => Number(b.enabled) - Number(a.enabled))
+    .map((item) => ({ ...item, accent: matchNavItem(item.href)?.item.accent ?? FALLBACK_ACCENT }));
 
   const canSeeVehicles =
     !authLoading && !!userRole && canRoleAccessPage("/admin/vehicles", userRole as UserRole);
@@ -302,7 +308,8 @@ export default function DashboardPage() {
     <div className="container mx-auto space-y-6 md:space-y-8">
       {isMobile && (
         <MobileDashboard
-          name={user?.displayName ?? null}
+          name={user?.displayName || user?.email || null}
+          role={userRole ?? null}
           loading={authLoading}
           alertsLoading={alertsLoading}
           alerts={alerts}

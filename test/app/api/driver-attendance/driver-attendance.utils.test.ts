@@ -315,8 +315,12 @@ describe("parseMark", () => {
     });
   });
 
-  it("deduplicates a repeated shift in the input array", () => {
-    expect(parseMark(["A", "A", "B"], null, 3)).toEqual({ shifts: ["A", "B"], status: null });
+  it("rejects a repeated shift rather than quietly collapsing it", () => {
+    expect(parseMark(["A", "A", "B"], null, 3)).toBe("Each shift can be listed only once");
+  });
+
+  it("still returns shifts in A, B, C order when sent out of order", () => {
+    expect(parseMark(["C", "A"], null, 3)).toEqual({ shifts: ["A", "C"], status: null });
   });
 });
 

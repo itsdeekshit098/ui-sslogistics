@@ -83,7 +83,7 @@ const Tabs: React.FC<TabsProps> = ({
       aria-orientation="horizontal"
       style={fadeStyle}
       className={cn(
-        "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-md:gap-2 max-md:rounded-none max-md:bg-transparent max-md:p-0",
         className,
       )}
     >
@@ -109,11 +109,11 @@ const Tabs: React.FC<TabsProps> = ({
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
               // min-w-11 keeps short labels ("All") an easy target on phones.
-              "relative flex min-w-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xs px-3 py-1.5 text-sm font-medium transition-colors",
+              "relative flex min-w-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xs px-3 py-1.5 text-sm font-medium transition-colors max-md:rounded-[10px] max-md:border max-md:px-3.5 max-md:py-[9px]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted",
               isActive
-                ? "bg-card text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-card text-foreground shadow-xs max-md:border-primary max-md:bg-primary max-md:font-bold max-md:text-white max-md:shadow-none"
+                : "text-muted-foreground hover:text-foreground max-md:border-border max-md:font-semibold",
               item.disabled && "cursor-not-allowed opacity-50 hover:text-muted-foreground",
             )}
           >
@@ -123,7 +123,7 @@ const Tabs: React.FC<TabsProps> = ({
               <span
                 className={cn(
                   "rounded-sm px-1.5 py-0.5 text-xs font-normal text-muted-foreground",
-                  isActive ? "bg-muted" : "bg-card/60",
+                  isActive ? "bg-muted max-md:bg-white/20 max-md:text-white" : "bg-card/60 max-md:bg-muted",
                 )}
               >
                 {item.badge}

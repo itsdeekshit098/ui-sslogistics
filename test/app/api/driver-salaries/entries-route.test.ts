@@ -34,6 +34,35 @@ afterEach(() => {
 });
 
 describe("POST /api/driver-salaries/[driverId]/entries", () => {
+  it("400s on an amount above the ceiling or finer than a paisa", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    for (const amount of [1e20, 10_000_001, 10.555]) {
+      const res = await POST(
+        new NextRequest(URL, {
+          method: "POST",
+          body: JSON.stringify({ entry_type: "ADVANCE", amount, period_month: "2026-06" }),
+        }),
+        { params: Promise.resolve({ driverId: "1" }) },
+      );
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("400s on malformed JSON instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(new NextRequest(URL, { method: "POST", body: "{oops" }), {
+      params: Promise.resolve({ driverId: "1" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
   it("rejects when requireStrictAdminAuth fails", async () => {
     requireStrictAdminAuth.mockRejectedValue(forbiddenError());
     mockSupabaseAdmin({});

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SaveIcon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +76,14 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  // The form scrolls inside the dialog, and the error sits under the last
+  // field: without this the message lands below the fold and clicking Record
+  // looks like it did nothing.
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [error]);
 
   const copy = TITLES[paymentType];
 
@@ -212,7 +220,11 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <div
+            ref={errorRef}
+            role="alert"
+            className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+          >
             {error}
           </div>
         )}
