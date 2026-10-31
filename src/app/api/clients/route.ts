@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
@@ -318,7 +319,7 @@ export async function POST(req: Request) {
       if (!isPositiveNumber(body.opening_balance)) {
         openingWarning = "Client created, but the opening balance was not a valid amount";
       } else {
-        const openingDate = body.opening_date ?? new Date().toISOString().slice(0, 10);
+        const openingDate = body.opening_date ?? todayInIndia();
         if (!isValidDateString(openingDate)) {
           openingWarning = "Client created, but the opening balance date was invalid";
         } else {

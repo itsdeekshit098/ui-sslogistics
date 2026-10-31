@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
@@ -57,7 +58,7 @@ export async function POST(
         // The mirror image: a wrongly-billed debit is cancelled by a credit.
         direction: original.direction === "DEBIT" ? "CREDIT" : "DEBIT",
         amount: original.amount,
-        entry_date: new Date().toISOString().slice(0, 10),
+        entry_date: todayInIndia(),
         description: reason
           ? `Reversal of #${entryId}: ${reason}`
           : `Reversal of #${entryId}`,

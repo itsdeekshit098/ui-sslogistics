@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
@@ -445,7 +446,7 @@ export async function PUT(req: Request) {
       payload.status = status;
       // Settling without a date leaves the arrangement's end unrecorded.
       if (status === "SETTLED") {
-        const settledOn = body.settled_on ?? new Date().toISOString().slice(0, 10);
+        const settledOn = body.settled_on ?? todayInIndia();
         if (!isValidDateString(settledOn)) {
           return apiError("Invalid settlement date", 400);
         }

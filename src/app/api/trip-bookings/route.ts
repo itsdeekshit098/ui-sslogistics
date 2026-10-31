@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
@@ -17,7 +18,7 @@ const VALID_STATUSES: TripBookingStatus[] = ["confirmed", "completed", "cancelle
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayInIndia();
 }
 
 // ─── GET ───
