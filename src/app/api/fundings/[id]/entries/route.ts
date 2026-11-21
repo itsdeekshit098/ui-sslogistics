@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { FUNDING_ENTRY_TYPES } from "../../fundings.utils";
-import { isPositiveNumber, isValidDateString } from "../../../loans/loans.utils";
+import { isValidDateString, moneyMessage, moneyProblem } from "../../../loans/loans.utils";
 
 // Money moving on a private funding: more borrowed, principal returned,
 // interest handed over, or an agreed write-off. Append-only — a mistake is
@@ -43,10 +43,13 @@ export async function POST(
       );
     }
 
-    if (!isPositiveNumber(body.amount)) {
-      return apiError("Amount must be greater than zero", 400);
+    // Upper limit and paise check, not just "> 0": a mistyped 1e20 top-up
+    // would otherwise go into an append-only ledger and corrupt every total.
+    const amountProblem = moneyProblem(body.amount);
+    if (amountProblem) {
+      return apiError(moneyMessage(amountProblem, "Amount must be greater than zero"), 400);
     }
-    const amount = Number(body.amount);
+    const amount = body.amount as number;
 
     const entryDate = body.entry_date ?? todayInIndia();
     if (!isValidDateString(entryDate)) {

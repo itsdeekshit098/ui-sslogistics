@@ -5,8 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
-import { escapeLike } from "@/lib/escapeLike";
-import { isPositiveNumber, isValidDateString } from "../loans/loans.utils";
+import { likeOrPattern } from "@/lib/escapeLike";
+import { isValidDateString, moneyProblem } from "../loans/loans.utils";
 
 // Clients and what they owe us. Same access rule as the loans routes —
 // admin/superadmin on every method, GET included — since a receivables list is
@@ -116,9 +116,9 @@ export async function GET(req: Request) {
       query = query.eq("is_active", isActive === "true");
     }
     if (search) {
-      const escaped = escapeLike(search);
+      const pattern = likeOrPattern(search);
       query = query.or(
-        `name.ilike.%${escaped}%,location.ilike.%${escaped}%,gst_number.ilike.%${escaped}%`,
+        `name.ilike.${pattern},location.ilike.${pattern},gst_number.ilike.${pattern}`,
       );
     }
 
@@ -316,7 +316,7 @@ export async function POST(req: Request) {
     // becomes the first ledger entry rather than a special column.
     let openingWarning: string | null = null;
     if (body.opening_balance != null && body.opening_balance !== "") {
-      if (!isPositiveNumber(body.opening_balance)) {
+      if (moneyProblem(body.opening_balance)) {
         openingWarning = "Client created, but the opening balance was not a valid amount";
       } else {
         const openingDate = body.opening_date ?? todayInIndia();

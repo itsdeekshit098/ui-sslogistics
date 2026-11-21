@@ -321,3 +321,26 @@ describe("POST /api/fundings/[id]/entries", () => {
     expect(logActivity).not.toHaveBeenCalled();
   });
 });
+
+describe("POST /api/fundings/[id]/entries — money limits", () => {
+  it.each([
+    ["1e20", 1e20, "That amount is too large"],
+    ["3 decimals", 100.555, "Amounts can have at most 2 decimal places"],
+  ])("400s on an amount of %s", async (_label, amount, message) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ fundings: [{ data: FUNDING, error: null }] });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/fundings/10/entries", "POST", {
+        ...VALID_ENTRY_BODY,
+        amount,
+      }),
+      params("10"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe(message);
+  });
+});

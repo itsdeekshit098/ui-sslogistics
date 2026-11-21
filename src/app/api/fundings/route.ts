@@ -9,6 +9,7 @@ import {
   DB_FUNDING_SORTS,
   FUNDING_SORTS,
   INTEREST_MODES,
+  MAX_MONTHLY_INTEREST_RATE,
   ROI_BASES,
   computeFunding,
   sortFundings,
@@ -16,7 +17,13 @@ import {
   type FundingEntry,
   type FundingRate,
 } from "./fundings.utils";
-import { isNonNegativeNumber, isValidDateString } from "../loans/loans.utils";
+import {
+  isValidDateString,
+  MAX_INTEREST_RATE,
+  MAX_LOAN_AMOUNT,
+  moneyMessage,
+  moneyProblem,
+} from "../loans/loans.utils";
 
 const FUNDING_DIRECTIONS = ["BORROWED", "LENT"] as const;
 
@@ -264,34 +271,50 @@ export async function POST(req: Request) {
     // The opening rate and the opening principal are what make a funding
     // meaningful, so both are captured on creation rather than left for a
     // second step the user might not take.
-    const amount = Number(body.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const amountProblem = moneyProblem(body.amount, { max: MAX_LOAN_AMOUNT });
+    if (amountProblem) {
       return apiError(
-        direction === "LENT"
-          ? "Amount lent must be greater than zero"
-          : "Amount borrowed must be greater than zero",
+        moneyMessage(
+          amountProblem,
+          direction === "LENT"
+            ? "Amount lent must be greater than zero"
+            : "Amount borrowed must be greater than zero",
+        ),
         400,
       );
     }
+    const amount = body.amount as number;
 
     let roi: number | null = null;
     let roiBasis: string | null = null;
     let fixedAmount: number | null = null;
 
     if (interestMode === "PERCENT") {
-      if (!isNonNegativeNumber(body.roi)) {
-        return apiError("Rate of interest is required", 400);
-      }
-      roi = Number(body.roi);
-      roiBasis = String(body.roi_basis ?? "MONTHLY");
-      if (!(ROI_BASES as readonly string[]).includes(roiBasis)) {
+      const roiBasisCandidate = String(body.roi_basis ?? "MONTHLY");
+      if (!(ROI_BASES as readonly string[]).includes(roiBasisCandidate)) {
         return apiError(`Invalid ROI basis. Allowed values: ${ROI_BASES.join(", ")}`, 400);
       }
-    } else {
-      if (!isNonNegativeNumber(body.fixed_interest_amount)) {
-        return apiError("Fixed monthly interest amount is required", 400);
+      const roiProblem = moneyProblem(body.roi, {
+        allowZero: true,
+        max: roiBasisCandidate === "ANNUAL" ? MAX_INTEREST_RATE : MAX_MONTHLY_INTEREST_RATE,
+      });
+      if (roiProblem) {
+        return apiError(moneyMessage(roiProblem, "Rate of interest is required"), 400);
       }
-      fixedAmount = Number(body.fixed_interest_amount);
+      roi = body.roi as number;
+      roiBasis = roiBasisCandidate;
+    } else {
+      const fixedProblem = moneyProblem(body.fixed_interest_amount, {
+        allowZero: true,
+        max: MAX_LOAN_AMOUNT,
+      });
+      if (fixedProblem) {
+        return apiError(
+          moneyMessage(fixedProblem, "Fixed monthly interest amount is required"),
+          400,
+        );
+      }
+      fixedAmount = body.fixed_interest_amount as number;
     }
 
     let interestDueDay: number | null = null;

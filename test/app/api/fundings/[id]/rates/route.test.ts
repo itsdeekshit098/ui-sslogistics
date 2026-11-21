@@ -301,3 +301,44 @@ describe("POST /api/fundings/[id]/rates", () => {
     expect(body.data.rate.id).toBe(78);
   });
 });
+
+describe("POST /api/fundings/[id]/rates — same limits as creating the funding", () => {
+  it.each([
+    ["a monthly rate above the monthly cap", { roi: 25, roi_basis: "MONTHLY" }],
+    ["an annual rate above 100%", { roi: 150, roi_basis: "ANNUAL" }],
+    ["a rate sent as a string", { roi: "2.5", roi_basis: "MONTHLY" }],
+    ["a rate with 3 decimals", { roi: 1.125, roi_basis: "MONTHLY" }],
+  ])("400s on %s", async (_label, overrides) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ fundings: [{ data: PERCENT_FUNDING, error: null }] });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/fundings/10/rates", "POST", {
+        ...VALID_PERCENT_BODY,
+        ...overrides,
+      }),
+      params("10"),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("400s on a 1e20 fixed interest amount", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ fundings: [{ data: FIXED_FUNDING, error: null }] });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/fundings/10/rates", "POST", {
+        ...VALID_FIXED_BODY,
+        fixed_interest_amount: 1e20,
+      }),
+      params("10"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("That amount is too large");
+  });
+});

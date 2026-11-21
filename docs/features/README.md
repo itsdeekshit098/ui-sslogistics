@@ -30,5 +30,6 @@ Every page uses the same headings so they can be scanned the same way:
 | Attendance | [attendance.md](attendance.md) | 2026-10-31 |
 | Salaries | [salaries.md](salaries.md) | 2026-10-31 |
 | Loans | [loans.md](loans.md) | 2026-10-31 |
+| Drivers | [drivers.md](drivers.md) | 2026-10-31 |
 
-Not yet written: Vehicles, Clients, Fundings, Drivers, Trips, Diesel, Repair records, Warranty, Technicians, Firms & Owners, Bank accounts, Activity log, Sessions, Settings. Add one when you next work on that module (`/test-module` does this as part of its close-out).
+Not yet written: Vehicles, Clients, Fundings, Trips, Diesel, Repair records, Warranty, Technicians, Firms & Owners, Bank accounts, Activity log, Sessions, Settings. Add one when you next work on that module (`/test-module` does this as part of its close-out).

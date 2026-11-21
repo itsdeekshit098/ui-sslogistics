@@ -5,7 +5,7 @@ WHAT THIS FILE IS: a rule — project knowledge that Claude reads, not a program
 WHEN IT LOADS: EVERY session. It has no `paths:` list (no frontmatter), so Claude always knows how this
   project is tested and what has been tested — you never have to explain it again.
 WHY: unit and mocked tests missed most of the real bugs; driving the real app found them. This file is the
-  memory of that: the coverage table, the not-yet-covered list, open product questions, the six-point checklist
+  memory of that: the coverage table, the not-yet-covered list, open product questions, the seven-point checklist
   and the how-to rules (never type a password, close extra tabs, keep calls under 45 s, ...).
 KEEP IN SYNC: after testing a module, update its row in the table and the "not yet covered" list.
   /test-module does this as its last step.
@@ -20,8 +20,9 @@ Unit and mocked e2e tests did not catch most of the bugs found by exercising the
 | Attendance | Admin, staff and driver roles; desktop and phone; shift counts; per-trip drivers; export | Fixed duplicate shifts, stale shifts, phone chips; added shift-count warning |
 | Salaries | Pay rule, rates, entries, reversals, settle/undo, per-trip, CSV, UI | 6 bugs fixed (per-trip settle, money limits, trip count, malformed JSON, ids) |
 | Loans | Create, pay, reverse, waive/bounce, schedule edits, status changes, list filters, UI | 10 bugs fixed; part-paid late EMIs deliberately not handled ([0005](../../docs/decisions/0005-closed-loans-are-not-overdue.md)) |
+| Drivers | Admin only so far (staff/driver roles pending); add/edit/deactivate/delete, duplicate-name and DL guards, search, phone layout (the "⋯" action sheet), effects on attendance/salaries/diesel pickers | 6 bugs fixed (malformed JSON, non-string/oversized name, `id` validation on PUT, `is_active` as a string, dead `/admin/drivers/new` page, punctuation-only search); see [drivers.md](../../docs/features/drivers.md) |
 
-**Not yet covered live:** Clients, Fundings (borrowed and lent), Drivers, Trips and trip bookings, Diesel (the one module drivers can write to), Repair records, Warranty, Technicians, Firms & Owners, Bank accounts, Activity log, Sessions, Settings, the EMI auto-settle script (`scripts/check-loan-emis.js`), the Flutter app. Suggested order: Clients and Fundings (money), then Drivers, Trips, Diesel.
+**Not yet covered live:** Clients, Fundings (borrowed and lent), Trips and trip bookings, Diesel (the one module drivers can write to), Repair records, Warranty, Technicians, Firms & Owners, Bank accounts, Activity log, Sessions, Settings, the EMI auto-settle script (`scripts/check-loan-emis.js`), the Flutter app, and — for Drivers specifically — the staff/driver role checks. Suggested order: Clients and Fundings (money), then Trips, Diesel.
 
 **Confirmed bugs not yet fixed** are listed in `docs/known-issues.md` — read it before testing a module, and delete a row when you fix it. **Open product questions** live in `docs/decisions/` with status `Open` (loans: `0006`) — ask the user; don't decide.
 
@@ -32,7 +33,10 @@ What to check in every module:
 3. **Money modules:** partial, full and over-payment; reversal (twice, a reversal of a reversal, wrong owner); a settled/closed record's locks; derived totals agree on the list, detail, summary, CSV and dashboard.
 4. **Roles:** admin, staff, driver (disabled controls *and* 403 on a hand-made request); unauthenticated.
 5. **Phone layout** at 390px, and anything that only appears on hover (Mark Paid and Reverse do; check touch).
-6. **Cleanup and report:** reverse or close test data, say what permanent rows remain, list bugs fixed, bugs left, and questions.
+6. **Effects on other modules:** where the same data shows up elsewhere (pickers, attendance, salaries, dashboard, the Flutter app on the same route), a change here must show there — or deliberately not.
+7. **Cleanup and report:** reverse or close test data, say what permanent rows remain, list bugs fixed, bugs left, and questions; refresh the module's `docs/features/` page and `docs/known-issues.md`.
+
+How to start one: `/test-module <module>` (or "test <module> live"). It studies the code, then shows a numbered test plan and **waits for the user's go-ahead** before touching the browser.
 
 How to do it:
 

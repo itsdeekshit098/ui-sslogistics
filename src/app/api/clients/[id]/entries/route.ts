@@ -4,7 +4,7 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isPositiveNumber, isValidDateString } from "../../../loans/loans.utils";
+import { isValidDateString, moneyMessage, moneyProblem } from "../../../loans/loans.utils";
 
 // The receivables statement. Bills are debits (they owe more), payments are
 // credits (they owe less), and the balance is simply the running difference —
@@ -162,8 +162,9 @@ export async function POST(
       );
     }
 
-    if (!isPositiveNumber(body.amount)) {
-      return apiError("Amount must be greater than zero", 400);
+    const amountProblem = moneyProblem(body.amount);
+    if (amountProblem) {
+      return apiError(moneyMessage(amountProblem, "Amount must be greater than zero"), 400);
     }
 
     const entryDate = body.entry_date ?? todayInIndia();

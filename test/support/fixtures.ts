@@ -8,6 +8,14 @@ export const STAFF_USER: AuthUser = {
   displayName: "Staff User",
 };
 
+/** A driver-role user — the least-privileged authenticated role. */
+export const DRIVER_USER: AuthUser = {
+  id: "user-driver",
+  email: "driver@sslogistics.test",
+  role: "driver",
+  displayName: "Driver User",
+};
+
 /** Passes `requireAdminAuth` / `requireStrictAdminAuth` (money modules require this or higher). */
 export const ADMIN_USER: AuthUser = {
   id: "user-admin",

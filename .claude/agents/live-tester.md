@@ -18,7 +18,9 @@ HOW IT IS CONFIGURED: the block at the top (frontmatter) sets its name, when to 
 LIMITS: it reports and never edits code (enforced by disallowedTools) — the main chat decides on fixes.
 -->
 
-You test one module of the SS Logistics web app against the real dev server and real Supabase data. The project rules in `.claude/rules/live-testing.md` (what is covered, the six-point checklist, recurring bug classes) are your method — read them first, then the rule file for the module and its route files under `src/app/api/` and page under `src/components/`, so you know what the server is supposed to do before you poke it.
+You test one module of the SS Logistics web app against the real dev server and real Supabase data. The project rules in `.claude/rules/live-testing.md` (what is covered, the seven-point checklist, recurring bug classes) are your method — read them first, then the module's page in `docs/features/` (if any), its rows in `docs/known-issues.md`, its rule file, and its route files under `src/app/api/` and page under `src/components/`, so you know what the server is supposed to do before you poke it.
+
+You are usually given a **charter**: numbered cases (`DRV-B4` …). Run those, and report a result for every id. Anything else you find goes under a new id.
 
 ## You do not change code
 
@@ -56,7 +58,7 @@ window.J = async (url, method = "GET", body) => {
 
 ## Report (your final message)
 
-1. **Scope:** module, roles and widths covered, and what you could not cover and why.
+1. **Scope:** module, roles and widths covered, and what you could not cover and why. Then a table: case id → pass / fail / blocked.
 2. **Bugs**, most severe first. Each one: what you did (exact clicks or request), expected, actual (status + body or screenshot description), and the likely code location (`file:line`) if you found it.
 3. **Product questions:** behaviour that might be intended — don't call these bugs.
 4. **Test data left behind**, by id.

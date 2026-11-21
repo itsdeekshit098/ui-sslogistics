@@ -74,6 +74,6 @@ When you change a screen, a flow or a rule, update its feature page and add a de
 
 See `.claude/README.md` for the full map. In short:
 
-- **Skills (slash commands):** `/test-module <name>` runs the live-test method on one module; `/new-api-route` adds a route the way this codebase expects; `/record-decision` writes down why a choice was made; `/screenshots <module>` captures screens into a git-ignored folder; `/ship` checks a change is ready and commits only when the user says so.
+- **Skills (slash commands):** `/test-module <name>` runs the live-test method on one module; `/new-api-route` adds a route the way this codebase expects; `/frontend-implementation` builds or changes a screen (primitives, phone layout, roles, tests, docs); `/record-decision` writes down why a choice was made; `/screenshots <module>` captures screens into a git-ignored folder; `/ship` checks a change is ready and commits only when the user says so.
 - **Subagents:** `live-tester`, `code-reviewer`, `migration-author`, `mobile-contract-checker`. Use them for long or independent work so their output stays out of the main conversation.
 - **Hooks** (`.claude/settings.json`): edits to `.env*` files and `--no-verify` commits are blocked; editing a route or a `sql/` file adds reminders about the rules above; `git push` always asks first.

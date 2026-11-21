@@ -2,12 +2,38 @@ import { after, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
+import { parseId } from "@/app/api/loans/loans.utils";
 import type { CreateDriverPayload } from "@/components/driversPage";
 import { normalizeName } from "@/lib/normalizeName";
 import { findSimilarNames } from "@/lib/similarName";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
+const NAME_MAX_LENGTH = 200;
+const PLACE_MAX_LENGTH = 200;
+const DL_NUMBER_MAX_LENGTH = 50;
+// Only an http(s) link is ever something to click through to — a `javascript:`
+// or `data:` scheme stored here would just be script content dressed up as a
+// photo URL, with nowhere safe to render it.
+const PHOTO_URL_REGEX = /^https?:\/\//i;
+
+/**
+ * An optional text field from the body: a string is trimmed, null/absent is
+ * "", and anything else (a number, an object) is `false` so the caller can
+ * answer 400. Without this, `phone: 9876543210` sent as a number was read as
+ * "" and silently cleared the stored phone with a 200.
+ */
+function optionalText(value: unknown): string | false {
+  if (value === null || value === undefined) return "";
+  if (typeof value !== "string") return false;
+  return value.trim();
+}
 
 interface DriverNameRow {
   id: number;
@@ -79,7 +105,7 @@ function describeDriver(row: DriverNameRow): string {
 
 export async function GET(req: Request) {
   try {
-    await requireUserAuth();
+    const authUser = await requireUserAuth();
 
     const { searchParams } = new URL(req.url);
     const includeInactive = searchParams.get("include_inactive") === "true";
@@ -89,6 +115,17 @@ export async function GET(req: Request) {
       Math.max(1, Number(searchParams.get("pageSize")) || 50),
     );
     const search = searchParams.get("search")?.trim() ?? "";
+
+    // Strip characters that have special meaning in PostgREST filter syntax
+    // before anything else. A search term made up only of those (e.g.
+    // "%_(") would otherwise strip down to "", which turns into "ilike.%%"
+    // — matching every row instead of none — so an empty result after
+    // stripping short-circuits to "nothing can match" rather than silently
+    // becoming "no filter", and does it before any query is even built.
+    const safeSearch = search ? search.replace(/[,.*()%_]/g, "") : "";
+    if (search && !safeSearch) {
+      return apiSuccess({ data: [], total: 0 });
+    }
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -103,11 +140,9 @@ export async function GET(req: Request) {
       query = query.eq("is_active", true);
     }
 
-    if (search) {
-      // Escape characters that have special meaning in PostgREST filter syntax
-      const safe = search.replace(/[,.*()%_]/g, "");
+    if (safeSearch) {
       query = query.or(
-        `name.ilike.%${safe}%,phone.ilike.%${safe}%,place.ilike.%${safe}%,dl_number.ilike.%${safe}%`,
+        `name.ilike.%${safeSearch}%,phone.ilike.%${safeSearch}%,place.ilike.%${safeSearch}%,dl_number.ilike.%${safeSearch}%`,
       );
     }
 
@@ -119,7 +154,16 @@ export async function GET(req: Request) {
       return serverError(error);
     }
 
-    return apiSuccess({ data: data ?? [], total: count ?? 0 });
+    // The driver role uses this list to pick themselves or a colleague (the
+    // diesel-records driver picker, which shows phone as a disambiguator —
+    // see driver_picker_sheet.dart) but has no screen that shows a licence
+    // number, so dl_number is withheld from that role rather than handed out
+    // to every signed-in account regardless of what they actually need.
+    const rows = (data ?? []).map((row) =>
+      authUser.role === "driver" ? { ...row, dl_number: null } : row,
+    );
+
+    return apiSuccess({ data: rows, total: count ?? 0 });
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -130,22 +174,44 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const authUser = await requireAdminAuth();
-    const body: CreateDriverPayload = await req.json();
+    const parsed = await readJsonObject(req);
+    if (!parsed) return apiError("The request body must be a JSON object", 400);
+    const body = parsed as unknown as CreateDriverPayload;
 
-    if (!body.name || body.name.trim() === "") {
+    if (typeof body.name !== "string" || body.name.trim() === "") {
       return apiError("Name is required", 400);
     }
+    if (body.name.trim().length > NAME_MAX_LENGTH) {
+      return apiError(`Name must be at most ${NAME_MAX_LENGTH} characters`, 400);
+    }
 
-    const phone = body.phone?.trim();
-    if (phone && !PHONE_REGEX.test(phone)) {
+    const phone = optionalText(body.phone);
+    if (phone === false || (phone && !PHONE_REGEX.test(phone))) {
       return apiError(
         "Invalid phone number (must be 10 digits starting with 6-9)",
         400,
       );
     }
 
+    const place = optionalText(body.place);
+    if (place === false) return apiError("Place must be text", 400);
+    if (place.length > PLACE_MAX_LENGTH) {
+      return apiError(`Place must be at most ${PLACE_MAX_LENGTH} characters`, 400);
+    }
+
+    const dlNumberInput = optionalText(body.dl_number);
+    if (dlNumberInput === false) return apiError("DL number must be text", 400);
+    if (dlNumberInput.length > DL_NUMBER_MAX_LENGTH) {
+      return apiError(`DL number must be at most ${DL_NUMBER_MAX_LENGTH} characters`, 400);
+    }
+
+    const photoUrl = optionalText(body.photo_url);
+    if (photoUrl === false || (photoUrl && !PHOTO_URL_REGEX.test(photoUrl))) {
+      return apiError("Photo URL must start with http:// or https://", 400);
+    }
+
     const name = body.name.trim();
-    const dlNumber = body.dl_number?.trim() || null;
+    const dlNumber = dlNumberInput || null;
 
     // `confirm_similar: true` is the user answering "yes, different person"
     // to the warning below. It never waives the exact-name or DL checks.
@@ -190,9 +256,9 @@ export async function POST(req: Request) {
     const insertPayload = {
       name,
       phone: phone || null,
-      place: body.place?.trim() || null,
+      place: place || null,
       dl_number: dlNumber,
-      photo_url: body.photo_url?.trim() || null,
+      photo_url: photoUrl || null,
       is_active: true,
     };
 
@@ -229,25 +295,30 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = await req.json();
-    const { id, ...fields } = body;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
+    const { id: rawId, ...fields } = body;
 
+    const id = parseId(rawId);
     if (!id) {
-      return apiError("Missing driver ID", 400);
+      return apiError("Missing or invalid driver ID", 400);
     }
 
     const updatePayload: Record<string, unknown> = {};
 
     if (fields.name !== undefined) {
-      if (!fields.name || fields.name.trim() === "") {
+      if (typeof fields.name !== "string" || fields.name.trim() === "") {
         return apiError("Name cannot be empty", 400);
+      }
+      if (fields.name.trim().length > NAME_MAX_LENGTH) {
+        return apiError(`Name must be at most ${NAME_MAX_LENGTH} characters`, 400);
       }
       updatePayload.name = fields.name.trim();
     }
 
     if (fields.phone !== undefined) {
-      const phone = fields.phone?.trim();
-      if (phone && !PHONE_REGEX.test(phone)) {
+      const phone = optionalText(fields.phone);
+      if (phone === false || (phone && !PHONE_REGEX.test(phone))) {
         return apiError(
           "Invalid phone number (must be 10 digits starting with 6-9)",
           400,
@@ -257,19 +328,39 @@ export async function PUT(req: Request) {
     }
 
     if (fields.place !== undefined) {
-      updatePayload.place = fields.place?.trim() || null;
+      const place = optionalText(fields.place);
+      if (place === false) return apiError("Place must be text", 400);
+      if (place.length > PLACE_MAX_LENGTH) {
+        return apiError(`Place must be at most ${PLACE_MAX_LENGTH} characters`, 400);
+      }
+      updatePayload.place = place || null;
     }
 
     if (fields.dl_number !== undefined) {
-      updatePayload.dl_number = fields.dl_number?.trim() || null;
+      const dlNumber = optionalText(fields.dl_number);
+      if (dlNumber === false) return apiError("DL number must be text", 400);
+      if (dlNumber.length > DL_NUMBER_MAX_LENGTH) {
+        return apiError(`DL number must be at most ${DL_NUMBER_MAX_LENGTH} characters`, 400);
+      }
+      updatePayload.dl_number = dlNumber || null;
     }
 
     if (fields.photo_url !== undefined) {
-      updatePayload.photo_url = fields.photo_url?.trim() || null;
+      const photoUrl = optionalText(fields.photo_url);
+      if (photoUrl === false || (photoUrl && !PHOTO_URL_REGEX.test(photoUrl))) {
+        return apiError("Photo URL must start with http:// or https://", 400);
+      }
+      updatePayload.photo_url = photoUrl || null;
     }
 
     if (fields.is_active !== undefined) {
-      updatePayload.is_active = Boolean(fields.is_active);
+      // A loose `Boolean(x)` treats the STRING "false" as truthy and silently
+      // leaves the driver active — a 200 response that did nothing. Only a
+      // real boolean is accepted.
+      if (typeof fields.is_active !== "boolean") {
+        return apiError("is_active must be true or false", 400);
+      }
+      updatePayload.is_active = fields.is_active;
     }
 
     // Renaming a driver onto an existing one splits that person's history
@@ -279,7 +370,7 @@ export async function PUT(req: Request) {
       const { data: current } = await supabaseAdmin
         .from("drivers")
         .select("name, dl_number")
-        .eq("id", Number(id))
+        .eq("id", id)
         .maybeSingle();
 
       const nextName = (updatePayload.name as string) ?? current?.name ?? "";
@@ -288,7 +379,7 @@ export async function PUT(req: Request) {
           ? (updatePayload.dl_number as string | null)
           : ((current?.dl_number as string | null) ?? null);
 
-      const duplicate = await findDuplicates(nextName, nextDl, Number(id));
+      const duplicate = await findDuplicates(nextName, nextDl, id);
       if (duplicate?.kind === "exact") {
         return apiError(
           `A driver named ${describeDriver(duplicate.row)} already exists.`,
@@ -308,12 +399,15 @@ export async function PUT(req: Request) {
     const { data: updatedDriver, error } = await supabaseAdmin
       .from("drivers")
       .update(updatePayload)
-      .eq("id", Number(id))
+      .eq("id", id)
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (error) {
       return serverError(error);
+    }
+    if (!updatedDriver) {
+      return apiError("Driver not found", 404);
     }
 
     after(async () => {
@@ -323,7 +417,7 @@ export async function PUT(req: Request) {
         userEmail: authUser.email,
         userDisplayName: authUser.displayName,
         tableName: "drivers",
-        recordId: Number(id),
+        recordId: id,
         details: updatePayload,
       });
     });
@@ -341,10 +435,10 @@ export async function DELETE(req: Request) {
     const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const id = parseId(searchParams.get("id"));
 
     if (!id) {
-      return apiError("Missing driver ID", 400);
+      return apiError("Missing or invalid driver ID", 400);
     }
 
     const dependentChecks: [string, string][] = [
@@ -363,7 +457,7 @@ export async function DELETE(req: Request) {
       const { count, error: countErr } = await supabaseAdmin
         .from(table)
         .select("id", { count: "exact", head: true })
-        .eq("driver_id", Number(id));
+        .eq("driver_id", id);
 
       if (countErr) {
         // A table that isn't there yet (sql/ files are applied by hand) or
@@ -384,7 +478,7 @@ export async function DELETE(req: Request) {
     const { error } = await supabaseAdmin
       .from("drivers")
       .delete()
-      .eq("id", Number(id));
+      .eq("id", id);
 
     if (error) {
       return serverError(error);
@@ -397,7 +491,7 @@ export async function DELETE(req: Request) {
         userEmail: authUser.email,
         userDisplayName: authUser.displayName,
         tableName: "drivers",
-        recordId: Number(id),
+        recordId: id,
         details: { deleted: true },
       });
     });

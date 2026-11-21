@@ -5,7 +5,7 @@ import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } fro
 import { todayInIndia } from "@/lib/dateOnly";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
-import { escapeLike } from "@/lib/escapeLike";
+import { likeOrPattern } from "@/lib/escapeLike";
 import {
   LOAN_NOTES_MAX_LENGTH,
   LOAN_SORTS,
@@ -218,10 +218,7 @@ export async function GET(req: Request) {
     if (ids.vehicle_id) query = query.eq("vehicle_id", ids.vehicle_id);
     if (ids.debit_account_id) query = query.eq("debit_account_id", ids.debit_account_id);
     if (search) {
-      // Quoted, so a comma or bracket in what was typed is part of the search
-      // text and not PostgREST filter syntax (an unquoted comma split the
-      // filter and failed with a 500).
-      const pattern = `"%${escapeLike(search).replace(/[\\"]/g, "\\$&")}%"`;
+      const pattern = likeOrPattern(search);
       query = query.or(
         `loan_number.ilike.${pattern},collateral_description.ilike.${pattern}`,
       );

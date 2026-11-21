@@ -7,7 +7,7 @@ import {
   requireStrictAdminAuth,
 } from "@test/authMock";
 import { logActivity } from "@test/activityLogMock";
-import { ADMIN_USER, forbiddenError } from "@test/fixtures";
+import { ADMIN_USER, DRIVER_USER, forbiddenError } from "@test/fixtures";
 
 async function importRoute() {
   return await import("@/app/api/drivers/route");
@@ -18,6 +18,10 @@ function jsonRequest(url: string, method: string, body?: unknown) {
     method,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
+}
+
+function rawRequest(url: string, method: string, rawBody: string) {
+  return new NextRequest(url, { method, body: rawBody });
 }
 
 beforeEach(() => {
@@ -63,6 +67,63 @@ describe("GET /api/drivers", () => {
 
     expect(res.status).toBe(500);
   });
+
+  it("withholds dl_number from the driver role but keeps phone (used by the diesel picker)", async () => {
+    requireUserAuth.mockResolvedValue(DRIVER_USER);
+    mockSupabaseAdmin({
+      drivers: [
+        {
+          data: [{ id: 1, name: "Ravi", phone: "9876543210", dl_number: "KA0120230001234" }],
+          error: null,
+          count: 1,
+        },
+      ],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/drivers"));
+    const body = await res.json();
+
+    expect(body.data.data[0].phone).toBe("9876543210");
+    expect(body.data.data[0].dl_number).toBeNull();
+  });
+
+  it("keeps dl_number for admin, staff and superadmin", async () => {
+    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [
+        {
+          data: [{ id: 1, name: "Ravi", phone: "9876543210", dl_number: "KA0120230001234" }],
+          error: null,
+          count: 1,
+        },
+      ],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/drivers"));
+    const body = await res.json();
+
+    expect(body.data.data[0].dl_number).toBe("KA0120230001234");
+  });
+
+  it("returns no results (not every row) when the search term is only PostgREST-special characters", async () => {
+    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    // No "drivers" fixture queued: if the route fell through to building and
+    // running the query, this mock would throw and the route would 500 —
+    // only the short-circuit before any query keeps this test green.
+    mockSupabaseAdmin({});
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest(`http://localhost/api/drivers?search=${encodeURIComponent("%_(")}`),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.total).toBe(0);
+    expect(body.data.data).toEqual([]);
+  });
 });
 
 describe("POST /api/drivers", () => {
@@ -85,6 +146,55 @@ describe("POST /api/drivers", () => {
 
     const res = await POST(
       jsonRequest("http://localhost/api/drivers", "POST", { name: "" }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("400s instead of 500 on malformed JSON", async () => {
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(rawRequest("http://localhost/api/drivers", "POST", "{bad"));
+
+    expect(res.status).toBe(400);
+  });
+
+  it("400s instead of 500 when name is not a string", async () => {
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/drivers", "POST", { name: 12345 }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when name is over the length cap", async () => {
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/drivers", "POST", { name: "A".repeat(201) }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("400s on a photo_url that isn't http(s)", async () => {
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/drivers", "POST", {
+        name: "Ravi",
+        photo_url: "javascript:alert(1)",
+      }),
     );
 
     expect(res.status).toBe(400);
@@ -277,6 +387,83 @@ describe("PUT /api/drivers", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s instead of 500 on malformed JSON", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { PUT } = await importRoute();
+
+    const res = await PUT(rawRequest("http://localhost/api/drivers", "PUT", "{bad"));
+
+    expect(res.status).toBe(400);
+  });
+
+  it("400s instead of 500 when id is not a valid integer", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/drivers", "PUT", { id: "1.5", name: "Ravi" }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("404s instead of 500 when id doesn't match any driver", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: null, error: null }], // .maybeSingle() finds nothing
+    });
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/drivers", "PUT", { id: 999999, place: "X" }),
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it("400s when is_active is a string instead of a boolean", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/drivers", "PUT", { id: 1, is_active: "false" }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts a real boolean for is_active", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      drivers: [{ data: { id: 1, name: "Ravi", is_active: false }, error: null }],
+    });
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/drivers", "PUT", { id: 1, is_active: false }),
+    );
+
+    expect(res.status).toBe(200);
+  });
+
+  it("400s when photo_url isn't http(s) on update", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/drivers", "PUT", {
+        id: 1,
+        photo_url: "javascript:alert(1)",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
   it("updates the driver without re-checking duplicates when name/dl_number aren't touched", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     const supa = mockSupabaseAdmin({
@@ -382,6 +569,16 @@ describe("DELETE /api/drivers", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s when id is not a valid integer", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { DELETE } = await importRoute();
+
+    const res = await DELETE(new NextRequest("http://localhost/api/drivers?id=1.5"));
+
+    expect(res.status).toBe(400);
+  });
+
   it.each(dependentTables)(
     "blocks deletion when %s has dependent rows",
     async (table) => {
@@ -445,5 +642,51 @@ describe("DELETE /api/drivers", () => {
     const res = await DELETE(new NextRequest("http://localhost/api/drivers?id=1"));
 
     expect(res.status).toBe(500);
+  });
+});
+
+describe("drivers — optional text fields must be text", () => {
+  it.each(["phone", "place", "dl_number", "photo_url"])(
+    "PUT 400s instead of clearing %s when it is sent as a number",
+    async (field) => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      const supa = mockSupabaseAdmin({});
+      const { PUT } = await importRoute();
+
+      const res = await PUT(
+        jsonRequest("http://localhost/api/drivers", "PUT", { id: 1, [field]: 9876543210 }),
+      );
+
+      expect(res.status).toBe(400);
+      expect(supa.callCount("drivers")).toBe(0);
+    },
+  );
+
+  it("PUT still clears place when it is sent as null", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const supa = mockSupabaseAdmin({
+      drivers: [{ data: { id: 1, name: "Ravi", place: null }, error: null }],
+    });
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/drivers", "PUT", { id: 1, place: null }),
+    );
+
+    expect(res.status).toBe(200);
+    const builder = supa.from.mock.results[0].value as { update: { mock: { calls: unknown[][] } } };
+    expect(builder.update.mock.calls[0][0]).toEqual({ place: null });
+  });
+
+  it("POST 400s when phone is sent as a number", async () => {
+    requireAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/drivers", "POST", { name: "Ravi", phone: 9876543210 }),
+    );
+
+    expect(res.status).toBe(400);
   });
 });

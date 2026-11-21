@@ -3,7 +3,13 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isValidDateString } from "../../../loans/loans.utils";
+import { isValidDateString, moneyMessage, moneyProblem } from "../../../loans/loans.utils";
+
+// A monthly rate per vehicle is a small recurring figure, nothing like a loan
+// principal — ₹10 lakh/month already covers any real deployment with room to
+// spare, so anything above it is a mistyped extra digit, same reasoning as
+// MAX_LOAN_AMOUNT.
+const MAX_MONTHLY_RATE = 1_000_000;
 
 // What runs for a client. A deployment is either a LINKED vehicle — one of ours,
 // picked from the fleet — or a DECLARED bucket describing units we don't track
@@ -138,11 +144,11 @@ async function buildPayload(
   }
 
   if (body.monthly_rate != null && body.monthly_rate !== "") {
-    const rate = Number(body.monthly_rate);
-    if (!Number.isFinite(rate) || rate < 0) {
-      return { error: "Monthly rate must be a positive number" };
+    const rateProblem = moneyProblem(body.monthly_rate, { allowZero: true, max: MAX_MONTHLY_RATE });
+    if (rateProblem) {
+      return { error: moneyMessage(rateProblem, "Monthly rate must be a positive number") };
     }
-    payload.monthly_rate = rate;
+    payload.monthly_rate = body.monthly_rate as number;
   } else {
     payload.monthly_rate = null;
   }

@@ -20,6 +20,7 @@ Everything here is checked in and shared, except `settings.local.json` (personal
 ├── skills/                  workflows, run as slash commands
 │   ├── test-module/           /test-module <module>
 │   ├── new-api-route/         /new-api-route <path> <what>
+│   ├── frontend-implementation/  /frontend-implementation <module> <what> — pages, modals, phone layout
 │   ├── record-decision/       /record-decision <title>  → docs/decisions/
 │   ├── screenshots/           /screenshots <module>  → git-ignored folder (user-invoked only)
 │   └── ship/                  /ship [commit] [push] [--skip-review]  (user-invoked only)

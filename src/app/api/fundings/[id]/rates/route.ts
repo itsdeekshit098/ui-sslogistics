@@ -3,8 +3,14 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { ROI_BASES } from "../../fundings.utils";
-import { isNonNegativeNumber, isValidDateString } from "../../../loans/loans.utils";
+import { MAX_MONTHLY_INTEREST_RATE, ROI_BASES } from "../../fundings.utils";
+import {
+  isValidDateString,
+  MAX_INTEREST_RATE,
+  MAX_LOAN_AMOUNT,
+  moneyMessage,
+  moneyProblem,
+} from "../../../loans/loans.utils";
 
 // Records a renegotiated rate from a given date. Rates are never edited in
 // place: interest already accrued at the old rate has to stay accrued at the
@@ -50,19 +56,33 @@ export async function POST(
     // Which fields are required follows the funding's own mode — a percentage
     // on a fixed-amount arrangement would simply never be read.
     if (funding.interest_mode === "PERCENT") {
-      if (!isNonNegativeNumber(body.roi)) {
-        return apiError("Rate of interest is required", 400);
-      }
-      roi = Number(body.roi);
-      roiBasis = String(body.roi_basis ?? "MONTHLY");
-      if (!(ROI_BASES as readonly string[]).includes(roiBasis)) {
+      // Same limits as creating the funding (POST /api/fundings), so a rate
+      // change can't store what the opening rate would have refused.
+      const roiBasisCandidate = String(body.roi_basis ?? "MONTHLY");
+      if (!(ROI_BASES as readonly string[]).includes(roiBasisCandidate)) {
         return apiError(`Invalid ROI basis. Allowed values: ${ROI_BASES.join(", ")}`, 400);
       }
-    } else {
-      if (!isNonNegativeNumber(body.fixed_interest_amount)) {
-        return apiError("Fixed monthly interest amount is required", 400);
+      const roiProblem = moneyProblem(body.roi, {
+        allowZero: true,
+        max: roiBasisCandidate === "ANNUAL" ? MAX_INTEREST_RATE : MAX_MONTHLY_INTEREST_RATE,
+      });
+      if (roiProblem) {
+        return apiError(moneyMessage(roiProblem, "Rate of interest is required"), 400);
       }
-      fixedAmount = Number(body.fixed_interest_amount);
+      roi = body.roi as number;
+      roiBasis = roiBasisCandidate;
+    } else {
+      const fixedProblem = moneyProblem(body.fixed_interest_amount, {
+        allowZero: true,
+        max: MAX_LOAN_AMOUNT,
+      });
+      if (fixedProblem) {
+        return apiError(
+          moneyMessage(fixedProblem, "Fixed monthly interest amount is required"),
+          400,
+        );
+      }
+      fixedAmount = body.fixed_interest_amount as number;
     }
 
     const { data: rate, error } = await supabaseAdmin

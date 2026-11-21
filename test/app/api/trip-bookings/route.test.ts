@@ -328,3 +328,25 @@ describe("DELETE /api/trip-bookings", () => {
     );
   });
 });
+
+describe("GET /api/trip-bookings — search text", () => {
+  it("quotes the search so a comma can't split the .or() filter", async () => {
+    requireUserAuth.mockResolvedValue(ADMIN_USER);
+    const supa = mockSupabaseAdmin({
+      trip_bookings: [{ data: [], error: null, count: 0 }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest(
+        "http://localhost/api/trip-bookings?search=" + encodeURIComponent("Ravi,id.gt.0"),
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const builder = supa.from.mock.results.at(-1)!.value as { or: { mock: { calls: unknown[][] } } };
+    expect(builder.or.mock.calls[0][0]).toBe(
+      'customer_name.ilike."%Ravi,id.gt.0%",customer_phone.ilike."%Ravi,id.gt.0%"',
+    );
+  });
+});

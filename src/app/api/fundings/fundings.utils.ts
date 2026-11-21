@@ -29,6 +29,14 @@ export const FUNDING_ENTRY_TYPES = [
 export const INTEREST_MODES = ["PERCENT", "FIXED"] as const;
 export const ROI_BASES = ["MONTHLY", "ANNUAL"] as const;
 
+/**
+ * A monthly rate above this is a typo (an annual-sized number in the monthly
+ * field). Much lower than MAX_INTEREST_RATE (100%), which is sized for an
+ * annual rate. Shared by creating a funding and by recording a rate change,
+ * so the second can't be used to get round the first.
+ */
+export const MAX_MONTHLY_INTEREST_RATE = 20;
+
 export interface FundingEntry {
   id: number;
   entry_type: (typeof FUNDING_ENTRY_TYPES)[number];

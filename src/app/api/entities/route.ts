@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireStrictAdminAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
-import { escapeLike } from "@/lib/escapeLike";
+import { likeOrPattern } from "@/lib/escapeLike";
 import { normalizeName } from "@/lib/normalizeName";
 
 // Entities are the single master list of parties: our own proprietorships and
@@ -214,8 +214,8 @@ export async function GET(req: Request) {
       query = query.eq("is_active", isActive === "true");
     }
     if (search) {
-      const safe = escapeLike(search);
-      query = query.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%`);
+      const pattern = likeOrPattern(search);
+      query = query.or(`name.ilike.${pattern},phone.ilike.${pattern}`);
     }
 
     if (pageParam) {
