@@ -66,6 +66,17 @@ describe("POST /api/loans/[id]/payments/[paymentId]/reverse", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s on a fractional, zero or negative ID instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    for (const [loan, payment] of [["10", "1.5"], ["10", "0"], ["10", "-5"], ["2.5", "50"]]) {
+      const res = await POST(jsonRequest(URL, "POST"), paramsFor(loan, payment));
+      expect(res.status).toBe(400);
+    }
+  });
+
   it("treats a missing body as no reason, without erroring", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({

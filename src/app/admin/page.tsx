@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
 import {
   TruckIcon,
   UsersIcon,
@@ -25,13 +25,16 @@ import {
   LandmarkIcon,
   CalendarIcon,
   HandCoinsIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 import { MobileDashboard, type MobileDashboardAlert } from "@/components/mobileDashboard";
-import { Money } from "@/components/ui/money";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { Money } from "@ui/components/money";
+import { useIsMobile } from "@ui/hooks/useIsMobile";
+import { matchNavItem } from "@/components/layout/navConfig";
 
+// The phone tiles' module colour (`accent`) comes from navConfig, the same
+// place the "+" button reads it, so the two can't drift.
 const menuItems = [
   {
     title: "Vehicles",
@@ -188,6 +191,8 @@ const menuItems = [
   },
 ];
 
+const FALLBACK_ACCENT = "#64748b";
+
 export default function DashboardPage() {
   const { user, userRole, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
@@ -199,7 +204,8 @@ export default function DashboardPage() {
     })
     // Keep "Coming Soon" tiles out of the way at the end, without disturbing
     // relative order within the enabled/disabled groups (stable sort).
-    .sort((a, b) => Number(b.enabled) - Number(a.enabled));
+    .sort((a, b) => Number(b.enabled) - Number(a.enabled))
+    .map((item) => ({ ...item, accent: matchNavItem(item.href)?.item.accent ?? FALLBACK_ACCENT }));
 
   const canSeeVehicles =
     !authLoading && !!userRole && canRoleAccessPage("/admin/vehicles", userRole as UserRole);
@@ -302,7 +308,8 @@ export default function DashboardPage() {
     <div className="container mx-auto space-y-6 md:space-y-8">
       {isMobile && (
         <MobileDashboard
-          name={user?.displayName ?? null}
+          name={user?.displayName || user?.email || null}
+          role={userRole ?? null}
           loading={authLoading}
           alertsLoading={alertsLoading}
           alerts={alerts}
@@ -334,7 +341,7 @@ export default function DashboardPage() {
 
       {expiringCounts && (expiringCounts.fc > 0 || expiringCounts.insurance > 0) && (
         <Card className="max-md:hidden border-amber-300/60 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5">
-          <CardContent className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
+          <CardContent className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-6 sm:pt-0">
             <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-500/10 w-fit">
               <AlertTriangleIcon size={20} className="text-amber-600 dark:text-amber-400" />
             </div>
@@ -391,7 +398,7 @@ export default function DashboardPage() {
                     data-testid="app-admin-card-1"
                     className="h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/50 dark:hover:border-primary/50 active:scale-[0.98]"
                   >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2 sm:p-6">
                       <div
                         className={`p-2 md:p-3 rounded-xl md:rounded-2xl ${item.bgColor}`}
                       >
@@ -402,7 +409,7 @@ export default function DashboardPage() {
                         className="text-muted-foreground/50 group-hover:text-foreground transition-colors"
                       />
                     </CardHeader>
-                    <CardContent className="pt-2 p-3 md:p-6 md:pt-4">
+                    <CardContent className="pt-2 p-3 md:p-6 md:pt-4 sm:p-6 sm:pt-0">
                       <CardTitle className="text-base md:text-xl font-bold text-foreground mb-1 md:mb-2 group-hover:text-primary transition-colors">
                         {item.title}
                       </CardTitle>
@@ -421,7 +428,7 @@ export default function DashboardPage() {
                 key={item.href}
                 className="h-full opacity-50 cursor-not-allowed border-dashed border-border/40"
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6 md:pb-2 sm:p-6">
                   <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-muted">
                     <item.icon size={24} className="text-muted-foreground/50" />
                   </div>
@@ -429,7 +436,7 @@ export default function DashboardPage() {
                     Coming Soon
                   </div>
                 </CardHeader>
-                <CardContent className="pt-2 p-3 md:p-6 md:pt-4">
+                <CardContent className="pt-2 p-3 md:p-6 md:pt-4 sm:p-6 sm:pt-0">
                   <CardTitle className="text-base md:text-xl font-bold text-muted-foreground/70 mb-1 md:mb-2">
                     {item.title}
                   </CardTitle>

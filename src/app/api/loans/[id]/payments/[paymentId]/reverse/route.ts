@@ -2,6 +2,8 @@ import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
+import { todayInIndia } from "@/lib/dateOnly";
+import { parseId } from "../../../../loans.utils";
 import { reverseLedgerEntry } from "@/lib/ledgerReversal";
 
 // Undoes a loan payment without deleting it. A new row is inserted pointing at
@@ -26,10 +28,10 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam, paymentId: paymentIdParam } = await params;
-    const loanId = Number(idParam);
-    const paymentId = Number(paymentIdParam);
+    const loanId = parseId(idParam);
+    const paymentId = parseId(paymentIdParam);
 
-    if (!Number.isFinite(loanId) || !Number.isFinite(paymentId)) {
+    if (loanId === null || paymentId === null) {
       return apiError("Invalid loan or payment ID", 400);
     }
 
@@ -56,7 +58,7 @@ export async function POST(
         installment_id: original.installment_id,
         payment_type: original.payment_type,
         amount: original.amount,
-        paid_on: new Date().toISOString().slice(0, 10),
+        paid_on: todayInIndia(),
         notes: reason
           ? `Reversal of #${paymentId}: ${reason}`
           : `Reversal of #${paymentId}`,

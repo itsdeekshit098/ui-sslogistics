@@ -1,8 +1,10 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { reverseLedgerEntry } from "@/lib/ledgerReversal";
+import { parseId } from "../../../../../loans/loans.utils";
 
 // Undoes a funding entry by inserting a row that points at it. Both are then
 // excluded from the principal timeline and the interest computation, so the
@@ -26,10 +28,10 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam, entryId: entryIdParam } = await params;
-    const fundingId = Number(idParam);
-    const entryId = Number(entryIdParam);
+    const fundingId = parseId(idParam);
+    const entryId = parseId(entryIdParam);
 
-    if (!Number.isFinite(fundingId) || !Number.isFinite(entryId)) {
+    if (fundingId === null || entryId === null) {
       return apiError("Invalid funding or entry ID", 400);
     }
 
@@ -55,7 +57,7 @@ export async function POST(
         funding_id: fundingId,
         entry_type: original.entry_type,
         amount: original.amount,
-        entry_date: new Date().toISOString().slice(0, 10),
+        entry_date: todayInIndia(),
         description: reason
           ? `Reversal of #${entryId}: ${reason}`
           : `Reversal of #${entryId}`,

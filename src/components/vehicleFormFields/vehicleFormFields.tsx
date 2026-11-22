@@ -1,16 +1,16 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   VEHICLE_TYPES,
   TRUCK_TYPES,
@@ -19,6 +19,7 @@ import {
   CONTAINER_BODY_TYPES,
   FUEL_TYPES,
   OWNER_TYPES,
+  VEHICLE_STATUSES,
 } from "@/app/admin/vehicles/vehicles.types";
 import { hasSeatingCapacity } from "@/app/admin/vehicles/vehicles.utils";
 import {
@@ -413,9 +414,11 @@ export const VehicleFormFields: React.FC<VehicleFormFieldsProps> = ({
               <SelectValue placeholder="Select Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Maintenance">Maintenance</SelectItem>
-              <SelectItem value="Idle">Idle</SelectItem>
+              {VEHICLE_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -1,4 +1,4 @@
-import type { ComponentIcon } from "@/components/ui/icon";
+import type { ComponentIcon } from "@ui/icons";
 
 export interface PublicNavbarProps {
   portalHref?: string;

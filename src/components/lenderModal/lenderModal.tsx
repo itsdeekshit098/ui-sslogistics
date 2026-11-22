@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { SaveIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { SaveIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Spinner } from "@ui/components/spinner";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -21,7 +21,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { Lender } from "@/components/loansPage/loansPage.types";
 import type { LenderModalProps } from "./lenderModal.types";
 
@@ -194,7 +194,7 @@ const LenderForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

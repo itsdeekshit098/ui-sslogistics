@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import JSZip from "jszip";
-import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { ConfirmModal } from "@/components/confirmModal";
-import { EmptyState } from "@/components/ui/emptyState";
-import { Modal, ModalContent } from "@/components/ui/modal";
+import { Button } from "@ui/components/button";
+import { Spinner } from "@ui/components/spinner";
+import { ConfirmModal } from "@ui/patterns/confirmModal";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { Modal, ModalContent } from "@ui/components/modal";
 import {
   UploadCloudIcon,
   EyeIcon,
@@ -15,7 +15,7 @@ import {
   FileTextIcon,
   CheckIcon,
   XIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import {
   formatFileSize,
   isImageMime,
@@ -210,7 +210,7 @@ export function AttachmentsPanel({
                 disabled={uploading}
               >
                 {uploading ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
+                  <Spinner size="sm" className="mr-2" />
                 ) : (
                   <UploadCloudIcon size={16} style={{ marginRight: "0.5rem" }} />
                 )}
@@ -240,7 +240,7 @@ export function AttachmentsPanel({
                     disabled={selectedIds.size === 0 || zipping}
                   >
                     {zipping ? (
-                      <LoadingSpinner size="sm" className="mr-2" />
+                      <Spinner size="sm" className="mr-2" />
                     ) : (
                       <DownloadIcon size={14} style={{ marginRight: "0.375rem" }} />
                     )}
@@ -268,7 +268,7 @@ export function AttachmentsPanel({
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <LoadingSpinner size="md" />
+          <Spinner size="md" />
         </div>
       ) : attachments.length === 0 ? (
         <EmptyState
@@ -288,7 +288,7 @@ export function AttachmentsPanel({
           actionDisabled={uploading}
           className={
             layout === "grid"
-              ? "min-h-64 rounded-md border border-dashed border-border bg-muted/20 px-6 py-10"
+              ? "min-h-64 rounded-md border border-dashed border-border bg-muted/20 px-6 py-10 max-md:p-8"
               : undefined
           }
         />
@@ -448,7 +448,7 @@ export function AttachmentsPanel({
             <div className="relative flex h-[min(70vh,36rem)] min-h-72 items-center justify-center overflow-auto bg-muted/60 p-4">
               {previewLoading && !previewError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-muted/60">
-                  <LoadingSpinner size="md" centered label="Loading preview" />
+                  <Spinner size="md" centered label="Loading preview" />
                 </div>
               )}
               {previewError && (

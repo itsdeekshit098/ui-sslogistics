@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { humanFill } from "../../support/human";
 import { apiFetch } from "../../support/apiFetch";
+import { pickDate } from "../../support/pickDate";
 import { LoansPage } from "../../pages/loansPage";
 import {
   ENTITY_NAME,
@@ -53,14 +54,35 @@ test.describe("New loan — validation", () => {
     await loans.pickTypeahead("Loan Type", "Vehicle Loan", "Vehicle Loan");
     await loans.pickTypeahead("In Whose Name", ENTITY_NAME, ENTITY_NAME);
     await humanFill(page.getByLabel("Principal Amount"), "100000");
-    await humanFill(page.getByLabel("Start Date"), "2026-03-01");
-    await humanFill(page.getByLabel("First EMI Date"), "2026-01-01");
+    await pickDate(page, page.getByLabel("Start Date"), "2026-03-01");
+    await pickDate(page, page.getByLabel("First EMI Date"), "2026-01-01");
     await humanFill(page.getByLabel("EMI Amount"), "10000");
     await humanFill(page.getByLabel("EMI Day of Month"), "5");
     await humanFill(page.getByLabel("Total Installments"), "6");
     await page.getByRole("button", { name: "Save Loan" }).click();
 
     await expect(page.getByText("First EMI cannot be before the start date")).toBeVisible();
+  });
+
+  test("money fields keep paise to two places and never take an exponent or a minus sign", async ({ page }) => {
+    const loans = new LoansPage(page);
+    await loans.openNewLoanModal();
+    const principal = page.getByLabel("Principal Amount");
+    await principal.pressSequentially("12.345");
+    await expect(principal).toHaveValue("12.34");
+    await principal.fill("");
+    await principal.pressSequentially("-1e5");
+    await expect(principal).toHaveValue("15");
+  });
+
+  test("the start-date picker shows what was chosen and prefills the first EMI a month on, never past that month's end", async ({
+    page,
+  }) => {
+    const loans = new LoansPage(page);
+    await loans.openNewLoanModal();
+    await pickDate(page, page.getByLabel("Start Date"), "2026-01-31");
+    await expect(page.getByLabel("Start Date")).toHaveText("31 Jan 2026");
+    await expect(page.getByLabel("First EMI Date")).toHaveText("28 Feb 2026");
   });
 
   test("rejects an EMI day outside 1–31", async ({ page }) => {

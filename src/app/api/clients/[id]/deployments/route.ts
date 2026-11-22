@@ -1,9 +1,34 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isValidDateString } from "../../../loans/loans.utils";
+import {
+  isValidDateString,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseFlag,
+  parseId,
+} from "../../../loans/loans.utils";
+
+// A monthly rate per vehicle is a small recurring figure, nothing like a loan
+// principal — ₹10 lakh/month already covers any real deployment with room to
+// spare, so anything above it is a mistyped extra digit, same reasoning as
+// MAX_LOAN_AMOUNT.
+const MAX_MONTHLY_RATE = 1_000_000;
+
+// A bus seats about 60; a mistyped extra digit ("430") is the case to catch.
+// A declared bucket is "4 buses", not a fleet of thousands.
+const MAX_SEATING_CAPACITY = 200;
+const MAX_QUANTITY = 1000;
+const MAX_NOTES_LENGTH = 500;
 
 // What runs for a client. A deployment is either a LINKED vehicle — one of ours,
 // picked from the fleet — or a DECLARED bucket describing units we don't track
@@ -44,9 +69,9 @@ function validateSpec(
 
   if ((SEATING_TYPES as readonly string[]).includes(vehicleType)) {
     if (body.seating_capacity != null && body.seating_capacity !== "") {
-      const seats = Number(body.seating_capacity);
-      if (!Number.isInteger(seats) || seats <= 0) {
-        return "Seating capacity must be a whole number greater than zero";
+      const seats = body.seating_capacity;
+      if (typeof seats !== "number" || !Number.isInteger(seats) || seats <= 0 || seats > MAX_SEATING_CAPACITY) {
+        return `Seating capacity must be a whole number from 1 to ${MAX_SEATING_CAPACITY}`;
       }
       payload.seating_capacity = seats;
     } else {
@@ -101,8 +126,8 @@ async function buildPayload(
   const hasVehicle = body.vehicle_id != null && body.vehicle_id !== "";
 
   if (hasVehicle) {
-    const vehicleId = Number(body.vehicle_id);
-    if (!Number.isFinite(vehicleId)) return { error: "Invalid vehicle" };
+    const vehicleId = parseId(body.vehicle_id);
+    if (vehicleId === null) return { error: "Invalid vehicle" };
 
     const { data: vehicle } = await supabaseAdmin
       .from("vehicles")
@@ -127,9 +152,9 @@ async function buildPayload(
   } else {
     payload.vehicle_id = null;
 
-    const quantity = Number(body.quantity ?? 1);
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      return { error: "Quantity must be a whole number of at least 1" };
+    const quantity = body.quantity ?? 1;
+    if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+      return { error: `Quantity must be a whole number from 1 to ${MAX_QUANTITY}` };
     }
     payload.quantity = quantity;
 
@@ -138,11 +163,11 @@ async function buildPayload(
   }
 
   if (body.monthly_rate != null && body.monthly_rate !== "") {
-    const rate = Number(body.monthly_rate);
-    if (!Number.isFinite(rate) || rate < 0) {
-      return { error: "Monthly rate must be a positive number" };
+    const rateProblem = moneyProblem(body.monthly_rate, { allowZero: true, max: MAX_MONTHLY_RATE });
+    if (rateProblem) {
+      return { error: moneyMessage(rateProblem, "Monthly rate must be a positive number") };
     }
-    payload.monthly_rate = rate;
+    payload.monthly_rate = body.monthly_rate as number;
   } else {
     payload.monthly_rate = null;
   }
@@ -165,12 +190,22 @@ async function buildPayload(
   }
 
   if (body.notes !== undefined) {
-    const notes = body.notes === null ? "" : String(body.notes).trim();
-    payload.notes = notes || null;
+    const notes = optionalText(body.notes, MAX_NOTES_LENGTH);
+    if ("error" in notes) {
+      return {
+        error:
+          notes.error === "too_long"
+            ? `Notes must be ${MAX_NOTES_LENGTH} characters or less`
+            : "Notes must be text",
+      };
+    }
+    payload.notes = notes.value;
   }
 
   if (body.is_active !== undefined) {
-    payload.is_active = Boolean(body.is_active);
+    const flag = parseFlag(body.is_active);
+    if (flag === null) return { error: "is_active must be true or false" };
+    payload.is_active = flag;
   }
 
   return { payload };
@@ -184,8 +219,8 @@ export async function GET(
     await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
@@ -212,12 +247,13 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const { data: client } = await supabaseAdmin
       .from("clients")
@@ -284,14 +320,15 @@ export async function PUT(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const deploymentId = Number(body.id);
-    if (!body.id || !Number.isFinite(deploymentId)) {
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
+    const deploymentId = parseId(body.id);
+    if (deploymentId === null) {
       return apiError("Missing deployment ID", 400);
     }
 
@@ -357,12 +394,12 @@ export async function DELETE(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
+    const clientId = parseId(idParam);
 
     const { searchParams } = new URL(req.url);
-    const deploymentId = Number(searchParams.get("deployment_id"));
+    const deploymentId = parseId(searchParams.get("deployment_id"));
 
-    if (!Number.isFinite(clientId) || !Number.isFinite(deploymentId)) {
+    if (clientId === null || deploymentId === null) {
       return apiError("Invalid client or deployment ID", 400);
     }
 

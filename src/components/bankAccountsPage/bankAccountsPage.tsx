@@ -7,18 +7,18 @@ import {
   PencilIcon,
   Trash2Icon,
   XIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import { Input } from "@ui/components/input";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef, RowAction } from "@ui/patterns/dataTable";
 import {
   formatBankAccountLabel,
   getAccountTypeLabel,
@@ -30,7 +30,7 @@ const BankAccountModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -204,7 +204,7 @@ export function BankAccountsPage() {
     },
   ];
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
 
   if (error && accounts.length === 0) {
     return <ErrorState title="Error" description={error} onRetry={() => fetchAccounts()} />;
@@ -239,7 +239,7 @@ export function BankAccountsPage() {
               placeholder="Search by bank, nickname or number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-background pl-9 pr-9"
+              className="bg-background pl-9 pr-9 max-md:bg-card"
             />
             {searchQuery && (
               <Button

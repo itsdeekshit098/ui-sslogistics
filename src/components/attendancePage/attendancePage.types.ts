@@ -115,6 +115,17 @@ export interface DriverShiftCount {
   created_at: string;
 }
 
+/**
+ * Days already marked with a shift the driver no longer runs under a newly
+ * saved count. Saving a count never edits marks; this only tells the admin
+ * which days to review.
+ */
+export interface ShiftCountConflicts {
+  count: number;
+  /** YYYY-MM-DD, oldest first, capped so the response stays small. */
+  dates: string[];
+}
+
 export interface SetShiftCountPayload {
   shift_count: ShiftCount;
   /** YYYY-MM — the first month the count applies to. */

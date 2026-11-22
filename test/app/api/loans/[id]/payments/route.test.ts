@@ -590,3 +590,101 @@ describe("PUT /api/loans/[id]/payments", () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe("POST /api/loans/[id]/payments — dates, amounts and ids", () => {
+  const DATED_LOAN = { id: 10, status: "ACTIVE", start_date: "2026-03-01" };
+
+  async function pay(body: Record<string, unknown>, loanRow: Record<string, unknown> = DATED_LOAN) {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      loans: [{ data: loanRow, error: null }],
+      loan_payments: [{ data: { id: 1, loan_id: 10 }, error: null }],
+    });
+    const { POST } = await importRoute();
+    return POST(jsonRequest(URL, "POST", body), paramsFor("10"));
+  }
+
+  it("400s on a payment dated in the future", async () => {
+    const res = await pay({ payment_type: "PREPAYMENT", amount: 100, paid_on: "2999-01-01" });
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/future/);
+  });
+
+  it("400s on a payment dated before the loan started", async () => {
+    const res = await pay({ payment_type: "PREPAYMENT", amount: 100, paid_on: "2026-02-28" });
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/before the loan started/);
+  });
+
+  it("accepts a payment dated on the loan's first day", async () => {
+    const res = await pay({ payment_type: "PREPAYMENT", amount: 100, paid_on: "2026-03-01" });
+    expect(res.status).toBe(201);
+  });
+
+  it("400s on an amount above the ceiling or finer than a paisa", async () => {
+    for (const amount of [1e20, 1_000_000_001, 100.555]) {
+      const res = await pay({ payment_type: "PREPAYMENT", amount });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("400s on a fractional installment id instead of a 500", async () => {
+    for (const installment_id of [1.5, "abc", 0, null]) {
+      const res = await pay({ payment_type: "EMI", amount: 100, installment_id });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("400s on a malformed body", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(new NextRequest(URL, { method: "POST", body: "{oops" }), paramsFor("10"));
+
+    expect(res.status).toBe(400);
+  });
+});
+
+
+describe("free-text fields of a payment", () => {
+  const post = (extra: Record<string, unknown>) =>
+    [
+      jsonRequest(URL, "POST", { payment_type: "PREPAYMENT", amount: 100, paid_on: "2026-03-05", ...extra }),
+      paramsFor("10"),
+    ] as const;
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ loans: [{ data: LOAN_ROW, error: null }] });
+  });
+
+  it("refuses a reference, payment method or notes that is not text", async () => {
+    const { POST } = await importRoute();
+    for (const field of ["reference", "payment_method", "notes"]) {
+      mockSupabaseAdmin({ loans: [{ data: LOAN_ROW, error: null }] });
+      const res = await POST(...post({ [field]: { a: 1 } }));
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("refuses a reference over 100 characters instead of cutting it", async () => {
+    const { POST } = await importRoute();
+    const res = await POST(...post({ reference: "x".repeat(101) }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/100 characters/);
+  });
+
+  it("accepts a reference of exactly 100 and still cuts notes quietly at 500", async () => {
+    const supa = mockSupabaseAdmin({
+      loans: [{ data: LOAN_ROW, error: null }],
+      loan_payments: [{ data: { id: 1 }, error: null }],
+    });
+    const { POST } = await importRoute();
+    const res = await POST(...post({ reference: "x".repeat(100), notes: "n".repeat(600) }));
+    expect(res.status).toBe(201);
+    expect(supa).toBeDefined();
+  });
+});

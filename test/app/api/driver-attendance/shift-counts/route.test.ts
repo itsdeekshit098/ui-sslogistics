@@ -268,6 +268,118 @@ describe("POST /api/driver-attendance/shift-counts/[driverId]", () => {
       paramsFor("1"),
     );
 
-    expect(supa.callCount("driver_shift_counts")).toBe(2);
+    // lookup + write, plus the look at the next change for the review check
+    expect(supa.callCount("driver_shift_counts")).toBe(3);
+  });
+});
+
+describe("POST shift-counts — marks left on shifts the driver no longer runs", () => {
+  const savedRow = { id: 5, driver_id: 1, shift_count: 1, effective_from: "2026-10-01" };
+
+  function mockSave(attendanceRows: Array<{ attendance_date: string }> | null) {
+    mockSupabaseAdmin({
+      drivers: [{ data: { id: 1 }, error: null }],
+      // existing-row lookup, next-change lookup, then the write
+      driver_shift_counts: [
+        { data: null, error: null },
+        { data: savedRow, error: null },
+        { data: null, error: null },
+      ],
+      driver_attendance: [
+        attendanceRows
+          ? { data: attendanceRows, error: null }
+          : { data: null, error: { message: "boom" } },
+      ],
+    });
+  }
+
+  it("reports the days still marked beyond the new count, without changing them", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSave([{ attendance_date: "2026-10-03" }, { attendance_date: "2026-10-12" }]);
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { shift_count: 1, effective_month: "2026-10" }),
+      paramsFor("1"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body.data.conflicts).toEqual({ count: 2, dates: ["2026-10-03", "2026-10-12"] });
+  });
+
+  it("reports nothing to review when no marks exceed the count", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSave([]);
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { shift_count: 2, effective_month: "2026-10" }),
+      paramsFor("1"),
+    );
+    const body = await res.json();
+
+    expect(body.data.conflicts).toEqual({ count: 0, dates: [] });
+  });
+
+  it("never looks at attendance for a three-shift count", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSave([{ attendance_date: "2026-10-03" }]);
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { shift_count: 3, effective_month: "2026-10" }),
+      paramsFor("1"),
+    );
+    const body = await res.json();
+
+    expect(body.data.conflicts.count).toBe(0);
+  });
+
+  it("still succeeds when the review query itself fails", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSave(null);
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, "POST", { shift_count: 1, effective_month: "2026-10" }),
+      paramsFor("1"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body.data.conflicts).toEqual({ count: 0, dates: [] });
+  });
+});
+
+describe("POST shift-counts — body and month checks", () => {
+  const post = (body?: unknown, raw?: string) =>
+    new NextRequest(URL, { method: "POST", body: raw ?? JSON.stringify(body) });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "answers 400, not 500, for %s",
+    async (_label, raw) => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin({});
+      const { POST } = await importRoute();
+      expect((await POST(post(undefined, raw), paramsFor("1"))).status).toBe(400);
+    },
+  );
+
+  it.each(["2", true, 2.5, null, { a: 1 }, 0, 4])("refuses %j as a shift count", async (shift_count) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+    const res = await POST(post({ shift_count, effective_month: "2026-06" }), paramsFor("1"));
+    expect(res.status).toBe(400);
+  });
+
+  it.each(["2999-01", "1900-01", "2019-12"])("refuses a start month of %s", async (effective_month) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+    const res = await POST(post({ shift_count: 2, effective_month }), paramsFor("1"));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/between January 2020/);
   });
 });

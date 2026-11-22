@@ -1,5 +1,5 @@
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
 
 export default function LoginLoading() {
-  return <PageLoadingSkeleton variant="login" />;
+  return <PageSkeleton variant="login" />;
 }

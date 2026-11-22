@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { AlertTriangleIcon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Money } from "@/components/ui/money";
+import { Badge } from "@ui/components/badge";
+import { Button } from "@ui/components/button";
+import { AlertTriangleIcon } from "@ui/icons";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Money } from "@ui/components/money";
 import {
   Modal,
   ModalBody,
@@ -14,10 +14,15 @@ import {
   ModalDescription,
   ModalHeader,
   ModalTitle,
-} from "@/components/ui/modal";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { addMonths } from "@/lib/dateOnly";
-import { formatCurrency, formatDate, formatMonth, todayString } from "@/lib/format";
+} from "@ui/components/modal";
+import { Spinner } from "@ui/components/spinner";
+import { FormField } from "@ui/components/formField";
+import { DatePicker } from "@ui/components/datePicker";
+import { MonthPicker } from "@ui/components/monthPicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { NumberInput } from "@ui/components/numberInput";
+import { addMonths, todayInIndia } from "@/lib/dateOnly";
+import { formatCurrency, formatDate, formatMonth } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   PAY_TYPES,
@@ -138,7 +143,7 @@ const SalaryDriverBody: React.FC<
     return (
       <ModalBody>
         <div className="flex items-center justify-center py-12">
-          <LoadingSpinner />
+          <Spinner />
         </div>
       </ModalBody>
     );
@@ -376,7 +381,8 @@ function SettlementSection({
   const { row, settlement } = detail;
   const netPay = row.net_pay ?? 0;
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(String(netPay));
+  // A negative net pay (more advances than salary) can't be "paid"; start from zero.
+  const [amount, setAmount] = useState<number | null>(Math.max(netPay, 0));
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -384,17 +390,16 @@ function SettlementSection({
   const [undoError, setUndoError] = useState<string | null>(null);
 
   const startSettling = () => {
-    setAmount(String(netPay));
+    setAmount(Math.max(netPay, 0));
     setNote("");
     setError(null);
     setOpen(true);
   };
 
-  const paid = amount === "" ? null : Number(amount);
-  const gap = paid != null && !Number.isNaN(paid) ? paid - netPay : null;
+  const gap = amount != null ? amount - netPay : null;
 
   const save = async () => {
-    if (amount === "" || Number(amount) < 0 || Number.isNaN(Number(amount))) {
+    if (amount == null || amount < 0) {
       setError("Enter the amount actually paid");
       return;
     }
@@ -403,7 +408,7 @@ function SettlementSection({
     setError(null);
     const payload: SettleSalaryPayload = {
       period_month: month,
-      amount_paid: Number(amount),
+      amount_paid: amount,
       note: note.trim() || null,
     };
     const failure = await send(`/api/driver-salaries/${driverId}/settle`, payload);
@@ -564,22 +569,21 @@ function SettlementSection({
           <p className="text-sm font-medium text-foreground">
             Settle {formatMonth(month)}&apos;s pay
           </p>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="settle-amount">Amount actually paid (₹)</Label>
-            <Input
-              id="settle-amount"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              autoFocus
-              disabled={busy}
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setError(null);
-              }}
-            />
-          </div>
+          <FormField label="Amount actually paid (₹)">
+            {(control) => (
+              <MoneyInput
+                {...control}
+                min={0}
+                autoFocus
+                disabled={busy}
+                value={amount}
+                onValueChange={(v) => {
+                  setAmount(v);
+                  setError(null);
+                }}
+              />
+            )}
+          </FormField>
           {gap != null && gap !== 0 && (
             <p
               className={cn(
@@ -594,17 +598,18 @@ function SettlementSection({
                 : `You're paying ${formatCurrency(Math.abs(gap))} less than owed — that will carry forward to ${formatMonth(addMonths(month, 1))} as a deduction from next month's pay.`}
             </p>
           )}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="settle-note">Note (optional)</Label>
-            <Input
-              id="settle-note"
-              maxLength={SALARY_DESCRIPTION_MAX_LENGTH}
-              disabled={busy}
-              placeholder="e.g. paid full amount in cash"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
+          <FormField label="Note (optional)">
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={SALARY_DESCRIPTION_MAX_LENGTH}
+                disabled={busy}
+                placeholder="e.g. paid full amount in cash"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            )}
+          </FormField>
           <ErrorNote message={error} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => setOpen(false)}>
@@ -619,17 +624,19 @@ function SettlementSection({
         <>
           <Button
             className="w-full"
-            disabled={busy || row.net_pay == null}
+            disabled={busy || row.net_pay == null || detail.is_provisional}
             onClick={startSettling}
           >
             Mark paid
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            {row.net_pay == null
-              ? row.pay_type === "PER_TRIP"
-                ? "Set a rate and enter this month's trips before settling."
-                : "Set a salary before settling this month."
-              : "Record what was actually handed over — any gap carries to next month automatically."}
+            {detail.is_provisional
+              ? "You can settle this month once it is over."
+              : row.net_pay == null
+                ? row.pay_type === "PER_TRIP"
+                  ? "Set a rate and enter this month's trips before settling."
+                  : "Set a salary before settling this month."
+                : "Record what was actually handed over — any gap carries to next month automatically."}
           </p>
         </>
       )}
@@ -673,18 +680,17 @@ function PaySetupSection({
     row.pay_type === "PER_TRIP" ? row.rate_per_trip == null : row.monthly_salary == null,
   );
   const [payType, setPayType] = useState<PayType>(row.pay_type);
-  const [amount, setAmount] = useState(() => {
-    const current = row.pay_type === "PER_TRIP" ? row.rate_per_trip : row.monthly_salary;
-    return current != null ? String(current) : "";
-  });
-  const [fromMonth, setFromMonth] = useState(month);
+  const [amount, setAmount] = useState<number | null>(() =>
+    row.pay_type === "PER_TRIP" ? row.rate_per_trip : row.monthly_salary,
+  );
+  const [fromMonth, setFromMonth] = useState<string | null>(month);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const startEditing = () => {
     setPayType(row.pay_type);
     const current = row.pay_type === "PER_TRIP" ? row.rate_per_trip : row.monthly_salary;
-    setAmount(current != null ? String(current) : "");
+    setAmount(current ?? null);
     setFromMonth(month);
     setError(null);
     setEditing(true);
@@ -693,7 +699,7 @@ function PaySetupSection({
   const hasAnyBasis = row.pay_type === "PER_TRIP" ? row.rate_per_trip != null : row.monthly_salary != null;
 
   const save = async () => {
-    if (amount === "" || Number(amount) < 0 || (payType === "PER_TRIP" && Number(amount) <= 0)) {
+    if (amount == null || amount < 0 || (payType === "PER_TRIP" && amount <= 0)) {
       setError(payType === "PER_TRIP" ? "Enter a rate greater than zero" : "Enter the monthly salary");
       return;
     }
@@ -716,7 +722,7 @@ function PaySetupSection({
       const typePayload: SetPayTypePayload = {
         pay_type: payType,
         effective_month: fromMonth,
-        ...(payType === "PER_TRIP" ? { rate_per_trip: Number(amount) } : {}),
+        ...(payType === "PER_TRIP" ? { rate_per_trip: amount } : {}),
       };
       const typeFailure = await send(`/api/driver-salaries/${driverId}/pay-type`, typePayload);
       if (typeFailure) {
@@ -734,7 +740,7 @@ function PaySetupSection({
     // lives), so there is nothing further to save here for PER_TRIP.
     if (payType === "MONTHLY") {
       const salaryPayload: SetSalaryPayload = {
-        monthly_salary: Number(amount),
+        monthly_salary: amount,
         effective_month: fromMonth,
       };
       const salaryFailure = await send(`/api/driver-salaries/${driverId}/rates`, salaryPayload);
@@ -795,33 +801,31 @@ function PaySetupSection({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="salary-amount">
-                {payType === "PER_TRIP" ? "Rate (₹ per trip)" : "Salary (₹ per month)"}
-              </Label>
-              <Input
-                id="salary-amount"
-                type="number"
-                inputMode="numeric"
-                min={payType === "PER_TRIP" ? 1 : 0}
-                disabled={busy}
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError(null);
-                }}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="salary-from">From month</Label>
-              <Input
-                id="salary-from"
-                type="month"
-                disabled={busy}
-                value={fromMonth}
-                onChange={(e) => setFromMonth(e.target.value)}
-              />
-            </div>
+            <FormField label={payType === "PER_TRIP" ? "Rate (₹ per trip)" : "Salary (₹ per month)"}>
+              {(control) => (
+                <MoneyInput
+                  {...control}
+                  min={payType === "PER_TRIP" ? 1 : 0}
+                  disabled={busy}
+                  value={amount}
+                  onValueChange={(v) => {
+                    setAmount(v);
+                    setError(null);
+                  }}
+                />
+              )}
+            </FormField>
+            <FormField label="From month">
+              {(control) => (
+                <MonthPicker
+                  {...control}
+                  currentMonth={todayInIndia().slice(0, 7)}
+                  disabled={busy}
+                  value={fromMonth}
+                  onValueChange={setFromMonth}
+                />
+              )}
+            </FormField>
           </div>
           <p className="text-xs text-muted-foreground">
             {payType !== row.pay_type
@@ -899,20 +903,19 @@ function TripCountSection({
 }) {
   const current = detail.tripCount?.trip_count ?? null;
   const [editing, setEditing] = useState(current == null);
-  const [count, setCount] = useState(current != null ? String(current) : "");
+  const [count, setCount] = useState<number | null>(current);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
-    const parsed = Number(count);
-    if (count === "" || !Number.isInteger(parsed) || parsed < 0) {
+    if (count == null || count < 0) {
       setError("Enter a whole number of trips (0 or more)");
       return;
     }
     setSaving(true);
     onBusyChange(true);
     setError(null);
-    const payload: SetTripCountPayload = { period_month: month, trip_count: parsed };
+    const payload: SetTripCountPayload = { period_month: month, trip_count: count };
     const failure = await send(`/api/driver-salaries/${driverId}/trip-count`, payload);
     if (failure) {
       setSaving(false);
@@ -936,7 +939,7 @@ function TripCountSection({
             size="sm"
             disabled={busy}
             onClick={() => {
-              setCount(current != null ? String(current) : "");
+              setCount(current);
               setError(null);
               setEditing(true);
             }}
@@ -948,23 +951,21 @@ function TripCountSection({
 
       {editing ? (
         <div className="space-y-3 rounded-xl border border-border p-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="trip-count">Trips this month</Label>
-            <Input
-              id="trip-count"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={1}
-              autoFocus
-              disabled={busy}
-              value={count}
-              onChange={(e) => {
-                setCount(e.target.value);
-                setError(null);
-              }}
-            />
-          </div>
+          <FormField label="Trips this month">
+            {(control) => (
+              <NumberInput
+                {...control}
+                min={0}
+                autoFocus
+                disabled={busy}
+                value={count}
+                onValueChange={(v) => {
+                  setCount(v);
+                  setError(null);
+                }}
+              />
+            )}
+          </FormField>
           <ErrorNote message={error} />
           <div className="flex justify-end gap-2">
             {current != null && (
@@ -1007,10 +1008,12 @@ function EntriesSection({
   onBusyChange: (busy: boolean) => void;
 }) {
   const [adding, setAdding] = useState<SalaryEntryType | null>(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
   // An entry for a past month's sheet is dated today by default; the salary
-  // month it comes out of is the sheet being looked at.
-  const [entryDate, setEntryDate] = useState(todayString());
+  // month it comes out of is the sheet being looked at. Today is the business
+  // day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [entryDate, setEntryDate] = useState<string | null>(today);
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1019,15 +1022,15 @@ function EntriesSection({
 
   const startAdding = (type: SalaryEntryType) => {
     setAdding(type);
-    setAmount("");
+    setAmount(null);
     setDescription("");
-    setEntryDate(todayString());
+    setEntryDate(today);
     setError(null);
   };
 
   const save = async () => {
     if (!adding) return;
-    if (!amount || Number(amount) <= 0) {
+    if (amount == null || amount <= 0) {
       setError("Enter an amount greater than zero");
       return;
     }
@@ -1036,8 +1039,8 @@ function EntriesSection({
     setError(null);
     const payload: CreateSalaryEntryPayload = {
       entry_type: adding,
-      amount: Number(amount),
-      entry_date: entryDate,
+      amount,
+      entry_date: entryDate ?? today,
       period_month: month,
       description: description.trim() || null,
     };
@@ -1108,45 +1111,46 @@ function EntriesSection({
               : `Deduction from ${formatMonth(month)}'s salary`}
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="entry-amount">Amount (₹)</Label>
-              <Input
-                id="entry-amount"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                autoFocus
-                disabled={busy}
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError(null);
-                }}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="entry-date">{adding === "ADVANCE" ? "Given on" : "Date"}</Label>
-              <Input
-                id="entry-date"
-                type="date"
-                max={todayString()}
-                disabled={busy}
-                value={entryDate}
-                onChange={(e) => setEntryDate(e.target.value)}
-              />
-            </div>
+            <FormField label="Amount (₹)">
+              {(control) => (
+                <MoneyInput
+                  {...control}
+                  min={0}
+                  autoFocus
+                  disabled={busy}
+                  value={amount}
+                  onValueChange={(v) => {
+                    setAmount(v);
+                    setError(null);
+                  }}
+                />
+              )}
+            </FormField>
+            <FormField label={adding === "ADVANCE" ? "Given on" : "Date"}>
+              {(control) => (
+                <DatePicker
+                  {...control}
+                  today={today}
+                  max={today}
+                  disabled={busy}
+                  value={entryDate}
+                  onValueChange={setEntryDate}
+                />
+              )}
+            </FormField>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="entry-description">Note (optional)</Label>
-            <Input
-              id="entry-description"
-              maxLength={SALARY_DESCRIPTION_MAX_LENGTH}
-              disabled={busy}
-              placeholder={adding === "ADVANCE" ? "e.g. cash for family function" : "e.g. tyre damage"}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+          <FormField label="Note (optional)">
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={SALARY_DESCRIPTION_MAX_LENGTH}
+                disabled={busy}
+                placeholder={adding === "ADVANCE" ? "e.g. cash for family function" : "e.g. tyre damage"}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            )}
+          </FormField>
           <ErrorNote message={error} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => setAdding(null)}>

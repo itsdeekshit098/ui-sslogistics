@@ -1,10 +1,24 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { ROI_BASES } from "../../fundings.utils";
-import { isNonNegativeNumber, isValidDateString } from "../../../loans/loans.utils";
+import { MAX_MONTHLY_INTEREST_RATE, ROI_BASES, rateMessage } from "../../fundings.utils";
+import {
+  isValidDateString,
+  MAX_INTEREST_RATE,
+  MAX_LOAN_AMOUNT,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseId,
+} from "../../../loans/loans.utils";
 
 // Records a renegotiated rate from a given date. Rates are never edited in
 // place: interest already accrued at the old rate has to stay accrued at the
@@ -19,12 +33,13 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const fundingId = Number(idParam);
-    if (!Number.isFinite(fundingId)) {
+    const fundingId = parseId(idParam);
+    if (fundingId === null) {
       return apiError("Invalid funding ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const { data: funding, error: fundingErr } = await supabaseAdmin
       .from("fundings")
@@ -50,19 +65,41 @@ export async function POST(
     // Which fields are required follows the funding's own mode — a percentage
     // on a fixed-amount arrangement would simply never be read.
     if (funding.interest_mode === "PERCENT") {
-      if (!isNonNegativeNumber(body.roi)) {
-        return apiError("Rate of interest is required", 400);
-      }
-      roi = Number(body.roi);
-      roiBasis = String(body.roi_basis ?? "MONTHLY");
-      if (!(ROI_BASES as readonly string[]).includes(roiBasis)) {
+      // Same limits as creating the funding (POST /api/fundings), so a rate
+      // change can't store what the opening rate would have refused.
+      const roiBasisCandidate = String(body.roi_basis ?? "MONTHLY");
+      if (!(ROI_BASES as readonly string[]).includes(roiBasisCandidate)) {
         return apiError(`Invalid ROI basis. Allowed values: ${ROI_BASES.join(", ")}`, 400);
       }
-    } else {
-      if (!isNonNegativeNumber(body.fixed_interest_amount)) {
-        return apiError("Fixed monthly interest amount is required", 400);
+      const roiProblem = moneyProblem(body.roi, {
+        allowZero: true,
+        max: roiBasisCandidate === "ANNUAL" ? MAX_INTEREST_RATE : MAX_MONTHLY_INTEREST_RATE,
+      });
+      if (roiProblem) {
+        return apiError(rateMessage(roiProblem, roiBasisCandidate as "MONTHLY" | "ANNUAL"), 400);
       }
-      fixedAmount = Number(body.fixed_interest_amount);
+      roi = body.roi as number;
+      roiBasis = roiBasisCandidate;
+    } else {
+      const fixedProblem = moneyProblem(body.fixed_interest_amount, {
+        allowZero: true,
+        max: MAX_LOAN_AMOUNT,
+      });
+      if (fixedProblem) {
+        return apiError(
+          moneyMessage(fixedProblem, "Fixed monthly interest amount is required"),
+          400,
+        );
+      }
+      fixedAmount = body.fixed_interest_amount as number;
+    }
+
+    const note = optionalText(body.note, 200);
+    if ("error" in note) {
+      return apiError(
+        note.error === "too_long" ? "Note must be 200 characters or less" : "Note must be text",
+        400,
+      );
     }
 
     const { data: rate, error } = await supabaseAdmin
@@ -74,7 +111,7 @@ export async function POST(
           roi_basis: roiBasis,
           fixed_interest_amount: fixedAmount,
           effective_from: effectiveFrom,
-          note: body.note ? String(body.note).trim().slice(0, 200) : null,
+          note: note.value,
           created_by: authUser.id,
         },
       ])

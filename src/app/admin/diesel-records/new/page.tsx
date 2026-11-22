@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ui/components/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeftIcon, SaveIcon, AlertTriangleIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+} from "@ui/components/card";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Textarea } from "@ui/components/textarea";
+import { ChevronLeftIcon, SaveIcon, AlertTriangleIcon } from "@ui/icons";
+import { Spinner } from "@ui/components/spinner";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import type { FillType, PaymentMethod } from "../dieselRecords.types";
 
 interface VehicleOption {
@@ -436,7 +436,7 @@ export default function NewDieselRecordPage() {
                 className="w-full sm:w-auto"
               >
                 {loading ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
+                  <Spinner size="sm" className="mr-2" />
                 ) : (
                   <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
                 )}

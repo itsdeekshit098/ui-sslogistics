@@ -9,7 +9,7 @@ import {
   Building2Icon,
   UserIcon,
   ArrowUpDownIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import type { ExternalTripsModalProps, ExternalTripPrefill } from "./externalTripsModal.types";
 import {
   getDefaultExternalTripFormData,
@@ -24,12 +24,12 @@ import type {
 } from "../externalTripsPage/externalTripsPage.types";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import { Typeahead } from "@/components/ui/typeahead";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Combobox } from "@ui/components/combobox";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Textarea } from "@ui/components/textarea";
+import { Spinner } from "@ui/components/spinner";
 import { AddDriverModal } from "@/components/addDriverModal";
 import {
   Modal,
@@ -39,7 +39,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import * as styles from "./externalTripsModal.style";
 import { vehicleLabel } from "@/lib/vehicleLabel";
 
@@ -400,7 +400,7 @@ const ExternalTripsForm: React.FC<{
                   {selectedVehicle.model}
                 </div>
               ) : (
-                <Typeahead disabled={loading}
+                <Combobox disabled={loading}
                   id="vehicleId"
                   options={vehicles}
                   value={formData.vehicleId}
@@ -613,7 +613,7 @@ const ExternalTripsForm: React.FC<{
             {/* ── Driver ── */}
             <div style={styles.fieldGroup}>
               <Label style={styles.fieldLabel}>Driver</Label>
-              <Typeahead disabled={loading}
+              <Combobox disabled={loading}
                 id="driverId"
                 options={driversList}
                 value={formData.driverId}
@@ -837,7 +837,7 @@ const ExternalTripsForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon
               size={16}

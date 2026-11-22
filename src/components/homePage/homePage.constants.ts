@@ -12,7 +12,7 @@ import {
   ShieldCheckIcon,
   SparklesIcon,
   TruckIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 
 import {
   ContactOption,

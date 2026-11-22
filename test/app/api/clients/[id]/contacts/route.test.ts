@@ -530,3 +530,72 @@ describe("DELETE /api/clients/[id]/contacts", () => {
     expect(res.status).toBe(500);
   });
 });
+
+describe("contacts: bad input that used to be a 500 or be stored as junk", () => {
+  const call = (method: string, body: unknown, id = "1", raw?: string, query = "") =>
+    [
+      new NextRequest(`http://localhost/api/clients/${id}/contacts${query}`, {
+        method,
+        ...(method === "GET" || method === "DELETE" ? {} : { body: raw ?? JSON.stringify(body) }),
+      }),
+      params(id),
+    ] as const;
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "POST and PUT answer 400 for %s",
+    async (_label, raw) => {
+      const { POST, PUT } = await importRoute();
+      expect((await POST(...call("POST", undefined, "1", raw))).status).toBe(400);
+      expect((await PUT(...call("PUT", undefined, "1", raw))).status).toBe(400);
+    },
+  );
+
+  it.each(["1.5", "0", "abc"])("every method refuses %s as the client id", async (id) => {
+    const { GET, POST, PUT, DELETE } = await importRoute();
+    expect((await GET(...call("GET", undefined, id))).status).toBe(400);
+    expect((await POST(...call("POST", { name: "A" }, id))).status).toBe(400);
+    expect((await PUT(...call("PUT", { id: 1, name: "A" }, id))).status).toBe(400);
+    expect((await DELETE(...call("DELETE", undefined, id, undefined, "?contact_id=1"))).status).toBe(400);
+  });
+
+  it.each(["1.5", "abc", "0", ""])("DELETE refuses contact_id=%s", async (contactId) => {
+    const { DELETE } = await importRoute();
+    const res = await DELETE(...call("DELETE", undefined, "1", undefined, `?contact_id=${contactId}`));
+    expect(res.status).toBe(400);
+  });
+
+  it.each([1.5, "", "abc", 0])("PUT refuses %j as the contact id", async (id) => {
+    const { PUT } = await importRoute();
+    expect((await PUT(...call("PUT", { id, name: "A" }))).status).toBe(400);
+  });
+
+  it.each(["role", "designation", "notes", "phone", "email"])("refuses %s that is not text", async (field) => {
+    const { POST } = await importRoute();
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    expect((await POST(...call("POST", { name: "A", [field]: { a: 1 } }))).status).toBe(400);
+  });
+
+  it.each([
+    ["name", "N".repeat(151)],
+    ["role", "r".repeat(61)],
+    ["designation", "d".repeat(101)],
+    ["notes", "n".repeat(501)],
+  ])("refuses a %s that is too long", async (field, value) => {
+    const { POST } = await importRoute();
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    expect((await POST(...call("POST", { name: "A", [field]: value }))).status).toBe(400);
+  });
+
+  it.each(["false", "true", 0, 1, {}])("refuses is_primary = %j (only true or false)", async (flag) => {
+    const { POST } = await importRoute();
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    const res = await POST(...call("POST", { name: "A", is_primary: flag }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("is_primary must be true or false");
+  });
+});

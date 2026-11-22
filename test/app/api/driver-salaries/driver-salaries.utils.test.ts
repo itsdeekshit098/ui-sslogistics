@@ -10,6 +10,9 @@ import {
   payTypeForMonth,
   tripCountForMonth,
   totalsFor,
+  moneyMessage,
+  moneyProblem,
+  MAX_SALARY_AMOUNT,
   type RateRow,
   type EntryRow,
 } from "@/app/api/driver-salaries/driver-salaries.utils";
@@ -444,5 +447,45 @@ describe("totalsFor", () => {
       net_pay: 0,
       drivers_without_salary: 0,
     });
+  });
+});
+
+describe("moneyProblem", () => {
+  it("accepts ordinary rupee and paisa amounts", () => {
+    expect(moneyProblem(30000)).toBeNull();
+    expect(moneyProblem(1200.5)).toBeNull();
+    expect(moneyProblem(0.07)).toBeNull();
+    expect(moneyProblem(MAX_SALARY_AMOUNT)).toBeNull();
+  });
+
+  it("rejects anything that isn't a finite number", () => {
+    for (const bad of ["500", null, undefined, NaN, Infinity, -Infinity, [], {}, true]) {
+      expect(moneyProblem(bad)).toBe("invalid");
+    }
+  });
+
+  it("rejects zero and negatives unless zero is allowed", () => {
+    expect(moneyProblem(0)).toBe("invalid");
+    expect(moneyProblem(-5)).toBe("invalid");
+    expect(moneyProblem(0, true)).toBeNull();
+    expect(moneyProblem(-0.01, true)).toBe("invalid");
+  });
+
+  it("rejects an amount above the ceiling, so a typo can't corrupt every total", () => {
+    expect(moneyProblem(MAX_SALARY_AMOUNT + 1)).toBe("too_large");
+    expect(moneyProblem(1e20)).toBe("too_large");
+  });
+
+  it("rejects fractions of a paisa", () => {
+    expect(moneyProblem(10.555)).toBe("too_precise");
+    expect(moneyProblem(30000.001)).toBe("too_precise");
+  });
+});
+
+describe("moneyMessage", () => {
+  it("uses the caller's wording only for an invalid value", () => {
+    expect(moneyMessage("invalid", "Enter an amount")).toBe("Enter an amount");
+    expect(moneyMessage("too_large", "Enter an amount")).toMatch(/too large/);
+    expect(moneyMessage("too_precise", "Enter an amount")).toMatch(/2 decimal places/);
   });
 });

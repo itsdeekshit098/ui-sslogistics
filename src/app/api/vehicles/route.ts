@@ -6,6 +6,7 @@ import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib
 import { logActivity } from "@/lib/activityLog";
 import { notifyRoles } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { VEHICLE_STATUSES } from "@/app/admin/vehicles/vehicles.types";
 import { computeExpiryStatus, getStatusDates, type ExpiryStatus } from "@/utils/expiryStatus";
 
 /** Allowed columns for vehicle insert/update — prevents mass assignment */
@@ -36,6 +37,16 @@ const ALLOWED_VEHICLE_FIELDS = [
 const SEATING_CAPACITY_VEHICLE_TYPES = ["CAR", "BUS", "TEMPO_TRAVELLER"] as const;
 const VALID_FUEL_TYPES = ["DIESEL", "PETROL", "CNG", "LPG", "ELECTRIC", "HYBRID", "LNG"] as const;
 const VALID_OWNER_TYPES = ["OWN", "EXTERNAL"] as const;
+
+/** Rejects a status the vehicle_status column would refuse with a raw 500. */
+function validateStatus(body: Record<string, unknown>): Response | null {
+  const value = body.status;
+  if (value === null || value === undefined || value === "") return null;
+  if (!(VEHICLE_STATUSES as readonly string[]).includes(String(value))) {
+    return apiError(`Invalid status. Allowed values: ${VEHICLE_STATUSES.join(", ")}`, 400);
+  }
+  return null;
+}
 
 /**
  * Owner fields are optional at the API level so older mobile builds and
@@ -118,7 +129,13 @@ function validateDocumentDates(body: Record<string, unknown>): Response | null {
 
     for (const [key, value] of [[startKey, startValue], [endKey, endValue]] as const) {
       if (value === null || value === undefined || value === "") continue;
-      if (isNaN(new Date(String(value)).getTime())) {
+      const parsed = new Date(String(value));
+      // A half-typed year ("0002-11-16") parses fine but is never a real date.
+      if (
+        isNaN(parsed.getTime()) ||
+        parsed.getUTCFullYear() < 1900 ||
+        parsed.getUTCFullYear() > 2100
+      ) {
         return apiError(`Invalid date for ${key}`, 400);
       }
     }
@@ -133,6 +150,47 @@ function validateDocumentDates(body: Record<string, unknown>): Response | null {
     }
   }
 
+  return null;
+}
+
+/**
+ * The document dialog saves one date at a time, so the pair check in
+ * validateDocumentDates never sees both. When a request carries only one of a
+ * start/end pair, compare it with the one already stored.
+ */
+async function validateDateOrderAgainstStored(
+  body: Record<string, unknown>,
+  vehicleId: number,
+): Promise<Response | null> {
+  const pairs: [string, string, string][] = [
+    ["insurance_start_date", "insurance_end_date", "Insurance"],
+    ["fc_start_date", "fc_end_date", "FC"],
+  ];
+  const has = (v: unknown) => v !== null && v !== undefined && v !== "";
+
+  for (const [startKey, endKey, label] of pairs) {
+    const hasStart = startKey in body;
+    const hasEnd = endKey in body;
+    if (hasStart === hasEnd) continue; // neither, or both (already compared)
+    const sentKey = hasStart ? startKey : endKey;
+    if (!has(body[sentKey])) continue; // clearing a date can't break the order
+
+    const otherKey = hasStart ? endKey : startKey;
+    const { data, error } = await supabaseAdmin
+      .from("vehicles")
+      .select(otherKey)
+      .eq("id", vehicleId)
+      .maybeSingle();
+    if (error) return serverError(error);
+    const other = (data as Record<string, unknown> | null)?.[otherKey];
+    if (!has(other)) continue;
+
+    const start = new Date(String(hasStart ? body[startKey] : other)).getTime();
+    const end = new Date(String(hasStart ? other : body[endKey])).getTime();
+    if (end < start) {
+      return apiError(`${label} end date must be on or after the start date`, 400);
+    }
+  }
   return null;
 }
 
@@ -206,6 +264,25 @@ function pickAllowedFields(body: Record<string, unknown>) {
 
 /** Postgres unique_violation */
 const PG_UNIQUE_VIOLATION = "23505";
+/** Postgres check_violation */
+const PG_CHECK_VIOLATION = "23514";
+
+/**
+ * The database backstop for the start <= end rule (sql/52): two saves that
+ * each passed the read-then-write check can still collide, and the CHECK
+ * constraint is what refuses the second one.
+ */
+function dateOrderViolation(error: { code?: string; message?: string }): Response | null {
+  if (error.code !== PG_CHECK_VIOLATION) return null;
+  const message = error.message ?? "";
+  if (message.includes("vehicles_fc_dates_order")) {
+    return apiError("FC end date must be on or after the start date", 400);
+  }
+  if (message.includes("vehicles_insurance_dates_order")) {
+    return apiError("Insurance end date must be on or after the start date", 400);
+  }
+  return null;
+}
 
 export async function GET(req: Request) {
   try {
@@ -355,6 +432,8 @@ export async function POST(req: Request) {
     if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
       return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
+    const statusError = validateStatus(body);
+    if (statusError) return statusError;
     const dateError = validateDocumentDates(body);
     if (dateError) return dateError;
     const docPrereqError = await validateDateRequiresDocument(body, null);
@@ -378,6 +457,8 @@ export async function POST(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
+      const orderError = dateOrderViolation(error);
+      if (orderError) return orderError;
       return serverError(error);
     }
 
@@ -450,10 +531,14 @@ export async function PUT(req: Request) {
     if (body.fuel_type && !(VALID_FUEL_TYPES as readonly string[]).includes(body.fuel_type)) {
       return apiError(`Invalid fuel type. Allowed values: ${VALID_FUEL_TYPES.join(", ")}`, 400);
     }
+    const statusError = validateStatus(body);
+    if (statusError) return statusError;
     const dateError = validateDocumentDates(body);
     if (dateError) return dateError;
     const docPrereqError = await validateDateRequiresDocument(body, Number(id));
     if (docPrereqError) return docPrereqError;
+    const dateOrderError = await validateDateOrderAgainstStored(body, Number(id));
+    if (dateOrderError) return dateOrderError;
     const ownerError = await validateOwnerFields(body);
     if (ownerError) return ownerError;
 
@@ -471,6 +556,8 @@ export async function PUT(req: Request) {
       if (error.code === PG_UNIQUE_VIOLATION) {
         return apiError("A vehicle with this number already exists", 409);
       }
+      const orderError = dateOrderViolation(error);
+      if (orderError) return orderError;
       return serverError(error);
     }
 

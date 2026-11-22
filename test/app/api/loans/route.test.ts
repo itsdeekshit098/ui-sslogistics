@@ -868,3 +868,223 @@ describe("DELETE /api/loans", () => {
     );
   });
 });
+
+describe("GET /api/loans — hardening", () => {
+  it("400s on a non-numeric filter id instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { GET } = await importRoute();
+
+    for (const param of ["borrower_entity_id", "lender_id", "vehicle_id", "debit_account_id"]) {
+      const res = await GET(new NextRequest(`http://localhost/api/loans?${param}=abc`));
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("pages and totals the overdue list itself, whichever sort is chosen", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      loans: [
+        {
+          data: [
+            { id: 3, status: "ACTIVE", start_date: "2026-03-01" },
+            { id: 2, status: "ACTIVE", start_date: "2026-02-01" },
+            { id: 1, status: "ACTIVE", start_date: "2026-01-01" },
+          ],
+          error: null,
+          // What a database-side count would have said: all three loans.
+          count: 3,
+        },
+      ],
+      loan_balances: [
+        {
+          data: [
+            { loan_id: 3, overdue_count: 0 },
+            { loan_id: 2, overdue_count: 2 },
+            { loan_id: 1, overdue_count: 1 },
+          ],
+          error: null,
+        },
+      ],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest(
+        "http://localhost/api/loans?overdue_only=true&sort=newest&page=1&page_size=1",
+      ),
+    );
+    const body = await res.json();
+
+    // Two loans are overdue, so the total is 2 and page 1 holds the newest of
+    // them — not an empty page because the newest loan was filtered out.
+    expect(body.data.total).toBe(2);
+    expect(body.data.data.map((l: { id: number }) => l.id)).toEqual([2]);
+  });
+
+  it("leaves closed and foreclosed loans out of the overdue list", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      loans: [
+        {
+          data: [
+            { id: 1, status: "ACTIVE", start_date: "2026-03-01" },
+            { id: 2, status: "CLOSED", start_date: "2026-02-01" },
+            { id: 3, status: "FORECLOSED", start_date: "2026-01-01" },
+            { id: 4, status: "DEFAULTED", start_date: "2025-12-01" },
+          ],
+          error: null,
+          count: 4,
+        },
+      ],
+      loan_balances: [
+        {
+          data: [1, 2, 3, 4].map((loan_id) => ({ loan_id, overdue_count: 2 })),
+          error: null,
+        },
+      ],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/loans?overdue_only=true&page_size=50"));
+    const body = await res.json();
+
+    expect(body.data.data.map((l: { id: number }) => l.id).sort()).toEqual([1, 4]);
+    expect(body.data.total).toBe(2);
+  });
+
+  it("answers a page past the last one with an empty list, not a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      loans: [
+        { data: null, error: { code: "PGRST103", message: "Requested range not satisfiable" } },
+        { data: null, error: null, count: 4 },
+      ],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/loans?sort=newest&page=9&page_size=4"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.data).toEqual([]);
+    expect(body.data.total).toBe(4);
+  });
+
+  it("treats a comma or bracket in the search text as text, not filter syntax", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const supa = mockSupabaseAdmin({
+      loans: [{ data: [], error: null, count: 0 }],
+    });
+    const { GET } = await importRoute();
+
+    const res = await GET(new NextRequest("http://localhost/api/loans?search=a%2Cb%29"));
+
+    expect(res.status).toBe(200);
+    expect(supa.callCount("loans")).toBe(1);
+  });
+});
+
+describe("POST /api/loans — money and body hardening", () => {
+  async function post(over: Record<string, unknown>) {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      lookup_options: [{ data: { value: "Term Loan" }, error: null }],
+      entities: [{ data: { id: 5 }, error: null }],
+    });
+    const { POST } = await importRoute();
+    return POST(jsonRequest("http://localhost/api/loans", "POST", { ...VALID_LOAN_BODY, ...over }));
+  }
+
+  it("400s on a principal of zero", async () => {
+    const res = await post({ principal_amount: 0 });
+    expect(res.status).toBe(400);
+  });
+
+  it("400s on an amount above the ceiling or finer than a paisa", async () => {
+    for (const over of [
+      { principal_amount: 1e20 },
+      { emi_amount: 1e20 },
+      { emi_amount: 1000.555 },
+      { principal_amount: 500000.001 },
+      { processing_fee: 1e20 },
+    ]) {
+      const res = await post(over);
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("400s on an interest rate above 100%", async () => {
+    const res = await post({ interest_rate: 101 });
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/Interest rate/);
+  });
+
+  it("400s on a body that isn't a JSON object instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(new NextRequest("http://localhost/api/loans", { method: "POST", body: "{oops" }));
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("PUT /api/loans — hardening", () => {
+  it("400s when only the first EMI date is edited to before the stored start date", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      loans: [
+        {
+          data: {
+            id: 10,
+            start_date: "2026-03-01",
+            status: "ACTIVE",
+            closed_on: null,
+            first_emi_date: "2026-04-05",
+            emi_day_of_month: 5,
+            emi_amount: 5000,
+            total_installments: 3,
+          },
+          error: null,
+        },
+      ],
+    });
+    const { PUT } = await importRoute();
+
+    const res = await PUT(
+      jsonRequest("http://localhost/api/loans", "PUT", { id: 10, first_emi_date: "2026-01-05" }),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("First EMI date cannot be before the loan start date");
+  });
+
+  it("400s on a fractional or zero loan id", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { PUT } = await importRoute();
+
+    for (const id of [1.5, 0, -3, "abc"]) {
+      const res = await PUT(jsonRequest("http://localhost/api/loans", "PUT", { id, notes: "x" }));
+      expect(res.status).toBe(400);
+    }
+  });
+});
+
+describe("DELETE /api/loans — hardening", () => {
+  it("400s on a fractional id instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { DELETE } = await importRoute();
+
+    const res = await DELETE(new NextRequest("http://localhost/api/loans?id=1.5", { method: "DELETE" }));
+
+    expect(res.status).toBe(400);
+  });
+});

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { humanFill } from "../../support/human";
+import { pickDate } from "../../support/pickDate";
 import { FundingsPage } from "../../pages/fundingsPage";
 import {
   FUNDING_ID,
@@ -34,7 +35,7 @@ test.describe("New private funding — creates and computes interest", () => {
 
     await fundings.pickTypeahead("Funder", LENDER_NAME, LENDER_NAME);
     await humanFill(page.getByLabel("Amount Borrowed"), "100000");
-    await humanFill(page.getByLabel("Date Borrowed"), "2026-06-10");
+    await pickDate(page, page.getByLabel("Date Borrowed"), "2026-06-10");
     await humanFill(page.getByLabel("Rate (%)"), "2");
     await page.getByRole("dialog").getByRole("button", { name: "Save Funding" }).click();
     await expect(page.getByRole("heading", { name: "New Private Funding" })).toBeHidden();
@@ -73,7 +74,7 @@ test.describe("Funding detail — entries, reversal, rate change", () => {
     await page.getByRole("button", { name: "Change Rate" }).click();
     await expect(page.getByRole("heading", { name: "Change Rate" })).toBeVisible();
     await humanFill(page.getByLabel("New Rate (%)"), "2.5");
-    await humanFill(page.getByLabel("Effective From"), "2026-08-01");
+    await pickDate(page, page.getByLabel("Effective From"), "2026-08-01");
     await page.getByRole("dialog").getByRole("button", { name: "Save Rate" }).click();
     await expect(page.getByRole("heading", { name: "Change Rate" })).toBeHidden();
 

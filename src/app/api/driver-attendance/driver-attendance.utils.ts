@@ -69,6 +69,26 @@ export function isValidMonth(value: unknown): value is string {
   return typeof value === "string" && MONTH_RE.test(value) && isValidDate(`${value}-01`);
 }
 
+/** Earliest month a salary rate, pay type or shift count may start from. */
+export const EARLIEST_START_MONTH = "2020-01";
+/** How far ahead a change may be scheduled (a raise agreed for next quarter). */
+export const MAX_MONTHS_AHEAD = 12;
+
+/**
+ * Whether a "starts from" month is believable: not before 2020 and not more
+ * than a year ahead of `today` (YYYY-MM-DD, India). Without it a typo like
+ * 2099-01 is stored as a row that never takes effect, and 1900-01 as one that
+ * governs every month ever. Returns a message, or null when fine.
+ */
+export function startMonthProblem(month: string, today: string): string | null {
+  const [year, m] = today.split("-").map(Number);
+  const last = toDateString(new Date(Date.UTC(year, m - 1 + MAX_MONTHS_AHEAD, 1))).slice(0, 7);
+  if (month < EARLIEST_START_MONTH || month > last) {
+    return "Choose a month between January 2020 and a year from now";
+  }
+  return null;
+}
+
 /** First and last day of a YYYY-MM month. */
 export function monthRange(month: string): { from: string; to: string } {
   const [year, m] = month.split("-").map(Number);
@@ -149,6 +169,9 @@ export function parseMark(
     status !== "PRESENT"
   ) {
     return "Status must be ABSENT, LEAVE, HOLIDAY, PRESENT or empty";
+  }
+  if (new Set(shifts as Shift[]).size !== (shifts as Shift[]).length) {
+    return "Each shift can be listed only once";
   }
   const unique = SHIFTS.filter((s) => (shifts as Shift[]).includes(s));
 

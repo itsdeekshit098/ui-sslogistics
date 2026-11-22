@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { humanFill } from "../../support/human";
+import { pickDate } from "../../support/pickDate";
 import { apiFetch } from "../../support/apiFetch";
 import { ClientsPage, assertApiCallsAreMocked, openClientsPage } from "../../pages/clientsPage";
 import { CLIENT_ID, CLIENT_NAME, installClientsMocks } from "../../fixtures/clients.fixtures";
@@ -28,14 +29,14 @@ test.describe("Client lifecycle", () => {
     await page.getByRole("button", { name: "Add Bill" }).first().click();
     await expect(page.getByRole("heading", { name: "Add Bill" })).toBeVisible();
     await humanFill(page.getByLabel("Amount (₹)"), "25000");
-    await humanFill(page.getByLabel("Date", { exact: true }), "2026-08-01");
+    await pickDate(page, page.getByLabel("Date", { exact: true }), "2026-08-01");
     await page.getByRole("dialog").getByRole("button", { name: "Add Bill" }).click();
     await expect(page.getByRole("heading", { name: "Add Bill" })).toBeHidden();
     await expect(page.getByText("₹25,000").first()).toBeVisible(); // Total Billed
 
     await page.getByRole("button", { name: "Record Payment" }).click();
     await humanFill(page.getByLabel("Amount (₹)"), "10000");
-    await humanFill(page.getByLabel("Date", { exact: true }), "2026-08-10");
+    await pickDate(page, page.getByLabel("Date", { exact: true }), "2026-08-10");
     await page.getByRole("dialog").getByRole("button", { name: "Record Payment" }).click();
     await expect(page.getByRole("heading", { name: "Record Payment" })).toBeHidden();
 

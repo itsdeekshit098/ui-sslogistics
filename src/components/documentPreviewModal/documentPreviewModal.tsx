@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Modal, ModalContent } from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
-import { DownloadIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Modal, ModalContent } from "@ui/components/modal";
+import { Button } from "@ui/components/button";
+import { DownloadIcon } from "@ui/icons";
+import { Spinner } from "@ui/components/spinner";
 import type { DocumentPreviewModalProps } from "./documentPreviewModal.types";
 import * as styles from "./documentPreviewModal.style";
 
@@ -79,7 +79,7 @@ export function DocumentPreviewModal({
           {/* Loading overlay (shown while iframe/image is loading) */}
           {isLoading && !hasError && (
             <div style={styles.loadingContainer}>
-              <LoadingSpinner size="md" centered label="Loading preview" />
+              <Spinner size="md" centered label="Loading preview" />
             </div>
           )}
 

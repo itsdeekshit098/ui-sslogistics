@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
+import { Badge } from "@ui/components/badge";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   ArrowLeftIcon,
   RefreshCwIcon,
@@ -26,18 +26,18 @@ import {
   UserIcon,
   ClockIcon,
   AlertTriangleIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useRouter } from "next/navigation";
-import { FeedSkeleton } from "@/components/ui/skeletonLoader";
-import { Pagination } from "@/components/ui/pagination";
+import { FeedSkeleton } from "@ui/patterns/feedSkeleton";
+import { Pagination } from "@ui/components/pagination";
 import {
   ActivityLogEntry,
   ActivityLogPurgeResponse,
   ActivityLogResponse,
 } from "./activityLog.types";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import {
   AL_CONTAINER,
@@ -56,7 +56,7 @@ import {
 // Lazy-loaded: superadmin-only, and opened rarely even by them — it has no
 // business in the chunk that has to land before the feed can paint.
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -247,7 +247,7 @@ export default function ActivityLogPage() {
     }
   };
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
 
   return (
     <div className={AL_CONTAINER}>
@@ -269,7 +269,7 @@ export default function ActivityLogPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 md:flex-wrap md:gap-3">
-          <Badge variant="secondary" className="whitespace-nowrap text-sm font-medium px-3 py-1 max-md:mr-auto">
+          <Badge variant="secondary" className="whitespace-nowrap text-sm font-medium px-3 py-1 max-md:mr-auto max-md:px-[9px] max-md:py-1 max-md:text-[11px]">
             <ActivityIcon size={14} className="mr-1.5" />
             {loading ? "..." : `${total} entries`}
           </Badge>
@@ -307,12 +307,12 @@ export default function ActivityLogPage() {
       {/* Activity Feed */}
       <Card
         data-testid="app-admin-activity-log-card-1"
-        className="flex flex-col overflow-hidden shadow-sm"
+        className="flex flex-col overflow-hidden shadow-sm max-md:shadow-[var(--m-card-shadow)]"
       >
-        <CardHeader className="p-4 md:p-6 pb-2 md:pb-3 shrink-0">
+        <CardHeader className="p-4 md:p-6 pb-2 md:pb-3 shrink-0 sm:p-6">
           <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col p-0">
+        <CardContent className="flex flex-col p-0 sm:p-6 sm:pt-0">
           {/* Phones: no inner scroll box — the page itself scrolls, so the
               auto-load trigger below is only reached at the real end. */}
           <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[300px] p-4 md:p-6 pt-0 md:pt-0 animate-in fade-in duration-200 max-md:max-h-none max-md:min-h-0 max-md:overflow-visible">

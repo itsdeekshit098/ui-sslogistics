@@ -585,6 +585,8 @@ describe("PUT /api/fundings", () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       fundings: [{ data: EXISTING_FUNDING, error: null }, { error: null }],
+      entities: [{ data: { id: 9 }, error: null }],
+      loans: [{ data: { id: 3 }, error: null }],
     });
     const { PUT } = await importRoute();
 
@@ -836,5 +838,116 @@ describe("DELETE /api/fundings", () => {
     expect(logActivity).toHaveBeenCalledWith(
       expect.objectContaining({ action: "DELETE_FUNDING", recordId: 10 }),
     );
+  });
+});
+
+describe("bad input that used to reach the database as a 500", () => {
+  const post = (body: unknown, raw?: string) =>
+    new NextRequest("http://localhost/api/fundings", {
+      method: "POST",
+      body: raw ?? JSON.stringify(body),
+    });
+  const put = (body: unknown, raw?: string) =>
+    new NextRequest("http://localhost/api/fundings", {
+      method: "PUT",
+      body: raw ?? JSON.stringify(body),
+    });
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an array", "[]"], ["an empty body", ""]])(
+    "POST and PUT answer 400 for %s",
+    async (_label, raw) => {
+      const { POST, PUT } = await importRoute();
+      expect((await POST(post(undefined, raw))).status).toBe(400);
+      expect((await PUT(put(undefined, raw))).status).toBe(400);
+    },
+  );
+
+  it.each([1.5, "1.5", "", "abc", 0, -3])("PUT refuses %j as the funding id", async (id) => {
+    const { PUT } = await importRoute();
+    const res = await PUT(put({ id, notes: "x" }));
+    expect(res.status).toBe(400);
+  });
+
+  it.each([1.5, "abc", 0])("POST refuses %j as the funder id", async (funder_id) => {
+    const { POST } = await importRoute();
+    const res = await POST(post({ ...VALID_BORROWED_BODY, funder_id }));
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses notes that are not text instead of saving [object Object]", async () => {
+    mockSupabaseAdmin({ lenders: [{ data: { id: 7 }, error: null }] });
+    const { POST, PUT } = await importRoute();
+    const created = await POST(post({ ...VALID_BORROWED_BODY, notes: { a: 1 } }));
+    expect(created.status).toBe(400);
+    expect((await created.json()).error).toBe("Notes must be text");
+    const updated = await PUT(put({ id: 10, notes: { a: 1 } }));
+    expect(updated.status).toBe(400);
+  });
+
+  it("refuses a linked loan or borrower that is not a whole id, or does not exist", async () => {
+    const { PUT } = await importRoute();
+    expect((await PUT(put({ id: 10, linked_loan_id: 1.5 }))).status).toBe(400);
+    expect((await PUT(put({ id: 10, borrower_entity_id: "x" }))).status).toBe(400);
+    expect((await PUT(put({ id: 10, counterparty_entity_id: 2.5 }))).status).toBe(400);
+
+    mockSupabaseAdmin({ loans: [{ data: null, error: null }] });
+    const missing = await PUT(put({ id: 10, linked_loan_id: 99999 }));
+    expect(missing.status).toBe(400);
+    expect((await missing.json()).error).toBe("Selected loan no longer exists");
+  });
+
+  it("answers 400, not a database error, when a funder does not exist on update", async () => {
+    mockSupabaseAdmin({ lenders: [{ data: null, error: null }] });
+    const { PUT } = await importRoute();
+    const res = await PUT(put({ id: 10, funder_id: 99999 }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Selected funder no longer exists");
+  });
+
+  it.each([["funder_id", "abc"], ["funder_id", "1.5"], ["loan_id", "abc"], ["loan_id", "1.5"]])(
+    "the list refuses %s=%s",
+    async (key, value) => {
+      const { GET } = await importRoute();
+      const res = await GET(new NextRequest(`http://localhost/api/fundings?${key}=${value}`));
+      expect(res.status).toBe(400);
+    },
+  );
+
+  it.each([["1.5"], ["abc"], ["0"]])("DELETE refuses id=%s", async (id) => {
+    const { DELETE } = await importRoute();
+    const res = await DELETE(new NextRequest(`http://localhost/api/fundings?id=${id}`, { method: "DELETE" }));
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/fundings: unknown filters", () => {
+  it.each([["status=BOGUS"], ["direction=SIDEWAYS"], ["status=open"]])(
+    "answers 400 for %s instead of an empty list",
+    async (query) => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin({});
+      const { GET } = await importRoute();
+      const res = await GET(new NextRequest(`http://localhost/api/fundings?${query}`));
+      expect(res.status).toBe(400);
+    },
+  );
+});
+
+describe("a failed reference lookup is a 500, not 'no longer exists'", () => {
+  it("POST answers 500 when the funder lookup errors", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ lenders: [{ data: null, error: { message: "timeout" } }] });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/fundings", "POST", VALID_BORROWED_BODY),
+    );
+
+    expect(res.status).toBe(500);
   });
 });

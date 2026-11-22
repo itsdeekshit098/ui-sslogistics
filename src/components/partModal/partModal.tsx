@@ -1,26 +1,26 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { SaveIcon, PlusIcon } from "@/components/ui/icon";
+import { SaveIcon, PlusIcon } from "@ui/icons";
 import type {
   PartModalProps,
   VehicleOption,
   PartFormState,
   Vendor,
 } from "./partModal.types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Textarea } from "@ui/components/textarea";
+import { Label } from "@ui/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { Typeahead } from "@/components/ui/typeahead";
+} from "@ui/components/select";
+import { Spinner } from "@ui/components/spinner";
+import { Combobox } from "@ui/components/combobox";
 import { AddVendorModal } from "@/components/addVendorModal";
 import {
   Modal,
@@ -30,7 +30,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import { computeExpiryDateFromStrings as computeExpiryDate } from "@/utils/warrantyExpiry";
 import type { WarrantyItem } from "@/components/warrantyPage/warrantyPage.types";
 import * as styles from "./partModal.style";
@@ -187,7 +187,7 @@ const PartForm: React.FC<{
             <Label>
               Vehicle <span style={styles.requiredStar}>*</span>
             </Label>
-            <Typeahead
+            <Combobox
               disabled={loading || mode === "edit"}
               options={vehicles}
               value={formData.vehicleId}
@@ -215,7 +215,7 @@ const PartForm: React.FC<{
               <Label>
                 Part Name <span style={styles.requiredStar}>*</span>
               </Label>
-              <Typeahead
+              <Combobox
                 disabled={loading}
                 id={`${mode}PartTypeahead`}
                 options={partOptions}
@@ -339,7 +339,7 @@ const PartForm: React.FC<{
                       }}
                     >
                       {isSavingPart ? (
-                        <LoadingSpinner size="sm" />
+                        <Spinner size="sm" />
                       ) : (
                         <PlusIcon size={16} />
                       )}
@@ -357,7 +357,7 @@ const PartForm: React.FC<{
               <Label>
                 Vendor <span style={styles.requiredStar}>*</span>
               </Label>
-              <Typeahead disabled={loading}
+              <Combobox disabled={loading}
                 options={vendors}
                 value={formData.vendorId}
                 onValueChange={(val) => {
@@ -539,7 +539,7 @@ const PartForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={styles.saveIconStyle} />
           )}

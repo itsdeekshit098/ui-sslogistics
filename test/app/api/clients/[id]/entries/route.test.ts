@@ -474,3 +474,148 @@ describe("POST /api/clients/[id]/entries", () => {
     expect(res.status).toBe(500);
   });
 });
+
+
+describe("POST /api/clients/[id]/entries: bad input", () => {
+  const post = (body: unknown, id = "1", raw?: string) =>
+    [
+      new NextRequest(`http://localhost/api/clients/${id}/entries`, {
+        method: "POST",
+        body: raw ?? JSON.stringify(body),
+      }),
+      params(id),
+    ] as const;
+  const BILL = { entry_type: "BILL", amount: 100 };
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1, name: "Acme" }, error: null }] });
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "answers 400 for %s",
+    async (_label, raw) => {
+      const { POST } = await importRoute();
+      expect((await POST(...post(undefined, "1", raw))).status).toBe(400);
+    },
+  );
+
+  it.each(["1.5", "0", "abc"])("refuses %s as the client id", async (id) => {
+    const { POST } = await importRoute();
+    expect((await POST(...post(BILL, id))).status).toBe(400);
+  });
+
+  it("refuses text fields that are not text", async () => {
+    const { POST } = await importRoute();
+    for (const field of ["reference", "payment_method", "description", "invoice_no"]) {
+      mockSupabaseAdmin({ clients: [{ data: { id: 1, name: "Acme" }, error: null }] });
+      expect((await POST(...post({ ...BILL, [field]: { a: 1 } }))).status).toBe(400);
+    }
+  });
+
+  it("refuses a reference or invoice number over 100 characters, not cutting them", async () => {
+    const { POST } = await importRoute();
+    expect((await POST(...post({ ...BILL, reference: "x".repeat(101) }))).status).toBe(400);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1, name: "Acme" }, error: null }] });
+    expect((await POST(...post({ ...BILL, invoice_no: "i".repeat(101) }))).status).toBe(400);
+  });
+
+  it("accepts exactly 100 characters and still cuts a description quietly at 300", async () => {
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme" }, error: null }],
+      client_ledger_entries: [{ data: { id: 5, entry_type: "BILL", direction: "DEBIT" }, error: null }],
+    });
+    const { POST } = await importRoute();
+    const res = await POST(
+      ...post({ ...BILL, reference: "x".repeat(100), invoice_no: "i".repeat(100), description: "d".repeat(400) }),
+    );
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("GET /api/clients/[id]/entries with an id that is not a whole number", () => {
+  it.each(["1.5", "0", "-1", "abc"])("answers 400 for %j", async (id) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { GET } = await importRoute();
+    const res = await GET(new NextRequest("http://localhost/api/clients/x/entries"), params(id));
+    expect(res.status).toBe(400);
+  });
+});
+
+
+describe("POST /api/clients/[id]/entries: inactive client, future date, one opening balance", () => {
+  const BILL = { entry_type: "BILL", amount: 100 };
+  const call = async (body: unknown) => {
+    const { POST } = await importRoute();
+    return POST(
+      jsonRequest("http://localhost/api/clients/1/entries", "POST", body),
+      params("1"),
+    );
+  };
+
+  it("refuses a bill or payment on an inactive client, naming the client", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const supa = mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme", is_active: false }, error: null }],
+    });
+    for (const type of ["BILL", "PAYMENT"]) {
+      const res = await call({ entry_type: type, amount: 100 });
+      const body = await res.json();
+      expect(res.status).toBe(400);
+      expect(body.error).toMatch(/"Acme" is inactive/);
+    }
+    expect(supa.callCount("client_ledger_entries")).toBe(0);
+  });
+
+  it("refuses an entry dated after today in India, but accepts today", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme", is_active: true }, error: null }],
+      client_ledger_entries: [{ data: { id: 5 }, error: null }],
+    });
+    const res = await call({ ...BILL, entry_date: "2999-01-01" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/future/);
+    expect((await call({ ...BILL, entry_date: "2020-01-01" })).status).toBe(201);
+  });
+
+  it("refuses a second OPENING while the first stands", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme", is_active: true }, error: null }],
+      client_ledger_entries: [
+        { data: [{ id: 9 }], error: null }, // existing opening
+        { data: [], error: null }, // no reversal of it
+      ],
+    });
+    const res = await call({ entry_type: "OPENING", amount: 500 });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/already has an opening balance/);
+  });
+
+  it("allows a new OPENING once the earlier one has been reversed", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme", is_active: true }, error: null }],
+      client_ledger_entries: [
+        { data: [{ id: 9 }], error: null },
+        { data: [{ reverses_entry_id: 9 }], error: null },
+        { data: { id: 12, entry_type: "OPENING" }, error: null },
+      ],
+    });
+    expect((await call({ entry_type: "OPENING", amount: 500 })).status).toBe(201);
+  });
+
+  it("allows the first OPENING when none exists", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme", is_active: true }, error: null }],
+      client_ledger_entries: [
+        { data: [], error: null },
+        { data: { id: 12, entry_type: "OPENING" }, error: null },
+      ],
+    });
+    expect((await call({ entry_type: "OPENING", amount: 500 })).status).toBe(201);
+  });
+});

@@ -108,6 +108,17 @@ e2e/
    page; add one under `e2e/pages/` if not.
 4. If the test needs a raw API call outside the UI flow, use `apiFetch()`
    (see above), not `page.request`.
+5. **Never type a date into a date input by hard-coding digits** (`"16112025"`).
+   Whether the field is day-first or month-first comes from the operating
+   system — not Playwright's `locale`, not `--lang` — so a Mac in India and
+   a Linux CI runner disagree, and the test passes on one and fails on the
+   other. Use `typeDate(page, field, "2025-11-16")` from
+   `e2e/support/dateInput.ts`, which asks the browser which order it uses.
+   (`.fill("2025-11-16")` is also safe when per-key typing doesn't matter.)
+6. Run the suite the way CI does before pushing: `CI=true npm run test:e2e`
+   with the dummy Supabase variables from `.github/workflows/quality-checks.yml`.
+   It can't catch an operating-system difference like the one above, so when
+   CI fails and local passes, ask what the OS decides.
 
 ## What changed from the real-backend suite
 

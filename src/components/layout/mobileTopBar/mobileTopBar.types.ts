@@ -1,5 +1,5 @@
 export interface MobileTopBarProps {
-  /** Opens the account / full-menu sheet */
+  /** Opens the navigation drawer */
   onOpenMenu: () => void;
   className?: string;
 }

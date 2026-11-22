@@ -4,6 +4,7 @@ import {
   computeFunding,
   type FundingEntry,
   type FundingRate,
+  rateMessage,
 } from "@/app/api/fundings/fundings.utils";
 
 function entry(overrides: Partial<FundingEntry>): FundingEntry {
@@ -233,5 +234,17 @@ describe("computeFunding — FIXED mode", () => {
       asOf: "2026-01-16",
     });
     expect(result.monthly_breakdown[0].monthly_rate).toBeNull();
+  });
+});
+
+describe("rateMessage", () => {
+  it("names the limit that applies, not an 'amount'", () => {
+    expect(rateMessage("too_large", "MONTHLY")).toBe("Rate can be at most 20% per month");
+    expect(rateMessage("too_large", "ANNUAL")).toBe("Rate can be at most 100% per year");
+  });
+
+  it("keeps the other wordings", () => {
+    expect(rateMessage("invalid", "MONTHLY")).toBe("Rate of interest is required");
+    expect(rateMessage("too_precise", "ANNUAL")).toMatch(/2 decimal places/);
   });
 });

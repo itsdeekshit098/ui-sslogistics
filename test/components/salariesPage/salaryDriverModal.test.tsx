@@ -116,7 +116,7 @@ describe("SalaryDriverModal", () => {
     );
 
     fireEvent.click(await screen.findByRole("button", { name: /mark paid/i }));
-    expect(screen.getByLabelText(/amount actually paid/i)).toHaveValue(28000);
+    expect(screen.getByLabelText(/amount actually paid/i)).toHaveValue("28000");
     // Exact amount: no carry-forward preview text.
     expect(screen.queryByText(/carry forward/i)).toBeNull();
 

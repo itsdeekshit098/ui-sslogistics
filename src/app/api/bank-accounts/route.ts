@@ -3,7 +3,7 @@ import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResp
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { escapeLike } from "@/lib/escapeLike";
+import { likeOrPattern } from "@/lib/escapeLike";
 
 // Our own bank accounts, recorded so a loan can say which account its EMI
 // mandate debits (sql/34_add_bank_accounts.sql). Not a lender, not a loan
@@ -140,9 +140,9 @@ export async function GET(req: Request) {
       query = query.eq("is_active", isActive === "true");
     }
     if (search) {
-      const safe = escapeLike(search);
+      const pattern = likeOrPattern(search);
       query = query.or(
-        `nickname.ilike.%${safe}%,account_number.ilike.%${safe}%,bank_name.ilike.%${safe}%`,
+        `nickname.ilike.${pattern},account_number.ilike.${pattern},bank_name.ilike.${pattern}`,
       );
     }
 

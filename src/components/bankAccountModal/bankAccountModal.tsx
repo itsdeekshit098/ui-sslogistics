@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { SaveIcon, PlusIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
+import { SaveIcon, PlusIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Textarea } from "@ui/components/textarea";
+import { Combobox, ComboboxFooterAction } from "@ui/components/combobox";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Spinner } from "@ui/components/spinner";
 import { EntityModal } from "@/components/entityModal";
 import {
   Select,
@@ -16,7 +16,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -25,7 +25,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {
   ACCOUNT_TYPES,
@@ -175,7 +175,7 @@ const BankAccountForm: React.FC<{
             <Label htmlFor="bank-account-holder">
               Held By <span className="text-destructive">*</span>
             </Label>
-            <Typeahead<Entity>
+            <Combobox<Entity>
               id="bank-account-holder"
               options={entities}
               value={form.holderEntityId}
@@ -188,15 +188,13 @@ const BankAccountForm: React.FC<{
               disabled={loading || entitiesLoading}
               invalid={!!fieldErrors.holderEntityId}
               footer={
-                <Button
-                  variant="ghost"
-                  className={typeaheadFooterActionClassName}
+                <ComboboxFooterAction
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setShowAddEntity(true)}
                 >
                   <PlusIcon size={16} />
                   Add new firm or person
-                </Button>
+                </ComboboxFooterAction>
               }
             />
             <FieldError name="holderEntityId" />
@@ -317,7 +315,7 @@ const BankAccountForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

@@ -1,7 +1,8 @@
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
-import { isValidDateString } from "../loans.utils";
+import { todayInIndia } from "@/lib/dateOnly";
+import { isValidDateString, parseDate } from "../loans.utils";
 
 // Every EMI falling in a date window, grouped by day — "what is due on the
 // 5th", "what does this month cost me". Defaults to the current month so the
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
     const toParam = searchParams.get("to");
     const includeOverdue = searchParams.get("include_overdue") !== "false";
 
-    const defaults = monthBounds(new Date());
+    const defaults = monthBounds(parseDate(todayInIndia()));
     const from = fromParam && isValidDateString(fromParam) ? fromParam : defaults.from;
     const to = toParam && isValidDateString(toParam) ? toParam : defaults.to;
 
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
       return apiError("End date cannot be before the start date", 400);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayInIndia();
 
     // Two reads rather than one .or(): the overdue set is unbounded in the past
     // and would otherwise force a full scan on every month change.
@@ -54,7 +55,8 @@ export async function GET(req: Request) {
           .from("loan_installment_state")
           .select("*")
           .lt("due_date", today)
-          .in("status", ["OVERDUE", "BOUNCED"])
+          // PARTIAL too: a part-paid EMI past its due date still has money late.
+          .in("status", ["OVERDUE", "BOUNCED", "PARTIAL"])
           .order("due_date", { ascending: true })
       : null;
 

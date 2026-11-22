@@ -1,11 +1,25 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
-import { escapeLike } from "@/lib/escapeLike";
-import { isPositiveNumber, isValidDateString } from "../loans/loans.utils";
+import { escapeLike, likeOrPattern } from "@/lib/escapeLike";
+import {
+  isValidDateString,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseFlag,
+  parseId,
+} from "../loans/loans.utils";
 
 // Clients and what they owe us. Same access rule as the loans routes —
 // admin/superadmin on every method, GET included — since a receivables list is
@@ -21,6 +35,35 @@ const CLIENT_SELECT =
 const VALID_PARTY_KINDS = ["COMPANY", "INDIVIDUAL"] as const;
 
 const NOTES_MAX_LENGTH = 500;
+const LOCATION_MAX_LENGTH = 150;
+const ADDRESS_MAX_LENGTH = 500;
+// A GST number is 15 characters; the limit only keeps pasted junk out.
+const GST_MAX_LENGTH = 20;
+
+const DUPLICATE_NAME_MESSAGE = "A client with that name already exists";
+
+/**
+ * Whether another client already has this name, ignoring case. The database's
+ * unique constraint on `name` is case-sensitive, so "ACT" and "act" would both
+ * be accepted and the two accounts would be easy to confuse.
+ */
+async function nameTaken(name: string, exceptId?: number): Promise<boolean> {
+  let query = supabaseAdmin.from("clients").select("id").ilike("name", escapeLike(name)).limit(1);
+  if (exceptId != null) query = query.neq("id", exceptId);
+  const { data, error } = await query;
+  // A failed lookup must not read as "name is free": that would let a
+  // case-variant duplicate through. The route turns the throw into a 500.
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+/** Turns a unique-violation into the reason that actually applies. */
+function duplicateMessage(error: { message?: string; details?: string }): string {
+  const text = `${error.message ?? ""} ${error.details ?? ""}`;
+  return text.includes("uq_clients_entity")
+    ? "That person or firm already has a client account"
+    : DUPLICATE_NAME_MESSAGE;
+}
 
 interface ClientBalance {
   client_id: number;
@@ -115,15 +158,29 @@ export async function GET(req: Request) {
       query = query.eq("is_active", isActive === "true");
     }
     if (search) {
-      const escaped = escapeLike(search);
+      const pattern = likeOrPattern(search);
       query = query.or(
-        `name.ilike.%${escaped}%,location.ilike.%${escaped}%,gst_number.ilike.%${escaped}%`,
+        `name.ilike.${pattern},location.ilike.${pattern},gst_number.ilike.${pattern}`,
       );
     }
 
-    query = query.range(from, to);
+    // "Owes money" depends on a balance that lives in a view. The ids of the
+    // clients that owe are read first and the list is limited to them, so the
+    // count and the page come from the database and no row cap can cut the
+    // list before the filter runs.
+    if (hasDues) {
+      const { data: owing, error: owingError } = await supabaseAdmin
+        .from("client_balances")
+        .select("client_id")
+        .gt("outstanding", 0);
+      if (owingError) return serverError(owingError);
+      // No client has id 0, so "nobody owes" gives an empty page and still
+      // lets the summary below be built.
+      const owingIds = (owing ?? []).map((row) => row.client_id as number);
+      query = query.in("id", owingIds.length > 0 ? owingIds : [0]);
+    }
 
-    const { data, error, count } = await query;
+    const { data, error, count } = await query.range(from, to);
     if (error) return serverError(error);
 
     const rows = data ?? [];
@@ -133,7 +190,7 @@ export async function GET(req: Request) {
       fetchDeploymentMix(ids),
     ]);
 
-    let enriched = rows.map((row) => ({
+    const enriched = rows.map((row) => ({
       ...row,
       balance: balances.get(row.id as number) ?? {
         client_id: row.id,
@@ -142,11 +199,7 @@ export async function GET(req: Request) {
       deployment_mix: deploymentMix.get(row.id as number) ?? {},
     }));
 
-    // Outstanding lives in a view, not a column, so this can't be an .eq()
-    // filter — it's applied after the balances are merged.
-    if (hasDues) {
-      enriched = enriched.filter((row) => Number(row.balance.outstanding) > 0);
-    }
+    const total = count ?? enriched.length;
 
     let summary;
     if (includeSummary) {
@@ -175,7 +228,7 @@ export async function GET(req: Request) {
       };
     }
 
-    return apiSuccess({ data: enriched, total: count ?? enriched.length, summary });
+    return apiSuccess({ data: enriched, total, summary });
   } catch (err: unknown) {
     return handleApiError(err);
   }
@@ -190,7 +243,12 @@ export async function GET(req: Request) {
 async function validateClientFields(
   body: Record<string, unknown>,
   payload: Record<string, unknown>,
-  { partial, existingPartyKind }: { partial: boolean; existingPartyKind?: string },
+  {
+    partial,
+    existingPartyKind,
+    exceptId,
+    existingName,
+  }: { partial: boolean; existingPartyKind?: string; exceptId?: number; existingName?: string },
 ): Promise<string | null> {
   const has = (key: string) => !partial || body[key] !== undefined;
 
@@ -211,8 +269,8 @@ async function validateClientFields(
       }
       payload.entity_id = null;
     } else {
-      const entityId = Number(body.entity_id);
-      if (!Number.isFinite(entityId)) return "Invalid entity";
+      const entityId = parseId(body.entity_id);
+      if (entityId === null) return "Invalid entity";
       const { data: entity } = await supabaseAdmin
         .from("entities")
         .select("id")
@@ -232,8 +290,8 @@ async function validateClientFields(
     if (body.receiving_account_id == null || body.receiving_account_id === "") {
       payload.receiving_account_id = null;
     } else {
-      const accountId = Number(body.receiving_account_id);
-      if (!Number.isFinite(accountId)) return "Invalid receiving account";
+      const accountId = parseId(body.receiving_account_id);
+      if (accountId === null) return "Invalid receiving account";
       const { data: account } = await supabaseAdmin
         .from("bank_accounts")
         .select("id")
@@ -251,35 +309,59 @@ async function validateClientFields(
     if (effectivePartyKind === "COMPANY") {
       if (!name) return "Company name is required";
       if (name.length > 150) return "Company name must be 150 characters or less";
+      if (await nameTaken(name, exceptId)) return DUPLICATE_NAME_MESSAGE;
       payload.name = name;
-    } else if (name) {
-      payload.name = name;
+    }
+    // An individual's name is mirrored from their entity by a trigger that
+    // only runs when the entity changes, so a name sent here would stick and
+    // then disagree with the entity. Sending the name they already have is
+    // harmless; a different one is refused rather than dropped with a success.
+    if (
+      effectivePartyKind === "INDIVIDUAL" &&
+      existingName !== undefined &&
+      name &&
+      name !== existingName
+    ) {
+      return "An individual's name comes from their entity. Rename the entity instead.";
     }
   }
 
   if (body.client_type !== undefined) {
-    const clientType = String(body.client_type).trim();
+    const clientType = typeof body.client_type === "string" ? body.client_type.trim() : "";
     if (!clientType) return "Client type is required";
+    // The type list is editable data (lookup_options), with no foreign key, so
+    // the check lives here — as it does for a loan's type.
+    const { data: option } = await supabaseAdmin
+      .from("lookup_options")
+      .select("value")
+      .eq("category", "client_type")
+      .eq("value", clientType)
+      .maybeSingle();
+    if (!option) return "Unknown client type";
     payload.client_type = clientType;
   }
 
-  for (const key of ["location", "address", "gst_number"] as const) {
+  for (const [key, max, label] of [
+    ["location", LOCATION_MAX_LENGTH, "Location"],
+    ["address", ADDRESS_MAX_LENGTH, "Address"],
+    ["gst_number", GST_MAX_LENGTH, "GST number"],
+    ["notes", NOTES_MAX_LENGTH, "Notes"],
+  ] as const) {
     if (body[key] !== undefined) {
-      const value = body[key] === null ? "" : String(body[key]).trim();
-      payload[key] = value || null;
+      const text = optionalText(body[key], max);
+      if ("error" in text) {
+        return text.error === "too_long"
+          ? `${label} must be ${max} characters or less`
+          : `${label} must be text`;
+      }
+      payload[key] = text.value;
     }
-  }
-
-  if (body.notes !== undefined) {
-    const notes = body.notes === null ? "" : String(body.notes).trim();
-    if (notes.length > NOTES_MAX_LENGTH) {
-      return `Notes must be ${NOTES_MAX_LENGTH} characters or less`;
-    }
-    payload.notes = notes || null;
   }
 
   if (body.is_active !== undefined) {
-    payload.is_active = Boolean(body.is_active);
+    const flag = parseFlag(body.is_active);
+    if (flag === null) return "is_active must be true or false";
+    payload.is_active = flag;
   }
 
   return null;
@@ -290,11 +372,30 @@ async function validateClientFields(
 export async function POST(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const payload: Record<string, unknown> = { client_type: "VENDOR", party_kind: "COMPANY" };
     const validationError = await validateClientFields(body, payload, { partial: false });
-    if (validationError) return apiError(validationError, 400);
+    if (validationError) {
+      return apiError(validationError, validationError === DUPLICATE_NAME_MESSAGE ? 409 : 400);
+    }
+
+    // The opening balance is checked before anything is saved, so a client is
+    // never created with its starting balance silently missing.
+    const hasOpening = body.opening_balance != null && body.opening_balance !== "";
+    let openingDate: string = todayInIndia();
+    if (hasOpening) {
+      const problem = moneyProblem(body.opening_balance);
+      if (problem) {
+        return apiError(moneyMessage(problem, "Opening balance must be greater than zero"), 400);
+      }
+      openingDate = (body.opening_date ?? todayInIndia()) as string;
+      if (!isValidDateString(openingDate)) return apiError("Invalid opening balance date", 400);
+      if (openingDate > todayInIndia()) {
+        return apiError("Opening balance date cannot be in the future", 400);
+      }
+    }
 
     payload.created_by = authUser.id;
 
@@ -306,7 +407,7 @@ export async function POST(req: Request) {
 
     if (error) {
       if (error.code === "23505") {
-        return apiError("A client with that name already exists", 409);
+        return apiError(duplicateMessage(error), 409);
       }
       return serverError(error);
     }
@@ -314,33 +415,19 @@ export async function POST(req: Request) {
     // A client carried over from paper usually already owes something; that
     // becomes the first ledger entry rather than a special column.
     let openingWarning: string | null = null;
-    if (body.opening_balance != null && body.opening_balance !== "") {
-      if (!isPositiveNumber(body.opening_balance)) {
-        openingWarning = "Client created, but the opening balance was not a valid amount";
-      } else {
-        const openingDate = body.opening_date ?? new Date().toISOString().slice(0, 10);
-        if (!isValidDateString(openingDate)) {
-          openingWarning = "Client created, but the opening balance date was invalid";
-        } else {
-          const { error: entryError } = await supabaseAdmin
-            .from("client_ledger_entries")
-            .insert([
-              {
-                client_id: client.id,
-                entry_type: "OPENING",
-                direction: "DEBIT",
-                amount: Number(body.opening_balance),
-                entry_date: openingDate,
-                description: "Opening balance",
-                created_by: authUser.id,
-              },
-            ]);
-
-          if (entryError) {
-            openingWarning = "Client created, but the opening balance failed to record";
-          }
-        }
-      }
+    if (hasOpening) {
+      const { error: entryError } = await supabaseAdmin.from("client_ledger_entries").insert([
+        {
+          client_id: client.id,
+          entry_type: "OPENING",
+          direction: "DEBIT",
+          amount: Number(body.opening_balance),
+          entry_date: openingDate,
+          description: "Opening balance",
+          created_by: authUser.id,
+        },
+      ]);
+      if (entryError) openingWarning = "Client created, but the opening balance failed to record";
     }
 
     after(async () => {
@@ -366,16 +453,17 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
-    const id = Number(body.id);
-    if (!body.id || !Number.isFinite(id)) {
+    const id = parseId(body.id);
+    if (id === null) {
       return apiError("Missing client ID", 400);
     }
 
     const { data: existing, error: fetchErr } = await supabaseAdmin
       .from("clients")
-      .select("party_kind")
+      .select("party_kind, name")
       .eq("id", id)
       .maybeSingle();
 
@@ -386,8 +474,12 @@ export async function PUT(req: Request) {
     const validationError = await validateClientFields(body, payload, {
       partial: true,
       existingPartyKind: existing.party_kind as string,
+      existingName: existing.name as string,
+      exceptId: id,
     });
-    if (validationError) return apiError(validationError, 400);
+    if (validationError) {
+      return apiError(validationError, validationError === DUPLICATE_NAME_MESSAGE ? 409 : 400);
+    }
 
     if (Object.keys(payload).length === 0) {
       return apiError("No fields to update", 400);
@@ -405,7 +497,7 @@ export async function PUT(req: Request) {
 
     if (error) {
       if (error.code === "23505") {
-        return apiError("A client with that name already exists", 409);
+        return apiError(duplicateMessage(error), 409);
       }
       return serverError(error);
     }
@@ -436,10 +528,9 @@ export async function DELETE(req: Request) {
     const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
-    const idParam = searchParams.get("id");
-    const id = Number(idParam);
+    const id = parseId(searchParams.get("id"));
 
-    if (!idParam || !Number.isFinite(id)) {
+    if (id === null) {
       return apiError("Missing client ID", 400);
     }
 
@@ -474,7 +565,23 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Contacts and deployments cascade via the FK (sql/33_add_clients.sql).
+    // Contacts and vehicle assignments would be removed with the client by the
+    // FK cascade; say what is attached instead of deleting it silently.
+    const [{ count: contactCount }, { count: deploymentCount }] = await Promise.all([
+      supabaseAdmin.from("client_contacts").select("id", { count: "exact", head: true }).eq("client_id", id),
+      supabaseAdmin.from("client_deployments").select("id", { count: "exact", head: true }).eq("client_id", id),
+    ]);
+    const attached = [
+      contactCount ? `${contactCount} contact${contactCount === 1 ? "" : "s"}` : null,
+      deploymentCount ? `${deploymentCount} vehicle assignment${deploymentCount === 1 ? "" : "s"}` : null,
+    ].filter(Boolean);
+    if (attached.length > 0) {
+      return apiError(
+        `Cannot delete "${client.name}" because it has ${attached.join(" and ")}. Remove them first, or mark the client inactive.`,
+        400,
+      );
+    }
+
     const { error } = await supabaseAdmin.from("clients").delete().eq("id", id);
     if (error) return serverError(error);
 

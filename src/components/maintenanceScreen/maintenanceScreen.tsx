@@ -1,4 +1,4 @@
-import { WrenchIcon } from "@/components/ui/icon";
+import { WrenchIcon } from "@ui/icons";
 
 interface MaintenanceScreenProps {
   message?: string | null;

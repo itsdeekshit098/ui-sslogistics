@@ -7,7 +7,7 @@ import {
   ModalDescription,
   ModalHeader,
   ModalTitle,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import { AttachmentsPanel } from "@/components/attachmentsPanel";
 import type { LoanAttachmentsModalProps } from "./loanAttachmentsModal.types";
 

@@ -26,7 +26,8 @@ beforeEach(() => {
   requireStrictAdminAuth.mockReset();
   logActivity.mockReset();
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-06-15T10:00:00Z"));
+  // Mid-July: June is a finished month, so it can be settled; July is not.
+  vi.setSystemTime(new Date("2026-07-15T10:00:00Z"));
 });
 
 afterEach(() => {
@@ -68,6 +69,38 @@ describe("POST /api/driver-salaries/[driverId]/settle", () => {
     );
 
     expect(res.status).toBe(400);
+  });
+
+  it("400s on the current month — a month is settled once it is over", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, { period_month: "2026-07", amount_paid: 1000 }),
+      paramsFor("1"),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/once it is over/);
+  });
+
+  it("allows the month that just ended, on the first day of the next", async () => {
+    vi.setSystemTime(new Date("2026-07-01T00:30:00+05:30")); // 30 June 19:00 UTC, already 1 July in India
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest(URL, { period_month: "2026-06", amount_paid: -1 }),
+      paramsFor("1"),
+    );
+    const body = await res.json();
+
+    // Gets past the month check and fails on the amount instead.
+    expect(res.status).toBe(400);
+    expect(body.error).not.toMatch(/once it is over/);
   });
 
   it("400s when amount_paid is missing or negative", async () => {
@@ -141,6 +174,99 @@ describe("POST /api/driver-salaries/[driverId]/settle", () => {
     );
 
     expect(res.status).toBe(400);
+  });
+
+  it("400s on an amount above the ceiling or finer than a paisa", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    for (const amount_paid of [1e20, 10_000_001, 100.555]) {
+      const res = await POST(jsonRequest(URL, { period_month: "2026-06", amount_paid }), paramsFor("1"));
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("400s on a body that isn't a JSON object instead of a 500", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      new NextRequest(URL, { method: "POST", body: "{oops" }),
+      paramsFor("1"),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  describe("a per-trip driver", () => {
+    function mockPerTrip(tripCount: number | null) {
+      return mockSupabaseAdmin(
+        {
+          drivers: [
+            { data: { id: 1 }, error: null },
+            { data: { id: 1, name: "Ravi", place: null, is_active: true }, error: null },
+            { data: [{ id: 1, name: "Ravi", place: null, is_active: true }], error: null },
+          ],
+          driver_salary_settlements: [
+            { data: null, error: null },
+            { data: null, error: null },
+          ],
+          driver_attendance: [{ data: [], error: null }],
+          driver_shift_counts: [{ data: [], error: null }],
+          driver_pay_types: [
+            {
+              data: [{ id: 1, driver_id: 1, pay_type: "PER_TRIP", rate_per_trip: "500", effective_from: "2026-01-01" }],
+              error: null,
+            },
+          ],
+          driver_trip_counts: [
+            {
+              data:
+                tripCount == null
+                  ? null
+                  : { id: 1, driver_id: 1, period_month: "2026-06-01", trip_count: tripCount, note: null, created_at: "x" },
+              error: null,
+            },
+          ],
+          // A per-trip driver has no monthly salary at all.
+          driver_salary_rates: [{ data: [], error: null }],
+          driver_salary_entries: [{ data: [], error: null }],
+        },
+        { settle_driver_salary: [{ data: [{ settlement_id: 9, carry_forward_entry_id: null }], error: null }] },
+      );
+    }
+
+    it("can be settled once the rate and trip count are known, even with no monthly salary", async () => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockPerTrip(4);
+      const { POST } = await importRoute();
+
+      const res = await POST(
+        jsonRequest(URL, { period_month: "2026-06", amount_paid: 2000 }),
+        paramsFor("1"),
+      );
+      const body = await res.json();
+
+      expect(res.status).toBe(201);
+      expect(body.data.settlement.net_pay_computed).toBe(2000);
+    });
+
+    it("is told what is missing, in per-trip terms, when there is no trip count yet", async () => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockPerTrip(null);
+      const { POST } = await importRoute();
+
+      const res = await POST(
+        jsonRequest(URL, { period_month: "2026-06", amount_paid: 2000 }),
+        paramsFor("1"),
+      );
+      const body = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(body.error).toMatch(/trip count/);
+    });
   });
 
   // The happy path goes through settle_driver_salary (sql/50) in one

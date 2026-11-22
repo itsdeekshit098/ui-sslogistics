@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { LogOutIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { LogOutIcon } from "@ui/icons";
+import { Spinner } from "@ui/components/spinner";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ui/components/button";
 
 import {
   Modal,
@@ -13,7 +13,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 
 import type { SignOutButtonProps } from "./signOutButton.types";
 import * as styles from "./signOutButton.style";
@@ -70,11 +70,14 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
             ? styles.iconTrigger
             : isDesktop
               ? styles.desktopTrigger
-              : styles.mobileTrigger),
+              : variant === "drawer"
+                ? styles.drawerTrigger
+                : styles.mobileTrigger),
         }}
         className={cn(
           "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
           isIcon && "hover:bg-red-50",
+          variant === "drawer" && "hover:bg-transparent focus:ring-offset-0",
         )}
       >
         <LogOutIcon
@@ -125,7 +128,7 @@ const SignOutButton: React.FC<SignOutButtonProps> = ({
             >
               {isSigningOut ? (
                 <>
-                  <LoadingSpinner size="sm" />
+                  <Spinner size="sm" />
                   <span>Signing out</span>
                 </>
               ) : (

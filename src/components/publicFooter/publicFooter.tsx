@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircleIcon } from "@/components/ui/icon";
+import { MessageCircleIcon } from "@ui/icons";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 

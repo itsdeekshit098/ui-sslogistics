@@ -2,23 +2,23 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { PlusIcon, Trash2Icon, SlidersIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { PlusIcon, Trash2Icon, SlidersIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Badge } from "@ui/components/badge";
+import { Tabs } from "@ui/components/tabs";
+import { Spinner } from "@ui/components/spinner";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@ui/components/card";
 import type { LookupOption } from "@/components/lookupSelect";
 
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -185,7 +185,7 @@ export function ListSettings() {
             />
             <Button onClick={handleAdd} disabled={adding || !newLabel.trim()}>
               {adding ? (
-                <LoadingSpinner size="sm" className="mr-2" />
+                <Spinner size="sm" className="mr-2" />
               ) : (
                 <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
               )}

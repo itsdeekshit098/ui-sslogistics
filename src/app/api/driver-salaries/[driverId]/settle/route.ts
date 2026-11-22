@@ -1,13 +1,13 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { logger } from "@/lib/logger";
 import { addMonths, todayInIndia } from "@/lib/dateOnly";
-import { isNonNegativeNumber } from "../../../loans/loans.utils";
 import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
 import { isMonthSettled, loadDriverSalary } from "../../driver-salaries.data";
+import { moneyMessage, moneyProblem } from "../../driver-salaries.utils";
 import { SALARY_DESCRIPTION_MAX_LENGTH } from "@/components/salariesPage/salariesPage.types";
 
 // Closes out a driver's month: records what was actually paid, and — when
@@ -33,7 +33,8 @@ export async function POST(
       return apiError("Invalid driver ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
     const today = todayInIndia();
     const currentMonth = today.slice(0, 7);
@@ -41,14 +42,18 @@ export async function POST(
     if (!isValidMonth(periodMonth)) {
       return apiError("Invalid month (expected YYYY-MM)", 400);
     }
-    if (periodMonth > currentMonth) {
-      return apiError("Can't settle a month that hasn't started", 400);
+    // Drivers are paid for a month after it ends, so only a finished month can
+    // be settled. Settling early would lock entries while absences could still
+    // change the pay (docs/decisions/0007). Same cut-off as `is_provisional`.
+    if (periodMonth >= currentMonth) {
+      return apiError("A month can be settled once it is over", 400);
     }
 
-    if (!isNonNegativeNumber(body.amount_paid)) {
-      return apiError("Enter the amount actually paid", 400);
+    const paidProblem = moneyProblem(body.amount_paid, true);
+    if (paidProblem) {
+      return apiError(moneyMessage(paidProblem, "Enter the amount actually paid"), 400);
     }
-    const amountPaid = body.amount_paid;
+    const amountPaid = body.amount_paid as number;
 
     const note =
       typeof body.note === "string" && body.note.trim()
@@ -80,13 +85,18 @@ export async function POST(
     // net_pay as the sheet sees it right now, at the moment of settling.
     const detail = await loadDriverSalary(driverId, periodMonth);
     if (!detail) return apiError("Driver not found", 404);
-    if (detail.row.monthly_salary == null || detail.row.net_pay == null) {
-      // No salary rate means there's no figure to settle against — "owed
-      // nothing" and "nothing to compute from" are different facts, and
-      // coercing the latter to 0 would carry the whole amount_paid forward
-      // as a spurious advance. The web/mobile UIs already disable "Mark
-      // paid" for this case; this is the same rule enforced server-side.
-      return apiError("Set a salary before settling this month", 400);
+    if (detail.row.net_pay == null) {
+      // Nothing to compute from — "owed nothing" and "no figure yet" are
+      // different facts, and coercing the latter to 0 would carry the whole
+      // amount_paid forward as a spurious advance. net_pay (not the monthly
+      // salary) is the test: a per-trip driver has no monthly salary but is
+      // fully settleable once their rate and trip count are set.
+      return apiError(
+        detail.row.pay_type === "PER_TRIP"
+          ? "Set the rate per trip and this month's trip count before settling"
+          : "Set a salary before settling this month",
+        400,
+      );
     }
     const netPayComputed = detail.row.net_pay;
     const gap = amountPaid - netPayComputed; // > 0 overpaid, < 0 underpaid

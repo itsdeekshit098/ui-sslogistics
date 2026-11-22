@@ -1,13 +1,17 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
+import { todayInIndia } from "@/lib/dateOnly";
 import { logActivity } from "@/lib/activityLog";
 import {
   INSTALLMENT_MANUAL_STATUSES,
   PAYMENT_TYPES,
-  isPositiveNumber,
   isValidDateString,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseId,
 } from "../../loans.utils";
 
 // Records what actually happened against a loan: an EMI settled, a prepayment,
@@ -22,16 +26,17 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const loanId = Number(idParam);
-    if (!Number.isFinite(loanId)) {
+    const loanId = parseId(idParam);
+    if (loanId === null) {
       return apiError("Invalid loan ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
     const { data: loan, error: loanErr } = await supabaseAdmin
       .from("loans")
-      .select("id, status")
+      .select("id, status, start_date")
       .eq("id", loanId)
       .maybeSingle();
 
@@ -46,23 +51,36 @@ export async function POST(
       );
     }
 
-    if (!isPositiveNumber(body.amount)) {
-      return apiError("Amount must be greater than zero", 400);
+    const amountProblem = moneyProblem(body.amount);
+    if (amountProblem) {
+      return apiError(moneyMessage(amountProblem, "Amount must be greater than zero"), 400);
     }
-    const amount = Number(body.amount);
+    const amount = body.amount as number;
 
-    const paidOn = body.paid_on ?? new Date().toISOString().slice(0, 10);
+    // Today in India: the UTC date is still "yesterday" for the first 5½ hours
+    // of each Indian day.
+    const today = todayInIndia();
+    const paidOn = body.paid_on ?? today;
     if (!isValidDateString(paidOn)) {
       return apiError("Invalid payment date", 400);
+    }
+    // A payment is something that already happened, and can't pre-date the loan.
+    // A future date would also become the loan's "last payment" on every screen.
+    if (paidOn > today) {
+      return apiError("The payment date can't be in the future", 400);
+    }
+    if (loan.start_date && paidOn < String(loan.start_date)) {
+      return apiError("The payment date can't be before the loan started", 400);
     }
 
     let installmentId: number | null = null;
 
     if (paymentType === "EMI") {
-      installmentId = Number(body.installment_id);
-      if (!Number.isFinite(installmentId)) {
+      const emiInstallmentId = parseId(body.installment_id);
+      if (emiInstallmentId === null) {
         return apiError("An EMI payment must say which installment it settles", 400);
       }
+      installmentId = emiInstallmentId;
 
       // Read the derived state, not the raw row, so we know what is already
       // paid against this installment before allowing more.
@@ -98,8 +116,8 @@ export async function POST(
       // sql/42_fix_charge_installment_state.sql excludes it from
       // loan_installment_state's amount_paid too). Still worth confirming the
       // installment is actually on this loan before attaching it.
-      const parsed = Number(body.installment_id);
-      if (!Number.isFinite(parsed)) {
+      const parsed = parseId(body.installment_id);
+      if (parsed === null) {
         return apiError("Invalid installment ID", 400);
       }
       const { data: contextInstallment, error: contextErr } = await supabaseAdmin
@@ -115,15 +133,31 @@ export async function POST(
       installmentId = parsed;
     }
 
+    // Free text must be text, and a reference is refused rather than cut when
+    // too long (a very long one also stretches the payment history).
+    const paymentMethod = optionalText(body.payment_method, 60);
+    if ("error" in paymentMethod) return apiError("Payment method is not valid", 400);
+    const reference = optionalText(body.reference, 100);
+    if ("error" in reference) {
+      return apiError(
+        reference.error === "too_long"
+          ? "Reference must be 100 characters or less"
+          : "Reference must be text",
+        400,
+      );
+    }
+    const notes = optionalText(body.notes, 500, { truncate: true });
+    if ("error" in notes) return apiError("Notes must be text", 400);
+
     const insertPayload = {
       loan_id: loanId,
       installment_id: installmentId,
       payment_type: paymentType,
       amount,
       paid_on: paidOn,
-      payment_method: body.payment_method ? String(body.payment_method) : null,
-      reference: body.reference ? String(body.reference).trim() : null,
-      notes: body.notes ? String(body.notes).trim().slice(0, 500) : null,
+      payment_method: paymentMethod.value,
+      reference: reference.value,
+      notes: notes.value,
       created_by: authUser.id,
     };
 
@@ -166,15 +200,16 @@ export async function PUT(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const loanId = Number(idParam);
-    if (!Number.isFinite(loanId)) {
+    const loanId = parseId(idParam);
+    if (loanId === null) {
       return apiError("Invalid loan ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
-    const installmentId = Number(body.installment_id);
-    if (!Number.isFinite(installmentId)) {
+    const installmentId = parseId(body.installment_id);
+    if (installmentId === null) {
       return apiError("Missing installment ID", 400);
     }
 

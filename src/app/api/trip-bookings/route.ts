@@ -1,8 +1,10 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
 import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { likeOrPattern } from "@/lib/escapeLike";
 import { VEHICLE_TYPES, SEATING_CAPACITY_TYPES } from "@/app/admin/vehicles/vehicles.types";
 import type { VehicleType } from "@/app/admin/vehicles/vehicles.types";
 import type {
@@ -17,7 +19,7 @@ const VALID_STATUSES: TripBookingStatus[] = ["confirmed", "completed", "cancelle
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayInIndia();
 }
 
 // ─── GET ───
@@ -142,8 +144,11 @@ export async function GET(req: Request) {
       }
     }
     if (search) {
+      // Raw text in an .or() string is parsed as filter syntax: a comma
+      // 500s, and crafted text can add its own OR conditions.
+      const pattern = likeOrPattern(search);
       dataQuery = dataQuery.or(
-        `customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`,
+        `customer_name.ilike.${pattern},customer_phone.ilike.${pattern}`,
       );
     }
 

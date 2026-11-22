@@ -1,31 +1,31 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Button } from "@ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
 import {
   Trash2Icon,
   PencilIcon,
   AlertTriangleIcon,
   ArrowLeftIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Tooltip } from "@/components/ui/tooltip";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { CardListSkeleton } from "@/components/ui/skeletonLoader";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { Pagination } from "@/components/ui/pagination";
-import { Typeahead } from "@/components/ui/typeahead";
+import { Tooltip } from "@ui/components/tooltip";
+import { Spinner } from "@ui/components/spinner";
+import { CardListSkeleton } from "@ui/patterns/cardListSkeleton";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { Pagination } from "@ui/components/pagination";
+import { Combobox } from "@ui/components/combobox";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
 import type { DieselRecordWithVehicle } from "./dieselRecords.types";
-import { RefreshCwIcon, FuelIcon } from "@/components/ui/icon";
-import { DataTable } from "@/components/ui/dataTable";
-import { Badge } from "@/components/ui/badge";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
+import { RefreshCwIcon, FuelIcon } from "@ui/icons";
+import { DataTable } from "@ui/patterns/dataTable";
+import { Badge } from "@ui/components/badge";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
 import { vehicleLabel } from "@/lib/vehicleLabel";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
@@ -40,7 +40,7 @@ const EditDieselModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal").then((m) => m.ConfirmModal),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -247,7 +247,7 @@ export default function DieselRecordsPage() {
     return w;
   };
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
   if (vehiclesError && vehicles.length === 0)
     return (
       <ErrorState
@@ -276,13 +276,13 @@ export default function DieselRecordsPage() {
             testId: "admin-diesel-add-btn",
             onClick: () => setIsCreateOpen(true),
             disabled: vehiclesLoading || !!vehiclesError,
-            icon: vehiclesLoading ? <LoadingSpinner size="sm" /> : undefined,
+            icon: vehiclesLoading ? <Spinner size="sm" /> : undefined,
           }}
         />
 
         <>
             <div className="flex items-center gap-4">
-              <Typeahead
+              <Combobox
                 id="diesel-records-vehicle"
                 data-testid="diesel-records-vehicle-typeahead"
                 className="w-full sm:w-[280px]"
@@ -334,7 +334,7 @@ export default function DieselRecordsPage() {
 
             {selectedVehicleId && (
                 <Card className="ss-panel">
-                  <CardHeader className="p-3 md:p-6">
+                  <CardHeader className="p-3 md:p-6 sm:p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <CardTitle className="text-lg md:text-xl">
                         Records for{" "}
@@ -346,7 +346,7 @@ export default function DieselRecordsPage() {
                       </CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+                  <CardContent className="p-3 md:p-6 pt-0 md:pt-0 sm:p-6 sm:pt-0">
                     {/* Mobile Card View */}
                     <div className="block lg:hidden space-y-2">
                       {loading && records.length === 0 ? (
@@ -395,7 +395,7 @@ export default function DieselRecordsPage() {
                                   ) : (
                                     <Badge
                                       variant="outline"
-                                      className="text-xs text-muted-foreground"
+                                      className="text-xs text-muted-foreground max-md:text-[11px]"
                                     >
                                       No mileage
                                     </Badge>
@@ -406,7 +406,7 @@ export default function DieselRecordsPage() {
                                         ? "info"
                                         : "secondary"
                                     }
-                                    className="text-xs"
+                                    className="text-xs max-md:text-[11px]"
                                   >
                                     {record.fill_type === "full"
                                       ? "Full"
@@ -418,7 +418,7 @@ export default function DieselRecordsPage() {
                                         ? "success"
                                         : "warning"
                                     }
-                                    className="text-xs"
+                                    className="text-xs max-md:text-[11px]"
                                   >
                                     {record.cycle_status === "closed"
                                       ? "● Closed"
@@ -711,7 +711,7 @@ export default function DieselRecordsPage() {
                                     ? "info"
                                     : "secondary"
                                 }
-                                className="text-xs"
+                                className="text-xs max-md:text-[11px]"
                               >
                                 {row.fill_type === "full" ? "Full" : "Partial"}
                               </Badge>
@@ -727,7 +727,7 @@ export default function DieselRecordsPage() {
                                     ? "success"
                                     : "warning"
                                 }
-                                className="text-xs whitespace-nowrap"
+                                className="text-xs whitespace-nowrap max-md:text-[11px]"
                               >
                                 {row.cycle_status === "closed"
                                   ? "● Closed"

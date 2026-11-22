@@ -115,6 +115,85 @@ export function isPositiveNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
+/** The most any single loan figure may be: ₹100 crore. Catches a mistyped extra digit. */
+export const MAX_LOAN_AMOUNT = 1_000_000_000;
+/** Annual interest above this is a typo, not a rate. */
+export const MAX_INTEREST_RATE = 100;
+
+export type MoneyProblem = "invalid" | "too_large" | "too_precise";
+
+/**
+ * Checks a money figure arriving as JSON: a finite number, positive (or zero
+ * when `allowZero`), no more than `max` and no finer than a paisa. Without a
+ * ceiling a mistyped 1e20 is accepted and corrupts every total; without the
+ * paisa check 100.555 is stored and then shown rounded.
+ */
+export function moneyProblem(
+  value: unknown,
+  { allowZero = false, max = MAX_LOAN_AMOUNT }: { allowZero?: boolean; max?: number } = {},
+): MoneyProblem | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "invalid";
+  if (allowZero ? value < 0 : value <= 0) return "invalid";
+  if (value > max) return "too_large";
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) return "too_precise";
+  return null;
+}
+
+/** The message for a failed moneyProblem, with `invalid` worded by the caller. */
+export function moneyMessage(problem: MoneyProblem, invalidMessage: string): string {
+  if (problem === "too_large") return "That amount is too large";
+  if (problem === "too_precise") return "Amounts can have at most 2 decimal places";
+  return invalidMessage;
+}
+
+/**
+ * A database id from a URL or query string: digits only, greater than zero.
+ * `Number()` alone lets "1.5", "" and " " through, which Postgres then rejects
+ * as an integer-syntax error that surfaces as a 500.
+ */
+export function parseId(value: unknown): number | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = String(value).trim();
+  if (!/^\d{1,15}$/.test(text)) return null;
+  const id = Number(text);
+  return id > 0 ? id : null;
+}
+
+export type TextCheck = { value: string | null } | { error: "not_text" | "too_long" };
+
+/**
+ * An optional free-text field arriving as JSON. Empty or absent is `null`;
+ * anything that isn't a string is refused (`String({a:1})` would otherwise be
+ * saved as "[object Object]"); and text longer than `max` is refused rather
+ * than silently cut, so a reference number is never stored half-way (pass
+ * `truncate` for a field that has always been cut quietly, like notes).
+ */
+export function optionalText(
+  value: unknown,
+  max: number,
+  { truncate = false }: { truncate?: boolean } = {},
+): TextCheck {
+  if (value === undefined || value === null || value === "") return { value: null };
+  if (typeof value !== "string") return { error: "not_text" };
+  let text = value.trim();
+  if (text.length > max) {
+    // `truncate` keeps the older behaviour of fields that were always cut
+    // silently (notes, descriptions) while still refusing non-text.
+    if (!truncate) return { error: "too_long" };
+    text = text.slice(0, max);
+  }
+  return { value: text || null };
+}
+
+/**
+ * A true/false flag arriving as JSON. Only real booleans count: `Boolean("false")`
+ * is true and `Boolean(0)` is false, so a flag sent as text or a number would
+ * quietly do the opposite of what its sender meant. `undefined` means "not sent".
+ */
+export function parseFlag(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
 export const LOAN_SORTS = ["ending_soon", "newest"] as const;
 export type LoanSort = (typeof LOAN_SORTS)[number];
 

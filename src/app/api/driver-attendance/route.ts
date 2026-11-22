@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activityLog";
-import { apiSuccess, apiError, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiSuccess, apiError, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import type {
   AttendanceMark,
   SaveAttendancePayload,
@@ -49,7 +49,9 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   try {
     const user = await requireStrictAdminAuth();
-    const body: SaveAttendancePayload = await req.json();
+    const parsed = await readJsonObject(req);
+    if (!parsed) return apiError("The request body must be a JSON object", 400);
+    const body = parsed as unknown as SaveAttendancePayload;
 
     if (!isValidDate(body?.date)) return apiError("Invalid date (expected YYYY-MM-DD)", 400);
     const date = body.date;

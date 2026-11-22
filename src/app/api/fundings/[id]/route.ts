@@ -1,6 +1,7 @@
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { parseId } from "../../loans/loans.utils";
 import { computeFunding, type FundingEntry, type FundingRate } from "../fundings.utils";
 
 // One funding in full: the arrangement, its rate history, every entry, and the
@@ -15,8 +16,8 @@ export async function GET(
     await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const id = Number(idParam);
-    if (!Number.isFinite(id)) {
+    const id = parseId(idParam);
+    if (id === null) {
       return apiError("Invalid funding ID", 400);
     }
 

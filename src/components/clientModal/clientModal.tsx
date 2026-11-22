@@ -1,15 +1,21 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { SaveIcon, PlusIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { SaveIcon, PlusIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { FormField } from "@ui/components/formField";
+import { FormGrid } from "@ui/components/formGrid";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { Textarea } from "@ui/components/textarea";
+import { Switch } from "@ui/components/switch";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { SegmentedControl } from "@/components/ui/segmentedControl";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
+import { Spinner } from "@ui/components/spinner";
+import { SegmentedControl } from "@ui/components/segmentedControl";
+import { Combobox, ComboboxFooterAction } from "@ui/components/combobox";
 import { EntityModal } from "@/components/entityModal";
 import { BankAccountModal } from "@/components/bankAccountModal";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
@@ -22,16 +28,15 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import {
   CLIENT_NOTES_MAX_LENGTH,
   PARTY_KINDS,
   type Client,
   type PartyKind,
 } from "@/components/clientsPage/clientsPage.types";
-import { todayString } from "@/lib/format";
+import { todayInIndia } from "@/lib/dateOnly";
 import type { ClientModalProps } from "./clientModal.types";
-import * as styles from "./clientModal.style";
 
 const ClientForm: React.FC<{
   clientToEdit?: Client | null;
@@ -59,8 +64,11 @@ const ClientForm: React.FC<{
   const [address, setAddress] = useState(clientToEdit?.address ?? "");
   const [gstNumber, setGstNumber] = useState(clientToEdit?.gst_number ?? "");
   const [notes, setNotes] = useState(clientToEdit?.notes ?? "");
-  const [openingBalance, setOpeningBalance] = useState("");
-  const [openingDate, setOpeningDate] = useState(todayString());
+  const [isActive, setIsActive] = useState(clientToEdit?.is_active ?? true);
+  const [openingBalance, setOpeningBalance] = useState<number | null>(null);
+  // The business day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [openingDate, setOpeningDate] = useState<string | null>(today);
 
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -99,7 +107,7 @@ const ClientForm: React.FC<{
     } else if (!name.trim()) {
       errors.name = "Company name is required";
     }
-    if (openingBalance && Number(openingBalance) <= 0) {
+    if (openingBalance != null && openingBalance <= 0) {
       errors.openingBalance = "Opening balance must be greater than zero";
     }
     if (notes.length > CLIENT_NOTES_MAX_LENGTH) {
@@ -131,11 +139,12 @@ const ClientForm: React.FC<{
 
     if (isEdit) {
       payload.id = clientToEdit!.id;
-    } else if (openingBalance) {
+      payload.is_active = isActive;
+    } else if (openingBalance != null) {
       // A client carried over from paper usually already owes something; it
       // becomes the first ledger entry rather than a separate field.
-      payload.opening_balance = Number(openingBalance);
-      payload.opening_date = openingDate;
+      payload.opening_balance = openingBalance;
+      payload.opening_date = openingDate ?? today;
     }
 
     try {
@@ -171,9 +180,9 @@ const ClientForm: React.FC<{
       </ModalHeader>
 
       <ModalBody>
-        <div style={styles.formGrid}>
+        <FormGrid className="mt-2">
           {!isEdit && (
-            <div style={styles.fieldGroupFull}>
+            <div className="flex flex-col gap-2 sm:col-span-2">
               <Label>Who is this?</Label>
               <SegmentedControl
                 idPrefix="client-party-kind"
@@ -185,11 +194,14 @@ const ClientForm: React.FC<{
           )}
 
           {isIndividual ? (
-            <div style={styles.fieldGroupFull}>
-              <Label htmlFor="client-entity">
-                Person <span style={styles.requiredStar}>*</span>
-              </Label>
-              <Typeahead<Entity>
+            <FormField
+              className="sm:col-span-2"
+              label="Person"
+              required
+              htmlFor="client-entity"
+              error={fieldErrors.entityId}
+            >
+              <Combobox<Entity>
                 id="client-entity"
                 options={entities}
                 value={entityId}
@@ -205,45 +217,39 @@ const ClientForm: React.FC<{
                 disabled={loading || entitiesLoading}
                 invalid={!!fieldErrors.entityId}
                 footer={
-                  <Button
-                    variant="ghost"
-                    className={typeaheadFooterActionClassName}
+                  <ComboboxFooterAction
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => setShowAddEntity(true)}
                   >
                     <PlusIcon size={16} />
                     Add new firm or person
-                  </Button>
+                  </ComboboxFooterAction>
                 }
               />
-              {fieldErrors.entityId && (
-                <span style={styles.fieldError}>{fieldErrors.entityId}</span>
-              )}
-            </div>
+            </FormField>
           ) : (
-            <div style={styles.fieldGroupFull}>
-              <Label htmlFor="client-name">
-                Company Name <span style={styles.requiredStar}>*</span>
-              </Label>
-              <Input
-                id="client-name"
-                autoFocus
-                disabled={loading}
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setFieldErrors((p) => ({ ...p, name: "" }));
-                }}
-                style={fieldErrors.name ? { borderColor: "var(--destructive)" } : undefined}
-              />
-              {fieldErrors.name && (
-                <span style={styles.fieldError}>{fieldErrors.name}</span>
+            <FormField
+              className="sm:col-span-2"
+              label="Company Name"
+              required
+              error={fieldErrors.name}
+            >
+              {(control) => (
+                <Input
+                  {...control}
+                  autoFocus
+                  disabled={loading}
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setFieldErrors((p) => ({ ...p, name: "" }));
+                  }}
+                />
               )}
-            </div>
+            </FormField>
           )}
 
-          <div style={styles.fieldGroup}>
-            <Label htmlFor="client-type">Type</Label>
+          <FormField label="Type" htmlFor="client-type">
             <LookupSelect
               id="client-type"
               category="client_type"
@@ -253,43 +259,48 @@ const ClientForm: React.FC<{
               onValueChange={setClientType}
               disabled={loading}
             />
-          </div>
+          </FormField>
 
-          <div style={styles.fieldGroup}>
-            <Label htmlFor="client-location">Location</Label>
-            <Input
-              id="client-location"
-              disabled={loading}
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
+          <FormField label="Location">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                maxLength={150}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            )}
+          </FormField>
 
-          <div style={styles.fieldGroupFull}>
-            <Label htmlFor="client-address">Address</Label>
-            <Input
-              id="client-address"
-              disabled={loading}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </div>
+          <FormField className="sm:col-span-2" label="Address">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                maxLength={500}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            )}
+          </FormField>
 
           {!isIndividual && (
-            <div style={styles.fieldGroup}>
-              <Label htmlFor="client-gst">GST Number</Label>
-              <Input
-                id="client-gst"
-                disabled={loading}
-                value={gstNumber}
-                onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
-              />
-            </div>
+            <FormField label="GST Number">
+              {(control) => (
+                <Input
+                  {...control}
+                  disabled={loading}
+                  maxLength={20}
+                  value={gstNumber}
+                  onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                />
+              )}
+            </FormField>
           )}
 
-          <div style={styles.fieldGroupFull}>
-            <Label htmlFor="client-receiving-account">Pays into</Label>
-            <Typeahead<BankAccount>
+          <FormField className="sm:col-span-2" label="Pays into" htmlFor="client-receiving-account">
+            <Combobox<BankAccount>
               id="client-receiving-account"
               options={bankAccounts}
               value={receivingAccountId}
@@ -302,76 +313,94 @@ const ClientForm: React.FC<{
               disabled={loading || bankAccountsLoading}
               clearable
               footer={
-                <Button
-                  variant="ghost"
-                  className={typeaheadFooterActionClassName}
+                <ComboboxFooterAction
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setShowAddBankAccount(true)}
                 >
                   <PlusIcon size={16} />
                   Add new account
-                </Button>
+                </ComboboxFooterAction>
               }
             />
-          </div>
+          </FormField>
+
+          {isEdit && (
+            <FormField
+              className="sm:col-span-2"
+              label="Active"
+              hint="An inactive client keeps its statement but no bills or payments can be added until it is made active again."
+            >
+              {(control) => (
+                <Switch
+                  id={control.id}
+                  aria-describedby={control["aria-describedby"]}
+                  aria-label="Active"
+                  disabled={loading}
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                />
+              )}
+            </FormField>
+          )}
 
           {!isEdit && (
             <>
-              <div style={styles.fieldGroup}>
-                <Label htmlFor="client-opening">Opening Balance (₹)</Label>
-                <Input
-                  id="client-opening"
-                  type="number"
-                  disabled={loading}
-                  placeholder="What they already owe"
-                  value={openingBalance}
-                  onChange={(e) => {
-                    setOpeningBalance(e.target.value);
-                    setFieldErrors((p) => ({ ...p, openingBalance: "" }));
-                  }}
-                  style={
-                    fieldErrors.openingBalance
-                      ? { borderColor: "var(--destructive)" }
-                      : undefined
-                  }
-                />
-                {fieldErrors.openingBalance && (
-                  <span style={styles.fieldError}>{fieldErrors.openingBalance}</span>
-                )}
-              </div>
-
-              {openingBalance && (
-                <div style={styles.fieldGroup}>
-                  <Label htmlFor="client-opening-date">As Of</Label>
-                  <Input
-                    id="client-opening-date"
-                    type="date"
+              <FormField label="Opening Balance (₹)" error={fieldErrors.openingBalance}>
+                {(control) => (
+                  <MoneyInput
+                    {...control}
                     disabled={loading}
-                    value={openingDate}
-                    onChange={(e) => setOpeningDate(e.target.value)}
+                    min={0}
+                    placeholder="What they already owe"
+                    value={openingBalance}
+                    onValueChange={(v) => {
+                      setOpeningBalance(v);
+                      setFieldErrors((p) => ({ ...p, openingBalance: "" }));
+                    }}
                   />
-                </div>
+                )}
+              </FormField>
+
+              {openingBalance != null && (
+                <FormField label="As Of">
+                  {(control) => (
+                    <DatePicker
+                      {...control}
+                      today={today}
+                      disabled={loading}
+                      value={openingDate}
+                      onValueChange={setOpeningDate}
+                    />
+                  )}
+                </FormField>
               )}
             </>
           )}
 
-          <div style={styles.fieldGroupFull}>
-            <Label htmlFor="client-notes">Notes</Label>
-            <Textarea
-              id="client-notes"
-              rows={3}
-              disabled={loading}
-              maxLength={CLIENT_NOTES_MAX_LENGTH}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-            <span style={styles.charCount}>
-              {notes.length}/{CLIENT_NOTES_MAX_LENGTH}
-            </span>
-          </div>
-        </div>
+          <FormField className="sm:col-span-2" label="Notes" error={fieldErrors.notes}>
+            {(control) => (
+              <>
+                <Textarea
+                  {...control}
+                  rows={3}
+                  disabled={loading}
+                  maxLength={CLIENT_NOTES_MAX_LENGTH}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+                <span className="self-end text-xs text-muted-foreground">
+                  {notes.length}/{CLIENT_NOTES_MAX_LENGTH}
+                </span>
+              </>
+            )}
+          </FormField>
+        </FormGrid>
 
-        {submitError && <div style={styles.errorBanner}>{submitError}</div>}
+        {submitError && (
+          <Alert tone="danger" className="mt-4" scrollIntoView>
+            {submitError}
+          </Alert>
+        )}
       </ModalBody>
 
       <ModalFooter>
@@ -380,7 +409,7 @@ const ClientForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

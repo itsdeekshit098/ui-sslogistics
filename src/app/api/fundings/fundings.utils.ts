@@ -15,6 +15,7 @@
 // about and check by hand.
 
 import { parseDate, toDateString } from "@/lib/dateOnly";
+import { MAX_INTEREST_RATE, moneyMessage, type MoneyProblem } from "../loans/loans.utils";
 
 /** Interest is quoted per month, so a month is normalised to 30 days. */
 const DAYS_PER_MONTH = 30;
@@ -28,6 +29,27 @@ export const FUNDING_ENTRY_TYPES = [
 
 export const INTEREST_MODES = ["PERCENT", "FIXED"] as const;
 export const ROI_BASES = ["MONTHLY", "ANNUAL"] as const;
+
+/**
+ * A monthly rate above this is a typo (an annual-sized number in the monthly
+ * field). Much lower than MAX_INTEREST_RATE (100%), which is sized for an
+ * annual rate. Shared by creating a funding and by recording a rate change,
+ * so the second can't be used to get round the first.
+ */
+export const MAX_MONTHLY_INTEREST_RATE = 20;
+
+/**
+ * The message for a rate that failed `moneyProblem`. A rate is a percentage, so
+ * "That amount is too large" reads wrongly; this names the limit that applies.
+ */
+export function rateMessage(problem: MoneyProblem, basis: "MONTHLY" | "ANNUAL"): string {
+  if (problem === "too_large") {
+    return basis === "ANNUAL"
+      ? `Rate can be at most ${MAX_INTEREST_RATE}% per year`
+      : `Rate can be at most ${MAX_MONTHLY_INTEREST_RATE}% per month`;
+  }
+  return moneyMessage(problem, "Rate of interest is required");
+}
 
 export interface FundingEntry {
   id: number;

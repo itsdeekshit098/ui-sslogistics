@@ -1,19 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { SaveIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Typeahead } from "@/components/ui/typeahead";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { SaveIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { FormField } from "@ui/components/formField";
+import { FormGrid } from "@ui/components/formGrid";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { NumberInput } from "@ui/components/numberInput";
+import { Combobox } from "@ui/components/combobox";
+import { Spinner } from "@ui/components/spinner";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -22,7 +26,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import {
   AXLE_TYPES,
   CONTAINER_BODY_TYPES,
@@ -33,6 +37,7 @@ import {
   type VehicleType,
 } from "@/app/admin/vehicles/vehicles.types";
 import type { ClientDeployment } from "@/components/clientsPage/clientsPage.types";
+import { todayInIndia } from "@/lib/dateOnly";
 
 export interface DeploymentModalProps {
   isOpen: boolean;
@@ -68,12 +73,12 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
   const [vehicleId, setVehicleId] = useState(
     deploymentToEdit?.vehicle_id ? String(deploymentToEdit.vehicle_id) : "",
   );
-  const [quantity, setQuantity] = useState(String(deploymentToEdit?.quantity ?? 1));
+  const [quantity, setQuantity] = useState<number | null>(deploymentToEdit?.quantity ?? 1);
   const [vehicleType, setVehicleType] = useState<string>(
     deploymentToEdit?.vehicle_type ?? "",
   );
-  const [seatingCapacity, setSeatingCapacity] = useState(
-    deploymentToEdit?.seating_capacity ? String(deploymentToEdit.seating_capacity) : "",
+  const [seatingCapacity, setSeatingCapacity] = useState<number | null>(
+    deploymentToEdit?.seating_capacity || null,
   );
   const [truckType, setTruckType] = useState(deploymentToEdit?.truck_type ?? "");
   const [containerLength, setContainerLength] = useState(
@@ -83,11 +88,13 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
   const [containerBodyType, setContainerBodyType] = useState(
     deploymentToEdit?.container_body_type ?? "",
   );
-  const [monthlyRate, setMonthlyRate] = useState(
-    deploymentToEdit?.monthly_rate != null ? String(deploymentToEdit.monthly_rate) : "",
+  const [monthlyRate, setMonthlyRate] = useState<number | null>(
+    deploymentToEdit?.monthly_rate ?? null,
   );
-  const [startDate, setStartDate] = useState(deploymentToEdit?.start_date ?? "");
-  const [endDate, setEndDate] = useState(deploymentToEdit?.end_date ?? "");
+  const [startDate, setStartDate] = useState<string | null>(deploymentToEdit?.start_date ?? null);
+  const [endDate, setEndDate] = useState<string | null>(deploymentToEdit?.end_date ?? null);
+  // The business day in India, for the calendar's "Today" and highlight.
+  const today = todayInIndia();
 
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
@@ -136,7 +143,7 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
         setError("Container length, axle type and body type are all required");
         return;
       }
-      if (!quantity || Number(quantity) < 1) {
+      if (quantity == null || quantity < 1) {
         setError("Quantity must be at least 1");
         return;
       }
@@ -152,18 +159,18 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
           { vehicle_id: Number(vehicleId) }
         : {
             vehicle_id: null,
-            quantity: Number(quantity),
+            quantity,
             vehicle_type: vehicleType,
-            seating_capacity: needsSeating && seatingCapacity ? Number(seatingCapacity) : null,
+            seating_capacity: needsSeating ? seatingCapacity : null,
             truck_type: isTruck ? truckType : null,
             container_length: isContainer ? containerLength : null,
             axle_type: isContainer ? axleType : null,
             container_body_type: isContainer ? containerBodyType : null,
           };
 
-    payload.monthly_rate = monthlyRate ? Number(monthlyRate) : null;
-    payload.start_date = startDate || null;
-    payload.end_date = endDate || null;
+    payload.monthly_rate = monthlyRate;
+    payload.start_date = startDate;
+    payload.end_date = endDate;
 
     if (isEdit) payload.id = deploymentToEdit!.id;
 
@@ -220,13 +227,16 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormGrid>
           {mode === "linked" ? (
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <Label htmlFor="deployment-vehicle">
-                Vehicle <span className="text-destructive">*</span>
-              </Label>
-              <Typeahead<FleetVehicle>
+            <FormField
+              className="sm:col-span-2"
+              label="Vehicle"
+              required
+              htmlFor="deployment-vehicle"
+              hint="Its type, seating and body details come across automatically."
+            >
+              <Combobox<FleetVehicle>
                 id="deployment-vehicle"
                 options={vehicles}
                 value={vehicleId}
@@ -244,16 +254,10 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
                 disabled={loading || vehiclesLoading}
                 clearable
               />
-              <span className="text-xs text-muted-foreground">
-                Its type, seating and body details come across automatically.
-              </span>
-            </div>
+            </FormField>
           ) : (
             <>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="deployment-type">
-                  Vehicle Type <span className="text-destructive">*</span>
-                </Label>
+              <FormField label="Vehicle Type" required htmlFor="deployment-type">
                 <Select
                   disabled={loading}
                   value={vehicleType}
@@ -273,42 +277,35 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </FormField>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="deployment-quantity">
-                  How Many <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="deployment-quantity"
-                  type="number"
-                  min={1}
-                  disabled={loading}
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                />
-              </div>
+              <FormField label="How Many" required>
+                {(control) => (
+                  <NumberInput
+                    {...control}
+                    disabled={loading}
+                    value={quantity}
+                    onValueChange={setQuantity}
+                  />
+                )}
+              </FormField>
 
               {needsSeating && (
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="deployment-seating">Seating Capacity</Label>
-                  <Input
-                    id="deployment-seating"
-                    type="number"
-                    min={1}
-                    disabled={loading}
-                    placeholder="e.g. 43"
-                    value={seatingCapacity}
-                    onChange={(e) => setSeatingCapacity(e.target.value)}
-                  />
-                </div>
+                <FormField label="Seating Capacity">
+                  {(control) => (
+                    <NumberInput
+                      {...control}
+                      disabled={loading}
+                      placeholder="e.g. 43"
+                      value={seatingCapacity}
+                      onValueChange={setSeatingCapacity}
+                    />
+                  )}
+                </FormField>
               )}
 
               {isTruck && (
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="deployment-truck-type">
-                    Truck Type <span className="text-destructive">*</span>
-                  </Label>
+                <FormField label="Truck Type" required htmlFor="deployment-truck-type">
                   <Select disabled={loading} value={truckType} onValueChange={setTruckType}>
                     <SelectTrigger id="deployment-truck-type">
                       <SelectValue placeholder="Select truck type" />
@@ -321,15 +318,12 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </FormField>
               )}
 
               {isContainer && (
                 <>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="deployment-length">
-                      Length <span className="text-destructive">*</span>
-                    </Label>
+                  <FormField label="Length" required htmlFor="deployment-length">
                     <Select
                       disabled={loading}
                       value={containerLength}
@@ -346,12 +340,9 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FormField>
 
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="deployment-body">
-                      Body Type <span className="text-destructive">*</span>
-                    </Label>
+                  <FormField label="Body Type" required htmlFor="deployment-body">
                     <Select
                       disabled={loading}
                       value={containerBodyType}
@@ -368,12 +359,9 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FormField>
 
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="deployment-axle">
-                      Axle Type <span className="text-destructive">*</span>
-                    </Label>
+                  <FormField label="Axle Type" required htmlFor="deployment-axle">
                     <Select disabled={loading} value={axleType} onValueChange={setAxleType}>
                       <SelectTrigger id="deployment-axle">
                         <SelectValue placeholder="Select axle type" />
@@ -386,51 +374,56 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </FormField>
                 </>
               )}
             </>
           )}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deployment-rate">Monthly Rate (₹)</Label>
-            <Input
-              id="deployment-rate"
-              type="number"
-              disabled={loading}
-              placeholder="Per vehicle"
-              value={monthlyRate}
-              onChange={(e) => setMonthlyRate(e.target.value)}
-            />
-          </div>
+          <FormField label="Monthly Rate (₹)">
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                placeholder="Per vehicle"
+                value={monthlyRate}
+                onValueChange={setMonthlyRate}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deployment-start">Deployed From</Label>
-            <Input
-              id="deployment-start"
-              type="date"
-              disabled={loading}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
+          <FormField label="Deployed From">
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                clearable
+                disabled={loading}
+                value={startDate}
+                onValueChange={setStartDate}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deployment-end">Until</Label>
-            <Input
-              id="deployment-end"
-              type="date"
-              disabled={loading}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-        </div>
+          <FormField label="Until">
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                clearable
+                disabled={loading}
+                value={endDate}
+                onValueChange={setEndDate}
+              />
+            )}
+          </FormField>
+        </FormGrid>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert tone="danger" className="mt-4" scrollIntoView>
             {error}
-          </div>
+          </Alert>
         )}
       </ModalBody>
 
@@ -440,7 +433,7 @@ const DeploymentForm: React.FC<Omit<DeploymentModalProps, "isOpen">> = ({
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

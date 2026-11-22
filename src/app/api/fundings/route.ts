@@ -1,23 +1,52 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { parsePageParams } from "@/lib/pagination";
 import {
   DB_FUNDING_SORTS,
   FUNDING_SORTS,
   INTEREST_MODES,
+  MAX_MONTHLY_INTEREST_RATE,
   ROI_BASES,
   computeFunding,
+  rateMessage,
   sortFundings,
   type FundingSort,
   type FundingEntry,
   type FundingRate,
 } from "./fundings.utils";
-import { isNonNegativeNumber, isValidDateString } from "../loans/loans.utils";
+import {
+  isValidDateString,
+  MAX_INTEREST_RATE,
+  MAX_LOAN_AMOUNT,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseId,
+} from "../loans/loans.utils";
 
 const FUNDING_DIRECTIONS = ["BORROWED", "LENT"] as const;
+const FUNDING_STATUSES = ["OPEN", "SETTLED"] as const;
+
+type ReferenceTable = "lenders" | "entities" | "loans";
+
+/** Whether a row exists, so a bad reference is a 400 and not a foreign-key 500. */
+async function referenceExists(table: ReferenceTable, id: number): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.from(table).select("id").eq("id", id).maybeSingle();
+  // A failed lookup is a server problem, not "no longer exists"; the route's
+  // catch turns the throw into a 500.
+  if (error) throw error;
+  return Boolean(data);
+}
 
 // Private / hand loans. Same access rule as /api/loans — admin/superadmin on
 // every method, GET included.
@@ -103,14 +132,14 @@ export async function computeForFundings(fundings: FundingRow[]) {
  */
 async function buildFundingSummary(filters: {
   status: string;
-  funderId: string | null;
-  loanId: string | null;
+  funderId: number | null;
+  loanId: number | null;
   direction: string;
 }) {
   let query = supabaseAdmin.from("fundings").select("id, interest_mode, status");
   if (filters.status) query = query.eq("status", filters.status);
-  if (filters.funderId) query = query.eq("funder_id", Number(filters.funderId));
-  if (filters.loanId) query = query.eq("linked_loan_id", Number(filters.loanId));
+  if (filters.funderId) query = query.eq("funder_id", filters.funderId);
+  if (filters.loanId) query = query.eq("linked_loan_id", filters.loanId);
   if (filters.direction) query = query.eq("direction", filters.direction);
 
   const { data, error } = await query;
@@ -141,9 +170,23 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status")?.trim() ?? "";
-    const funderId = searchParams.get("funder_id");
-    const loanId = searchParams.get("loan_id");
+    const funderIdParam = searchParams.get("funder_id");
+    const loanIdParam = searchParams.get("loan_id");
+    // An empty value means "no filter"; anything else must be a real id, or the
+    // database rejects it as an integer-syntax error and the list returns 500.
+    const funderId = funderIdParam ? parseId(funderIdParam) : null;
+    const loanId = loanIdParam ? parseId(loanIdParam) : null;
+    if (funderIdParam && funderId === null) return apiError("Invalid funder_id", 400);
+    if (loanIdParam && loanId === null) return apiError("Invalid loan_id", 400);
     const direction = searchParams.get("direction")?.trim() ?? "";
+    // A made-up value used to return an empty list, which looks like "no
+    // fundings" rather than "that filter doesn't exist".
+    if (status && !FUNDING_STATUSES.includes(status as (typeof FUNDING_STATUSES)[number])) {
+      return apiError(`Invalid status. Allowed values: ${FUNDING_STATUSES.join(", ")}`, 400);
+    }
+    if (direction && !FUNDING_DIRECTIONS.includes(direction as (typeof FUNDING_DIRECTIONS)[number])) {
+      return apiError(`Invalid direction. Allowed values: ${FUNDING_DIRECTIONS.join(", ")}`, 400);
+    }
     const includeSummary = searchParams.get("include_summary") === "true";
     const sortParam = searchParams.get("sort")?.trim() || "newest";
     if (!(FUNDING_SORTS as readonly string[]).includes(sortParam)) {
@@ -167,8 +210,8 @@ export async function GET(req: Request) {
       .order("id", { ascending: sort === "oldest" });
 
     if (status) query = query.eq("status", status);
-    if (funderId) query = query.eq("funder_id", Number(funderId));
-    if (loanId) query = query.eq("linked_loan_id", Number(loanId));
+    if (funderId) query = query.eq("funder_id", funderId);
+    if (loanId) query = query.eq("linked_loan_id", loanId);
     if (direction) query = query.eq("direction", direction);
 
     if (sortInDb) query = query.range(from, to);
@@ -211,7 +254,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const direction = String(body.direction ?? "BORROWED");
     if (!FUNDING_DIRECTIONS.includes(direction as (typeof FUNDING_DIRECTIONS)[number])) {
@@ -225,27 +269,21 @@ export async function POST(req: Request) {
     let counterpartyEntityId: number | null = null;
 
     if (direction === "BORROWED") {
-      funderId = Number(body.funder_id);
-      if (!Number.isFinite(funderId)) {
+      funderId = parseId(body.funder_id);
+      if (funderId === null) {
         return apiError("Funder is required", 400);
       }
-      const { data: funder } = await supabaseAdmin
-        .from("lenders")
-        .select("id")
-        .eq("id", funderId)
-        .maybeSingle();
-      if (!funder) return apiError("Selected funder no longer exists", 400);
+      if (!(await referenceExists("lenders", funderId))) {
+        return apiError("Selected funder no longer exists", 400);
+      }
     } else {
-      counterpartyEntityId = Number(body.counterparty_entity_id);
-      if (!Number.isFinite(counterpartyEntityId)) {
+      counterpartyEntityId = parseId(body.counterparty_entity_id);
+      if (counterpartyEntityId === null) {
         return apiError("Borrower is required", 400);
       }
-      const { data: counterparty } = await supabaseAdmin
-        .from("entities")
-        .select("id")
-        .eq("id", counterpartyEntityId)
-        .maybeSingle();
-      if (!counterparty) return apiError("Selected borrower no longer exists", 400);
+      if (!(await referenceExists("entities", counterpartyEntityId))) {
+        return apiError("Selected borrower no longer exists", 400);
+      }
     }
 
     if (!isValidDateString(body.start_date)) {
@@ -263,34 +301,50 @@ export async function POST(req: Request) {
     // The opening rate and the opening principal are what make a funding
     // meaningful, so both are captured on creation rather than left for a
     // second step the user might not take.
-    const amount = Number(body.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const amountProblem = moneyProblem(body.amount, { max: MAX_LOAN_AMOUNT });
+    if (amountProblem) {
       return apiError(
-        direction === "LENT"
-          ? "Amount lent must be greater than zero"
-          : "Amount borrowed must be greater than zero",
+        moneyMessage(
+          amountProblem,
+          direction === "LENT"
+            ? "Amount lent must be greater than zero"
+            : "Amount borrowed must be greater than zero",
+        ),
         400,
       );
     }
+    const amount = body.amount as number;
 
     let roi: number | null = null;
     let roiBasis: string | null = null;
     let fixedAmount: number | null = null;
 
     if (interestMode === "PERCENT") {
-      if (!isNonNegativeNumber(body.roi)) {
-        return apiError("Rate of interest is required", 400);
-      }
-      roi = Number(body.roi);
-      roiBasis = String(body.roi_basis ?? "MONTHLY");
-      if (!(ROI_BASES as readonly string[]).includes(roiBasis)) {
+      const roiBasisCandidate = String(body.roi_basis ?? "MONTHLY");
+      if (!(ROI_BASES as readonly string[]).includes(roiBasisCandidate)) {
         return apiError(`Invalid ROI basis. Allowed values: ${ROI_BASES.join(", ")}`, 400);
       }
-    } else {
-      if (!isNonNegativeNumber(body.fixed_interest_amount)) {
-        return apiError("Fixed monthly interest amount is required", 400);
+      const roiProblem = moneyProblem(body.roi, {
+        allowZero: true,
+        max: roiBasisCandidate === "ANNUAL" ? MAX_INTEREST_RATE : MAX_MONTHLY_INTEREST_RATE,
+      });
+      if (roiProblem) {
+        return apiError(rateMessage(roiProblem, roiBasisCandidate as "MONTHLY" | "ANNUAL"), 400);
       }
-      fixedAmount = Number(body.fixed_interest_amount);
+      roi = body.roi as number;
+      roiBasis = roiBasisCandidate;
+    } else {
+      const fixedProblem = moneyProblem(body.fixed_interest_amount, {
+        allowZero: true,
+        max: MAX_LOAN_AMOUNT,
+      });
+      if (fixedProblem) {
+        return apiError(
+          moneyMessage(fixedProblem, "Fixed monthly interest amount is required"),
+          400,
+        );
+      }
+      fixedAmount = body.fixed_interest_amount as number;
     }
 
     let interestDueDay: number | null = null;
@@ -302,22 +356,42 @@ export async function POST(req: Request) {
       interestDueDay = day;
     }
 
+    let borrowerEntityId: number | null = null;
+    if (body.borrower_entity_id != null && body.borrower_entity_id !== "") {
+      borrowerEntityId = parseId(body.borrower_entity_id);
+      if (borrowerEntityId === null) return apiError("Invalid borrower", 400);
+      if (!(await referenceExists("entities", borrowerEntityId))) {
+        return apiError("Selected borrower no longer exists", 400);
+      }
+    }
+
+    let linkedLoanId: number | null = null;
+    if (body.linked_loan_id != null && body.linked_loan_id !== "") {
+      linkedLoanId = parseId(body.linked_loan_id);
+      if (linkedLoanId === null) return apiError("Invalid linked loan", 400);
+      if (!(await referenceExists("loans", linkedLoanId))) {
+        return apiError("Selected loan no longer exists", 400);
+      }
+    }
+
+    const notes = optionalText(body.notes, 500);
+    if ("error" in notes) {
+      return apiError(
+        notes.error === "too_long" ? "Notes must be 500 characters or less" : "Notes must be text",
+        400,
+      );
+    }
+
     const insertPayload = {
       direction,
       funder_id: funderId,
       counterparty_entity_id: counterpartyEntityId,
-      borrower_entity_id:
-        body.borrower_entity_id != null && body.borrower_entity_id !== ""
-          ? Number(body.borrower_entity_id)
-          : null,
-      linked_loan_id:
-        body.linked_loan_id != null && body.linked_loan_id !== ""
-          ? Number(body.linked_loan_id)
-          : null,
+      borrower_entity_id: borrowerEntityId,
+      linked_loan_id: linkedLoanId,
       interest_mode: interestMode,
       interest_due_day: interestDueDay,
       start_date: body.start_date,
-      notes: body.notes ? String(body.notes).trim().slice(0, 500) : null,
+      notes: notes.value,
       created_by: authUser.id,
     };
 
@@ -389,40 +463,62 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const authUser = await requireStrictAdminAuth();
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
-    const id = Number(body.id);
-    if (!body.id || !Number.isFinite(id)) {
+    const id = parseId(body.id);
+    if (id === null) {
       return apiError("Missing funding ID", 400);
     }
 
     const payload: Record<string, unknown> = {};
 
     if (body.funder_id !== undefined) {
-      const funderId = Number(body.funder_id);
-      if (!Number.isFinite(funderId)) return apiError("Invalid funder", 400);
+      const funderId = parseId(body.funder_id);
+      if (funderId === null) return apiError("Invalid funder", 400);
+      if (!(await referenceExists("lenders", funderId))) {
+        return apiError("Selected funder no longer exists", 400);
+      }
       payload.funder_id = funderId;
     }
 
     if (body.borrower_entity_id !== undefined) {
-      payload.borrower_entity_id =
-        body.borrower_entity_id == null || body.borrower_entity_id === ""
-          ? null
-          : Number(body.borrower_entity_id);
+      if (body.borrower_entity_id == null || body.borrower_entity_id === "") {
+        payload.borrower_entity_id = null;
+      } else {
+        const borrowerId = parseId(body.borrower_entity_id);
+        if (borrowerId === null) return apiError("Invalid borrower", 400);
+        if (!(await referenceExists("entities", borrowerId))) {
+          return apiError("Selected borrower no longer exists", 400);
+        }
+        payload.borrower_entity_id = borrowerId;
+      }
     }
 
     if (body.counterparty_entity_id !== undefined) {
-      payload.counterparty_entity_id =
-        body.counterparty_entity_id == null || body.counterparty_entity_id === ""
-          ? null
-          : Number(body.counterparty_entity_id);
+      if (body.counterparty_entity_id == null || body.counterparty_entity_id === "") {
+        payload.counterparty_entity_id = null;
+      } else {
+        const counterpartyId = parseId(body.counterparty_entity_id);
+        if (counterpartyId === null) return apiError("Invalid borrower", 400);
+        if (!(await referenceExists("entities", counterpartyId))) {
+          return apiError("Selected borrower no longer exists", 400);
+        }
+        payload.counterparty_entity_id = counterpartyId;
+      }
     }
 
     if (body.linked_loan_id !== undefined) {
-      payload.linked_loan_id =
-        body.linked_loan_id == null || body.linked_loan_id === ""
-          ? null
-          : Number(body.linked_loan_id);
+      if (body.linked_loan_id == null || body.linked_loan_id === "") {
+        payload.linked_loan_id = null;
+      } else {
+        const loanId = parseId(body.linked_loan_id);
+        if (loanId === null) return apiError("Invalid linked loan", 400);
+        if (!(await referenceExists("loans", loanId))) {
+          return apiError("Selected loan no longer exists", 400);
+        }
+        payload.linked_loan_id = loanId;
+      }
     }
 
     if (body.interest_due_day !== undefined) {
@@ -439,13 +535,13 @@ export async function PUT(req: Request) {
 
     if (body.status !== undefined) {
       const status = String(body.status);
-      if (!["OPEN", "SETTLED"].includes(status)) {
-        return apiError("Invalid status. Allowed values: OPEN, SETTLED", 400);
+      if (!(FUNDING_STATUSES as readonly string[]).includes(status)) {
+        return apiError(`Invalid status. Allowed values: ${FUNDING_STATUSES.join(", ")}`, 400);
       }
       payload.status = status;
       // Settling without a date leaves the arrangement's end unrecorded.
       if (status === "SETTLED") {
-        const settledOn = body.settled_on ?? new Date().toISOString().slice(0, 10);
+        const settledOn = body.settled_on ?? todayInIndia();
         if (!isValidDateString(settledOn)) {
           return apiError("Invalid settlement date", 400);
         }
@@ -456,11 +552,14 @@ export async function PUT(req: Request) {
     }
 
     if (body.notes !== undefined) {
-      const notes = body.notes === null ? "" : String(body.notes).trim();
-      if (notes.length > 500) {
-        return apiError("Notes must be 500 characters or less", 400);
+      const notes = optionalText(body.notes, 500);
+      if ("error" in notes) {
+        return apiError(
+          notes.error === "too_long" ? "Notes must be 500 characters or less" : "Notes must be text",
+          400,
+        );
       }
-      payload.notes = notes || null;
+      payload.notes = notes.value;
     }
 
     // interest_mode is deliberately not updatable: it changes how every past
@@ -507,10 +606,9 @@ export async function DELETE(req: Request) {
     const authUser = await requireStrictAdminAuth();
 
     const { searchParams } = new URL(req.url);
-    const idParam = searchParams.get("id");
-    const id = Number(idParam);
+    const id = parseId(searchParams.get("id"));
 
-    if (!idParam || !Number.isFinite(id)) {
+    if (id === null) {
       return apiError("Missing funding ID", 400);
     }
 

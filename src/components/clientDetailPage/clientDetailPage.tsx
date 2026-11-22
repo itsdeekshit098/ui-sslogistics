@@ -13,23 +13,23 @@ import {
   PhoneIcon,
   TruckIcon,
   FileTextIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
-import { StatCard } from "@/components/ui/statCard";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Money } from "@/components/ui/money";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef } from "@/components/ui/dataTable/dataTable.types";
-import { Pagination } from "@/components/ui/pagination";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/ui/busyOverlay";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { Modal, ModalBody, ModalContent, ModalHeader, ModalTitle, ModalDescription } from "@/components/ui/modal";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { Tabs } from "@ui/components/tabs";
+import { StatCard } from "@ui/patterns/statCard";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Money } from "@ui/components/money";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef } from "@ui/patterns/dataTable";
+import { Pagination } from "@ui/components/pagination";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { LoadingOverlay } from "@ui/components/loadingOverlay";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { Modal, ModalBody, ModalContent, ModalHeader, ModalTitle, ModalDescription } from "@ui/components/modal";
 import { AttachmentsPanel } from "@/components/attachmentsPanel";
 import { LedgerEntryModal } from "./ledgerEntryModal";
 import { ContactModal } from "./contactModal";
@@ -46,7 +46,7 @@ import { formatBankAccountLabel } from "@/components/bankAccountsPage/bankAccoun
 import { formatCurrency, formatDate, formatMonth } from "@/lib/format";
 
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -194,7 +194,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
   };
 
   if (authLoading || (fetching && !client)) {
-    return <PageLoadingSkeleton variant="admin" />;
+    return <PageSkeleton variant="admin" />;
   }
 
   if (error && !client) {
@@ -371,11 +371,11 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
         actions={
           canManage ? (
             <>
-              <Button onClick={() => setLedgerModal("BILL")}>
+              <Button disabled={!client.is_active} title={client.is_active ? undefined : "This client is inactive. Mark it active to add entries."} onClick={() => setLedgerModal("BILL")}>
                 <PlusIcon size={16} style={{ marginRight: "0.5rem" }} />
                 Add Bill
               </Button>
-              <Button variant="outline" onClick={() => setLedgerModal("PAYMENT")}>
+              <Button variant="outline" disabled={!client.is_active} title={client.is_active ? undefined : "This client is inactive. Mark it active to add entries."} onClick={() => setLedgerModal("PAYMENT")}>
                 <ReceiptIcon size={16} style={{ marginRight: "0.5rem" }} />
                 Record Payment
               </Button>
@@ -433,15 +433,15 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
           )}
 
           {effectiveTab === "statement" ? (
-            <BusyOverlay busy={entriesFetching}>
+            <LoadingOverlay busy={entriesFetching}>
               {/* The empty state waits for the fetch to settle, so a freshly
                   added bill never flashes "nothing here yet" on its way in. */}
               {!entriesFetching && entries.length === 0 ? (
               <EmptyState
                 title="Nothing on the statement yet"
                 description="Add a bill or record a payment to start this client's account."
-                actionLabel={canManage ? "Add Bill" : undefined}
-                onAction={canManage ? () => setLedgerModal("BILL") : undefined}
+                actionLabel={canManage && client.is_active ? "Add Bill" : undefined}
+                onAction={canManage && client.is_active ? () => setLedgerModal("BILL") : undefined}
                 icon={ReceiptIcon}
               />
             ) : (
@@ -468,7 +468,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                 />
               </>
               )}
-            </BusyOverlay>
+            </LoadingOverlay>
           ) : effectiveTab === "contacts" ? (
             <div className="space-y-4">
               {canManage && (
@@ -482,7 +482,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                 </Button>
               )}
 
-              <BusyOverlay busy={refreshing}>
+              <LoadingOverlay busy={refreshing}>
                 {!refreshing && contacts.length === 0 ? (
                 <EmptyState
                   title="No contacts yet"
@@ -555,7 +555,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                   ))}
                 </div>
               )}
-              </BusyOverlay>
+              </LoadingOverlay>
             </div>
           ) : (
             <div className="space-y-4">
@@ -580,7 +580,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                 )}
               </div>
 
-              <BusyOverlay busy={refreshing}>
+              <LoadingOverlay busy={refreshing}>
                 {!refreshing && deployments.length === 0 ? (
                 <EmptyState
                   title="No vehicles recorded"
@@ -654,7 +654,7 @@ export function ClientDetailPage({ clientId }: { clientId: number }) {
                   ))}
                 </div>
               )}
-              </BusyOverlay>
+              </LoadingOverlay>
             </div>
           )}
         </div>

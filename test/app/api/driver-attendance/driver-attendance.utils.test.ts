@@ -315,8 +315,12 @@ describe("parseMark", () => {
     });
   });
 
-  it("deduplicates a repeated shift in the input array", () => {
-    expect(parseMark(["A", "A", "B"], null, 3)).toEqual({ shifts: ["A", "B"], status: null });
+  it("rejects a repeated shift rather than quietly collapsing it", () => {
+    expect(parseMark(["A", "A", "B"], null, 3)).toBe("Each shift can be listed only once");
+  });
+
+  it("still returns shifts in A, B, C order when sent out of order", () => {
+    expect(parseMark(["C", "A"], null, 3)).toEqual({ shifts: ["A", "C"], status: null });
   });
 });
 
@@ -339,5 +343,17 @@ describe("markCode", () => {
 
   it("returns an empty string for an unmarked day (no shifts, no status)", () => {
     expect(markCode({ shifts: [], status: null })).toBe("");
+  });
+});
+
+describe("startMonthProblem", () => {
+  it("accepts 2020-01 up to twelve months ahead and nothing outside", async () => {
+    const { startMonthProblem } = await import("@/app/api/driver-attendance/driver-attendance.utils");
+    expect(startMonthProblem("2020-01", "2026-11-22")).toBeNull();
+    expect(startMonthProblem("2026-11", "2026-11-22")).toBeNull();
+    expect(startMonthProblem("2027-11", "2026-11-22")).toBeNull();
+    expect(startMonthProblem("2027-12", "2026-11-22")).not.toBeNull();
+    expect(startMonthProblem("2019-12", "2026-11-22")).not.toBeNull();
+    expect(startMonthProblem("2999-01", "2026-11-22")).not.toBeNull();
   });
 });

@@ -269,3 +269,19 @@ describe("POST /api/clients/[id]/entries/[entryId]/reverse", () => {
     expect(res.status).toBe(500);
   });
 });
+
+describe("ids that are not whole numbers", () => {
+  it.each([["1.5", "5"], ["10", "1.5"], ["0", "5"], ["10", "0"], ["", "5"], ["10", "-1"]])(
+    "answers 400 for client %j and entry %j, before touching the database",
+    async (clientId, entryId) => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin({});
+      const { POST } = await importRoute();
+      const res = await POST(
+        jsonRequest("http://localhost/api/clients/x/entries/y/reverse", "POST"),
+        params(clientId, entryId),
+      );
+      expect(res.status).toBe(400);
+    },
+  );
+});

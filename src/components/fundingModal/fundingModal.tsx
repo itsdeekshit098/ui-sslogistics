@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { SaveIcon, PlusIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { SaveIcon, PlusIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { FormField } from "@ui/components/formField";
+import { FormGrid } from "@ui/components/formGrid";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { NumberInput } from "@ui/components/numberInput";
+import { Textarea } from "@ui/components/textarea";
+import { Combobox, ComboboxFooterAction } from "@ui/components/combobox";
+import { Spinner } from "@ui/components/spinner";
 import { LenderModal } from "@/components/lenderModal";
 import { EntityModal } from "@/components/entityModal";
 import {
@@ -16,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -25,7 +29,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {
   INTEREST_MODES,
@@ -33,7 +37,8 @@ import {
   ROI_BASES,
   type Lender,
 } from "@/components/loansPage/loansPage.types";
-import { formatCurrency, todayString } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
+import { todayInIndia } from "@/lib/dateOnly";
 import type { FundingDirection, FundingModalProps } from "./fundingModal.types";
 
 /** Copy that changes with direction; the arithmetic (fundings.utils.ts)
@@ -95,13 +100,15 @@ const FundingForm: React.FC<{
 
   const [counterpartyId, setCounterpartyId] = useState("");
   const [borrowerEntityId, setBorrowerEntityId] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
   const [interestMode, setInterestMode] = useState<string>("PERCENT");
-  const [roi, setRoi] = useState("");
+  const [roi, setRoi] = useState<number | null>(null);
   const [roiBasis, setRoiBasis] = useState<string>("MONTHLY");
-  const [fixedAmount, setFixedAmount] = useState("");
-  const [interestDueDay, setInterestDueDay] = useState("");
-  const [startDate, setStartDate] = useState(todayString());
+  const [fixedAmount, setFixedAmount] = useState<number | null>(null);
+  const [interestDueDay, setInterestDueDay] = useState<number | null>(null);
+  // The business day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [startDate, setStartDate] = useState<string | null>(today);
   const [notes, setNotes] = useState("");
 
   const [funders, setFunders] = useState<Lender[]>([]);
@@ -139,33 +146,28 @@ const FundingForm: React.FC<{
   // Shows the user what the agreed rate actually costs per month, before they
   // commit to it — the number they'll be reconciling against every month.
   const monthlyPreview = (() => {
-    const principal = Number(amount);
+    const principal = amount;
     if (!principal || principal <= 0) return null;
     if (isPercent) {
-      const rate = Number(roi);
-      if (!rate) return null;
-      const monthly = roiBasis === "ANNUAL" ? rate / 12 : rate;
+      if (!roi) return null;
+      const monthly = roiBasis === "ANNUAL" ? roi / 12 : roi;
       return (principal * monthly) / 100;
     }
-    const fixed = Number(fixedAmount);
-    return fixed || null;
+    return fixedAmount || null;
   })();
 
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
 
     if (!counterpartyId) errors.counterpartyId = `${copy.counterpartyLabel} is required`;
-    if (!amount || Number(amount) <= 0) errors.amount = copy.amountErrorFallback;
+    if (amount == null || amount <= 0) errors.amount = copy.amountErrorFallback;
     if (!startDate) errors.startDate = "Start date is required";
-    if (isPercent && (!roi || Number(roi) < 0)) errors.roi = "Enter the rate";
-    if (!isPercent && (!fixedAmount || Number(fixedAmount) < 0)) {
+    if (isPercent && (roi == null || roi < 0)) errors.roi = "Enter the rate";
+    if (!isPercent && (fixedAmount == null || fixedAmount < 0)) {
       errors.fixedAmount = "Enter the monthly interest amount";
     }
-    if (interestDueDay) {
-      const day = Number(interestDueDay);
-      if (!Number.isInteger(day) || day < 1 || day > 31) {
-        errors.interestDueDay = "Day must be between 1 and 31";
-      }
+    if (interestDueDay != null && (interestDueDay < 1 || interestDueDay > 31)) {
+      errors.interestDueDay = "Day must be between 1 and 31";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -185,13 +187,13 @@ const FundingForm: React.FC<{
           funder_id: isLent ? null : Number(counterpartyId),
           counterparty_entity_id: isLent ? Number(counterpartyId) : null,
           borrower_entity_id: borrowerEntityId ? Number(borrowerEntityId) : null,
-          amount: Number(amount),
+          amount,
           interest_mode: interestMode,
-          roi: isPercent ? Number(roi) : null,
+          roi: isPercent ? roi : null,
           roi_basis: isPercent ? roiBasis : null,
-          fixed_interest_amount: isPercent ? null : Number(fixedAmount),
-          interest_due_day: interestDueDay ? Number(interestDueDay) : null,
-          start_date: startDate,
+          fixed_interest_amount: isPercent ? null : fixedAmount,
+          interest_due_day: interestDueDay,
+          start_date: startDate ?? today,
           notes: notes.trim() || null,
         }),
       });
@@ -210,10 +212,7 @@ const FundingForm: React.FC<{
     }
   };
 
-  const FieldError = ({ name }: { name: string }) =>
-    fieldErrors[name] ? (
-      <span className="text-xs text-destructive">{fieldErrors[name]}</span>
-    ) : null;
+  const clearError = (name: string) => setFieldErrors((p) => ({ ...p, [name]: "" }));
 
   return (
     <>
@@ -223,17 +222,22 @@ const FundingForm: React.FC<{
       </ModalHeader>
 
       <ModalBody>
-        <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="funding-counterparty">
-              {copy.counterpartyLabel} <span className="text-destructive">*</span>
-            </Label>
+        <FormGrid className="mt-2">
+          <FormField
+            label={copy.counterpartyLabel}
+            required
+            htmlFor="funding-counterparty"
+            error={fieldErrors.counterpartyId}
+          >
             {isLent ? (
-              <Typeahead<Entity>
+              <Combobox<Entity>
                 id="funding-counterparty"
                 options={entities}
                 value={counterpartyId}
-                onValueChange={setCounterpartyId}
+                onValueChange={(next) => {
+                  setCounterpartyId(next);
+                  clearError("counterpartyId");
+                }}
                 getOptionLabel={(e) => e.name}
                 getOptionValue={(e) => String(e.id)}
                 getOptionDescription={(e) => (e.entity_kind === "FIRM" ? "Firm" : "Person")}
@@ -242,23 +246,24 @@ const FundingForm: React.FC<{
                 disabled={loading || optionsLoading}
                 invalid={!!fieldErrors.counterpartyId}
                 footer={
-                  <Button
-                    variant="ghost"
-                    className={typeaheadFooterActionClassName}
+                  <ComboboxFooterAction
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => setShowAddEntity(true)}
                   >
                     <PlusIcon size={16} />
                     Add new firm or person
-                  </Button>
+                  </ComboboxFooterAction>
                 }
               />
             ) : (
-              <Typeahead<Lender>
+              <Combobox<Lender>
                 id="funding-counterparty"
                 options={funders}
                 value={counterpartyId}
-                onValueChange={setCounterpartyId}
+                onValueChange={(next) => {
+                  setCounterpartyId(next);
+                  clearError("counterpartyId");
+                }}
                 getOptionLabel={(l) => l.name}
                 getOptionValue={(l) => String(l.id)}
                 getOptionDescription={(l) => l.phone ?? ""}
@@ -267,24 +272,20 @@ const FundingForm: React.FC<{
                 disabled={loading || optionsLoading}
                 invalid={!!fieldErrors.counterpartyId}
                 footer={
-                  <Button
-                    variant="ghost"
-                    className={typeaheadFooterActionClassName}
+                  <ComboboxFooterAction
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => setShowAddFunder(true)}
                   >
                     <PlusIcon size={16} />
                     Add new funder
-                  </Button>
+                  </ComboboxFooterAction>
                 }
               />
             )}
-            <FieldError name="counterpartyId" />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="funding-borrower">In Whose Name</Label>
-            <Typeahead<Entity>
+          <FormField label="In Whose Name" htmlFor="funding-borrower">
+            <Combobox<Entity>
               id="funding-borrower"
               options={entities}
               value={borrowerEntityId}
@@ -296,49 +297,41 @@ const FundingForm: React.FC<{
               disabled={loading || optionsLoading}
               clearable
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="funding-amount">
-              {copy.amountLabel} <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="funding-amount"
-              type="number"
-              inputMode="numeric"
-              disabled={loading}
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setFieldErrors((p) => ({ ...p, amount: "" }));
-              }}
-              className={fieldErrors.amount ? "border-destructive" : ""}
-            />
-            <FieldError name="amount" />
-          </div>
+          <FormField label={copy.amountLabel} required error={fieldErrors.amount}>
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                value={amount}
+                onValueChange={(v) => {
+                  setAmount(v);
+                  clearError("amount");
+                }}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="funding-start">
-              {copy.dateLabel} <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="funding-start"
-              type="date"
-              disabled={loading}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className={fieldErrors.startDate ? "border-destructive" : ""}
-            />
-            <FieldError name="startDate" />
-          </div>
+          <FormField label={copy.dateLabel} required error={fieldErrors.startDate}>
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                disabled={loading}
+                invalid={!!fieldErrors.startDate}
+                value={startDate}
+                onValueChange={(v) => {
+                  setStartDate(v);
+                  clearError("startDate");
+                }}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="funding-mode">How is interest agreed?</Label>
-            <Select
-              disabled={loading}
-              value={interestMode}
-              onValueChange={setInterestMode}
-            >
+          <FormField className="sm:col-span-2" label="How is interest agreed?" htmlFor="funding-mode">
+            <Select disabled={loading} value={interestMode} onValueChange={setInterestMode}>
               <SelectTrigger id="funding-mode">
                 <SelectValue />
               </SelectTrigger>
@@ -350,32 +343,29 @@ const FundingForm: React.FC<{
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
           {isPercent ? (
             <>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="funding-roi">
-                  Rate (%) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="funding-roi"
-                  type="number"
-                  step="0.01"
-                  disabled={loading}
-                  placeholder="e.g. 2"
-                  value={roi}
-                  onChange={(e) => {
-                    setRoi(e.target.value);
-                    setFieldErrors((p) => ({ ...p, roi: "" }));
-                  }}
-                  className={fieldErrors.roi ? "border-destructive" : ""}
-                />
-                <FieldError name="roi" />
-              </div>
+              <FormField label="Rate (%)" required error={fieldErrors.roi}>
+                {(control) => (
+                  <NumberInput
+                    {...control}
+                    disabled={loading}
+                    min={0}
+                    maxDecimals={2}
+                    step={0.01}
+                    placeholder="e.g. 2"
+                    value={roi}
+                    onValueChange={(v) => {
+                      setRoi(v);
+                      clearError("roi");
+                    }}
+                  />
+                )}
+              </FormField>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="funding-basis">Per</Label>
+              <FormField label="Per" htmlFor="funding-basis">
                 <Select disabled={loading} value={roiBasis} onValueChange={setRoiBasis}>
                   <SelectTrigger id="funding-basis">
                     <SelectValue />
@@ -388,74 +378,68 @@ const FundingForm: React.FC<{
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </FormField>
             </>
           ) : (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="funding-fixed">
-                Interest per Month (₹) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="funding-fixed"
-                type="number"
-                disabled={loading}
-                value={fixedAmount}
-                onChange={(e) => {
-                  setFixedAmount(e.target.value);
-                  setFieldErrors((p) => ({ ...p, fixedAmount: "" }));
-                }}
-                className={fieldErrors.fixedAmount ? "border-destructive" : ""}
-              />
-              <FieldError name="fixedAmount" />
-            </div>
+            <FormField label="Interest per Month (₹)" required error={fieldErrors.fixedAmount}>
+              {(control) => (
+                <MoneyInput
+                  {...control}
+                  disabled={loading}
+                  min={0}
+                  value={fixedAmount}
+                  onValueChange={(v) => {
+                    setFixedAmount(v);
+                    clearError("fixedAmount");
+                  }}
+                />
+              )}
+            </FormField>
           )}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="funding-due-day">{copy.dueDayLabel}</Label>
-            <Input
-              id="funding-due-day"
-              type="number"
-              min={1}
-              max={31}
-              disabled={loading}
-              placeholder="1–31"
-              value={interestDueDay}
-              onChange={(e) => {
-                setInterestDueDay(e.target.value);
-                setFieldErrors((p) => ({ ...p, interestDueDay: "" }));
-              }}
-              className={fieldErrors.interestDueDay ? "border-destructive" : ""}
-            />
-            <FieldError name="interestDueDay" />
-          </div>
+          <FormField label={copy.dueDayLabel} error={fieldErrors.interestDueDay}>
+            {(control) => (
+              <NumberInput
+                {...control}
+                disabled={loading}
+                placeholder="1–31"
+                value={interestDueDay}
+                onValueChange={(v) => {
+                  setInterestDueDay(v);
+                  clearError("interestDueDay");
+                }}
+              />
+            )}
+          </FormField>
 
           {monthlyPreview != null && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm sm:col-span-2">
+            <Alert tone="info" icon={null} className="sm:col-span-2">
               At this rate, a full month costs{" "}
               <span className="font-semibold text-foreground">
                 {formatCurrency(monthlyPreview)}
               </span>
               . A part month is charged proportionally.
-            </div>
+            </Alert>
           )}
 
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="funding-notes">Notes</Label>
-            <Textarea
-              id="funding-notes"
-              rows={3}
-              disabled={loading}
-              maxLength={LOAN_NOTES_MAX_LENGTH}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-        </div>
+          <FormField className="sm:col-span-2" label="Notes">
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={3}
+                disabled={loading}
+                maxLength={LOAN_NOTES_MAX_LENGTH}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            )}
+          </FormField>
+        </FormGrid>
 
         {submitError && (
-          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert tone="danger" className="mt-4" scrollIntoView>
             {submitError}
-          </div>
+          </Alert>
         )}
       </ModalBody>
 
@@ -465,7 +449,7 @@ const FundingForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

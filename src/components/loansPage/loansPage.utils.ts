@@ -49,7 +49,7 @@ export const INSTALLMENT_STATUS_LABELS: Record<InstallmentStatus, string> = {
 
 /**
  * Badge tone for an installment's status, driven by the same tokens as
- * every other status indicator in the app (see components/ui/badge.tsx) —
+ * every other status indicator in the app (see src/ui/components/badge) —
  * Overdue and Bounced are the two that demand attention, so they're the
  * only ones in destructive red.
  */

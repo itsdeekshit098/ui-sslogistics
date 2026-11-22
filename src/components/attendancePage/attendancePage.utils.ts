@@ -19,6 +19,17 @@ export function fullDayFor(count: ShiftCount = DEFAULT_SHIFT_COUNT): AttendanceM
 /** A three-shift full day, for callers with no driver in hand. */
 export const FULL_DAY: AttendanceMark = fullDayFor(DEFAULT_SHIFT_COUNT);
 
+/**
+ * The shift buttons to offer for one driver: their own shifts, plus any shift
+ * already stored on the mark. A count cut part-way through a month leaves the
+ * month's earlier marks on shifts the driver no longer runs; without this the
+ * extra shift would be counted but have no button to see or clear it.
+ */
+export function shiftsToShow(count: ShiftCount, mark: AttendanceMark): Shift[] {
+  const own = shiftsFor(count);
+  return SHIFTS.filter((s) => own.includes(s) || mark.shifts.includes(s));
+}
+
 export function isMarked(mark: AttendanceMark): boolean {
   return mark.shifts.length > 0 || mark.status !== null;
 }

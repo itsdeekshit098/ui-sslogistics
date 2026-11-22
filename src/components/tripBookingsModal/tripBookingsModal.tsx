@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { SaveIcon, UserPlusIcon, ArrowUpDownIcon } from "@/components/ui/icon";
+import { SaveIcon, UserPlusIcon, ArrowUpDownIcon } from "@ui/icons";
 import type { TripBookingsModalProps } from "./tripBookingsModal.types";
 import {
   getDefaultTripBookingFormData,
@@ -14,19 +14,19 @@ import type {
 import { VEHICLE_TYPES, SEATING_CAPACITY_TYPES } from "@/app/admin/vehicles/vehicles.types";
 import type { Vehicle, VehicleType } from "@/app/admin/vehicles/vehicles.types";
 import type { Driver } from "@/components/driversPage/driversPage.types";
-import { Typeahead } from "@/components/ui/typeahead";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Combobox } from "@ui/components/combobox";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Textarea } from "@ui/components/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+} from "@ui/components/select";
+import { Spinner } from "@ui/components/spinner";
 import { AddDriverModal } from "@/components/addDriverModal";
 import {
   Modal,
@@ -36,7 +36,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import * as styles from "./tripBookingsModal.style";
 import { vehicleLabel } from "@/lib/vehicleLabel";
 
@@ -484,7 +484,7 @@ const TripBookingsForm: React.FC<{
           {/* ── Assign vehicle (optional) ── */}
           <div style={styles.fieldGroup}>
             <Label style={styles.fieldLabel}>Assigned Vehicle (optional)</Label>
-            <Typeahead
+            <Combobox
               disabled={loading}
               options={vehiclesOfType}
               value={formData.vehicleId}
@@ -500,7 +500,7 @@ const TripBookingsForm: React.FC<{
           {/* ── Driver (optional) ── */}
           <div style={styles.fieldGroup}>
             <Label style={styles.fieldLabel}>Driver (optional)</Label>
-            <Typeahead
+            <Combobox
               disabled={loading}
               options={driversList}
               value={formData.driverId}
@@ -618,7 +618,7 @@ const TripBookingsForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

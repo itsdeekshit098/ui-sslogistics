@@ -278,7 +278,7 @@ describe("POST /api/clients/[id]/deployments", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toMatch(/whole number of at least 1/);
+    expect(body.error).toMatch(/whole number from 1 to 1000/);
   });
 
   it("400s on an invalid vehicle_type for a declared deployment", async () => {
@@ -750,5 +750,101 @@ describe("DELETE /api/clients/[id]/deployments", () => {
     );
 
     expect(res.status).toBe(500);
+  });
+});
+
+describe("deployments: bad input that used to be a 500 or be stored as junk", () => {
+  const call = (method: string, body: unknown, id = "1", raw?: string, query = "") =>
+    [
+      new NextRequest(`http://localhost/api/clients/${id}/deployments${query}`, {
+        method,
+        ...(method === "GET" || method === "DELETE" ? {} : { body: raw ?? JSON.stringify(body) }),
+      }),
+      params(id),
+    ] as const;
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "POST and PUT answer 400 for %s",
+    async (_label, raw) => {
+      const { POST, PUT } = await importRoute();
+      expect((await POST(...call("POST", undefined, "1", raw))).status).toBe(400);
+      expect((await PUT(...call("PUT", undefined, "1", raw))).status).toBe(400);
+    },
+  );
+
+  it.each(["1.5", "0", "abc"])("every method refuses %s as the client id", async (id) => {
+    const { GET, POST, PUT, DELETE } = await importRoute();
+    expect((await GET(...call("GET", undefined, id))).status).toBe(400);
+    expect((await POST(...call("POST", DECLARED_BUS_BODY, id))).status).toBe(400);
+    expect((await PUT(...call("PUT", { id: 1, ...DECLARED_BUS_BODY }, id))).status).toBe(400);
+    expect((await DELETE(...call("DELETE", undefined, id, undefined, "?deployment_id=1"))).status).toBe(400);
+  });
+
+  it.each(["1.5", "abc", "0", ""])("DELETE refuses deployment_id=%s", async (deploymentId) => {
+    const { DELETE } = await importRoute();
+    const res = await DELETE(...call("DELETE", undefined, "1", undefined, `?deployment_id=${deploymentId}`));
+    expect(res.status).toBe(400);
+  });
+
+  it.each([1.5, "", "abc", 0])("PUT refuses %j as the deployment id", async (id) => {
+    const { PUT } = await importRoute();
+    expect((await PUT(...call("PUT", { id, ...DECLARED_BUS_BODY }))).status).toBe(400);
+  });
+
+  it("refuses a vehicle id that is not a whole number", async () => {
+    const { POST } = await importRoute();
+    const res = await POST(...call("POST", { vehicle_id: 1.5 }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid vehicle");
+  });
+
+  it("refuses a seating capacity or quantity far beyond anything real", async () => {
+    const { POST } = await importRoute();
+    const seats = await POST(...call("POST", { ...DECLARED_BUS_BODY, seating_capacity: 1e9 }));
+    expect(seats.status).toBe(400);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    const qty = await POST(...call("POST", { ...DECLARED_BUS_BODY, quantity: 1e9 }));
+    expect(qty.status).toBe(400);
+  });
+
+  it("refuses notes that are not text or are too long", async () => {
+    const { POST } = await importRoute();
+    expect((await POST(...call("POST", { ...DECLARED_BUS_BODY, notes: { a: 1 } }))).status).toBe(400);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    expect((await POST(...call("POST", { ...DECLARED_BUS_BODY, notes: "n".repeat(501) }))).status).toBe(400);
+  });
+
+  it.each(["false", "true", 0, 1, {}])("refuses is_active = %j (only true or false)", async (flag) => {
+    const { POST } = await importRoute();
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    const res = await POST(...call("POST", { ...DECLARED_BUS_BODY, is_active: flag }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("is_active must be true or false");
+  });
+});
+
+describe("deployment numbers must be real numbers", () => {
+  it.each([
+    ["quantity", { vehicle_type: "TRUCK", truck_type: "LCV", quantity: true }],
+    ["quantity", { vehicle_type: "TRUCK", truck_type: "LCV", quantity: [5] }],
+    ["quantity", { vehicle_type: "TRUCK", truck_type: "LCV", quantity: "3" }],
+    ["seating_capacity", { vehicle_type: "BUS", seating_capacity: "43" }],
+    ["seating_capacity", { vehicle_type: "BUS", seating_capacity: true }],
+  ])("400s on a non-number %s", async (_field, payload) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ clients: [{ data: { id: 1 }, error: null }] });
+    const { POST } = await importRoute();
+
+    const res = await POST(
+      jsonRequest("http://localhost/api/clients/1/deployments", "POST", payload),
+      params("1"),
+    );
+
+    expect(res.status).toBe(400);
   });
 });

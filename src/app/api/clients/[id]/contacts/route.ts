@@ -1,14 +1,28 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
+import { optionalText, parseFlag, parseId } from "../../../loans/loans.utils";
 
 // Points of contact at a client company — HR for the contract, operations for
 // day-to-day vehicles, accounts for the money. Several per client, with one
 // marked primary as the person to actually ring.
 
 const PHONE_PATTERN = /^[6-9]\d{9}$/;
+const MAX_NAME_LENGTH = 150;
+// role is a lookup value (the lookups route limits those to 60).
+const TEXT_FIELDS = [
+  ["role", 60, "Role"],
+  ["designation", 100, "Designation"],
+  ["notes", 500, "Notes"],
+] as const;
 
 function validateContactFields(
   body: Record<string, unknown>,
@@ -20,12 +34,20 @@ function validateContactFields(
   if (has("name")) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
     if (!name) return "Contact name is required";
+    if (name.length > MAX_NAME_LENGTH) {
+      return `Contact name must be ${MAX_NAME_LENGTH} characters or less`;
+    }
     payload.name = name;
   }
 
   for (const key of ["phone", "alt_phone"] as const) {
     if (body[key] !== undefined) {
-      const value = body[key] === null ? "" : String(body[key]).trim();
+      // A phone sent as an object or number is not a phone; String() would
+      // have turned it into text that only looks like one.
+      if (body[key] !== null && typeof body[key] !== "string") {
+        return "Enter a valid 10-digit mobile number";
+      }
+      const value = body[key] === null ? "" : (body[key] as string).trim();
       if (value && !PHONE_PATTERN.test(value)) {
         return "Enter a valid 10-digit mobile number";
       }
@@ -34,22 +56,32 @@ function validateContactFields(
   }
 
   if (body.email !== undefined) {
-    const email = body.email === null ? "" : String(body.email).trim();
+    if (body.email !== null && typeof body.email !== "string") {
+      return "Enter a valid email address";
+    }
+    const email = body.email === null ? "" : (body.email as string).trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return "Enter a valid email address";
     }
     payload.email = email || null;
   }
 
-  for (const key of ["role", "designation", "notes"] as const) {
+  for (const [key, max, label] of TEXT_FIELDS) {
     if (body[key] !== undefined) {
-      const value = body[key] === null ? "" : String(body[key]).trim();
-      payload[key] = value || null;
+      const text = optionalText(body[key], max);
+      if ("error" in text) {
+        return text.error === "too_long"
+          ? `${label} must be ${max} characters or less`
+          : `${label} must be text`;
+      }
+      payload[key] = text.value;
     }
   }
 
   if (body.is_primary !== undefined) {
-    payload.is_primary = Boolean(body.is_primary);
+    const flag = parseFlag(body.is_primary);
+    if (flag === null) return "is_primary must be true or false";
+    payload.is_primary = flag;
   }
 
   return null;
@@ -80,8 +112,8 @@ export async function GET(
     await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
@@ -108,12 +140,13 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const { data: client } = await supabaseAdmin
       .from("clients")
@@ -164,14 +197,15 @@ export async function PUT(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const contactId = Number(body.id);
-    if (!body.id || !Number.isFinite(contactId)) {
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
+    const contactId = parseId(body.id);
+    if (contactId === null) {
       return apiError("Missing contact ID", 400);
     }
 
@@ -233,12 +267,12 @@ export async function DELETE(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
+    const clientId = parseId(idParam);
 
     const { searchParams } = new URL(req.url);
-    const contactId = Number(searchParams.get("contact_id"));
+    const contactId = parseId(searchParams.get("contact_id"));
 
-    if (!Number.isFinite(clientId) || !Number.isFinite(contactId)) {
+    if (clientId === null || contactId === null) {
       return apiError("Invalid client or contact ID", 400);
     }
 

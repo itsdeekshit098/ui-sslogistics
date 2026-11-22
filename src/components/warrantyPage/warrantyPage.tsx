@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from "@ui/components/input";
+import { Button } from "@ui/components/button";
+import { Label } from "@ui/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   SearchIcon,
   PackageIcon,
@@ -19,19 +19,19 @@ import {
   SlidersHorizontalIcon,
   PencilIcon,
   Trash2Icon,
-} from "@/components/ui/icon";
-import { Pagination } from "@/components/ui/pagination";
-import { DataTable } from "@/components/ui/dataTable";
-import type { ColumnDef } from "@/components/ui/dataTable";
+} from "@ui/icons";
+import { Pagination } from "@ui/components/pagination";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef } from "@ui/patterns/dataTable";
 import {
   FilterDrawer,
   fieldGroup as filterFieldGroup,
   fieldLabel as filterFieldLabel,
-} from "@/components/ui/filterDrawer";
-import { Tooltip } from "@/components/ui/tooltip";
-import { PageFab } from "@/components/ui/pageFab";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
+} from "@ui/patterns/filterDrawer";
+import { Tooltip } from "@ui/components/tooltip";
+import { FloatingActionButton } from "@ui/components/floatingActionButton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
 import type { WarrantyItem, WarrantyStatusFilter } from "./warrantyPage.types";
 import type { VehicleOption, Vendor } from "@/components/partModal";
 import * as styles from "./warrantyPage.style";
@@ -44,7 +44,7 @@ const PartModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal").then((m) => m.ConfirmModal),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -363,7 +363,7 @@ export function WarrantyPage() {
           </span>
         </div>
       </div>
-      <PageFab
+      <FloatingActionButton
         label="Add Part"
         testId="warranty-add-btn-fab"
         onClick={() => setShowAddPart(true)}

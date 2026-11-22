@@ -40,7 +40,10 @@ export async function POST(
     const { driverId: driverIdParam, entryId: entryIdParam } = await params;
     const driverId = Number(driverIdParam);
     const entryId = Number(entryIdParam);
-    if (!Number.isFinite(driverId) || !Number.isFinite(entryId)) {
+    if (
+      !Number.isInteger(driverId) || driverId <= 0 ||
+      !Number.isInteger(entryId) || entryId <= 0
+    ) {
       return apiError("Invalid driver or entry ID", 400);
     }
 

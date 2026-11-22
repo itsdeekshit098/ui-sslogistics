@@ -96,3 +96,19 @@ export function handleApiError(err: unknown): NextResponse {
   // Never expose internal error details to the client
   return apiError("Internal Server Error", 500);
 }
+
+/**
+ * Reads a request body as a JSON object. Null for anything else — malformed
+ * JSON, an array, a bare value — so a route can answer 400 instead of letting
+ * the parse error surface as a 500.
+ */
+export async function readJsonObject(req: Request): Promise<Record<string, unknown> | null> {
+  try {
+    const body: unknown = await req.json();
+    return body !== null && typeof body === "object" && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}

@@ -1,10 +1,28 @@
 import { after } from "next/server";
+import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { FUNDING_ENTRY_TYPES } from "../../fundings.utils";
-import { isPositiveNumber, isValidDateString } from "../../../loans/loans.utils";
+import {
+  isValidDateString,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseId,
+} from "../../../loans/loans.utils";
+
+// Payment methods are lookup values, which the lookups route limits to 60.
+const MAX_PAYMENT_METHOD_LENGTH = 60;
+const MAX_REFERENCE_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 300;
 
 // Money moving on a private funding: more borrowed, principal returned,
 // interest handed over, or an agreed write-off. Append-only — a mistake is
@@ -18,12 +36,13 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const fundingId = Number(idParam);
-    if (!Number.isFinite(fundingId)) {
+    const fundingId = parseId(idParam);
+    if (fundingId === null) {
       return apiError("Invalid funding ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const { data: funding, error: fundingErr } = await supabaseAdmin
       .from("fundings")
@@ -42,12 +61,15 @@ export async function POST(
       );
     }
 
-    if (!isPositiveNumber(body.amount)) {
-      return apiError("Amount must be greater than zero", 400);
+    // Upper limit and paise check, not just "> 0": a mistyped 1e20 top-up
+    // would otherwise go into an append-only ledger and corrupt every total.
+    const amountProblem = moneyProblem(body.amount);
+    if (amountProblem) {
+      return apiError(moneyMessage(amountProblem, "Amount must be greater than zero"), 400);
     }
-    const amount = Number(body.amount);
+    const amount = body.amount as number;
 
-    const entryDate = body.entry_date ?? new Date().toISOString().slice(0, 10);
+    const entryDate = body.entry_date ?? todayInIndia();
     if (!isValidDateString(entryDate)) {
       return apiError("Invalid entry date", 400);
     }
@@ -75,14 +97,38 @@ export async function POST(
       }
     }
 
+    // Free-text fields: text only, and a length limit that refuses rather than
+    // cuts (a reference number saved half-way is worse than a message). A very
+    // long unbroken reference also stretches the entries table off the screen.
+    const paymentMethod = optionalText(body.payment_method, MAX_PAYMENT_METHOD_LENGTH);
+    if ("error" in paymentMethod) return apiError("Payment method is not valid", 400);
+    const reference = optionalText(body.reference, MAX_REFERENCE_LENGTH);
+    if ("error" in reference) {
+      return apiError(
+        reference.error === "too_long"
+          ? `Reference must be ${MAX_REFERENCE_LENGTH} characters or less`
+          : "Reference must be text",
+        400,
+      );
+    }
+    const description = optionalText(body.description, MAX_DESCRIPTION_LENGTH);
+    if ("error" in description) {
+      return apiError(
+        description.error === "too_long"
+          ? `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less`
+          : "Description must be text",
+        400,
+      );
+    }
+
     const insertPayload = {
       funding_id: fundingId,
       entry_type: entryType,
       amount,
       entry_date: entryDate,
-      payment_method: body.payment_method ? String(body.payment_method) : null,
-      reference: body.reference ? String(body.reference).trim() : null,
-      description: body.description ? String(body.description).trim().slice(0, 300) : null,
+      payment_method: paymentMethod.value,
+      reference: reference.value,
+      description: description.value,
       created_by: authUser.id,
     };
 

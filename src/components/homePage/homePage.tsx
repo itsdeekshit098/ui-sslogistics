@@ -1,10 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRightIcon, ArrowUpRightIcon, CheckIcon, TruckIcon, XIcon } from "@/components/ui/icon";
+import { ArrowRightIcon, ArrowUpRightIcon, CheckIcon, TruckIcon, XIcon } from "@ui/icons";
 import { useEffect, useState } from "react";
 
-import { PartnerLogo } from "@/components/ui/partnerLogo";
+import { PartnerLogo } from "@/components/homePage/partnerLogo";
 import { useIsDarkMode } from "@/hooks/useResolvedTheme";
 
 import {

@@ -8,21 +8,21 @@ import {
   XCircleIcon,
   Trash2Icon,
   XIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import dynamic from "next/dynamic";
 import type { Technician, SpecializationOption } from "./techniciansPage.types";
-import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { Pagination } from "@/components/ui/pagination";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import { Input } from "@ui/components/input";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { Pagination } from "@ui/components/pagination";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef, RowAction } from "@ui/patterns/dataTable";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
 // shouldn't bloat the initial page chunk that has to load before anything
@@ -32,7 +32,7 @@ const AddTechnicianModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -315,7 +315,7 @@ export function TechniciansPage() {
     return action;
   }) as RowAction<Technician>[];
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
 
   // Fatal error with no data
   if (error && technicians.length === 0) {
@@ -350,7 +350,7 @@ export function TechniciansPage() {
               placeholder="Search by name, phone or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 bg-background"
+              className="pl-9 pr-9 bg-background max-md:bg-card"
             />
             {searchQuery && (
               <Button

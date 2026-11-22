@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { MoonIcon, SunIcon } from "@/components/ui/icon"
+import { MoonIcon, SunIcon } from "@ui/icons"
 import { useTheme } from "@wrksz/themes/client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@ui/components/button"
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme()

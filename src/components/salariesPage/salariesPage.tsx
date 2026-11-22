@@ -11,23 +11,24 @@ import {
   SearchIcon,
   WalletIcon,
   XIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@ui/hooks/useIsMobile";
 import { addMonths } from "@/lib/dateOnly";
 import { formatMonth } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable";
-import { Input } from "@/components/ui/input";
-import { Money } from "@/components/ui/money";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { StatCard } from "@/components/ui/statCard";
-import { EmptyState } from "@/components/ui/emptyState";
-import { ErrorState } from "@/components/ui/errorState";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/ui/busyOverlay";
+import { Badge } from "@ui/components/badge";
+import { Button } from "@ui/components/button";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef, RowAction } from "@ui/patterns/dataTable";
+import { Input } from "@ui/components/input";
+import { MonthPicker } from "@ui/components/monthPicker";
+import { Money } from "@ui/components/money";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { StatCard } from "@ui/patterns/statCard";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { ErrorState } from "@ui/patterns/errorState";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { LoadingOverlay } from "@ui/components/loadingOverlay";
 import { formatMonthShort } from "@/components/attendancePage/attendancePage.utils";
 import { SalaryMobileList, SalaryMobileSummary } from "./salaryMobileList";
 import type { SalaryRow, SalarySheet } from "./salariesPage.types";
@@ -127,7 +128,7 @@ export function SalariesPage() {
     }
   };
 
-  if (authLoading || (fetching && !sheet)) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading || (fetching && !sheet)) return <PageSkeleton variant="admin" />;
   if (!sheet) {
     return (
       <ErrorState
@@ -335,7 +336,7 @@ export function SalariesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 autoFocus
-                className="h-9 border-transparent bg-muted pl-9 pr-9 focus-visible:ring-1 focus-visible:ring-offset-0"
+                className="h-9 border-transparent bg-muted pl-9 pr-9 focus-visible:ring-1 focus-visible:ring-offset-0 max-md:bg-card md:h-10"
               />
               {search && (
                 <button
@@ -423,7 +424,7 @@ export function SalariesPage() {
         {exportError && <p className="text-sm text-destructive">{exportError}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <BusyOverlay busy={fetching}>
+        <LoadingOverlay busy={fetching}>
           {!query && <SalaryMobileSummary sheet={sheet} />}
 
           {!query && withoutSalary > 0 && (
@@ -436,7 +437,7 @@ export function SalariesPage() {
           {emptyState ?? (
             <SalaryMobileList rows={rows} onOpen={setOpenDriverId} onAddAdvance={setAdvanceDriver} />
           )}
-        </BusyOverlay>
+        </LoadingOverlay>
 
         {driverModal}
         {advanceDriver && (
@@ -459,7 +460,7 @@ export function SalariesPage() {
         description="Each driver's monthly pay, worked out from attendance, advances and deductions."
       />
 
-      <BusyOverlay busy={fetching}>
+      <LoadingOverlay busy={fetching}>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <StatCard
             title="Monthly Salaries"
@@ -489,7 +490,7 @@ export function SalariesPage() {
             tone="positive"
           />
         </div>
-      </BusyOverlay>
+      </LoadingOverlay>
 
       <div className="ss-panel overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:px-6">
@@ -515,15 +516,15 @@ export function SalariesPage() {
             >
               <ChevronRightIcon size={16} />
             </Button>
-            <Input
-              type="month"
+            <MonthPicker
               data-testid="salaries-month-input"
               aria-label="Choose month"
               disabled={fetching}
-              className="ml-1 w-auto max-sm:hidden"
+              className="ml-1 max-sm:hidden"
+              currentMonth={currentMonth}
               value={sheet.month}
               max={currentMonth}
-              onChange={(e) => e.target.value && fetchSheet(e.target.value)}
+              onValueChange={(month) => month && fetchSheet(month)}
             />
           </div>
 
@@ -539,7 +540,7 @@ export function SalariesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 disabled={fetching}
-                className="bg-background pl-9 pr-9"
+                className="bg-background pl-9 pr-9 max-md:bg-card"
               />
               {search && (
                 <button

@@ -1,0 +1,6 @@
+/* Next's dev-mode badge floats over the bottom-left corner of every page and
+   hides whatever is there (e.g. part of a Cancel button). It is not part of
+   the app, so keep it out of the screenshots. */
+nextjs-portal {
+  display: none !important;
+}
