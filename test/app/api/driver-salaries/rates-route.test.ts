@@ -239,3 +239,17 @@ describe("POST /api/driver-salaries/[driverId]/rates", () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe("POST rates — start month bounds", () => {
+  it.each(["2999-01", "1900-01", "2019-12"])("refuses %s", async (effective_month) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+    const res = await POST(
+      jsonRequest(URL, "POST", { monthly_salary: 30000, effective_month }),
+      paramsFor("1"),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/between January 2020/);
+  });
+});

@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ui/components/button";
 
 function UnauthorizedContent() {
   const searchParams = useSearchParams();

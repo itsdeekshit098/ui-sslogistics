@@ -1,15 +1,23 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { MAX_MONTHLY_INTEREST_RATE, ROI_BASES } from "../../fundings.utils";
+import { MAX_MONTHLY_INTEREST_RATE, ROI_BASES, rateMessage } from "../../fundings.utils";
 import {
   isValidDateString,
   MAX_INTEREST_RATE,
   MAX_LOAN_AMOUNT,
   moneyMessage,
   moneyProblem,
+  optionalText,
+  parseId,
 } from "../../../loans/loans.utils";
 
 // Records a renegotiated rate from a given date. Rates are never edited in
@@ -25,12 +33,13 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const fundingId = Number(idParam);
-    if (!Number.isFinite(fundingId)) {
+    const fundingId = parseId(idParam);
+    if (fundingId === null) {
       return apiError("Invalid funding ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const { data: funding, error: fundingErr } = await supabaseAdmin
       .from("fundings")
@@ -67,7 +76,7 @@ export async function POST(
         max: roiBasisCandidate === "ANNUAL" ? MAX_INTEREST_RATE : MAX_MONTHLY_INTEREST_RATE,
       });
       if (roiProblem) {
-        return apiError(moneyMessage(roiProblem, "Rate of interest is required"), 400);
+        return apiError(rateMessage(roiProblem, roiBasisCandidate as "MONTHLY" | "ANNUAL"), 400);
       }
       roi = body.roi as number;
       roiBasis = roiBasisCandidate;
@@ -85,6 +94,14 @@ export async function POST(
       fixedAmount = body.fixed_interest_amount as number;
     }
 
+    const note = optionalText(body.note, 200);
+    if ("error" in note) {
+      return apiError(
+        note.error === "too_long" ? "Note must be 200 characters or less" : "Note must be text",
+        400,
+      );
+    }
+
     const { data: rate, error } = await supabaseAdmin
       .from("funding_rate_history")
       .insert([
@@ -94,7 +111,7 @@ export async function POST(
           roi_basis: roiBasis,
           fixed_interest_amount: fixedAmount,
           effective_from: effectiveFrom,
-          note: body.note ? String(body.note).trim().slice(0, 200) : null,
+          note: note.value,
           created_by: authUser.id,
         },
       ])

@@ -144,7 +144,7 @@ describe("BankAccountModal", () => {
     render(<BankAccountModal isOpen onClose={onClose} onSuccess={onSuccess} />);
     await waitFor(() => expect(screen.getByLabelText(/held by/i)).not.toBeDisabled());
 
-    // Typeahead for holder: select the first option.
+    // Combobox for holder: select the first option.
     fireEvent.focus(screen.getByLabelText(/held by/i));
     fireEvent.click(screen.getByRole("option", { name: /acme corp/i }));
 

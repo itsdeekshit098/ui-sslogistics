@@ -1,11 +1,12 @@
 "use client";
 
-import { Sidebar } from "@/components/layout/Sidebar";
+import { Sidebar } from "@/components/layout/sidebar";
 import { SignOutButton } from "@/components/signOutButton";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
-import { useIsMobile } from "@/hooks/useIsMobile";
-import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@ui/hooks/useIsMobile";
+import { Button } from "@ui/components/button";
 import { MobileTopBar } from "@/components/layout/mobileTopBar";
+import { RouteAccent } from "@/components/layout/routeAccent";
 import { MobileDrawer, MobileDrawerContext } from "@/components/layout/mobileDrawer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -169,7 +170,7 @@ export default function AdminLayout({
             data-testid="admin-main"
           >
             <MobileDrawerContext.Provider value={openMobileMenu}>
-              {children}
+              <RouteAccent>{children}</RouteAccent>
             </MobileDrawerContext.Provider>
           </main>
         </div>

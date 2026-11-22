@@ -35,3 +35,7 @@ Copy [TEMPLATE.md](TEMPLATE.md).
 | [0005](0005-closed-loans-are-not-overdue.md) | Closed and foreclosed loans never count as overdue | Accepted | 2026-10 |
 | [0006](0006-open-loan-product-questions.md) | Open loan product questions | Open | 2026-10-31 |
 | [0007](0007-settle-only-finished-months.md) | A salary month can be settled only after it ends | Accepted | 2026-10-31 |
+| [0008](0008-driver-visibility-and-mobile-similar-name.md) | Driver-role visibility on `/api/drivers`, and Flutter's missing similar-name flow | Accepted / Open | 2026-10-31 |
+| [0009](0009-in-house-ui-library.md) | The UI components are an in-house library in `src/ui`, styled with styled-components | Accepted | 2026-11-21 |
+| [0010](0010-open-funding-product-questions.md) | Open funding product questions | Open | 2026-11-22 |
+| [0011](0011-open-client-product-questions.md) | Client product questions (answered) | Accepted | 2026-11-22 |

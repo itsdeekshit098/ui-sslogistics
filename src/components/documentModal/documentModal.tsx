@@ -5,13 +5,13 @@ import {
   ModalDescription,
   ModalHeader,
   ModalTitle,
-} from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
-import { EyeIcon, Trash2Icon, UploadCloudIcon, XIcon } from "@/components/ui/icon";
+} from "@ui/components/modal";
+import { Button } from "@ui/components/button";
+import { EyeIcon, Trash2Icon, UploadCloudIcon, XIcon } from "@ui/icons";
 import { DocumentModalProps } from "./documentModal.types";
 import { Vehicle } from "@/app/admin/vehicles/vehicles.types";
-import { Skeleton } from "@/components/ui/skeletonLoader";
-import { ConfirmModal } from "@/components/confirmModal";
+import { Skeleton } from "@ui/components/skeleton";
+import { ConfirmModal } from "@ui/patterns/confirmModal";
 import { DocumentPreviewModal } from "@/components/documentPreviewModal";
 import {
   DM_DIALOG_CONTENT,

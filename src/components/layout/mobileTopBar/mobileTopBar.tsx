@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeftIcon, MenuIcon } from "@/components/ui/icon";
+import { ArrowLeftIcon, MenuIcon } from "@ui/icons";
 import { NotificationBell } from "@/components/notificationBell";
 import { cn } from "@/lib/utils";
 import { matchNavItem } from "../navConfig";

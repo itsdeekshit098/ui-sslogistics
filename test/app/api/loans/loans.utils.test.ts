@@ -11,6 +11,7 @@ import {
   moneyMessage,
   parseId,
   MAX_LOAN_AMOUNT,
+  optionalText,
 } from "@/app/api/loans/loans.utils";
 
 describe("parseDate / toDateString", () => {
@@ -247,5 +248,33 @@ describe("parseId", () => {
     for (const bad of ["1.5", "", " ", "0", "-3", "abc", "1e3", "0x10", null, undefined, 1.5, NaN, [], {}, true]) {
       expect(parseId(bad)).toBeNull();
     }
+  });
+});
+
+describe("optionalText", () => {
+  it("treats absent, null and empty as no value", () => {
+    for (const empty of [undefined, null, "", "   "]) {
+      expect(optionalText(empty, 10)).toEqual({ value: null });
+    }
+  });
+
+  it("trims real text", () => {
+    expect(optionalText("  UTR-1 ", 10)).toEqual({ value: "UTR-1" });
+  });
+
+  it("refuses anything that is not a string, so it is never saved as [object Object]", () => {
+    for (const bad of [{ a: 1 }, ["a"], 5, true]) {
+      expect(optionalText(bad, 10)).toEqual({ error: "not_text" });
+    }
+  });
+
+  it("refuses text over the limit rather than cutting it", () => {
+    expect(optionalText("x".repeat(10), 10)).toEqual({ value: "x".repeat(10) });
+    expect(optionalText("x".repeat(11), 10)).toEqual({ error: "too_long" });
+  });
+
+  it("with truncate, cuts long text quietly but still refuses non-text", () => {
+    expect(optionalText("x".repeat(15), 10, { truncate: true })).toEqual({ value: "x".repeat(10) });
+    expect(optionalText({ a: 1 }, 10, { truncate: true })).toEqual({ error: "not_text" });
   });
 });

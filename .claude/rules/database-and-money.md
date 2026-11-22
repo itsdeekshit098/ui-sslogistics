@@ -31,7 +31,7 @@ KEEP IN SYNC: the "currently up to <NN>" SQL number below must match the highest
   (the reminders hook warns when it doesn't).
 -->
 
-Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `52_vehicle_document_date_order.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
+Schema changes are recorded as SQL files in `sql/`, numbered sequentially (`sql/NN_description.sql`, currently up to `53_client_name_unique_ignoring_case.sql`), and applied to Supabase manually — there is no migration runner. Each file carries a `--` header explaining *why* and a commented-out `-- DOWN` rollback section. New tables get `enable row level security` with **no policies** (deny-all for anon; all access is service-role via API routes).
 
 ## Money modules (loans, fundings, clients)
 

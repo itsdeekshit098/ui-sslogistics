@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { SaveIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { SaveIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Spinner } from "@ui/components/spinner";
 import {
   Modal,
   ModalContent,
@@ -15,7 +15,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { ClientContact } from "@/components/clientsPage/clientsPage.types";
 
 export interface ContactModalProps {
@@ -116,6 +116,7 @@ const ContactForm: React.FC<Omit<ContactModalProps, "isOpen">> = ({
               id="contact-name"
               autoFocus
               disabled={loading}
+              maxLength={150}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -147,6 +148,7 @@ const ContactForm: React.FC<Omit<ContactModalProps, "isOpen">> = ({
               id="contact-designation"
               disabled={loading}
               placeholder="e.g. Senior Manager"
+              maxLength={100}
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
             />
@@ -229,7 +231,7 @@ const ContactForm: React.FC<Omit<ContactModalProps, "isOpen">> = ({
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

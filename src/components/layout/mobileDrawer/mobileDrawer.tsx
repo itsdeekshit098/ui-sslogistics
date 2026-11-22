@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@wrksz/themes/client";
-import { LockIcon, MoonIcon, SunIcon } from "@/components/ui/icon";
+import { LockIcon, MoonIcon, SunIcon } from "@ui/icons";
 import { SignOutButton } from "@/components/signOutButton";
 import { useAuth } from "@/context/AuthContext";
 import type { UserRole } from "@/lib/routePermissions";

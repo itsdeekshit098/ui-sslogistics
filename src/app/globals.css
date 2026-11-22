@@ -1,4 +1,13 @@
+/* Cascade layer order. `ui` (the in-house component library in src/ui, styled
+   with styled-components) sits between `base` and `utilities`: a component's
+   own styles beat Tailwind's preflight, but a Tailwind class a caller adds
+   (className="h-11 w-full") still beats the component, exactly as it did when
+   the components were themselves Tailwind. This statement must stay first so
+   it fixes the order before any other stylesheet names these layers. */
+@layer theme, base, ui, components, utilities;
+
 @import "tailwindcss";
+@import "../ui/tokens/tokens.css";
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -182,78 +191,6 @@
   }
 }
 
-/* ── Phone-width modals become bottom sheets ─────────────────────────────
-   Modal styles are inline (modal.style.ts) and callers pass their own
-   maxWidth, so the overrides need !important. Kept here rather than in 36
-   modal call sites. */
-@keyframes ss-sheet-up {
-  from {
-    transform: translate3d(0, 100%, 0);
-  }
-}
-
-@media (max-width: 639px) {
-  .ss-modal-overlay {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-  .ss-modal-content {
-    max-width: 100% !important;
-    max-height: 92dvh !important;
-    border-radius: var(--m-radius-sheet) var(--m-radius-sheet) 0 0 !important;
-    border-bottom: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom);
-    animation: ss-sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) !important;
-  }
-  /* Drag handle */
-  .ss-modal-content::before {
-    content: "";
-    display: block;
-    flex-shrink: 0;
-    width: 2.5rem;
-    height: 0.25rem;
-    margin: 0.625rem auto 0;
-    border-radius: 9999px;
-    background: var(--border);
-  }
-  /* Header: the Flutter sheet's 17px heavy title over a divider. */
-  .ss-modal-content #modal-title {
-    font-size: 17px !important;
-    font-weight: 800 !important;
-    line-height: 1.3 !important;
-  }
-  .ss-modal-content > div:has(> #modal-title) {
-    padding: 0.5rem 3.5rem 0.75rem 1.25rem !important;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 0.75rem;
-  }
-  /* A dialog with no body (e.g. sign-out) would show the header's divider
-     and the footer's divider stacked; keep just the footer's. */
-  .ss-modal-content > div:has(> #modal-title):has(+ .ss-modal-footer) {
-    border-bottom-width: 0;
-    margin-bottom: 0;
-  }
-  /* Full-width, thumb-sized footer buttons */
-  .ss-modal-footer {
-    padding: 0.75rem 1rem !important;
-    border-top: 1px solid var(--border);
-  }
-  .ss-modal-footer > button,
-  .ss-modal-footer > a {
-    flex: 1 1 0;
-    min-height: 3rem;
-    font-size: 15px;
-    font-weight: 600;
-  }
-  /* 40px close target (24px on desktop is fine for a mouse) */
-  .ss-modal-close {
-    top: 0.75rem !important;
-    right: 0.5rem !important;
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-}
-
 /* ── Phone-width list panels and cards ──────────────────────────────────
    A page's list lives in a bordered panel (search + tabs + table). On
    phones the rows are already cards, so the panel flattens onto the page
@@ -327,7 +264,7 @@
   }
   /* Any row of StatCards becomes the Flutter app's summary strip: one
      line of compact tiles, scrolling sideways when they don't all fit. */
-  *:has(> .ss-stat-card) {
+  *:has(> [data-ui="stat-card"]) {
     display: flex !important;
     gap: 0.5rem !important;
     overflow-x: auto;
@@ -335,10 +272,10 @@
     margin-inline: -1rem;
     padding-inline: 1rem;
   }
-  *:has(> .ss-stat-card)::-webkit-scrollbar {
+  *:has(> [data-ui="stat-card"])::-webkit-scrollbar {
     display: none;
   }
-  *:has(> .ss-stat-card) > * {
+  *:has(> [data-ui="stat-card"]) > * {
     flex: 1 0 6.5rem;
   }
   /* Panel headings ("Vehicle List", "Repair History…") drop to the phone
@@ -352,30 +289,33 @@
 /* Card cells reuse the table's cell renderers, which are tuned for wide
    columns (nowrap, truncate, fixed max-widths). In a half-width card field
    those overflow into the neighbouring field, so let them wrap. */
-.ss-card-cell,
-.ss-card-cell * {
+[data-ui="card-cell"],
+[data-ui="card-cell"] * {
   white-space: normal !important;
-  overflow-wrap: break-word;
+  /* "anywhere", not "break-word": inside a flex row only "anywhere" lowers the
+     minimum width, so a long unbroken value (a reference number) wraps instead
+     of pushing the card wider than the screen. */
+  overflow-wrap: anywhere;
 }
-.ss-card-cell .truncate,
-.ss-card-cell [class*="max-w-"] {
+[data-ui="card-cell"] .truncate,
+[data-ui="card-cell"] [class*="max-w-"] {
   max-width: none !important;
   overflow: visible !important;
   text-overflow: clip !important;
 }
 /* Rows of badges/chips may wrap; an icon + text row keeps the icon beside
    the text and wraps the text itself instead of dropping it to a new line. */
-.ss-card-cell .flex:not(:has(> svg)) {
+[data-ui="card-cell"] .flex:not(:has(> svg)) {
   flex-wrap: wrap;
 }
-.ss-card-cell .flex:has(> svg) > :not(svg) {
+[data-ui="card-cell"] .flex:has(> svg) > :not(svg) {
   min-width: 0;
 }
 
 /* An empty state with its own call to action ("Add Account", "Clear
    Search") already says what to do next; the floating page action would
    only duplicate it and, on a short page, sit on top of it. */
-body:has([data-testid="empty-state-action-btn"]) .ss-fab {
+body:has([data-ui="empty-state-action"]) [data-ui="floating-action-button"] {
   display: none;
 }
 
@@ -386,25 +326,13 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   [data-testid="admin-main"] {
     padding-bottom: calc(var(--mobile-bottom-clearance, 0px) + 1rem);
   }
-  body:has(.ss-fab) [data-testid="admin-main"] {
+  body:has([data-ui="floating-action-button"]) [data-testid="admin-main"] {
     padding-bottom: calc(var(--mobile-bottom-clearance, 0px) + 5.5rem);
   }
 }
 
 
 /* Filter drawer: side panel on desktop, bottom sheet on phones/tablets. */
-@media (max-width: 767px) {
-  .ss-filter-panel {
-    top: auto !important;
-    left: 0 !important;
-    max-width: 100% !important;
-    max-height: 85dvh;
-    border-left: 0 !important;
-    border-top: 1px solid var(--border);
-    border-radius: var(--m-radius-sheet) var(--m-radius-sheet) 0 0 !important;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
 
 @keyframes ss-exit {
   to {
@@ -434,8 +362,7 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-in,
-  .animate-out,
-  .ss-modal-content {
+  .animate-out {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
@@ -513,304 +440,6 @@ body:has([data-testid="empty-state-action-btn"]) .ss-fab {
   h5,
   h6 {
     font-family: var(--font-heading);
-  }
-}
-
-/* ═══════════════════════════════════════════════════
-   DESIGN SYSTEM — CSS Custom Properties
-   ═══════════════════════════════════════════════════ */
-
-:root {
-  /* ─── Core Palette ─── */
-  --background: hsl(210 40% 98%); /* light gray canvas */
-  --foreground: hsl(222 47% 11%); /* deep slate */
-
-  --primary: hsl(221.2 83.2% 53.3%);
-  --primary-foreground: hsl(0 0% 100%);
-
-  --secondary: hsl(214 32% 91%);
-  --secondary-foreground: hsl(222 47% 11%);
-
-  --muted: hsl(210 40% 96%);
-  --muted-foreground: hsl(215 16% 47%);
-  --placeholder-foreground: hsl(215 16% 60%);
-
-  --accent: hsl(210 40% 96%);
-  --accent-foreground: hsl(222 47% 11%);
-
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(0 0% 98%);
-
-  /* success/warning text on their solid fills must clear 4.5:1 (WCAG AA) —
-     the previous pairs measured 3.0:1 and 1.9:1 respectively. */
-  --success: hsl(142 71% 29%);
-  --success-foreground: hsl(0 0% 100%);
-
-  --warning: hsl(38 92% 50%);
-  --warning-foreground: hsl(26 60% 14%);
-
-  --info: hsl(221.2 83.2% 53.3%);
-  --info-foreground: hsl(210 40% 98%);
-
-  /* Soft tint pairs for badges/banners — tone conveyed by a tinted surface
-     instead of a solid fill, foreground is the saturated color itself. */
-  --success-subtle: hsl(142 60% 94%);
-  --success-subtle-foreground: hsl(142 71% 24%);
-  --warning-subtle: hsl(38 92% 94%);
-  --warning-subtle-foreground: hsl(26 70% 30%);
-  --destructive-subtle: hsl(0 84% 95%);
-  --destructive-subtle-foreground: hsl(0 70% 40%);
-  --info-subtle: hsl(221 83% 95%);
-  --info-subtle-foreground: hsl(221 83% 42%);
-
-  --card: hsl(0 0% 100%); /* pure white */
-  --card-foreground: hsl(222 47% 11%);
-
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222 47% 11%);
-
-  --brand: hsl(0 72% 46%);
-  --brand-foreground: hsl(0 0% 100%);
-
-  /* ─── Sidebar Chrome (fixed navy, independent of light/dark theme) ─── */
-  --sidebar-background: #12203d;
-  --sidebar-border: #263762;
-  --sidebar-active: #2563eb;
-
-  --border: hsl(214 32% 91%);
-  --input: hsl(214 32% 91%);
-  /* Ring tracks the brand primary rather than a near-black neutral, so a
-     focus outline reads as "this app's blue," not an unrelated dark ring. */
-  --ring: var(--primary);
-
-  /* ─── Base Radius ─── */
-  --radius: 0.5rem;
-
-  /* ─── Component-Specific Radius ─── */
-  /* Cards, dialogs, inputs and buttons all share the one 8px base radius. */
-  --card-radius: var(--radius);
-  --modal-radius: var(--radius);
-  --input-radius: var(--radius);
-  /* Badges share the app's one corner shape, a step tighter than a card —
-     not a pill. */
-  --badge-radius: calc(var(--radius) - 2px);
-
-  /* ─── Shadow Scale ─── */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-sm:
-    0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
-  --shadow-md:
-    0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg:
-    0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-xl:
-    0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-
-  /* ─── Component Shadows ─── */
-  --card-shadow: var(--shadow-sm);
-  --modal-shadow: var(--shadow-xl);
-  --overlay-background: rgba(0, 0, 0, 0.6);
-
-  /* ─── Spacing Scale (4px base) ─── */
-  --space-0: 0;
-  --space-0-5: 0.125rem;
-  --space-1: 0.25rem;
-  --space-1-5: 0.375rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-
-  /* ─── Phone bottom edge ───
-     Phones have no bottom nav (navigation is the drawer), so anything pinned
-     to the bottom — the floating "+", a sticky save bar, the page's own
-     bottom padding — only has to clear the device's home-indicator inset. */
-  --mobile-bottom-clearance: env(safe-area-inset-bottom, 0px);
-
-  /* ─── Phone design (mirrors the Flutter app's shapes) ───
-     Only read by phone-width components; desktop keeps the single 8px
-     --radius. */
-  --m-radius-card: 1rem;
-  --m-radius-tile: 1.125rem;
-  --m-radius-sheet: 1.25rem;
-  --m-radius-control: 0.75rem;
-  --m-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  --m-navy: #12203d;
-  --m-navy-mid: #16305c;
-  --m-hero-gradient: linear-gradient(135deg, #12203d 0%, #16305c 50%, #2563eb 100%);
-  --m-drawer-gradient: linear-gradient(180deg, #12203d 0%, #16305c 50%, #12203d 100%);
-  --m-drawer-text: #cbd5e1;
-  --m-drawer-text-muted: #64748b;
-  --m-appbar: var(--card);
-
-  /* ─── Input Heights ─── */
-  --input-height-sm: 2.25rem;
-  --input-height: 2.5rem;
-  --input-height-lg: 2.75rem;
-
-  /* ─── Z-Index Scale ───
-     Popovers/comboboxes/selects portal to document.body, same as modal
-     overlays, so painting order between them depends entirely on these
-     values (DOM order doesn't help — see modal/modal.tsx's `nested` prop).
-     --z-popover must stay above --z-modal-nested-overlay so a combobox
-     opened inside a nested modal (e.g. "Add new account" from within
-     another modal's dropdown) isn't painted underneath that modal's own
-     overlay. */
-  --z-modal-overlay: 50;
-  --z-modal-nested-overlay: 10000;
-  --z-popover: 10010;
-}
-
-.dark {
-  /*
-    ─── Core Palette (Dark Slate) ───
-    Elevation runs background(8%) < card(13%) < popover(16%), each step
-    strictly lighter than the last so a card visibly sits above the page and
-    a popover visibly floats above a card. Border sits at 30% — clearly
-    lighter than every surface it borders, so it stays visible instead of
-    blending into the canvas (the old scheme had border/muted both at 17%,
-    the same lightness as each other, which erased every card edge).
-  */
-  --background: hsl(222 47% 8%); /* darkest layer: the page canvas */
-  --foreground: hsl(210 40% 98%);
-
-  --primary: hsl(217 91% 60%);
-  --primary-foreground: hsl(222 47% 11%);
-
-  --secondary: hsl(222 28% 18%);
-  --secondary-foreground: hsl(210 40% 98%);
-
-  --muted: hsl(222 28% 18%);
-  --muted-foreground: hsl(215 20% 65%);
-  --placeholder-foreground: hsl(215 15% 42%);
-
-  --accent: hsl(222 28% 18%);
-  --accent-foreground: hsl(210 40% 98%);
-
-  /* Used as text (overdue figures, Delete, errors) as well as a button fill,
-     so it has to read on the dark canvas — 31% lightness was near-invisible. */
-  --destructive: hsl(0 72% 58%);
-  --destructive-foreground: hsl(210 40% 98%);
-
-  --success: hsl(149 60% 32%);
-  --success-foreground: hsl(0 0% 98%);
-
-  /* --warning-foreground darkened from near-white — the previous pair
-     measured 2.25:1 against the amber fill, well under the 4.5:1 AA floor. */
-  --warning: hsl(42 94% 44%);
-  --warning-foreground: hsl(26 60% 12%);
-
-  --info: hsl(217.2 91.2% 59.8%);
-  --info-foreground: hsl(0 0% 98%);
-
-  --success-subtle: hsl(149 40% 16%);
-  --success-subtle-foreground: hsl(149 60% 65%);
-  --warning-subtle: hsl(42 60% 16%);
-  --warning-subtle-foreground: hsl(42 80% 65%);
-  --destructive-subtle: hsl(0 45% 18%);
-  --destructive-subtle-foreground: hsl(0 70% 72%);
-  --info-subtle: hsl(217 45% 18%);
-  --info-subtle-foreground: hsl(217 80% 72%);
-
-  --card: hsl(222 35% 13%); /* one step above background */
-  --card-foreground: hsl(210 40% 98%);
-
-  --popover: hsl(222 32% 16%); /* one step above card, floats above it */
-  --popover-foreground: hsl(210 40% 98%);
-
-  --border: hsl(222 18% 30%);
-  --input: hsl(222 18% 30%);
-  --ring: var(--primary);
-
-  --brand: hsl(0 72% 56%);
-  --brand-foreground: hsl(0 0% 100%);
-
-  /* ─── Shadows (Dark) ─── */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
-  --shadow-sm:
-    0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.15);
-  --shadow-md:
-    0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.15);
-  --shadow-lg:
-    0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
-  --shadow-xl:
-    0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
-
-  /* A black shadow reads as elevation against a light page; against a
-     blurred, already-dark overlay it's nearly invisible, which is why a
-     dialog can look "washed out" in dark mode even with a correct card
-     background. The 1px white-alpha ring is what actually separates the
-     dialog's edge from the backdrop; the black shadow underneath still
-     helps at the edges where blurred page content shows through. */
-  --modal-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  --overlay-background: rgba(0, 0, 0, 0.75);
-}
-
-/* Pre-hydration fallback: mirrors .dark so the very first paint (before the
-   theme script can add the "dark" class) already matches system preference
-   instead of flashing light. Skipped when the user has explicitly picked
-   "light" (script always sets that class, never leaves it absent). */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: hsl(222 47% 8%);
-    --foreground: hsl(210 40% 98%);
-
-    --primary: hsl(217 91% 60%);
-    --primary-foreground: hsl(222 47% 11%);
-
-    --secondary: hsl(222 28% 18%);
-    --secondary-foreground: hsl(210 40% 98%);
-
-    --muted: hsl(222 28% 18%);
-    --muted-foreground: hsl(215 20% 65%);
-    --placeholder-foreground: hsl(215 15% 42%);
-
-    --accent: hsl(222 28% 18%);
-    --accent-foreground: hsl(210 40% 98%);
-
-    --destructive: hsl(0 72% 58%);
-    --destructive-foreground: hsl(210 40% 98%);
-
-    --success: hsl(149 60% 32%);
-    --success-foreground: hsl(0 0% 98%);
-
-    --warning: hsl(42 94% 44%);
-    --warning-foreground: hsl(26 60% 12%);
-
-    --info: hsl(217.2 91.2% 59.8%);
-    --info-foreground: hsl(0 0% 98%);
-
-    --success-subtle: hsl(149 40% 16%);
-    --success-subtle-foreground: hsl(149 60% 65%);
-    --warning-subtle: hsl(42 60% 16%);
-    --warning-subtle-foreground: hsl(42 80% 65%);
-    --destructive-subtle: hsl(0 45% 18%);
-    --destructive-subtle-foreground: hsl(0 70% 72%);
-    --info-subtle: hsl(217 45% 18%);
-    --info-subtle-foreground: hsl(217 80% 72%);
-
-    --card: hsl(222 35% 13%);
-    --card-foreground: hsl(210 40% 98%);
-
-    --popover: hsl(222 32% 16%);
-    --popover-foreground: hsl(210 40% 98%);
-
-    --border: hsl(222 18% 30%);
-    --input: hsl(222 18% 30%);
-    --ring: var(--primary);
-
-    --brand: hsl(0 72% 56%);
-    --brand-foreground: hsl(0 0% 100%);
-
-    --modal-shadow:
-      0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
-    --overlay-background: rgba(0, 0, 0, 0.75);
   }
 }
 
@@ -910,37 +539,4 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
-}
-
-/* Phone dark surfaces follow the Flutter app's slate scale (page slate-900,
-   card slate-800, border slate-700) rather than the desktop's deeper navy. */
-@media (max-width: 767.98px) {
-  .dark {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --card: #1e293b;
-    --card-foreground: #f1f5f9;
-    --popover: #243247;
-    --popover-foreground: #f1f5f9;
-    --muted: #273449;
-    --secondary: #273449;
-    --accent: #273449;
-    --border: #334155;
-    --input: #334155;
-  }
-}
-@media (max-width: 767.98px) and (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --card: #1e293b;
-    --card-foreground: #f1f5f9;
-    --popover: #243247;
-    --popover-foreground: #f1f5f9;
-    --muted: #273449;
-    --secondary: #273449;
-    --accent: #273449;
-    --border: #334155;
-    --input: #334155;
-  }
 }

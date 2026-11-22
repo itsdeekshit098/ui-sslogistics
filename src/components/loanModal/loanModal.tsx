@@ -1,14 +1,19 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { SaveIcon, PlusIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
+import { SaveIcon, PlusIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { FormField } from "@ui/components/formField";
+import { FormGrid } from "@ui/components/formGrid";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { NumberInput } from "@ui/components/numberInput";
+import { Textarea } from "@ui/components/textarea";
+import { Combobox, ComboboxFooterAction } from "@ui/components/combobox";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Spinner } from "@ui/components/spinner";
 import { EntityModal } from "@/components/entityModal";
 import { LenderModal } from "@/components/lenderModal";
 import { BankAccountModal } from "@/components/bankAccountModal";
@@ -18,7 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -27,7 +32,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
 import {
   MANDATE_TYPES,
@@ -41,6 +46,8 @@ import {
   type LinkedVehicle,
   type Loan,
 } from "@/components/loansPage/loansPage.types";
+import { todayInIndia } from "@/lib/dateOnly";
+import { applyLoanField } from "./loanModal.utils";
 import type { LoanModalProps } from "./loanModal.types";
 
 interface FormState {
@@ -50,16 +57,16 @@ interface FormState {
   loanNumber: string;
   vehicleId: string;
   collateralDescription: string;
-  principalAmount: string;
-  disbursedAmount: string;
-  interestRate: string;
-  processingFee: string;
+  principalAmount: number | null;
+  disbursedAmount: number | null;
+  interestRate: number | null;
+  processingFee: number | null;
   startDate: string;
   firstEmiDate: string;
-  emiAmount: string;
-  emiDayOfMonth: string;
-  totalInstallments: string;
-  outstandingOverride: string;
+  emiAmount: number | null;
+  emiDayOfMonth: number | null;
+  totalInstallments: number | null;
+  outstandingOverride: number | null;
   debitAccountId: string;
   mandateType: MandateType | "";
   notes: string;
@@ -73,17 +80,16 @@ function initialState(loan?: Loan | null): FormState {
     loanNumber: loan?.loan_number ?? "",
     vehicleId: loan?.vehicle_id ? String(loan.vehicle_id) : "",
     collateralDescription: loan?.collateral_description ?? "",
-    principalAmount: loan ? String(loan.principal_amount) : "",
-    disbursedAmount: loan?.disbursed_amount != null ? String(loan.disbursed_amount) : "",
-    interestRate: loan?.interest_rate != null ? String(loan.interest_rate) : "",
-    processingFee: loan?.processing_fee != null ? String(loan.processing_fee) : "",
+    principalAmount: loan ? loan.principal_amount : null,
+    disbursedAmount: loan?.disbursed_amount ?? null,
+    interestRate: loan?.interest_rate ?? null,
+    processingFee: loan?.processing_fee ?? null,
     startDate: loan?.start_date ?? "",
     firstEmiDate: loan?.first_emi_date ?? "",
-    emiAmount: loan ? String(loan.emi_amount) : "",
-    emiDayOfMonth: loan ? String(loan.emi_day_of_month) : "",
-    totalInstallments: loan ? String(loan.total_installments) : "",
-    outstandingOverride:
-      loan?.outstanding_override != null ? String(loan.outstanding_override) : "",
+    emiAmount: loan ? loan.emi_amount : null,
+    emiDayOfMonth: loan ? loan.emi_day_of_month : null,
+    totalInstallments: loan ? loan.total_installments : null,
+    outstandingOverride: loan?.outstanding_override ?? null,
     debitAccountId: loan?.debit_account_id ? String(loan.debit_account_id) : "",
     mandateType: (loan?.mandate_type as MandateType | null) ?? "",
     notes: loan?.notes ?? "",
@@ -153,25 +159,17 @@ const LoanForm: React.FC<{
 
   const setField = useCallback(
     <K extends keyof FormState>(key: K, value: FormState[K]) => {
-      setForm((prev) => {
-        const next = { ...prev, [key]: value };
-        // The first EMI is almost always a month after disbursal and the EMI
-        // day follows from it — prefilling both saves the common case without
-        // blocking the odd one, since either can still be overridden.
-        if (key === "startDate" && value && !prev.firstEmiDate) {
-          const [y, m, d] = String(value).split("-").map(Number);
-          const suggested = new Date(Date.UTC(y, m, d));
-          next.firstEmiDate = suggested.toISOString().slice(0, 10);
-          if (!prev.emiDayOfMonth) next.emiDayOfMonth = String(d);
-        }
-        if (key === "firstEmiDate" && value && !prev.emiDayOfMonth) {
-          next.emiDayOfMonth = String(Number(String(value).slice(8, 10)));
-        }
-        return next;
+      setForm((prev) => applyLoanField(prev, key, value));
+      setFieldErrors((prev) => {
+        const cleared = { ...prev, [key]: "" };
+        // A field filled in for the person is no longer "required" or invalid.
+        const after = applyLoanField(form, key, value);
+        if (after.firstEmiDate !== form.firstEmiDate) cleared.firstEmiDate = "";
+        if (after.emiDayOfMonth !== form.emiDayOfMonth) cleared.emiDayOfMonth = "";
+        return cleared;
       });
-      setFieldErrors((prev) => ({ ...prev, [key]: "" }));
     },
-    [],
+    [form],
   );
 
   const handleClose = useCallback(() => {
@@ -183,7 +181,7 @@ const LoanForm: React.FC<{
 
     if (!form.loanType) errors.loanType = "Loan type is required";
     if (!form.borrowerEntityId) errors.borrowerEntityId = "Borrower is required";
-    if (!form.principalAmount || Number(form.principalAmount) <= 0) {
+    if (form.principalAmount == null || form.principalAmount <= 0) {
       errors.principalAmount = "Enter the principal amount";
     }
     if (!form.startDate) errors.startDate = "Start date is required";
@@ -191,15 +189,15 @@ const LoanForm: React.FC<{
     if (form.firstEmiDate && form.startDate && form.firstEmiDate < form.startDate) {
       errors.firstEmiDate = "First EMI cannot be before the start date";
     }
-    if (!form.emiAmount || Number(form.emiAmount) <= 0) {
+    if (form.emiAmount == null || form.emiAmount <= 0) {
       errors.emiAmount = "Enter the EMI amount";
     }
-    const day = Number(form.emiDayOfMonth);
-    if (!form.emiDayOfMonth || !Number.isInteger(day) || day < 1 || day > 31) {
+    const day = form.emiDayOfMonth;
+    if (day == null || day < 1 || day > 31) {
       errors.emiDayOfMonth = "EMI day must be between 1 and 31";
     }
-    const total = Number(form.totalInstallments);
-    if (!form.totalInstallments || !Number.isInteger(total) || total < 1) {
+    const total = form.totalInstallments;
+    if (total == null || total < 1) {
       errors.totalInstallments = "Enter the number of installments";
     }
 
@@ -218,18 +216,16 @@ const LoanForm: React.FC<{
       loan_number: form.loanNumber.trim() || null,
       vehicle_id: form.vehicleId ? Number(form.vehicleId) : null,
       collateral_description: form.collateralDescription.trim() || null,
-      principal_amount: Number(form.principalAmount),
-      disbursed_amount: form.disbursedAmount ? Number(form.disbursedAmount) : null,
-      interest_rate: form.interestRate ? Number(form.interestRate) : null,
-      processing_fee: form.processingFee ? Number(form.processingFee) : null,
+      principal_amount: form.principalAmount,
+      disbursed_amount: form.disbursedAmount,
+      interest_rate: form.interestRate,
+      processing_fee: form.processingFee,
       start_date: form.startDate,
       first_emi_date: form.firstEmiDate,
-      emi_amount: Number(form.emiAmount),
+      emi_amount: form.emiAmount,
       emi_day_of_month: day,
       total_installments: total,
-      outstanding_override: form.outstandingOverride
-        ? Number(form.outstandingOverride)
-        : null,
+      outstanding_override: form.outstandingOverride,
       debit_account_id: form.debitAccountId ? Number(form.debitAccountId) : null,
       mandate_type: form.mandateType || null,
       notes: form.notes.trim() || null,
@@ -258,11 +254,7 @@ const LoanForm: React.FC<{
     }
   };
 
-  const errorClass = (key: string) => (fieldErrors[key] ? "border-destructive" : "");
-  const FieldError = ({ name }: { name: string }) =>
-    fieldErrors[name] ? (
-      <span className="text-xs text-destructive">{fieldErrors[name]}</span>
-    ) : null;
+  const today = todayInIndia();
 
   return (
     <>
@@ -276,11 +268,8 @@ const LoanForm: React.FC<{
       </ModalHeader>
 
       <ModalBody>
-        <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-type">
-              Loan Type <span className="text-destructive">*</span>
-            </Label>
+        <FormGrid className="mt-2">
+          <FormField label="Loan Type" required htmlFor="loan-type" error={fieldErrors.loanType}>
             <LookupSelect
               id="loan-type"
               category="loan_type"
@@ -291,14 +280,10 @@ const LoanForm: React.FC<{
               disabled={loading}
               invalid={!!fieldErrors.loanType}
             />
-            <FieldError name="loanType" />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-borrower">
-              In Whose Name <span className="text-destructive">*</span>
-            </Label>
-            <Typeahead<Entity>
+          <FormField label="In Whose Name" required htmlFor="loan-borrower" error={fieldErrors.borrowerEntityId}>
+            <Combobox<Entity>
               id="loan-borrower"
               options={entities}
               value={form.borrowerEntityId}
@@ -313,23 +298,19 @@ const LoanForm: React.FC<{
               disabled={loading || optionsLoading}
               invalid={!!fieldErrors.borrowerEntityId}
               footer={
-                <Button
-                  variant="ghost"
-                  className={typeaheadFooterActionClassName}
+                <ComboboxFooterAction
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setShowAddEntity(true)}
                 >
                   <PlusIcon size={16} />
                   Add new firm or person
-                </Button>
+                </ComboboxFooterAction>
               }
             />
-            <FieldError name="borrowerEntityId" />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-lender">Lender</Label>
-            <Typeahead<Lender>
+          <FormField label="Lender" htmlFor="loan-lender">
+            <Combobox<Lender>
               id="loan-lender"
               options={lenders}
               value={form.lenderId}
@@ -341,35 +322,30 @@ const LoanForm: React.FC<{
               disabled={loading || optionsLoading}
               clearable
               footer={
-                <Button
-                  variant="ghost"
-                  className={typeaheadFooterActionClassName}
+                <ComboboxFooterAction
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setShowAddLender(true)}
                 >
                   <PlusIcon size={16} />
                   Add new lender
-                </Button>
+                </ComboboxFooterAction>
               }
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-account">Loan Number</Label>
-            <Input
-              id="loan-account"
-              disabled={loading}
-              value={form.loanNumber}
-              onChange={(e) => setField("loanNumber", e.target.value)}
-            />
-            <span className="text-xs text-muted-foreground">
-              As printed on the lender&rsquo;s statement (LAN).
-            </span>
-          </div>
+          <FormField label="Loan Number" hint="As printed on the lender&rsquo;s statement (LAN).">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                value={form.loanNumber}
+                onChange={(e) => setField("loanNumber", e.target.value)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-vehicle">Vehicle (if the loan is on one)</Label>
-            <Typeahead<LinkedVehicle>
+          <FormField label="Vehicle (if the loan is on one)" htmlFor="loan-vehicle">
+            <Combobox<LinkedVehicle>
               id="loan-vehicle"
               options={vehicles}
               value={form.vehicleId}
@@ -384,22 +360,22 @@ const LoanForm: React.FC<{
               disabled={loading || optionsLoading}
               clearable
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-collateral">Other Collateral</Label>
-            <Input
-              id="loan-collateral"
-              disabled={loading}
-              placeholder="e.g. land survey no., gold, vehicle not in fleet"
-              value={form.collateralDescription}
-              onChange={(e) => setField("collateralDescription", e.target.value)}
-            />
-          </div>
+          <FormField label="Other Collateral">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                placeholder="e.g. land survey no., gold, vehicle not in fleet"
+                value={form.collateralDescription}
+                onChange={(e) => setField("collateralDescription", e.target.value)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-debit-account">Auto-debit from</Label>
-            <Typeahead<BankAccount>
+          <FormField label="Auto-debit from" htmlFor="loan-debit-account">
+            <Combobox<BankAccount>
               id="loan-debit-account"
               options={bankAccounts}
               value={form.debitAccountId}
@@ -412,21 +388,18 @@ const LoanForm: React.FC<{
               disabled={loading || optionsLoading}
               clearable
               footer={
-                <Button
-                  variant="ghost"
-                  className={typeaheadFooterActionClassName}
+                <ComboboxFooterAction
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setShowAddAccount(true)}
                 >
                   <PlusIcon size={16} />
                   Add new account
-                </Button>
+                </ComboboxFooterAction>
               }
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-mandate">Mandate</Label>
+          <FormField label="Mandate" htmlFor="loan-mandate">
             <Select
               disabled={loading}
               value={form.mandateType || "__none"}
@@ -446,183 +419,168 @@ const LoanForm: React.FC<{
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-principal">
-              Principal Amount (₹) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="loan-principal"
-              type="number"
-              inputMode="numeric"
-              disabled={loading}
-              value={form.principalAmount}
-              onChange={(e) => setField("principalAmount", e.target.value)}
-              className={errorClass("principalAmount")}
-            />
-            <FieldError name="principalAmount" />
-          </div>
+          <FormField label="Principal Amount (₹)" required error={fieldErrors.principalAmount}>
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                value={form.principalAmount}
+                onValueChange={(v) => setField("principalAmount", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-disbursed">Disbursed Amount (₹)</Label>
-            <Input
-              id="loan-disbursed"
-              type="number"
-              inputMode="numeric"
-              disabled={loading}
-              placeholder="Leave blank if same as principal"
-              value={form.disbursedAmount}
-              onChange={(e) => setField("disbursedAmount", e.target.value)}
-            />
-            <span className="text-xs text-muted-foreground">
-              What actually landed in the account, if different from the
-              sanctioned principal (after processing fee or other deductions).
-            </span>
-          </div>
+          <FormField
+            label="Disbursed Amount (₹)"
+            hint="What actually landed in the account, if different from the sanctioned principal (after processing fee or other deductions)."
+          >
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                placeholder="Leave blank if same as principal"
+                value={form.disbursedAmount}
+                onValueChange={(v) => setField("disbursedAmount", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-rate">Interest Rate (% p.a.)</Label>
-            <Input
-              id="loan-rate"
-              type="number"
-              step="0.01"
-              disabled={loading}
-              value={form.interestRate}
-              onChange={(e) => setField("interestRate", e.target.value)}
-            />
-          </div>
+          <FormField label="Interest Rate (% p.a.)">
+            {(control) => (
+              <NumberInput
+                {...control}
+                disabled={loading}
+                min={0}
+                maxDecimals={2}
+                step={0.01}
+                value={form.interestRate}
+                onValueChange={(v) => setField("interestRate", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-start">
-              Start Date <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="loan-start"
-              type="date"
-              disabled={loading}
-              value={form.startDate}
-              onChange={(e) => setField("startDate", e.target.value)}
-              className={errorClass("startDate")}
-            />
-            <FieldError name="startDate" />
-          </div>
+          <FormField label="Start Date" required error={fieldErrors.startDate}>
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                disabled={loading}
+                invalid={!!fieldErrors.startDate}
+                value={form.startDate || null}
+                onValueChange={(v) => setField("startDate", v ?? "")}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-first-emi">
-              First EMI Date <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="loan-first-emi"
-              type="date"
-              disabled={loading}
-              value={form.firstEmiDate}
-              onChange={(e) => setField("firstEmiDate", e.target.value)}
-              className={errorClass("firstEmiDate")}
-            />
-            <FieldError name="firstEmiDate" />
-          </div>
+          <FormField label="First EMI Date" required error={fieldErrors.firstEmiDate}>
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                disabled={loading}
+                invalid={!!fieldErrors.firstEmiDate}
+                value={form.firstEmiDate || null}
+                onValueChange={(v) => setField("firstEmiDate", v ?? "")}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-emi">
-              EMI Amount (₹) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="loan-emi"
-              type="number"
-              inputMode="numeric"
-              disabled={loading}
-              value={form.emiAmount}
-              onChange={(e) => setField("emiAmount", e.target.value)}
-              className={errorClass("emiAmount")}
-            />
-            <FieldError name="emiAmount" />
-          </div>
+          <FormField label="EMI Amount (₹)" required error={fieldErrors.emiAmount}>
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                value={form.emiAmount}
+                onValueChange={(v) => setField("emiAmount", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-emi-day">
-              EMI Day of Month <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="loan-emi-day"
-              type="number"
-              min={1}
-              max={31}
-              disabled={loading}
-              placeholder="1–31"
-              value={form.emiDayOfMonth}
-              onChange={(e) => setField("emiDayOfMonth", e.target.value)}
-              className={errorClass("emiDayOfMonth")}
-            />
-            <span className="text-xs text-muted-foreground">
-              Short months fall back to the last day — 31 becomes 28 in February.
-            </span>
-            <FieldError name="emiDayOfMonth" />
-          </div>
+          <FormField
+            label="EMI Day of Month"
+            required
+            error={fieldErrors.emiDayOfMonth}
+            hint="Short months fall back to the last day — 31 becomes 28 in February."
+          >
+            {(control) => (
+              <NumberInput
+                {...control}
+                disabled={loading}
+                placeholder="1–31"
+                value={form.emiDayOfMonth}
+                onValueChange={(v) => setField("emiDayOfMonth", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-total">
-              Total Installments <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="loan-total"
-              type="number"
-              min={1}
-              disabled={loading}
-              value={form.totalInstallments}
-              onChange={(e) => setField("totalInstallments", e.target.value)}
-              className={errorClass("totalInstallments")}
-            />
-            <FieldError name="totalInstallments" />
-          </div>
+          <FormField label="Total Installments" required error={fieldErrors.totalInstallments}>
+            {(control) => (
+              <NumberInput
+                {...control}
+                disabled={loading}
+                value={form.totalInstallments}
+                onValueChange={(v) => setField("totalInstallments", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-fee">Processing Fee (₹)</Label>
-            <Input
-              id="loan-fee"
-              type="number"
-              disabled={loading}
-              value={form.processingFee}
-              onChange={(e) => setField("processingFee", e.target.value)}
-            />
-          </div>
+          <FormField label="Processing Fee (₹)">
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                value={form.processingFee}
+                onValueChange={(v) => setField("processingFee", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="loan-override">Outstanding Override (₹)</Label>
-            <Input
-              id="loan-override"
-              type="number"
-              disabled={loading}
-              placeholder="Leave blank to derive from the schedule"
-              value={form.outstandingOverride}
-              onChange={(e) => setField("outstandingOverride", e.target.value)}
-            />
-            <span className="text-xs text-muted-foreground">
-              Only for matching a figure the lender has quoted. Once set, it
-              replaces the calculated outstanding everywhere.
-            </span>
-          </div>
+          <FormField
+            className="sm:col-span-2"
+            label="Outstanding Override (₹)"
+            hint="Only for matching a figure the lender has quoted. Once set, it replaces the calculated outstanding everywhere."
+          >
+            {(control) => (
+              <MoneyInput
+                {...control}
+                disabled={loading}
+                min={0}
+                placeholder="Leave blank to derive from the schedule"
+                value={form.outstandingOverride}
+                onValueChange={(v) => setField("outstandingOverride", v)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="loan-notes">Notes</Label>
-            <Textarea
-              id="loan-notes"
-              rows={3}
-              disabled={loading}
-              maxLength={LOAN_NOTES_MAX_LENGTH}
-              value={form.notes}
-              onChange={(e) => setField("notes", e.target.value)}
-            />
-            <span className="self-end text-xs text-muted-foreground">
-              {form.notes.length}/{LOAN_NOTES_MAX_LENGTH}
-            </span>
-          </div>
-        </div>
+          <FormField className="sm:col-span-2" label="Notes">
+            {(control) => (
+              <>
+                <Textarea
+                  {...control}
+                  rows={3}
+                  disabled={loading}
+                  maxLength={LOAN_NOTES_MAX_LENGTH}
+                  value={form.notes}
+                  onChange={(e) => setField("notes", e.target.value)}
+                />
+                <span className="self-end text-xs text-muted-foreground">
+                  {form.notes.length}/{LOAN_NOTES_MAX_LENGTH}
+                </span>
+              </>
+            )}
+          </FormField>
+        </FormGrid>
 
         {submitError && (
-          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert tone="danger" className="mt-4">
             {submitError}
-          </div>
+          </Alert>
         )}
       </ModalBody>
 
@@ -632,7 +590,7 @@ const LoanForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

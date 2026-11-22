@@ -4,20 +4,9 @@
 // folder specifically so nothing has to reach into another feature's code
 // just to print a number.
 
-/** Indian-format rupees with no paise — how these amounts are actually spoken. */
-export function formatCurrency(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(Number(value))) return "—";
-  return `₹${Number(value).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-}
-
-/** Keeps paise, for interest figures where rounding to rupees would mislead. */
-export function formatCurrencyPrecise(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(Number(value))) return "—";
-  return `₹${Number(value).toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+// formatCurrency / formatCurrencyPrecise are defined in the UI library (the
+// <Money> primitive needs them) and re-exported here so callers don't change.
+export { formatCurrency, formatCurrencyPrecise } from "@ui/utils/formatCurrency";
 
 /** "12 Aug 2026" — parsed as UTC so a date-only value can't shift a day. */
 export function formatDate(value: string | null | undefined): string {

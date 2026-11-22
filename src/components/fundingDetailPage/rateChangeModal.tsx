@@ -1,18 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { SaveIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { SaveIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { FormField } from "@ui/components/formField";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { NumberInput } from "@ui/components/numberInput";
+import { Spinner } from "@ui/components/spinner";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -21,9 +25,9 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import { ROI_BASES, type InterestMode } from "@/components/loansPage/loansPage.types";
-import { todayString } from "@/lib/format";
+import { todayInIndia } from "@/lib/dateOnly";
 
 export interface RateChangeModalProps {
   isOpen: boolean;
@@ -39,10 +43,12 @@ const RateChangeForm: React.FC<Omit<RateChangeModalProps, "isOpen">> = ({
   onClose,
   onSuccess,
 }) => {
-  const [roi, setRoi] = useState("");
+  const [roi, setRoi] = useState<number | null>(null);
   const [roiBasis, setRoiBasis] = useState("MONTHLY");
-  const [fixedAmount, setFixedAmount] = useState("");
-  const [effectiveFrom, setEffectiveFrom] = useState(todayString());
+  const [fixedAmount, setFixedAmount] = useState<number | null>(null);
+  // The business day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [effectiveFrom, setEffectiveFrom] = useState<string | null>(today);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +56,11 @@ const RateChangeForm: React.FC<Omit<RateChangeModalProps, "isOpen">> = ({
   const isPercent = interestMode === "PERCENT";
 
   const handleSubmit = async () => {
-    if (isPercent && (!roi || Number(roi) < 0)) {
+    if (isPercent && (roi == null || roi < 0)) {
       setError("Enter the new rate");
       return;
     }
-    if (!isPercent && (!fixedAmount || Number(fixedAmount) < 0)) {
+    if (!isPercent && (fixedAmount == null || fixedAmount < 0)) {
       setError("Enter the new monthly amount");
       return;
     }
@@ -67,10 +73,10 @@ const RateChangeForm: React.FC<Omit<RateChangeModalProps, "isOpen">> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roi: isPercent ? Number(roi) : null,
+          roi: isPercent ? roi : null,
           roi_basis: isPercent ? roiBasis : null,
-          fixed_interest_amount: isPercent ? null : Number(fixedAmount),
-          effective_from: effectiveFrom,
+          fixed_interest_amount: isPercent ? null : fixedAmount,
+          effective_from: effectiveFrom ?? today,
           note: note.trim() || null,
         }),
       });
@@ -104,25 +110,24 @@ const RateChangeForm: React.FC<Omit<RateChangeModalProps, "isOpen">> = ({
         <div className="flex flex-col gap-4">
           {isPercent ? (
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rate-roi">
-                  New Rate (%) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="rate-roi"
-                  type="number"
-                  step="0.01"
-                  autoFocus
-                  disabled={loading}
-                  value={roi}
-                  onChange={(e) => {
-                    setRoi(e.target.value);
-                    setError(null);
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rate-basis">Per</Label>
+              <FormField label="New Rate (%)" required>
+                {(control) => (
+                  <NumberInput
+                    {...control}
+                    autoFocus
+                    min={0}
+                    maxDecimals={2}
+                    step={0.01}
+                    disabled={loading}
+                    value={roi}
+                    onValueChange={(v) => {
+                      setRoi(v);
+                      setError(null);
+                    }}
+                  />
+                )}
+              </FormField>
+              <FormField label="Per" htmlFor="rate-basis">
                 <Select disabled={loading} value={roiBasis} onValueChange={setRoiBasis}>
                   <SelectTrigger id="rate-basis">
                     <SelectValue />
@@ -135,56 +140,55 @@ const RateChangeForm: React.FC<Omit<RateChangeModalProps, "isOpen">> = ({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </FormField>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rate-fixed">
-                New Monthly Interest (₹) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="rate-fixed"
-                type="number"
-                autoFocus
-                disabled={loading}
-                value={fixedAmount}
-                onChange={(e) => {
-                  setFixedAmount(e.target.value);
-                  setError(null);
-                }}
-              />
-            </div>
+            <FormField label="New Monthly Interest (₹)" required>
+              {(control) => (
+                <MoneyInput
+                  {...control}
+                  autoFocus
+                  min={0}
+                  disabled={loading}
+                  value={fixedAmount}
+                  onValueChange={(v) => {
+                    setFixedAmount(v);
+                    setError(null);
+                  }}
+                />
+              )}
+            </FormField>
           )}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="rate-from">
-              Effective From <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="rate-from"
-              type="date"
-              disabled={loading}
-              value={effectiveFrom}
-              onChange={(e) => setEffectiveFrom(e.target.value)}
-            />
-          </div>
+          <FormField label="Effective From" required>
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                disabled={loading}
+                value={effectiveFrom}
+                onValueChange={setEffectiveFrom}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="rate-note">Note</Label>
-            <Input
-              id="rate-note"
-              disabled={loading}
-              placeholder="e.g. renegotiated over the phone"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
+          <FormField label="Note">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                placeholder="e.g. renegotiated over the phone"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            )}
+          </FormField>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert tone="danger" className="mt-4" scrollIntoView>
             {error}
-          </div>
+          </Alert>
         )}
       </ModalBody>
 
@@ -194,7 +198,7 @@ const RateChangeForm: React.FC<Omit<RateChangeModalProps, "isOpen">> = ({
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

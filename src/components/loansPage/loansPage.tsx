@@ -15,33 +15,35 @@ import {
   SearchIcon,
   XIcon,
   SlidersHorizontalIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs } from "@/components/ui/tabs";
-import { StatCard } from "@/components/ui/statCard";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Money } from "@/components/ui/money";
-import { SegmentedControl } from "@/components/ui/segmentedControl";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { Input } from "@ui/components/input";
+import { MonthPicker } from "@ui/components/monthPicker";
+import { todayInIndia } from "@/lib/dateOnly";
+import { Tabs } from "@ui/components/tabs";
+import { StatCard } from "@ui/patterns/statCard";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Money } from "@ui/components/money";
+import { SegmentedControl } from "@ui/components/segmentedControl";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Pagination } from "@/components/ui/pagination";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/ui/busyOverlay";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { FilterDrawer } from "@/components/ui/filterDrawer";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
-import { Typeahead } from "@/components/ui/typeahead";
+} from "@ui/components/select";
+import { Pagination } from "@ui/components/pagination";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { LoadingOverlay } from "@ui/components/loadingOverlay";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { FilterDrawer } from "@ui/patterns/filterDrawer";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef, RowAction } from "@ui/patterns/dataTable";
+import { Combobox } from "@ui/components/combobox";
 import { LoanMobileCard } from "./loanMobileCard";
 import { LookupSelect } from "@/components/lookupSelect";
 import type { Entity } from "@/components/entitiesPage/entitiesPage.types";
@@ -83,7 +85,7 @@ const FundingModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 const LoanAttachmentsModal = dynamic(
@@ -607,7 +609,7 @@ export function LoansPage() {
     onChange: (key: FundingSortKey) => void,
   ) => renderSort(idPrefix, FUNDING_SORT_OPTIONS, value, onChange);
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
 
 
   const loanFilterCount = [loanTypeFilter, borrowerFilter, lenderFilter].filter(Boolean).length;
@@ -629,7 +631,7 @@ export function LoansPage() {
         clearable
         className={inSheet ? "w-full" : "w-full sm:w-44"}
       />
-      <Typeahead<Entity>
+      <Combobox<Entity>
         options={filterEntities}
         value={borrowerFilter}
         onValueChange={(val) => {
@@ -644,7 +646,7 @@ export function LoansPage() {
         clearable
         className={inSheet ? "w-full" : "w-full sm:w-52"}
       />
-      <Typeahead<Lender>
+      <Combobox<Lender>
         options={filterLenders}
         value={lenderFilter}
         onValueChange={(val) => {
@@ -780,7 +782,7 @@ export function LoansPage() {
                     placeholder="Search by loan number or collateral..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-background pl-9 pr-9"
+                    className="bg-background pl-9 pr-9 max-md:bg-card"
                   />
                   {searchQuery && (
                     <Button
@@ -1016,14 +1018,14 @@ export function LoansPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Input
+                  <MonthPicker
                     data-testid="loans-calendar-month-input"
-                    type="month"
-                    className="w-auto"
+                    aria-label="Month"
+                    currentMonth={todayInIndia().slice(0, 7)}
                     value={calendarMonth.slice(0, 7)}
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const next = `${e.target.value}-01`;
+                    onValueChange={(month) => {
+                      if (!month) return;
+                      const next = `${month}-01`;
                       setCalendarMonth(next);
                       void fetchCalendar(next);
                     }}
@@ -1037,7 +1039,7 @@ export function LoansPage() {
                 </div>
               </div>
 
-              <BusyOverlay busy={calendarFetching}>
+              <LoadingOverlay busy={calendarFetching}>
                 {calendarLoaded && !calendarFetching && calendarDays.length === 0 ? (
                 <EmptyState
                   title="Nothing due"
@@ -1122,7 +1124,7 @@ export function LoansPage() {
                     })}
                 </div>
               )}
-              </BusyOverlay>
+              </LoadingOverlay>
             </div>
           )}
         </div>

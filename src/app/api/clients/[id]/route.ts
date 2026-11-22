@@ -1,4 +1,5 @@
 import { requireStrictAdminAuth } from "@/lib/auth";
+import { parseId } from "../../loans/loans.utils";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
 
@@ -14,8 +15,8 @@ export async function GET(
     await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const id = Number(idParam);
-    if (!Number.isFinite(id)) {
+    const id = parseId(idParam);
+    if (id === null) {
       return apiError("Invalid client ID", 400);
     }
 

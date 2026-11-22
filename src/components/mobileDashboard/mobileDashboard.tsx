@@ -8,7 +8,7 @@ import {
   ChevronRightIcon,
   LockIcon,
   MenuIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { NotificationBell } from "@/components/notificationBell";
 import { useOpenMobileDrawer } from "@/components/layout/mobileDrawer";
 import { cn } from "@/lib/utils";

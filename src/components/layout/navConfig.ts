@@ -18,7 +18,7 @@ import {
   WalletIcon,
   CalendarIcon,
   HandCoinsIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { canRoleAccessPage, type UserRole } from "@/lib/routePermissions";
 
 export type NavItem = {

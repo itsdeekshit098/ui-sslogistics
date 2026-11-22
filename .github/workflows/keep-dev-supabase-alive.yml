@@ -1,0 +1,34 @@
+name: Keep Dev Supabase Awake
+
+# The dev/local Supabase project is on a plan that pauses after about a week
+# of no activity. This reads one row from it every 3 days so it never idles.
+# It uses its own secrets, separate from the production ones the other jobs use.
+
+on:
+  schedule:
+    - cron: '30 3 */3 * *' # every 3 days, 3:30 AM UTC
+  workflow_dispatch: # run it by hand from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query the dev database
+        env:
+          DEV_SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
+          DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$DEV_SUPABASE_URL" ] || [ -z "$DEV_SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Add DEV_SUPABASE_URL and DEV_SUPABASE_SERVICE_ROLE_KEY as repository secrets."
+            exit 1
+          fi
+          status=$(curl -sS -o response.json -w '%{http_code}' \
+            --retry 3 --retry-delay 10 --max-time 30 \
+            -H "apikey: $DEV_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $DEV_SUPABASE_SERVICE_ROLE_KEY" \
+            "$DEV_SUPABASE_URL/rest/v1/system_settings?select=*&limit=1")
+          echo "HTTP $status"
+          if [ "$status" != "200" ]; then
+            echo "Dev Supabase did not answer 200. It may already be paused: restore it in the Supabase dashboard."
+            exit 1
+          fi

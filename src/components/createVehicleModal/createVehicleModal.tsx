@@ -2,9 +2,9 @@
 
 import React, { useCallback, useState } from "react";
 import { CreateVehicleModalProps } from "./createVehicleModal.types";
-import { SaveIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { Button } from "@/components/ui/button";
+import { SaveIcon } from "@ui/icons";
+import { Spinner } from "@ui/components/spinner";
+import { Button } from "@ui/components/button";
 import {
   Modal,
   ModalContent,
@@ -13,7 +13,7 @@ import {
   ModalDescription,
   ModalBody,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import { VehicleFormFields } from "@/components/vehicleFormFields";
 import { AddVehicleOwnerModal } from "@/components/addVehicleOwnerModal";
 import { useVehicleForm } from "@/hooks/useVehicleForm";
@@ -116,7 +116,7 @@ const CreateVehicleForm: React.FC<{
           disabled={loading}
         >
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

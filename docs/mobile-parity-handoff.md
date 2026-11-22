@@ -58,6 +58,6 @@ Still impossible to verify without a device: real notch/home-bar rendering, and 
 
 - Tailwind v4 silently drops unknown classes. After adding classes, confirm they exist in the compiled CSS (fetch the dev CSS and search for the escaped class name).
 - Any rule that sets a phone look must be phone-scoped (`max-md:` or `@media (max-width: 767px)`). The attendance chip row sets `[&>button]:px-0`, which beats `max-md:px-3.5`.
-- `usePathname()` returns null in unit tests; `PageFab` guards for it.
+- `usePathname()` returns null in unit tests; `RouteAccent` (which supplies the floating button's colour) guards for it.
 - Phone-only element rules in `globals.css` (`input[placeholder^="Search"]`, `button[aria-label="Filters"]`) apply app-wide on phones, including inside modals.
 - Desktop reference screenshots come from commit `ba22039`. If layout code changes legitimately on desktop, re-run `npm run visual:baseline`.

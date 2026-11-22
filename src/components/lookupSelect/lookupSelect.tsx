@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Typeahead, typeaheadFooterActionClassName } from "@/components/ui/typeahead";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { PlusIcon } from "@/components/ui/icon";
+import { Combobox, ComboboxFooterAction } from "@ui/components/combobox";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Spinner } from "@ui/components/spinner";
+import { PlusIcon } from "@ui/icons";
 import {
   Modal,
   ModalContent,
@@ -15,7 +15,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { LookupOption, LookupSelectProps } from "./lookupSelect.types";
 
 /**
@@ -85,7 +85,7 @@ const LookupSelect: React.FC<LookupSelectProps> = ({
 
   return (
     <>
-      <Typeahead<LookupOption>
+      <Combobox<LookupOption>
         id={id}
         options={options}
         value={value}
@@ -100,9 +100,7 @@ const LookupSelect: React.FC<LookupSelectProps> = ({
         className={className}
         footer={
           allowAdd ? (
-            <Button
-              variant="ghost"
-              className={typeaheadFooterActionClassName}
+            <ComboboxFooterAction
               // Without this the listbox's outside-click handler fires first
               // and unmounts the button before the click lands.
               onPointerDown={(e) => e.stopPropagation()}
@@ -110,7 +108,7 @@ const LookupSelect: React.FC<LookupSelectProps> = ({
             >
               <PlusIcon size={16} />
               Add new {addLabel}
-            </Button>
+            </ComboboxFooterAction>
           ) : undefined
         }
       />
@@ -223,7 +221,7 @@ const AddLookupOptionModal: React.FC<AddLookupOptionModalProps> = ({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={saving}>
-            {saving && <LoadingSpinner size="sm" className="mr-2" />}
+            {saving && <Spinner size="sm" className="mr-2" />}
             {saving ? "Adding…" : "Add"}
           </Button>
         </ModalFooter>

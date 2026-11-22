@@ -3,7 +3,8 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isValidMonth } from "../../../driver-attendance/driver-attendance.utils";
+import { isValidMonth, startMonthProblem } from "../../../driver-attendance/driver-attendance.utils";
+import { todayInIndia } from "@/lib/dateOnly";
 import { hasSettlementOnOrAfter } from "../../driver-salaries.data";
 import { moneyMessage, moneyProblem } from "../../driver-salaries.utils";
 import { PAY_TYPES, type DriverPayType } from "@/components/salariesPage/salariesPage.types";
@@ -93,6 +94,8 @@ export async function POST(
     if (!isValidMonth(body.effective_month)) {
       return apiError("The month the pay type starts from is required (YYYY-MM)", 400);
     }
+    const monthProblem = startMonthProblem(body.effective_month, todayInIndia());
+    if (monthProblem) return apiError(monthProblem, 400);
     const effectiveFrom = `${body.effective_month}-01`;
     const note =
       typeof body.note === "string" && body.note.trim()

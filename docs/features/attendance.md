@@ -52,7 +52,7 @@ Row badges: **Full day**, **Double shift** (more than one shift but not a full d
 
 ### Shifts per day (modal, admin only)
 
-Opened from the gear. Title is the driver's name. Pick **1 (A)**, **2 (A · B)** or **3 (A · B · C)**, choose a **From month** (defaults to the month on screen), and press Save. A History list shows earlier changes ("From Oct 2026 — 2 (A · B)"), or "Nothing set yet — this driver runs all three shifts." If the new count leaves days marked with a shift the driver no longer runs, the modal stays open with an amber note listing up to 10 dates (and "and N more") and the line "Nothing was changed for you." — the button becomes **Done**.
+Opened from the gear. Title is the driver's name. Pick **1 (A)**, **2 (A · B)** or **3 (A · B · C)**, choose a **From month** (defaults to the month on screen), and press Save. The month must be between January 2020 and a year ahead (a typo like 2999 is refused), and the count is a number 1–3. A History list shows earlier changes ("From Oct 2026 — 2 (A · B)"), or "Nothing set yet — this driver runs all three shifts." If the new count leaves days marked with a shift the driver no longer runs, the modal stays open with an amber note listing up to 10 dates (and "and N more") and the line "Nothing was changed for you." — the button becomes **Done**.
 
 ## 4. Flows
 
@@ -112,4 +112,6 @@ Opened from the gear. Title is the driver's name. Pick **1 (A)**, **2 (A · B)**
 - **No limit on how far back** an admin can edit a day; a paid month can still be changed (attendance is not locked by settling a salary month, so a settled driver's live pay can drift from what was paid; the Salaries screen shows that drift).
 - **Holiday is not in the CSV totals.** The export has Absent and Leave columns but no Holiday total; holiday days still appear in the per-day columns.
 - **Desktop and phone do not warn when switching Day ↔ Month** with unsaved marks (they are kept); only date changes ask.
+- **Roles not driven live:** the staff and driver read-only views and the 403s were covered by unit tests only; admin was driven live in Nov 2026 (day marking, save, unsaved prompt, shift-count modal, phone layout, both exports).
+- **The shift-count modal's "From month" is still the browser's own month input**, not the library's month picker.
 - **Not checked on the Flutter app:** its shift-count warning and Holiday/per-trip behaviour were not compared with this web page.

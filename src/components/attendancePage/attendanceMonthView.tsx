@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/icon";
+import { ChevronDownIcon, ChevronRightIcon } from "@ui/icons";
 import { cn } from "@/lib/utils";
 import {
   shiftsFor,

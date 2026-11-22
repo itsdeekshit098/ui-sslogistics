@@ -9,20 +9,20 @@ import {
   PlusIcon,
   PencilIcon,
   CheckCircleIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
-import { StatCard } from "@/components/ui/statCard";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Money } from "@/components/ui/money";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef } from "@/components/ui/dataTable/dataTable.types";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/ui/busyOverlay";
-import { ErrorState } from "@/components/ui/errorState";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { Tabs } from "@ui/components/tabs";
+import { StatCard } from "@ui/patterns/statCard";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Money } from "@ui/components/money";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef } from "@ui/patterns/dataTable";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { LoadingOverlay } from "@ui/components/loadingOverlay";
+import { ErrorState } from "@ui/patterns/errorState";
 import { FundingEntryModal } from "./fundingEntryModal";
 import { RateChangeModal } from "./rateChangeModal";
 import {
@@ -38,7 +38,7 @@ import {
 import { formatCurrency, formatDate, formatMonth } from "@/lib/format";
 
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -122,7 +122,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
   };
 
   if (authLoading || (fetching && !funding)) {
-    return <PageLoadingSkeleton variant="admin" />;
+    return <PageSkeleton variant="admin" />;
   }
 
   if (error && !funding) {
@@ -215,7 +215,9 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
             {entry.is_reversal && <Badge variant="outline">Reversal</Badge>}
           </div>
           {entry.description && (
-            <span className="text-xs text-muted-foreground">{entry.description}</span>
+            <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+              {entry.description}
+            </span>
           )}
         </div>
       ),
@@ -235,7 +237,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
       key: "reference",
       header: "Reference",
       cell: (entry) => (
-        <span className="text-muted-foreground">
+        <span className="text-muted-foreground [overflow-wrap:anywhere]">
           {entry.reference ?? entry.payment_method ?? "—"}
         </span>
       ),
@@ -400,7 +402,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
           id={`funding-detail-panel-${activeTab}`}
           aria-labelledby={`funding-detail-tab-${activeTab}`}
         >
-          <BusyOverlay busy={refreshing}>
+          <LoadingOverlay busy={refreshing}>
             {activeTab === "interest" ? (
               <>
                 <p className="mb-4 text-sm text-muted-foreground">
@@ -436,7 +438,7 @@ export function FundingDetailPage({ fundingId }: { fundingId: number }) {
                 mobileLayout="timeline"
               />
             )}
-          </BusyOverlay>
+          </LoadingOverlay>
         </div>
       </div>
 

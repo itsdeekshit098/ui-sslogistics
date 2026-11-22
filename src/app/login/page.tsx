@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from "@/components/ui/icon";
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from "@ui/icons";
 import { motion, AnimatePresence } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Button } from "@ui/components/button";
+import { Spinner } from "@ui/components/spinner";
 
 function LoginForm() {
   const router = useRouter();
@@ -152,7 +152,7 @@ function LoginForm() {
             disabled={isLoading}
             className="w-full py-2.5 h-auto"
           >
-            {isLoading && <LoadingSpinner size="sm" className="mr-2" />}
+            {isLoading && <Spinner size="sm" className="mr-2" />}
             {isLoading ? "Signing in..." : "Sign in to Operations Portal"}
           </Button>
         </form>

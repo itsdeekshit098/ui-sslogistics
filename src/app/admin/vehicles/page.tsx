@@ -1,9 +1,9 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Button } from "@ui/components/button";
 import { VehicleTypeIcon } from "@/components/vehicleTypeIcon";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
 import {
   SearchIcon,
   TruckIcon,
@@ -14,22 +14,22 @@ import {
   ArrowLeftIcon,
   XIcon,
   SlidersHorizontalIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Modal, ModalContent } from "@/components/ui/modal";
+import { Modal, ModalContent } from "@ui/components/modal";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Vehicle,
   VehicleType,
@@ -53,8 +53,8 @@ import * as styles from "./vehiclesPage.style";
 import {
   CA_VEHICLES_CONTAINER,
 } from "./vehicles.styles";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { Spinner } from "@ui/components/spinner";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
 // shouldn't bloat the initial page chunk that has to load before anything
@@ -76,17 +76,17 @@ const EditVehicleModal = dynamic(
   () => import("@/components/editVehicleModal").then((m) => m.EditVehicleModal),
   { ssr: false },
 );
-import { ErrorState } from "@/components/ui/errorState";
+import { ErrorState } from "@ui/patterns/errorState";
 import { deleteVehicle } from "@/services/vehiclesService";
-import { EmptyState } from "@/components/ui/emptyState";
-import { Pagination } from "@/components/ui/pagination";
-import { DataTable } from "@/components/ui/dataTable";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { Pagination } from "@ui/components/pagination";
+import { DataTable } from "@ui/patterns/dataTable";
+import { Badge } from "@ui/components/badge";
 import {
   FilterDrawer,
   fieldGroup as filterFieldGroup,
   fieldLabel as filterFieldLabel,
-} from "@/components/ui/filterDrawer";
+} from "@ui/patterns/filterDrawer";
 
 /** Renders one document type's expiry badge + validity date range (used per-column on desktop, stacked on mobile). */
 function DocExpiryCell({
@@ -505,7 +505,7 @@ export default function VehiclesPage() {
     }
   };
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
   if (fetchError && vehicles.length === 0)
     return (
       <ErrorState
@@ -537,7 +537,7 @@ export default function VehiclesPage() {
       />
 
       <Card className="ss-panel">
-        <CardHeader className="p-4 md:p-6">
+        <CardHeader className="p-4 md:p-6 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg md:text-xl">
               Vehicle List
@@ -619,7 +619,7 @@ export default function VehiclesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+        <CardContent className="p-4 md:p-6 pt-0 md:pt-0 sm:p-6 sm:pt-0">
 
           {/* Table — DataTable renders it as cards below md */}
           <DataTable<Vehicle>
@@ -904,7 +904,7 @@ export default function VehiclesPage() {
                 onClick={handleDeleteVehicle}
                 disabled={isDeleting}
               >
-                {isDeleting && <LoadingSpinner size="sm" className="mr-2" />}
+                {isDeleting && <Spinner size="sm" className="mr-2" />}
                 {isDeleting ? "Deleting..." : "Delete Vehicle"}
               </Button>
             </div>

@@ -9,8 +9,8 @@ import {
   TankerTruckIcon,
   TrailerTruckIcon,
   VanIcon,
-} from "@/components/ui/icon";
-import type { ComponentIcon } from "@/components/ui/icon";
+} from "@ui/icons";
+import type { ComponentIcon } from "@ui/icons";
 import { cn } from "@/lib/utils";
 import type { VehicleTypeIconProps } from "./vehicleTypeIcon.types";
 

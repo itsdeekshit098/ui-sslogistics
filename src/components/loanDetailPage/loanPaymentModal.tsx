@@ -1,13 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { SaveIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState } from "react";
+import { SaveIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { FormField } from "@ui/components/formField";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { Textarea } from "@ui/components/textarea";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Spinner } from "@ui/components/spinner";
 import {
   Modal,
   ModalContent,
@@ -16,12 +19,13 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type {
   LoanInstallment,
   PaymentType,
 } from "@/components/loansPage/loansPage.types";
-import { formatCurrency, formatDate, todayString } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { todayInIndia } from "@/lib/dateOnly";
 
 export interface LoanPaymentModalProps {
   isOpen: boolean;
@@ -67,28 +71,22 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
 }) => {
   // Prefilled with exactly what's still due, which is the answer in almost
   // every case — the field stays editable for a part payment.
-  const [amount, setAmount] = useState(
-    installment ? String(installment.amount_remaining) : "",
+  const [amount, setAmount] = useState<number | null>(
+    installment ? installment.amount_remaining : null,
   );
-  const [paidOn, setPaidOn] = useState(todayString());
+  // The business day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [paidOn, setPaidOn] = useState<string | null>(today);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const errorRef = useRef<HTMLDivElement>(null);
-
-  // The form scrolls inside the dialog, and the error sits under the last
-  // field: without this the message lands below the fold and clicking Record
-  // looks like it did nothing.
-  useEffect(() => {
-    if (error) errorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [error]);
 
   const copy = TITLES[paymentType];
 
   const handleSubmit = async () => {
-    if (!amount || Number(amount) <= 0) {
+    if (amount == null || amount <= 0) {
       setError("Enter an amount greater than zero");
       return;
     }
@@ -103,8 +101,8 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
         body: JSON.stringify({
           payment_type: paymentType,
           installment_id: installment?.id ?? null,
-          amount: Number(amount),
-          paid_on: paidOn,
+          amount,
+          paid_on: paidOn ?? today,
           payment_method: paymentMethod || null,
           reference: reference.trim() || null,
           notes: notes.trim() || null,
@@ -153,37 +151,36 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
         )}
 
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="payment-amount">
-              Amount (₹) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="payment-amount"
-              type="number"
-              inputMode="numeric"
-              autoFocus
-              disabled={loading}
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setError(null);
-              }}
-            />
-          </div>
+          <FormField label="Amount (₹)" required>
+            {(control) => (
+              <MoneyInput
+                {...control}
+                autoFocus
+                min={0}
+                disabled={loading}
+                value={amount}
+                onValueChange={(v) => {
+                  setAmount(v);
+                  setError(null);
+                }}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="payment-date">Paid On</Label>
-            <Input
-              id="payment-date"
-              type="date"
-              disabled={loading}
-              value={paidOn}
-              onChange={(e) => setPaidOn(e.target.value)}
-            />
-          </div>
+          <FormField label="Paid On">
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                max={today}
+                disabled={loading}
+                value={paidOn}
+                onValueChange={setPaidOn}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="payment-method">Payment Method</Label>
+          <FormField label="Payment Method" htmlFor="payment-method">
             <LookupSelect
               id="payment-method"
               category="payment_method"
@@ -193,40 +190,39 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
               onValueChange={setPaymentMethod}
               disabled={loading}
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="payment-reference">Reference</Label>
-            <Input
-              id="payment-reference"
-              disabled={loading}
-              placeholder="UTR / cheque no."
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
+          <FormField label="Reference">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                placeholder="UTR / cheque no."
+                maxLength={100}
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="payment-notes">Notes</Label>
-            <Textarea
-              id="payment-notes"
-              rows={2}
-              maxLength={500}
-              disabled={loading}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
+          <FormField label="Notes">
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                maxLength={500}
+                disabled={loading}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            )}
+          </FormField>
         </div>
 
         {error && (
-          <div
-            ref={errorRef}
-            role="alert"
-            className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
-          >
+          <Alert tone="danger" className="mt-4" scrollIntoView>
             {error}
-          </div>
+          </Alert>
         )}
       </ModalBody>
 
@@ -236,7 +232,7 @@ const LoanPaymentForm: React.FC<Omit<LoanPaymentModalProps, "isOpen">> = ({
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

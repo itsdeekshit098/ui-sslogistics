@@ -9,7 +9,7 @@ import {
   PlusIcon,
   UserPlusIcon,
   PackageIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import type { RepairModalProps } from "./repairModal.types";
 import { getDefaultRepairFormData } from "@/components/repairRecordsPage";
 import type {
@@ -23,19 +23,19 @@ import type {
   Vendor,
   WarrantyDurationUnit,
 } from "@/components/repairRecordsPage";
-import { Typeahead } from "@/components/ui/typeahead";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Combobox } from "@ui/components/combobox";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Textarea } from "@ui/components/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+} from "@ui/components/select";
+import { Spinner } from "@ui/components/spinner";
 import { AddTechnicianModal } from "@/components/addTechnicianModal";
 import { AddVendorModal } from "@/components/addVendorModal";
 import {
@@ -46,7 +46,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import * as styles from "./repairModal.style";
 import { computeExpiryDateFromStrings as computeExpiryDate } from "@/utils/warrantyExpiry";
 import { vehicleLabel } from "@/lib/vehicleLabel";
@@ -562,7 +562,7 @@ const RepairForm: React.FC<{
               </div>
             ) : (
               <>
-                <Typeahead disabled={loading}
+                <Combobox disabled={loading}
                   id="vehicleId"
                   options={vehicles}
                   value={formData.vehicleId}
@@ -712,11 +712,11 @@ const RepairForm: React.FC<{
             )}
           </div>
 
-          {/* ── Sub-issues (Typeahead) ── */}
+          {/* ── Sub-issues (Combobox) ── */}
           {formData.category && (
             <div style={styles.fieldGroup}>
               <Label style={styles.fieldLabel}>Specific Issues</Label>
-              <Typeahead
+              <Combobox
                 placeholder={
                   formData.category
                     ? `Search ${formData.category.toLowerCase()} issues...`
@@ -778,7 +778,7 @@ const RepairForm: React.FC<{
                         style={{ flexShrink: 0 }}
                       >
                         {addingIssue ? (
-                          <LoadingSpinner size="sm" />
+                          <Spinner size="sm" />
                         ) : (
                           <PlusIcon
                             size={16}
@@ -829,7 +829,7 @@ const RepairForm: React.FC<{
               <Label htmlFor="technician">
                 Technician <span style={styles.requiredStar}>*</span>
               </Label>
-              <Typeahead
+              <Combobox
                 id="technicianId"
                 options={technicians}
                 value={formData.technicianId}
@@ -863,7 +863,7 @@ const RepairForm: React.FC<{
                     type="button"
                     style={styles.addTechnicianButton}
                     onPointerDown={(e) => {
-                      // Prevent the Typeahead's outside-click handler from
+                      // Prevent the Combobox's outside-click handler from
                       // closing the dropdown before this click fires on mobile
                       e.stopPropagation();
                     }}
@@ -981,7 +981,7 @@ const RepairForm: React.FC<{
                       {/* Part Name */}
                       <div style={styles.fieldGroup}>
                         <Label>Part Name *</Label>
-                        <Typeahead
+                        <Combobox
                           id={`repairPartTypeahead_${part._key}`}
                           options={partOptions}
                           value={part.part_name}
@@ -1142,7 +1142,7 @@ const RepairForm: React.FC<{
                                 }}
                               >
                                 {isSavingPart ? (
-                                  <LoadingSpinner size="sm" />
+                                  <Spinner size="sm" />
                                 ) : (
                                   <PlusIcon size={16} />
                                 )}
@@ -1160,7 +1160,7 @@ const RepairForm: React.FC<{
                       {/* Vendor */}
                       <div style={styles.fieldGroup}>
                         <Label>Vendor *</Label>
-                        <Typeahead
+                        <Combobox
                           options={vendors}
                           value={part.vendor_id}
                           onValueChange={(val) =>
@@ -1374,7 +1374,7 @@ const RepairForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

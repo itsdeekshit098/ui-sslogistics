@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { SaveIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { SaveIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { FormField } from "@ui/components/formField";
+import { Alert } from "@ui/components/alert";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
+import { Textarea } from "@ui/components/textarea";
 import { LookupSelect } from "@/components/lookupSelect";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Spinner } from "@ui/components/spinner";
 import {
   Modal,
   ModalContent,
@@ -16,9 +19,10 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import type { FundingDirection, FundingEntryType } from "@/components/loansPage/loansPage.types";
-import { formatCurrencyPrecise, todayString } from "@/lib/format";
+import { formatCurrencyPrecise } from "@/lib/format";
+import { todayInIndia } from "@/lib/dateOnly";
 
 export interface FundingEntryModalProps {
   isOpen: boolean;
@@ -89,10 +93,12 @@ const FundingEntryForm: React.FC<Omit<FundingEntryModalProps, "isOpen">> = ({
   onClose,
   onSuccess,
 }) => {
-  const [amount, setAmount] = useState(
-    suggestedAmount && suggestedAmount > 0 ? String(suggestedAmount.toFixed(2)) : "",
+  const [amount, setAmount] = useState<number | null>(
+    suggestedAmount && suggestedAmount > 0 ? Number(suggestedAmount.toFixed(2)) : null,
   );
-  const [entryDate, setEntryDate] = useState(todayString());
+  // The business day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [entryDate, setEntryDate] = useState<string | null>(today);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [reference, setReference] = useState("");
   const [description, setDescription] = useState("");
@@ -102,7 +108,7 @@ const FundingEntryForm: React.FC<Omit<FundingEntryModalProps, "isOpen">> = ({
   const copy = COPY[direction][entryType];
 
   const handleSubmit = async () => {
-    if (!amount || Number(amount) <= 0) {
+    if (amount == null || amount <= 0) {
       setError("Enter an amount greater than zero");
       return;
     }
@@ -116,8 +122,8 @@ const FundingEntryForm: React.FC<Omit<FundingEntryModalProps, "isOpen">> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           entry_type: entryType,
-          amount: Number(amount),
-          entry_date: entryDate,
+          amount,
+          entry_date: entryDate ?? today,
           payment_method: paymentMethod || null,
           reference: reference.trim() || null,
           description: description.trim() || null,
@@ -147,46 +153,46 @@ const FundingEntryForm: React.FC<Omit<FundingEntryModalProps, "isOpen">> = ({
 
       <ModalBody>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="entry-amount">
-              Amount (₹) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="entry-amount"
-              type="number"
-              step="0.01"
-              autoFocus
-              disabled={loading}
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setError(null);
-              }}
-            />
-            {suggestedAmount != null && suggestedAmount > 0 && (
-              <span className="text-xs text-muted-foreground">
-                Suggested: {formatCurrencyPrecise(suggestedAmount)}
-              </span>
+          <FormField
+            label="Amount (₹)"
+            required
+            hint={
+              suggestedAmount != null && suggestedAmount > 0
+                ? `Suggested: ${formatCurrencyPrecise(suggestedAmount)}`
+                : undefined
+            }
+          >
+            {(control) => (
+              <MoneyInput
+                {...control}
+                autoFocus
+                min={0}
+                disabled={loading}
+                value={amount}
+                onValueChange={(v) => {
+                  setAmount(v);
+                  setError(null);
+                }}
+              />
             )}
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="entry-date">Date</Label>
-            <Input
-              id="entry-date"
-              type="date"
-              disabled={loading}
-              value={entryDate}
-              onChange={(e) => setEntryDate(e.target.value)}
-            />
-            <span className="text-xs text-muted-foreground">
-              Backdating is fine — interest is recalculated from scratch, so the
-              figures land where they should.
-            </span>
-          </div>
+          <FormField
+            label="Date"
+            hint="Backdating is fine — interest is recalculated from scratch, so the figures land where they should."
+          >
+            {(control) => (
+              <DatePicker
+                {...control}
+                today={today}
+                disabled={loading}
+                value={entryDate}
+                onValueChange={setEntryDate}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="entry-method">Payment Method</Label>
+          <FormField label="Payment Method" htmlFor="entry-method">
             <LookupSelect
               id="entry-method"
               category="payment_method"
@@ -196,36 +202,39 @@ const FundingEntryForm: React.FC<Omit<FundingEntryModalProps, "isOpen">> = ({
               onValueChange={setPaymentMethod}
               disabled={loading}
             />
-          </div>
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="entry-reference">Reference</Label>
-            <Input
-              id="entry-reference"
-              disabled={loading}
-              placeholder="UTR / cheque no."
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
+          <FormField label="Reference">
+            {(control) => (
+              <Input
+                {...control}
+                disabled={loading}
+                placeholder="UTR / cheque no."
+                maxLength={100}
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+              />
+            )}
+          </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="entry-description">Description</Label>
-            <Textarea
-              id="entry-description"
-              rows={2}
-              maxLength={300}
-              disabled={loading}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+          <FormField label="Description">
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                maxLength={300}
+                disabled={loading}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            )}
+          </FormField>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert tone="danger" className="mt-4" scrollIntoView>
             {error}
-          </div>
+          </Alert>
         )}
       </ModalBody>
 
@@ -235,7 +244,7 @@ const FundingEntryForm: React.FC<Omit<FundingEntryModalProps, "isOpen">> = ({
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

@@ -9,20 +9,20 @@ import {
   HandCoinsIcon,
   AlertTriangleIcon,
   BadgeCheckIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
-import { StatCard } from "@/components/ui/statCard";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { BusyOverlay } from "@/components/ui/busyOverlay";
-import { ErrorState } from "@/components/ui/errorState";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Money } from "@/components/ui/money";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef } from "@/components/ui/dataTable/dataTable.types";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { Tabs } from "@ui/components/tabs";
+import { StatCard } from "@ui/patterns/statCard";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { LoadingOverlay } from "@ui/components/loadingOverlay";
+import { ErrorState } from "@ui/patterns/errorState";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Money } from "@ui/components/money";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef } from "@ui/patterns/dataTable";
 import { LoanPaymentModal } from "./loanPaymentModal";
 import {
   getLoanStatusLabel,
@@ -47,7 +47,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/format";
 
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -155,7 +155,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
   };
 
   if (authLoading || (fetching && !loan)) {
-    return <PageLoadingSkeleton variant="admin" />;
+    return <PageSkeleton variant="admin" />;
   }
 
   if (error && !loan) {
@@ -545,7 +545,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
             </div>
           )}
 
-          <BusyOverlay busy={refreshing}>
+          <LoadingOverlay busy={refreshing}>
             {activeTab === "schedule" ? (
               <DataTable
                 columns={scheduleColumns}
@@ -566,7 +566,7 @@ export function LoanDetailPage({ loanId }: { loanId: number }) {
                 }
               />
             )}
-          </BusyOverlay>
+          </LoadingOverlay>
         </div>
       </div>
 

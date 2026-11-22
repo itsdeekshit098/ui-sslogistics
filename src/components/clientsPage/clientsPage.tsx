@@ -13,22 +13,22 @@ import {
   AlertTriangleIcon,
   HandCoinsIcon,
   CheckCircleIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { StatCard } from "@/components/ui/statCard";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Money } from "@/components/ui/money";
-import { Pagination } from "@/components/ui/pagination";
-import { SegmentedControl } from "@/components/ui/segmentedControl";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
+import { Input } from "@ui/components/input";
+import { StatCard } from "@ui/patterns/statCard";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Money } from "@ui/components/money";
+import { Pagination } from "@ui/components/pagination";
+import { SegmentedControl } from "@ui/components/segmentedControl";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef, RowAction } from "@ui/patterns/dataTable";
 import { formatDate } from "@/lib/format";
 import type { Client, ClientSummary } from "./clientsPage.types";
 import { getVehicleTypeLabel } from "./clientsPage.utils";
@@ -38,7 +38,7 @@ const ClientModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -252,7 +252,7 @@ export function ClientsPage() {
     },
   ];
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
 
   if (error && clients.length === 0) {
     return (
@@ -326,7 +326,7 @@ export function ClientsPage() {
               placeholder="Search by name, location or GST..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-background pl-9 pr-9"
+              className="bg-background pl-9 pr-9 max-md:bg-card"
             />
             {searchQuery && (
               <Button
@@ -446,7 +446,7 @@ export function ClientsPage() {
         }}
         onConfirm={handleDelete}
         title="Delete Client"
-        description={`Delete ${deleteTarget?.name}? Only possible while their account is settled and their statement is empty — otherwise mark them inactive instead.`}
+        description={`Delete ${deleteTarget?.name}? Only possible while their account is settled and their statement is empty, with no contacts or vehicle assignments — otherwise mark them inactive (Edit → Active).`}
         confirmText="Delete"
         isLoading={deleteLoading}
         error={deleteError}

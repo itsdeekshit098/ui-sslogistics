@@ -144,3 +144,13 @@ describe("GET /api/clients/[id]", () => {
     expect(body.data.fleet_mix).toEqual({});
   });
 });
+
+describe("GET /api/clients/[id] with an id that is not a whole number", () => {
+  it.each(["1.5", "0", "-1", "1e2", "abc"])("answers 400 for %j", async (id) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { GET } = await importRoute();
+    const res = await GET(new NextRequest("http://localhost/api/clients/x"), params(id));
+    expect(res.status).toBe(400);
+  });
+});

@@ -20,14 +20,11 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
-    "@radix-ui/react-slot": "^1.2.4",
     "@sentry/nextjs": "^10.63.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "@wrksz/themes": "^0.8.3",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase-admin": "^14.1.0",
     "framer-motion": "^12.24.11",
@@ -35,6 +32,7 @@
     "next": "^16.2.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "styled-components": "^6.6.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
@@ -51,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.2.6",
     "husky": "^9.1.7",
+    "jest-styled-components": "^7.4.1",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",

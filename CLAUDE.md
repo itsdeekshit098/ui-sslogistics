@@ -41,11 +41,11 @@ Next.js (App Router, TypeScript, React 19) operations portal for SS Logistics, b
 
 ## Structure conventions (from agents.md, where still accurate)
 
-- Feature components live in `src/components/<camelCaseName>/` with `componentName.tsx`, `componentName.types.ts`, `index.ts` (plus optional `.constants.ts`, `.utils.ts`, `.hooks.ts`). Generic reusable primitives live in `src/components/ui/`.
+- Feature components live in `src/components/<camelCaseName>/` with `componentName.tsx`, `componentName.types.ts`, `index.ts` (plus optional `.constants.ts`, `.utils.ts`, `.hooks.ts`). Generic reusable primitives live in the UI library, `src/ui/` (`components/`, `patterns/`, `icons/`, imported as `@ui/...`); it may not import app code (lint-enforced).
 - Folders and file names are camelCase; React component exports are PascalCase.
 - Keep business logic out of route handlers where practical (`src/services/`, `src/lib/`).
 
-**Note:** `agents.md` also bans Tailwind and external UI primitives and calls for `.style.ts` files, but the codebase mostly uses Tailwind CSS 4, Radix UI primitives, and CVA (shadcn-style `src/components/ui/`). Follow the existing code, not that section of agents.md — except that ~24 older components (several modals, `homePage`, `warrantyPage`, `sessionsPage`, and a few `src/components/ui/` primitives like `modal` and `tooltip`) still genuinely use a `componentName.style.ts` file of plain `CSSProperties` objects, imported as `import * as styles from "./componentName.style"`. These are live code, not dead leftovers — don't delete them on sight. New components should use Tailwind/CVA; migrating an existing `.style.ts` component to Tailwind is a deliberate refactor, not a drive-by cleanup.
+**Note on styling:** shared UI is the in-house library in `src/ui`, styled with styled-components (no Tailwind, no inline `style`, no app imports; see `docs/ui/README.md` and decision 0009). Feature components in `src/components` still use Tailwind 4 and `cn()`, plus ~24 older ones that use a `componentName.style.ts` file of plain `CSSProperties` objects (`import * as styles from "./componentName.style"`). Those are live code, not dead leftovers: don't delete them on sight. Migrating a screen onto the library's components is a deliberate change with its own live test, not a drive-by cleanup. `agents.md` describes an older plan and is out of date on this.
 
 ## Project knowledge in `.claude/`
 
@@ -59,6 +59,8 @@ The detailed rules live in `.claude/rules/`. A rule with `paths:` loads by itsel
 | `phone-layout.md` | The phone (`max-md:`) layout that mirrors Flutter | Phone changes stay phone-scoped; desktop pixels never change. |
 | `platform-ops.md` | Activity log purge, GitHub Actions scripts (EMI auto-settle), maintenance mode, push tokens, Sentry | Auto-settle is a deliberate product decision; Sentry carries id + role, never email. |
 | `live-testing.md` | What has been tested live, what hasn't, and how to test | A module isn't tested until it has been driven live. |
+
+The UI library has its own guide: `docs/ui/README.md` (catalogue, how components are styled, how a caller's `className` interacts with them, how to add one).
 
 ## Memory for later: what, why, and what it looks like
 

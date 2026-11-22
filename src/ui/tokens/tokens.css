@@ -1,0 +1,347 @@
+/* ═══════════════════════════════════════════════════
+   SS UI — design tokens
+   The CSS custom properties every component (src/ui and feature code)
+   reads. Light values on :root, dark on .dark, a pre-hydration fallback
+   that follows the system preference, and the phone dark surfaces.
+   Order matters: later blocks override earlier ones.
+   Imported once, from src/app/globals.css.
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Core Palette ─── */
+  --background: hsl(210 40% 98%); /* light gray canvas */
+  --foreground: hsl(222 47% 11%); /* deep slate */
+
+  --primary: hsl(221.2 83.2% 53.3%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(214 32% 91%);
+  --secondary-foreground: hsl(222 47% 11%);
+
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+  --placeholder-foreground: hsl(215 16% 60%);
+
+  --accent: hsl(210 40% 96%);
+  --accent-foreground: hsl(222 47% 11%);
+
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  /* success/warning text on their solid fills must clear 4.5:1 (WCAG AA) —
+     the previous pairs measured 3.0:1 and 1.9:1 respectively. */
+  --success: hsl(142 71% 29%);
+  --success-foreground: hsl(0 0% 100%);
+
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(26 60% 14%);
+
+  --info: hsl(221.2 83.2% 53.3%);
+  --info-foreground: hsl(210 40% 98%);
+
+  /* Soft tint pairs for badges/banners — tone conveyed by a tinted surface
+     instead of a solid fill, foreground is the saturated color itself. */
+  --success-subtle: hsl(142 60% 94%);
+  --success-subtle-foreground: hsl(142 71% 24%);
+  --warning-subtle: hsl(38 92% 94%);
+  --warning-subtle-foreground: hsl(26 70% 30%);
+  --destructive-subtle: hsl(0 84% 95%);
+  --destructive-subtle-foreground: hsl(0 70% 40%);
+  --info-subtle: hsl(221 83% 95%);
+  --info-subtle-foreground: hsl(221 83% 42%);
+
+  --card: hsl(0 0% 100%); /* pure white */
+  --card-foreground: hsl(222 47% 11%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 47% 11%);
+
+  --brand: hsl(0 72% 46%);
+  --brand-foreground: hsl(0 0% 100%);
+
+  /* ─── Sidebar Chrome (fixed navy, independent of light/dark theme) ─── */
+  --sidebar-background: #12203d;
+  --sidebar-border: #263762;
+  --sidebar-active: #2563eb;
+
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  /* Ring tracks the brand primary rather than a near-black neutral, so a
+     focus outline reads as "this app's blue," not an unrelated dark ring. */
+  --ring: var(--primary);
+
+  /* ─── Base Radius ─── */
+  --radius: 0.5rem;
+
+  /* ─── Component-Specific Radius ─── */
+  /* Cards, dialogs, inputs and buttons all share the one 8px base radius. */
+  --card-radius: var(--radius);
+  --modal-radius: var(--radius);
+  --input-radius: var(--radius);
+  /* Badges share the app's one corner shape, a step tighter than a card —
+     not a pill. */
+  --badge-radius: calc(var(--radius) - 2px);
+
+  /* ─── Shadow Scale ─── */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-sm:
+    0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* ─── Component Shadows ─── */
+  --card-shadow: var(--shadow-sm);
+  --modal-shadow: var(--shadow-xl);
+  --overlay-background: rgba(0, 0, 0, 0.6);
+  --skeleton: color-mix(in oklab, oklch(86.9% 0.022 252.894) 60%, transparent);
+  --popup-border: oklch(92.9% 0.013 255.508); /* slate-200 */
+
+  /* ─── Spacing Scale (4px base) ─── */
+  --space-0: 0;
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-11: 2.75rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+  --space-16: 4rem;
+
+  /* ─── Phone bottom edge ───
+     Phones have no bottom nav (navigation is the drawer), so anything pinned
+     to the bottom — the floating "+", a sticky save bar, the page's own
+     bottom padding — only has to clear the device's home-indicator inset. */
+  --mobile-bottom-clearance: env(safe-area-inset-bottom, 0px);
+
+  /* ─── Phone design (mirrors the Flutter app's shapes) ───
+     Only read by phone-width components; desktop keeps the single 8px
+     --radius. */
+  --m-radius-card: 1rem;
+  --m-radius-tile: 1.125rem;
+  --m-radius-sheet: 1.25rem;
+  --m-radius-control: 0.75rem;
+  --m-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --m-navy: #12203d;
+  --m-navy-mid: #16305c;
+  --m-hero-gradient: linear-gradient(135deg, #12203d 0%, #16305c 50%, #2563eb 100%);
+  --m-drawer-gradient: linear-gradient(180deg, #12203d 0%, #16305c 50%, #12203d 100%);
+  --m-drawer-text: #cbd5e1;
+  --m-drawer-text-muted: #64748b;
+  --m-appbar: var(--card);
+
+  /* ─── Input Heights ─── */
+  --input-height-sm: 2.25rem;
+  --input-height: 2.5rem;
+  --input-height-lg: 2.75rem;
+
+  /* ─── Z-Index Scale ───
+     Popovers/comboboxes/selects portal to document.body, same as modal
+     overlays, so painting order between them depends entirely on these
+     values (DOM order doesn't help — see modal/modal.tsx's `nested` prop).
+     --z-popover must stay above --z-modal-nested-overlay so a combobox
+     opened inside a nested modal (e.g. "Add new account" from within
+     another modal's dropdown) isn't painted underneath that modal's own
+     overlay. */
+  --z-modal-overlay: 50;
+  --z-modal-nested-overlay: 10000;
+  --z-popover: 10010;
+}
+
+.dark {
+  /*
+    ─── Core Palette (Dark Slate) ───
+    Elevation runs background(8%) < card(13%) < popover(16%), each step
+    strictly lighter than the last so a card visibly sits above the page and
+    a popover visibly floats above a card. Border sits at 30% — clearly
+    lighter than every surface it borders, so it stays visible instead of
+    blending into the canvas (the old scheme had border/muted both at 17%,
+    the same lightness as each other, which erased every card edge).
+  */
+  --background: hsl(222 47% 8%); /* darkest layer: the page canvas */
+  --foreground: hsl(210 40% 98%);
+
+  --primary: hsl(217 91% 60%);
+  --primary-foreground: hsl(222 47% 11%);
+
+  --secondary: hsl(222 28% 18%);
+  --secondary-foreground: hsl(210 40% 98%);
+
+  --muted: hsl(222 28% 18%);
+  --muted-foreground: hsl(215 20% 65%);
+  --placeholder-foreground: hsl(215 15% 42%);
+
+  --accent: hsl(222 28% 18%);
+  --accent-foreground: hsl(210 40% 98%);
+
+  /* Used as text (overdue figures, Delete, errors) as well as a button fill,
+     so it has to read on the dark canvas — 31% lightness was near-invisible. */
+  --destructive: hsl(0 72% 58%);
+  --destructive-foreground: hsl(210 40% 98%);
+
+  --success: hsl(149 60% 32%);
+  --success-foreground: hsl(0 0% 98%);
+
+  /* --warning-foreground darkened from near-white — the previous pair
+     measured 2.25:1 against the amber fill, well under the 4.5:1 AA floor. */
+  --warning: hsl(42 94% 44%);
+  --warning-foreground: hsl(26 60% 12%);
+
+  --info: hsl(217.2 91.2% 59.8%);
+  --info-foreground: hsl(0 0% 98%);
+
+  --success-subtle: hsl(149 40% 16%);
+  --success-subtle-foreground: hsl(149 60% 65%);
+  --warning-subtle: hsl(42 60% 16%);
+  --warning-subtle-foreground: hsl(42 80% 65%);
+  --destructive-subtle: hsl(0 45% 18%);
+  --destructive-subtle-foreground: hsl(0 70% 72%);
+  --info-subtle: hsl(217 45% 18%);
+  --info-subtle-foreground: hsl(217 80% 72%);
+
+  --card: hsl(222 35% 13%); /* one step above background */
+  --card-foreground: hsl(210 40% 98%);
+
+  --popover: hsl(222 32% 16%); /* one step above card, floats above it */
+  --popover-foreground: hsl(210 40% 98%);
+
+  --border: hsl(222 18% 30%);
+  --input: hsl(222 18% 30%);
+  --ring: var(--primary);
+
+  --brand: hsl(0 72% 56%);
+  --brand-foreground: hsl(0 0% 100%);
+
+  /* ─── Shadows (Dark) ─── */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+  --shadow-sm:
+    0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.15);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.15);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+
+  /* A black shadow reads as elevation against a light page; against a
+     blurred, already-dark overlay it's nearly invisible, which is why a
+     dialog can look "washed out" in dark mode even with a correct card
+     background. The 1px white-alpha ring is what actually separates the
+     dialog's edge from the backdrop; the black shadow underneath still
+     helps at the edges where blurred page content shows through. */
+  --modal-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --overlay-background: rgba(0, 0, 0, 0.75);
+  --skeleton: color-mix(in oklab, #fff 10%, transparent);
+  --popup-border: oklch(37.2% 0.044 257.287); /* slate-700 */
+}
+
+/* Pre-hydration fallback: mirrors .dark so the very first paint (before the
+   theme script can add the "dark" class) already matches system preference
+   instead of flashing light. Skipped when the user has explicitly picked
+   "light" (script always sets that class, never leaves it absent). */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: hsl(222 47% 8%);
+    --foreground: hsl(210 40% 98%);
+
+    --primary: hsl(217 91% 60%);
+    --primary-foreground: hsl(222 47% 11%);
+
+    --secondary: hsl(222 28% 18%);
+    --secondary-foreground: hsl(210 40% 98%);
+
+    --muted: hsl(222 28% 18%);
+    --muted-foreground: hsl(215 20% 65%);
+    --placeholder-foreground: hsl(215 15% 42%);
+
+    --accent: hsl(222 28% 18%);
+    --accent-foreground: hsl(210 40% 98%);
+
+    --destructive: hsl(0 72% 58%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --success: hsl(149 60% 32%);
+    --success-foreground: hsl(0 0% 98%);
+
+    --warning: hsl(42 94% 44%);
+    --warning-foreground: hsl(26 60% 12%);
+
+    --info: hsl(217.2 91.2% 59.8%);
+    --info-foreground: hsl(0 0% 98%);
+
+    --success-subtle: hsl(149 40% 16%);
+    --success-subtle-foreground: hsl(149 60% 65%);
+    --warning-subtle: hsl(42 60% 16%);
+    --warning-subtle-foreground: hsl(42 80% 65%);
+    --destructive-subtle: hsl(0 45% 18%);
+    --destructive-subtle-foreground: hsl(0 70% 72%);
+    --info-subtle: hsl(217 45% 18%);
+    --info-subtle-foreground: hsl(217 80% 72%);
+
+    --card: hsl(222 35% 13%);
+    --card-foreground: hsl(210 40% 98%);
+
+    --popover: hsl(222 32% 16%);
+    --popover-foreground: hsl(210 40% 98%);
+
+    --border: hsl(222 18% 30%);
+    --input: hsl(222 18% 30%);
+    --ring: var(--primary);
+
+    --brand: hsl(0 72% 56%);
+    --brand-foreground: hsl(0 0% 100%);
+
+    --modal-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --overlay-background: rgba(0, 0, 0, 0.75);
+    --skeleton: color-mix(in oklab, #fff 10%, transparent);
+    --popup-border: oklch(37.2% 0.044 257.287); /* slate-700 */
+  }
+}
+
+/* Phone dark surfaces follow the Flutter app's slate scale (page slate-900,
+   card slate-800, border slate-700) rather than the desktop's deeper navy. */
+@media (max-width: 767.98px) {
+  .dark {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --popover: #243247;
+    --popover-foreground: #f1f5f9;
+    --muted: #273449;
+    --secondary: #273449;
+    --accent: #273449;
+    --border: #334155;
+    --input: #334155;
+  }
+}
+@media (max-width: 767.98px) and (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --popover: #243247;
+    --popover-foreground: #f1f5f9;
+    --muted: #273449;
+    --secondary: #273449;
+    --accent: #273449;
+    --border: #334155;
+    --input: #334155;
+  }
+}

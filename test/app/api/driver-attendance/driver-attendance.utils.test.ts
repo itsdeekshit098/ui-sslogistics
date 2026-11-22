@@ -345,3 +345,15 @@ describe("markCode", () => {
     expect(markCode({ shifts: [], status: null })).toBe("");
   });
 });
+
+describe("startMonthProblem", () => {
+  it("accepts 2020-01 up to twelve months ahead and nothing outside", async () => {
+    const { startMonthProblem } = await import("@/app/api/driver-attendance/driver-attendance.utils");
+    expect(startMonthProblem("2020-01", "2026-11-22")).toBeNull();
+    expect(startMonthProblem("2026-11", "2026-11-22")).toBeNull();
+    expect(startMonthProblem("2027-11", "2026-11-22")).toBeNull();
+    expect(startMonthProblem("2027-12", "2026-11-22")).not.toBeNull();
+    expect(startMonthProblem("2019-12", "2026-11-22")).not.toBeNull();
+    expect(startMonthProblem("2999-01", "2026-11-22")).not.toBeNull();
+  });
+});

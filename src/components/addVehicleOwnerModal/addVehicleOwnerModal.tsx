@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { SaveIcon } from "@/components/ui/icon";
+import { SaveIcon } from "@ui/icons";
 import type { AddVehicleOwnerModalProps } from "./addVehicleOwnerModal.types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+} from "@ui/components/select";
+import { Spinner } from "@ui/components/spinner";
 import {
   Modal,
   ModalContent,
@@ -22,7 +22,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import { OWNER_TYPES } from "@/app/admin/vehicles/vehicles.types";
 
 const AddVehicleOwnerForm: React.FC<{
@@ -167,7 +167,7 @@ const AddVehicleOwnerForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

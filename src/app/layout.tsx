@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NavigationProgress } from "@/components/ui/navigationProgress";
+import { NavigationProgress } from "@ui/components/navigationProgress";
 import { ThemeProvider } from "@wrksz/themes/next";
 import { AuthProvider } from "@/context/AuthContext";
 import { MaintenanceProvider } from "@/context/MaintenanceContext";
 import { MaintenanceGate } from "@/components/maintenanceGate";
+import { StyledComponentsRegistry } from "@ui/styles/registry";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -68,19 +69,21 @@ export default function RootLayout({
         className={`${inter.variable} h-[100dvh] overflow-hidden overscroll-y-none bg-background font-sans antialiased`}
         suppressHydrationWarning
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <MaintenanceProvider>
-              <NavigationProgress />
-              <MaintenanceGate>{children}</MaintenanceGate>
-            </MaintenanceProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <StyledComponentsRegistry>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
+              <MaintenanceProvider>
+                <NavigationProgress />
+                <MaintenanceGate>{children}</MaintenanceGate>
+              </MaintenanceProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );

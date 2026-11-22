@@ -374,3 +374,16 @@ describe("PUT /api/driver-attendance", () => {
     );
   });
 });
+
+describe("PUT /api/driver-attendance — malformed bodies", () => {
+  it.each([["malformed JSON", "{bad"], ["an empty body", ""], ["null", "null"], ["an array", "[]"]])(
+    "answers 400, not 500, for %s",
+    async (_label, raw) => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin({});
+      const { PUT } = await importRoute();
+      const res = await PUT(new NextRequest("http://localhost/api/driver-attendance", { method: "PUT", body: raw }));
+      expect(res.status).toBe(400);
+    },
+  );
+});

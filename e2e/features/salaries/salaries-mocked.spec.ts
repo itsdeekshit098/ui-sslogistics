@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { pickMonth } from "../../support/pickDate";
 import {
   DRIVER_ID,
   INITIAL_MONTH,
@@ -37,19 +38,20 @@ test.describe("Salaries page with fully mocked API responses", () => {
     await expect(page.getByText("June 2026", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Previous month" }).click();
-    await expect(page.getByText("May 2026", { exact: true })).toBeVisible();
+    // May shows twice on desktop: the heading and the month picker's own label.
+    await expect(page.getByText("May 2026", { exact: true }).first()).toBeVisible();
     await page.getByRole("button", { name: "Next month" }).click();
     await expect(page.getByText("June 2026", { exact: true })).toBeVisible();
 
-    await page.getByTestId("salaries-month-input").fill("2026-08");
-    await page.getByTestId("salaries-month-input").dispatchEvent("change");
-    await expect(page.getByText("August 2026", { exact: true })).toBeVisible();
+    // Only months up to the current one can be chosen, so go back rather than forward.
+    await pickMonth(page, page.getByTestId("salaries-month-input"), "2026-03");
+    await expect(page.getByText("March 2026", { exact: true })).toBeVisible();
 
     expect(mocks.payloads.map(({ url }) => url)).toContain(
       "/api/driver-salaries?month=2026-05",
     );
     expect(mocks.payloads.map(({ url }) => url)).toContain(
-      "/api/driver-salaries?month=2026-08",
+      "/api/driver-salaries?month=2026-03",
     );
     assertApiCallsAreMocked(mocks);
   });
@@ -70,7 +72,8 @@ test.describe("Salaries page with fully mocked API responses", () => {
     await expect(page.getByText("Net payable", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Previous month" }).click();
-    await expect(page.getByText("May 2026", { exact: true })).toBeVisible();
+    // May shows twice on desktop: the heading and the month picker's own label.
+    await expect(page.getByText("May 2026", { exact: true }).first()).toBeVisible();
     await page.getByRole("button", { name: "Next month" }).click();
     await expect(page.getByText("Jun 2026", { exact: true })).toBeVisible();
 
@@ -124,7 +127,7 @@ test.describe("Salaries page with fully mocked API responses", () => {
     await openDriver(page);
     await page.getByRole("button", { name: "Change" }).click();
     await page.getByLabel("Salary (₹ per month)").fill("32000");
-    await page.getByLabel("From month").fill("2026-05");
+    await pickMonth(page, page.getByLabel("From month"), "2026-05");
     await page.getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText("From May 2026")).toBeVisible();

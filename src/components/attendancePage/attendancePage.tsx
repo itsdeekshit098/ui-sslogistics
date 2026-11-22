@@ -13,21 +13,21 @@ import {
   UndoIcon,
   UsersIcon,
   XIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@ui/hooks/useIsMobile";
 import { addDays, todayInIndia } from "@/lib/dateOnly";
 import { formatMonth } from "@/lib/format";
 import { isAdmin } from "@/lib/routePermissions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { SegmentedControl } from "@/components/ui/segmentedControl";
-import { Tabs } from "@/components/ui/tabs";
-import { BusyOverlay } from "@/components/ui/busyOverlay";
-import { EmptyState } from "@/components/ui/emptyState";
-import { ErrorState } from "@/components/ui/errorState";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { SegmentedControl } from "@ui/components/segmentedControl";
+import { Tabs } from "@ui/components/tabs";
+import { LoadingOverlay } from "@ui/components/loadingOverlay";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { ErrorState } from "@ui/patterns/errorState";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
 import { AttendanceDayList } from "./attendanceDayList";
 import { AttendanceMonthView } from "./attendanceMonthView";
 import { AttendanceRollCall } from "./attendanceRollCall";
@@ -51,7 +51,7 @@ import {
   sameMark,
 } from "./attendancePage.utils";
 
-const ConfirmModal = dynamic(() => import("@/components/confirmModal/confirmModal"), {
+const ConfirmModal = dynamic(() => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal), {
   ssr: false,
 });
 
@@ -367,7 +367,7 @@ export function AttendancePage() {
     if (monthData?.month !== target) openMonth(target);
   };
 
-  if (authLoading || (dayLoading && !day)) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading || (dayLoading && !day)) return <PageSkeleton variant="admin" />;
   if (!day) {
     return (
       <ErrorState
@@ -568,9 +568,9 @@ export function AttendancePage() {
       onRetry={() => fetchMonth(activeMonth)}
     />
   ) : !monthData ? (
-    <BusyOverlay busy label="Loading…">
+    <LoadingOverlay busy label="Loading…">
       <div className="h-40" />
-    </BusyOverlay>
+    </LoadingOverlay>
   ) : !visibleMonth || visibleMonth.drivers.length === 0 ? (
     <EmptyState
       title={query ? "No drivers found" : "Nothing marked"}
@@ -580,9 +580,9 @@ export function AttendancePage() {
       icon={query ? SearchIcon : CalendarIcon}
     />
   ) : (
-    <BusyOverlay busy={monthLoading}>
+    <LoadingOverlay busy={monthLoading}>
       <AttendanceMonthView data={visibleMonth} isMobile={isMobile} onOpenDay={goToDate} />
-    </BusyOverlay>
+    </LoadingOverlay>
   );
 
   const searchField = (
@@ -718,7 +718,7 @@ export function AttendancePage() {
           </div>
 
           {view === "day" ? (
-            <BusyOverlay busy={dayLoading}>
+            <LoadingOverlay busy={dayLoading}>
               <div className="space-y-3">
                 {dayError && <p className="text-sm text-destructive">{dayError}</p>}
                 {readOnlyNote}
@@ -730,7 +730,7 @@ export function AttendancePage() {
                 )}
                 {dayBody}
               </div>
-            </BusyOverlay>
+            </LoadingOverlay>
           ) : (
             <div className="space-y-3">
               {exportButton && (
@@ -792,7 +792,7 @@ export function AttendancePage() {
                   {searchField}
                 </div>
                 {dayError && <p className="px-4 pt-3 text-sm text-destructive sm:px-6">{dayError}</p>}
-                <BusyOverlay busy={dayLoading}>{dayBody}</BusyOverlay>
+                <LoadingOverlay busy={dayLoading}>{dayBody}</LoadingOverlay>
               </>
             ) : (
               <>

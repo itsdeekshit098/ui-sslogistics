@@ -1,8 +1,8 @@
 "use client";
 
-import { Building2Icon, TruckIcon } from "@/components/ui/icon";
-import { Badge } from "@/components/ui/badge";
-import { Money } from "@/components/ui/money";
+import { Building2Icon, TruckIcon } from "@ui/icons";
+import { Badge } from "@ui/components/badge";
+import { Money } from "@ui/components/money";
 import { formatDateCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getLoanStatusLabel, type Loan } from "./loansPage.types";

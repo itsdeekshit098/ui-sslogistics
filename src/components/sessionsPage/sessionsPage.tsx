@@ -12,24 +12,24 @@ import {
   KeyRoundIcon,
   EyeIcon,
   EyeOffIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isSuperAdmin } from "@/lib/routePermissions";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
 import type { SessionUser } from "./sessionsPage.types";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Button } from "@ui/components/button";
+import { Label } from "@ui/components/label";
+import { Input } from "@ui/components/input";
 import * as styles from "./sessionsPage.style";
 
 // Lazy-loaded: only needed once a user opens it, so it shouldn't bloat the
 // initial page chunk that has to load before anything (including the
 // skeleton) can paint.
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -253,7 +253,7 @@ export function SessionsPage() {
 
   // ── Loading / Error / Auth states ──
   if (authLoading || loading) {
-    return <PageLoadingSkeleton variant="admin" />;
+    return <PageSkeleton variant="admin" />;
   }
 
   if (error) {

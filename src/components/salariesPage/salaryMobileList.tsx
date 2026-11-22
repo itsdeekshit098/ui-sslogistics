@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { ChevronRightIcon, HandCoinsIcon } from "@/components/ui/icon";
+import { ChevronRightIcon, HandCoinsIcon } from "@ui/icons";
 import { formatCurrency } from "@/lib/format";
-import { Money } from "@/components/ui/money";
+import { Money } from "@ui/components/money";
 import type { SalaryRow, SalarySheet } from "./salariesPage.types";
 
 /**

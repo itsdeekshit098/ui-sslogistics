@@ -344,3 +344,64 @@ describe("POST /api/fundings/[id]/entries — money limits", () => {
     expect(body.error).toBe(message);
   });
 });
+
+describe("bad input that used to be stored or fail as a 500", () => {
+  const post = (body: unknown, id = "10", raw?: string) =>
+    [
+      new NextRequest(`http://localhost/api/fundings/${id}/entries`, {
+        method: "POST",
+        body: raw ?? JSON.stringify(body),
+      }),
+      params(id),
+    ] as const;
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ fundings: [{ data: FUNDING, error: null }] });
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "answers 400 for %s",
+    async (_label, raw) => {
+      const { POST } = await importRoute();
+      expect((await POST(...post(undefined, "10", raw))).status).toBe(400);
+    },
+  );
+
+  it.each(["1.5", "0", "-2", "abc"])("refuses %s as the funding id", async (id) => {
+    const { POST } = await importRoute();
+    expect((await POST(...post(VALID_ENTRY_BODY, id))).status).toBe(400);
+  });
+
+  it("refuses a payment method, reference or description that is not text", async () => {
+    const { POST } = await importRoute();
+    for (const field of ["payment_method", "reference", "description"]) {
+      mockSupabaseAdmin({ fundings: [{ data: FUNDING, error: null }] });
+      const res = await POST(...post({ ...VALID_ENTRY_BODY, [field]: { a: 1 } }));
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("refuses a reference over 100 characters and a method over 60, not cutting them", async () => {
+    const { POST } = await importRoute();
+    const longRef = await POST(...post({ ...VALID_ENTRY_BODY, reference: "x".repeat(101) }));
+    expect(longRef.status).toBe(400);
+    expect((await longRef.json()).error).toMatch(/100 characters/);
+
+    mockSupabaseAdmin({ fundings: [{ data: FUNDING, error: null }] });
+    const longMethod = await POST(...post({ ...VALID_ENTRY_BODY, payment_method: "x".repeat(61) }));
+    expect(longMethod.status).toBe(400);
+  });
+
+  it("still accepts a reference of exactly 100 characters and a 60-character method", async () => {
+    mockSupabaseAdmin({
+      fundings: [{ data: FUNDING, error: null }],
+      funding_entries: [{ data: { id: 1 }, error: null }],
+    });
+    const { POST } = await importRoute();
+    const res = await POST(
+      ...post({ ...VALID_ENTRY_BODY, reference: "x".repeat(100), payment_method: "m".repeat(60) }),
+    );
+    expect(res.status).toBe(201);
+  });
+});

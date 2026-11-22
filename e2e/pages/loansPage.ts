@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { humanFill } from "../support/human";
+import { pickDate } from "../support/pickDate";
 
 /**
  * Page object for /admin/loans (the Loans list, the New Loan modal, and the
@@ -26,8 +27,8 @@ export class LoansPage {
     await this.pickTypeahead("In Whose Name", entityName, entityName);
     await this.pickTypeahead("Lender", lenderName, lenderName);
     await humanFill(this.page.getByLabel("Principal Amount"), "500000");
-    await humanFill(this.page.getByLabel("Start Date"), "2026-01-01");
-    await humanFill(this.page.getByLabel("First EMI Date"), "2026-02-05");
+    await pickDate(this.page, this.page.getByLabel("Start Date"), "2026-01-01");
+    await pickDate(this.page, this.page.getByLabel("First EMI Date"), "2026-02-05");
     await humanFill(this.page.getByLabel("EMI Amount"), "45000");
     await humanFill(this.page.getByLabel("EMI Day of Month"), "5");
     await humanFill(this.page.getByLabel("Total Installments"), "6");

@@ -32,6 +32,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
+  // Lets the SWC compiler name styled-components classes and keep SSR class
+  // names stable between server and client (the in-house UI library in
+  // src/ui styles itself with styled-components).
+  compiler: {
+    styledComponents: true,
+  },
+
   async headers() {
     return [
       {

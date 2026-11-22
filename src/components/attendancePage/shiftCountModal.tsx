@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import {
   Modal,
   ModalBody,
@@ -11,8 +11,8 @@ import {
   ModalDescription,
   ModalHeader,
   ModalTitle,
-} from "@/components/ui/modal";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+} from "@ui/components/modal";
+import { Spinner } from "@ui/components/spinner";
 import { formatDate, formatMonth } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -195,7 +195,7 @@ export function ShiftCountModal({ driver, month, onClose, onSaved }: ShiftCountM
 
             {history === null ? (
               <div className="flex justify-center py-2">
-                <LoadingSpinner />
+                <Spinner />
               </div>
             ) : history.length > 0 ? (
               <div className="flex flex-col gap-1.5">

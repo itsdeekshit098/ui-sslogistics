@@ -103,7 +103,7 @@ export const selectTriggerStyle: CSSProperties = {
   minWidth: "120px",
 };
 
-// ─── Typeahead footers ───
+// ─── Combobox footers ───
 
 export const addVendorFooterBtn: CSSProperties = {
   width: "100%",

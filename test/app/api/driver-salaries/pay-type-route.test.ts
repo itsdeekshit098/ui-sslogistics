@@ -88,3 +88,20 @@ describe("GET /api/driver-salaries/[driverId]/pay-type", () => {
     expect(body.data.payTypes).toEqual([]);
   });
 });
+
+describe("POST pay-type — start month bounds", () => {
+  it.each(["2999-01", "1900-01", "2019-12"])("refuses %s", async (effective_month) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+    const res = await POST(
+      new NextRequest(URL, {
+        method: "POST",
+        body: JSON.stringify({ pay_type: "PER_TRIP", rate_per_trip: 50, effective_month }),
+      }),
+      params(),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/between January 2020/);
+  });
+});

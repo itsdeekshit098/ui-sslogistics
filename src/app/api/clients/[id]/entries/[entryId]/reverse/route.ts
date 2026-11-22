@@ -4,6 +4,7 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { reverseLedgerEntry } from "@/lib/ledgerReversal";
+import { parseId } from "../../../../../loans/loans.utils";
 
 // Cancels a ledger entry by inserting its mirror image — same amount, opposite
 // direction — pointing back at the original. A statement that deleted its
@@ -27,10 +28,10 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam, entryId: entryIdParam } = await params;
-    const clientId = Number(idParam);
-    const entryId = Number(entryIdParam);
+    const clientId = parseId(idParam);
+    const entryId = parseId(entryIdParam);
 
-    if (!Number.isFinite(clientId) || !Number.isFinite(entryId)) {
+    if (clientId === null || entryId === null) {
       return apiError("Invalid client or entry ID", 400);
     }
 

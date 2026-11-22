@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { BellIcon } from "@/components/ui/icon";
+import { Button } from "@ui/components/button";
+import { BellIcon } from "@ui/icons";
 import { useNotifications, type NotificationItem } from "@/hooks/useNotifications";
 import type { NotificationBellProps } from "./notificationBell.types";
 

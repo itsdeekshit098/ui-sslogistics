@@ -113,7 +113,7 @@ export const customChipRemove: CSSProperties = {
   alignItems: "center",
 };
 
-/* ─── Typeahead Badges ─── */
+/* ─── Combobox Badges ─── */
 
 export const inactiveBadge: CSSProperties = {
   fontSize: "0.7rem",

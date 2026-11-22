@@ -10,6 +10,7 @@ import {
   isValidDateString,
   moneyMessage,
   moneyProblem,
+  optionalText,
   parseId,
 } from "../../loans.utils";
 
@@ -132,15 +133,31 @@ export async function POST(
       installmentId = parsed;
     }
 
+    // Free text must be text, and a reference is refused rather than cut when
+    // too long (a very long one also stretches the payment history).
+    const paymentMethod = optionalText(body.payment_method, 60);
+    if ("error" in paymentMethod) return apiError("Payment method is not valid", 400);
+    const reference = optionalText(body.reference, 100);
+    if ("error" in reference) {
+      return apiError(
+        reference.error === "too_long"
+          ? "Reference must be 100 characters or less"
+          : "Reference must be text",
+        400,
+      );
+    }
+    const notes = optionalText(body.notes, 500, { truncate: true });
+    if ("error" in notes) return apiError("Notes must be text", 400);
+
     const insertPayload = {
       loan_id: loanId,
       installment_id: installmentId,
       payment_type: paymentType,
       amount,
       paid_on: paidOn,
-      payment_method: body.payment_method ? String(body.payment_method) : null,
-      reference: body.reference ? String(body.reference).trim() : null,
-      notes: body.notes ? String(body.notes).trim().slice(0, 500) : null,
+      payment_method: paymentMethod.value,
+      reference: reference.value,
+      notes: notes.value,
       created_by: authUser.id,
     };
 

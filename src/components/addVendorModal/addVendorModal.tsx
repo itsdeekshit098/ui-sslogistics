@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { SaveIcon } from "@/components/ui/icon";
+import { SaveIcon } from "@ui/icons";
 import type { AddVendorModalProps } from "./addVendorModal.types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Spinner } from "@ui/components/spinner";
 import {
   Modal,
   ModalContent,
@@ -15,7 +15,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalFooter,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import * as styles from "./addVendorModal.style";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -158,7 +158,7 @@ const AddVendorForm: React.FC<{
         </Button>
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? (
-            <LoadingSpinner size="sm" className="mr-2" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
           )}

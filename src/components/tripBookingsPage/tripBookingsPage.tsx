@@ -11,7 +11,7 @@ import {
   EyeOffIcon,
   SlidersHorizontalIcon,
   SearchIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
 import {
@@ -26,24 +26,24 @@ import type {
 } from "./tripBookingsPage.types";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import dynamic from "next/dynamic";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Button } from "@/components/ui/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Button } from "@ui/components/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { Pagination } from "@/components/ui/pagination";
-import { DataTable } from "@/components/ui/dataTable/dataTable";
-import type { ColumnDef, RowAction } from "@/components/ui/dataTable/dataTable.types";
+} from "@ui/components/select";
+import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@ui/patterns/filterDrawer";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { Pagination } from "@ui/components/pagination";
+import { DataTable } from "@ui/patterns/dataTable";
+import type { ColumnDef, RowAction } from "@ui/patterns/dataTable";
 import * as styles from "./tripBookingsPage.style";
 
 // Lazy-loaded: only needed once a user opens one of these modals, so they
@@ -58,7 +58,7 @@ const ExternalTripsModal = dynamic(
   { ssr: false },
 );
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal/confirmModal"),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 
@@ -403,7 +403,7 @@ export function TripBookingsPage() {
     },
   ];
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
   if (error && bookings.length === 0)
     return (
       <ErrorState
@@ -625,7 +625,7 @@ export function TripBookingsPage() {
             onChange={(e) =>
               setDrawerFilters((p) => ({ ...p, onDate: e.target.value }))
             }
-            className="bg-background"
+            className="bg-background max-md:bg-card"
           />
           <span className="text-xs text-muted-foreground">
             Shows bookings starting exactly on this date — overrides the range below.
@@ -638,7 +638,7 @@ export function TripBookingsPage() {
             type="date"
             value={drawerFilters.fromDate}
             onChange={(e) => setDrawerFilters((p) => ({ ...p, fromDate: e.target.value }))}
-            className="bg-background"
+            className="bg-background max-md:bg-card"
             disabled={!!drawerFilters.onDate}
           />
         </div>
@@ -649,7 +649,7 @@ export function TripBookingsPage() {
             type="date"
             value={drawerFilters.toDate}
             onChange={(e) => setDrawerFilters((p) => ({ ...p, toDate: e.target.value }))}
-            className="bg-background"
+            className="bg-background max-md:bg-card"
             disabled={!!drawerFilters.onDate}
           />
         </div>

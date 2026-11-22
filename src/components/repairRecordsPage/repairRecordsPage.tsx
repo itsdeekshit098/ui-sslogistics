@@ -12,31 +12,31 @@ import {
   FolderOpenIcon,
   CheckCircleIcon,
   DownloadIcon,
-} from "@/components/ui/icon";
-import { PageHeader } from "@/components/ui/pageHeader";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/dataTable";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+} from "@ui/icons";
+import { PageHeader } from "@ui/patterns/pageHeader";
+import { Button } from "@ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
+import { DataTable } from "@ui/patterns/dataTable";
+import { Badge } from "@ui/components/badge";
+import { Input } from "@ui/components/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
-import { EmptyState } from "@/components/ui/emptyState";
-import { Pagination } from "@/components/ui/pagination";
-import { Typeahead } from "@/components/ui/typeahead";
-import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@/components/ui/filterDrawer";
+} from "@ui/components/select";
+import { Spinner } from "@ui/components/spinner";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
+import { EmptyState } from "@ui/patterns/emptyState";
+import { Pagination } from "@ui/components/pagination";
+import { Combobox } from "@ui/components/combobox";
+import { FilterDrawer, fieldGroup as filterFieldGroup, fieldLabel as filterFieldLabel } from "@ui/patterns/filterDrawer";
 import { useAuth } from "@/context/AuthContext";
 import { canEdit as canEditRole, isAdmin as isAdminRole } from "@/lib/routePermissions";
-import { Label } from "@/components/ui/label";
-import { StatCard } from "@/components/ui/statCard";
+import { Label } from "@ui/components/label";
+import { StatCard } from "@ui/patterns/statCard";
 import type { Vehicle } from "@/app/admin/vehicles/vehicles.types";
 import type {
   Technician,
@@ -55,7 +55,7 @@ import { vehicleLabel } from "@/lib/vehicleLabel";
 // shouldn't bloat the initial page chunk that has to load before anything
 // (including the skeleton) can paint.
 const ConfirmModal = dynamic(
-  () => import("@/components/confirmModal").then((m) => m.ConfirmModal),
+  () => import("@ui/patterns/confirmModal").then((m) => m.ConfirmModal),
   { ssr: false },
 );
 const RepairModal = dynamic(
@@ -426,7 +426,7 @@ export function RepairRecordsPage() {
     (v) => v.id.toString() === selectedVehicleId,
   );
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
   if (error && vehicles.length === 0)
     return <ErrorState title="Error" description={error} onRetry={fetchRecords} />;
 
@@ -442,7 +442,7 @@ export function RepairRecordsPage() {
                 testId: "repair-records-add-btn",
                 onClick: openCreate,
                 disabled: vehiclesLoading || !!error,
-                icon: vehiclesLoading ? <LoadingSpinner size="sm" /> : undefined,
+                icon: vehiclesLoading ? <Spinner size="sm" /> : undefined,
               }
             : undefined
         }
@@ -538,7 +538,7 @@ export function RepairRecordsPage() {
       {/* Records Card */}
       {true && (
         <Card className="ss-panel">
-          <CardHeader className="p-4 md:p-6">
+          <CardHeader className="p-4 md:p-6 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-xl">
                 Repair History for {selectedVehicle ? (
@@ -549,7 +549,7 @@ export function RepairRecordsPage() {
               </CardTitle>
               <div className="flex items-center gap-2">
                 <div className="w-full sm:w-72">
-                  <Typeahead
+                  <Combobox
                     id="repairVehicleFilter"
                     options={vehicles}
                     value={selectedVehicleId}
@@ -588,7 +588,7 @@ export function RepairRecordsPage() {
                   className="gap-2 max-sm:h-11 max-sm:px-3"
                 >
                   {isDownloading ? (
-                    <LoadingSpinner size="sm" />
+                    <Spinner size="sm" />
                   ) : (
                     <DownloadIcon size={16} />
                   )}
@@ -607,7 +607,7 @@ export function RepairRecordsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+          <CardContent className="p-4 md:p-6 pt-0 md:pt-0 sm:p-6 sm:pt-0">
 
             {/* ─── Table (cards below md) ─── */}
             <DataTable<RepairRecordWithVehicle>
@@ -688,7 +688,7 @@ export function RepairRecordsPage() {
                   cell: (row) => (
                     <div className="flex flex-wrap gap-1">
                       {row.issues.map((issue) => (
-                        <Badge key={issue} variant="secondary" className="text-xs">
+                        <Badge key={issue} variant="secondary" className="text-xs max-md:text-[11px]">
                           {issue}
                         </Badge>
                       ))}
@@ -837,7 +837,7 @@ export function RepairRecordsPage() {
                   fromDate: e.target.value,
                 }))
               }
-              className="bg-background"
+              className="bg-background max-md:bg-card"
             />
           </div>
 
@@ -852,7 +852,7 @@ export function RepairRecordsPage() {
                   toDate: e.target.value,
                 }))
               }
-              className="bg-background"
+              className="bg-background max-md:bg-card"
             />
           </div>
         </FilterDrawer>

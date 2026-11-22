@@ -342,3 +342,60 @@ describe("POST /api/fundings/[id]/rates — same limits as creating the funding"
     expect(body.error).toBe("That amount is too large");
   });
 });
+
+describe("bad input that used to fail as a 500 or be stored", () => {
+  const post = (body: unknown, id = "10", raw?: string) =>
+    [
+      new NextRequest(`http://localhost/api/fundings/${id}/rates`, {
+        method: "POST",
+        body: raw ?? JSON.stringify(body),
+      }),
+      params(id),
+    ] as const;
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ fundings: [{ data: PERCENT_FUNDING, error: null }] });
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "answers 400 for %s",
+    async (_label, raw) => {
+      const { POST } = await importRoute();
+      expect((await POST(...post(undefined, "10", raw))).status).toBe(400);
+    },
+  );
+
+  it.each(["1.5", "0", "abc"])("refuses %s as the funding id", async (id) => {
+    const { POST } = await importRoute();
+    expect((await POST(...post(VALID_PERCENT_BODY, id))).status).toBe(400);
+  });
+
+  it("refuses a note that is not text or is over 200 characters", async () => {
+    const { POST } = await importRoute();
+    expect((await POST(...post({ ...VALID_PERCENT_BODY, note: { a: 1 } }))).status).toBe(400);
+    mockSupabaseAdmin({ fundings: [{ data: PERCENT_FUNDING, error: null }] });
+    expect((await POST(...post({ ...VALID_PERCENT_BODY, note: "n".repeat(201) }))).status).toBe(400);
+  });
+});
+
+describe("a rate above the limit", () => {
+  it.each([
+    [25, "MONTHLY", "Rate can be at most 20% per month"],
+    [101, "ANNUAL", "Rate can be at most 100% per year"],
+  ])("is refused with a message about the rate (%s, %s)", async (roi, roi_basis, message) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ fundings: [{ data: PERCENT_FUNDING, error: null }] });
+    const { POST } = await importRoute();
+    const res = await POST(
+      jsonRequest("http://localhost/api/fundings/10/rates", "POST", {
+        ...VALID_PERCENT_BODY,
+        roi,
+        roi_basis,
+      }),
+      params("10"),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe(message);
+  });
+});

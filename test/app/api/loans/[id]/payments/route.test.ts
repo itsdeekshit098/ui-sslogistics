@@ -647,3 +647,44 @@ describe("POST /api/loans/[id]/payments — dates, amounts and ids", () => {
     expect(res.status).toBe(400);
   });
 });
+
+
+describe("free-text fields of a payment", () => {
+  const post = (extra: Record<string, unknown>) =>
+    [
+      jsonRequest(URL, "POST", { payment_type: "PREPAYMENT", amount: 100, paid_on: "2026-03-05", ...extra }),
+      paramsFor("10"),
+    ] as const;
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({ loans: [{ data: LOAN_ROW, error: null }] });
+  });
+
+  it("refuses a reference, payment method or notes that is not text", async () => {
+    const { POST } = await importRoute();
+    for (const field of ["reference", "payment_method", "notes"]) {
+      mockSupabaseAdmin({ loans: [{ data: LOAN_ROW, error: null }] });
+      const res = await POST(...post({ [field]: { a: 1 } }));
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("refuses a reference over 100 characters instead of cutting it", async () => {
+    const { POST } = await importRoute();
+    const res = await POST(...post({ reference: "x".repeat(101) }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/100 characters/);
+  });
+
+  it("accepts a reference of exactly 100 and still cuts notes quietly at 500", async () => {
+    const supa = mockSupabaseAdmin({
+      loans: [{ data: LOAN_ROW, error: null }],
+      loan_payments: [{ data: { id: 1 }, error: null }],
+    });
+    const { POST } = await importRoute();
+    const res = await POST(...post({ reference: "x".repeat(100), notes: "n".repeat(600) }));
+    expect(res.status).toBe(201);
+    expect(supa).toBeDefined();
+  });
+});

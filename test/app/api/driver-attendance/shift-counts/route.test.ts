@@ -351,3 +351,35 @@ describe("POST shift-counts — marks left on shifts the driver no longer runs",
     expect(body.data.conflicts).toEqual({ count: 0, dates: [] });
   });
 });
+
+describe("POST shift-counts — body and month checks", () => {
+  const post = (body?: unknown, raw?: string) =>
+    new NextRequest(URL, { method: "POST", body: raw ?? JSON.stringify(body) });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an empty body", ""]])(
+    "answers 400, not 500, for %s",
+    async (_label, raw) => {
+      requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+      mockSupabaseAdmin({});
+      const { POST } = await importRoute();
+      expect((await POST(post(undefined, raw), paramsFor("1"))).status).toBe(400);
+    },
+  );
+
+  it.each(["2", true, 2.5, null, { a: 1 }, 0, 4])("refuses %j as a shift count", async (shift_count) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+    const res = await POST(post({ shift_count, effective_month: "2026-06" }), paramsFor("1"));
+    expect(res.status).toBe(400);
+  });
+
+  it.each(["2999-01", "1900-01", "2019-12"])("refuses a start month of %s", async (effective_month) => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+    const { POST } = await importRoute();
+    const res = await POST(post({ shift_count: 2, effective_month }), paramsFor("1"));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/between January 2020/);
+  });
+});

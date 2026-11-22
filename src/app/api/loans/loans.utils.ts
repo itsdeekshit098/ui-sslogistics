@@ -159,6 +159,41 @@ export function parseId(value: unknown): number | null {
   return id > 0 ? id : null;
 }
 
+export type TextCheck = { value: string | null } | { error: "not_text" | "too_long" };
+
+/**
+ * An optional free-text field arriving as JSON. Empty or absent is `null`;
+ * anything that isn't a string is refused (`String({a:1})` would otherwise be
+ * saved as "[object Object]"); and text longer than `max` is refused rather
+ * than silently cut, so a reference number is never stored half-way (pass
+ * `truncate` for a field that has always been cut quietly, like notes).
+ */
+export function optionalText(
+  value: unknown,
+  max: number,
+  { truncate = false }: { truncate?: boolean } = {},
+): TextCheck {
+  if (value === undefined || value === null || value === "") return { value: null };
+  if (typeof value !== "string") return { error: "not_text" };
+  let text = value.trim();
+  if (text.length > max) {
+    // `truncate` keeps the older behaviour of fields that were always cut
+    // silently (notes, descriptions) while still refusing non-text.
+    if (!truncate) return { error: "too_long" };
+    text = text.slice(0, max);
+  }
+  return { value: text || null };
+}
+
+/**
+ * A true/false flag arriving as JSON. Only real booleans count: `Boolean("false")`
+ * is true and `Boolean(0)` is false, so a flag sent as text or a number would
+ * quietly do the opposite of what its sender meant. `undefined` means "not sent".
+ */
+export function parseFlag(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
 export const LOAN_SORTS = ["ending_soon", "newest"] as const;
 export type LoanSort = (typeof LOAN_SORTS)[number];
 

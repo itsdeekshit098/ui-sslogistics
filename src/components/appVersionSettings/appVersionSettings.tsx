@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { UploadCloudIcon } from "@/components/ui/icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { UploadCloudIcon } from "@ui/icons";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Textarea } from "@ui/components/textarea";
+import { Label } from "@ui/components/label";
 import {
   Card,
   CardContent,
@@ -13,9 +13,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
-import { ErrorState } from "@/components/ui/errorState";
+} from "@ui/components/card";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
+import { ErrorState } from "@ui/patterns/errorState";
 
 interface AppVersionConfig {
   minAndroidVersionCode: number | null;
@@ -81,7 +81,7 @@ export function AppVersionSettings() {
     }
   };
 
-  if (loading) return <PageLoadingSkeleton variant="admin" />;
+  if (loading) return <PageSkeleton variant="admin" />;
   if (error && !config) return <ErrorState description={error} onRetry={fetchConfig} />;
 
   const isOn = !!config?.minAndroidVersionCode;

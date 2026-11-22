@@ -2,9 +2,21 @@ import { after } from "next/server";
 import { todayInIndia } from "@/lib/dateOnly";
 import { requireStrictAdminAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import {
+  apiError,
+  apiSuccess,
+  handleApiError,
+  readJsonObject,
+  serverError,
+} from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
-import { isValidDateString, moneyMessage, moneyProblem } from "../../../loans/loans.utils";
+import {
+  isValidDateString,
+  moneyMessage,
+  moneyProblem,
+  optionalText,
+  parseId,
+} from "../../../loans/loans.utils";
 
 // The receivables statement. Bills are debits (they owe more), payments are
 // credits (they owe less), and the balance is simply the running difference —
@@ -33,8 +45,8 @@ export async function GET(
     await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
@@ -138,21 +150,29 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam } = await params;
-    const clientId = Number(idParam);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parseId(idParam);
+    if (clientId === null) {
       return apiError("Invalid client ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("Request body must be a JSON object", 400);
 
     const { data: client, error: clientErr } = await supabaseAdmin
       .from("clients")
-      .select("id, name")
+      .select("id, name, is_active")
       .eq("id", clientId)
       .maybeSingle();
 
     if (clientErr) return serverError(clientErr);
     if (!client) return apiError("Client not found", 404);
+
+    if (client.is_active === false) {
+      return apiError(
+        `"${client.name}" is inactive. Mark the client active before adding entries.`,
+        400,
+      );
+    }
 
     const entryType = String(body.entry_type ?? "");
     if (!(CLIENT_ENTRY_TYPES as readonly string[]).includes(entryType)) {
@@ -170,6 +190,35 @@ export async function POST(
     const entryDate = body.entry_date ?? todayInIndia();
     if (!isValidDateString(entryDate)) {
       return apiError("Invalid date", 400);
+    }
+    if (entryDate > todayInIndia()) {
+      return apiError("Entry date cannot be in the future", 400);
+    }
+
+    // The starting balance is entered once, when the client is created. To
+    // correct it, reverse it and enter a new one.
+    if (entryType === "OPENING") {
+      const { data: openings, error: openingErr } = await supabaseAdmin
+        .from("client_ledger_entries")
+        .select("id")
+        .eq("client_id", clientId)
+        .eq("entry_type", "OPENING")
+        .is("reverses_entry_id", null);
+      if (openingErr) return serverError(openingErr);
+      const openingIds = (openings ?? []).map((row) => row.id as number);
+      if (openingIds.length > 0) {
+        const { data: reversals, error: reversalErr } = await supabaseAdmin
+          .from("client_ledger_entries")
+          .select("reverses_entry_id")
+          .in("reverses_entry_id", openingIds);
+        if (reversalErr) return serverError(reversalErr);
+        if (openingIds.length > (reversals ?? []).length) {
+          return apiError(
+            "This client already has an opening balance. Reverse it first to enter a different one.",
+            400,
+          );
+        }
+      }
     }
 
     // Direction follows from the type for bills and payments — the caller only
@@ -198,8 +247,30 @@ export async function POST(
       periodMonth = normalized;
     }
 
-    const description =
-      body.description == null ? null : String(body.description).trim().slice(0, DESCRIPTION_MAX_LENGTH);
+    // Free text must be text; references and invoice numbers are refused, not
+    // cut, when too long (a long one also stretches the statement).
+    const description = optionalText(body.description, DESCRIPTION_MAX_LENGTH, { truncate: true });
+    if ("error" in description) return apiError("Description must be text", 400);
+    const paymentMethod = optionalText(body.payment_method, 60);
+    if ("error" in paymentMethod) return apiError("Payment method is not valid", 400);
+    const reference = optionalText(body.reference, 100);
+    if ("error" in reference) {
+      return apiError(
+        reference.error === "too_long"
+          ? "Reference must be 100 characters or less"
+          : "Reference must be text",
+        400,
+      );
+    }
+    const invoiceNo = optionalText(body.invoice_no, 100);
+    if ("error" in invoiceNo) {
+      return apiError(
+        invoiceNo.error === "too_long"
+          ? "Invoice number must be 100 characters or less"
+          : "Invoice number must be text",
+        400,
+      );
+    }
 
     const insertPayload = {
       client_id: clientId,
@@ -207,11 +278,11 @@ export async function POST(
       direction,
       amount: Number(body.amount),
       entry_date: entryDate,
-      invoice_no: body.invoice_no ? String(body.invoice_no).trim() : null,
+      invoice_no: invoiceNo.value,
       period_month: periodMonth,
-      payment_method: body.payment_method ? String(body.payment_method) : null,
-      reference: body.reference ? String(body.reference).trim() : null,
-      description: description || null,
+      payment_method: paymentMethod.value,
+      reference: reference.value,
+      description: description.value,
       created_by: authUser.id,
     };
 

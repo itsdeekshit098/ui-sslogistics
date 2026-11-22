@@ -7,13 +7,13 @@ import {
   BarChart3Icon,
   MailIcon,
   GridIcon,
-} from "@/components/ui/icon";
+} from "@ui/icons";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
+import { Spinner } from "@ui/components/spinner";
 import { ThemeToggle } from "@/components/themeToggle";
 import { useIsDarkMode } from "@/hooks/useResolvedTheme";
 
@@ -225,7 +225,7 @@ export function PublicNavbar({ portalHref = "/admin" }: PublicNavbarProps) {
               onClick={() => setIsNavigating(true)}
             >
               {isNavigating ? (
-                <LoadingSpinner size="sm" />
+                <Spinner size="sm" />
               ) : (
                 <GridIcon size={16} />
               )}

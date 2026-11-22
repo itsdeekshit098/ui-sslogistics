@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { mockSupabaseAdmin } from "@test/supabaseMock";
 import { requireStrictAdminAuth } from "@test/authMock";
@@ -94,15 +94,10 @@ describe("GET /api/clients", () => {
   it("filters to only clients with dues when has_dues=true", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
-      clients: [{ data: [{ id: 1 }, { id: 2 }], error: null, count: 2 }],
+      clients: [{ data: [{ id: 2 }], error: null, count: 1 }],
       client_balances: [
-        {
-          data: [
-            { client_id: 1, outstanding: 0 },
-            { client_id: 2, outstanding: 300 },
-          ],
-          error: null,
-        },
+        { data: [{ client_id: 2 }], error: null }, // who owes
+        { data: [{ client_id: 2, outstanding: 300 }], error: null }, // this page
       ],
       client_deployments: [{ data: [], error: null }],
     });
@@ -254,7 +249,7 @@ describe("POST /api/clients", () => {
 
   it("400s when notes exceed the max length", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({});
+    mockSupabaseAdmin({ clients: [{ data: [], error: null }] }); // the duplicate-name lookup
     const { POST } = await importRoute();
 
     const res = await POST(
@@ -316,43 +311,39 @@ describe("POST /api/clients", () => {
     expect(supa.callCount("client_ledger_entries")).toBe(1);
   });
 
-  it("warns but still creates the client when opening_balance is invalid", async () => {
+  it("refuses the whole create, saving nothing, when the opening balance is not a valid amount", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
-    mockSupabaseAdmin({
+    const supa = mockSupabaseAdmin({
       clients: [{ data: { id: 42, name: "Acme", client_type: "VENDOR" }, error: null }],
     });
     const { POST } = await importRoute();
 
-    const res = await POST(
-      jsonRequest("http://localhost/api/clients", "POST", {
-        name: "Acme",
-        opening_balance: -5,
-      }),
-    );
-    const body = await res.json();
-
-    expect(res.status).toBe(201);
-    expect(body.message).toMatch(/opening balance was not a valid amount/);
+    for (const bad of [-5, 100.555, 1e20]) {
+      const res = await POST(
+        jsonRequest("http://localhost/api/clients", "POST", { name: "Acme", opening_balance: bad }),
+      );
+      expect(res.status).toBe(400);
+    }
+    expect(supa.callCount("client_ledger_entries")).toBe(0);
   });
 
-  it("warns when the opening_date is invalid", async () => {
+  it("refuses the whole create when the opening date is invalid or in the future", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       clients: [{ data: { id: 42, name: "Acme", client_type: "VENDOR" }, error: null }],
     });
     const { POST } = await importRoute();
 
-    const res = await POST(
-      jsonRequest("http://localhost/api/clients", "POST", {
-        name: "Acme",
-        opening_balance: 1000,
-        opening_date: "not-a-date",
-      }),
-    );
-    const body = await res.json();
-
-    expect(res.status).toBe(201);
-    expect(body.message).toMatch(/opening balance date was invalid/);
+    for (const date of ["not-a-date", "2999-01-01"]) {
+      const res = await POST(
+        jsonRequest("http://localhost/api/clients", "POST", {
+          name: "Acme",
+          opening_balance: 1000,
+          opening_date: date,
+        }),
+      );
+      expect(res.status).toBe(400);
+    }
   });
 
   it("warns when the opening balance ledger insert fails", async () => {
@@ -378,7 +369,10 @@ describe("POST /api/clients", () => {
   it("409s on a duplicate name", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
-      clients: [{ data: null, error: { code: "23505" } }],
+      clients: [
+        { data: [], error: null }, // the name looks free (a case-variant raced in)
+        { data: null, error: { code: "23505" } }, // the unique constraint catches it
+      ],
     });
     const { POST } = await importRoute();
 
@@ -474,6 +468,7 @@ describe("PUT /api/clients", () => {
     const supa = mockSupabaseAdmin({
       clients: [
         { data: { id: 1, party_kind: "COMPANY" }, error: null },
+        { data: [], error: null }, // no other client already has that name
         { data: { id: 1, name: "Acme Renamed" }, error: null },
       ],
     });
@@ -486,7 +481,7 @@ describe("PUT /api/clients", () => {
 
     expect(res.status).toBe(200);
     expect(body.data.client.name).toBe("Acme Renamed");
-    expect(supa.callCount("clients")).toBe(2);
+    expect(supa.callCount("clients")).toBe(3);
     expect(logActivity).toHaveBeenCalledWith(
       expect.objectContaining({ action: "UPDATE_CLIENT", recordId: 1 }),
     );
@@ -573,6 +568,7 @@ describe("PUT /api/clients", () => {
     mockSupabaseAdmin({
       clients: [
         { data: { id: 1, party_kind: "COMPANY" }, error: null },
+        { data: [], error: null }, // name lookup
         { data: null, error: { code: "23505" } },
       ],
     });
@@ -695,11 +691,31 @@ describe("DELETE /api/clients", () => {
     expect(body.error).toMatch(/has 2 entries/);
   });
 
+  it("names the contacts and vehicle assignments that block a delete, and deletes nothing", async () => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, name: "Acme" }, error: null }],
+      client_balances: [{ data: null, error: null }],
+      client_contacts: [{ data: null, error: null, count: 2 }],
+      client_deployments: [{ data: null, error: null, count: 1 }],
+    });
+    const { DELETE } = await importRoute();
+
+    const res = await DELETE(new NextRequest("http://localhost/api/clients?id=1"));
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/2 contacts and 1 vehicle assignment/);
+    expect(logActivity).not.toHaveBeenCalled();
+  });
+
   it("deletes the client and logs the audit entry when nothing blocks it", async () => {
     requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
     mockSupabaseAdmin({
       clients: [{ data: { id: 1, name: "Acme" }, error: null }, { error: null }],
       client_balances: [{ data: null, error: null }],
+      client_contacts: [{ data: null, error: null, count: 0 }],
+      client_deployments: [{ data: null, error: null, count: 0 }],
     });
     const { DELETE } = await importRoute();
 
@@ -719,6 +735,8 @@ describe("DELETE /api/clients", () => {
         { error: { message: "connection reset" } },
       ],
       client_balances: [{ data: null, error: null }],
+      client_contacts: [{ data: null, error: null, count: 0 }],
+      client_deployments: [{ data: null, error: null, count: 0 }],
     });
     const { DELETE } = await importRoute();
 
@@ -727,3 +745,195 @@ describe("DELETE /api/clients", () => {
     expect(res.status).toBe(500);
   });
 });
+
+/** The query builder handed out for the first `.from(table)` call. */
+function firstBuilder(supa: { from: { mock: { calls: unknown[][]; results: { value: unknown }[] } } }, table: string) {
+  const index = supa.from.mock.calls.findIndex((call) => call[0] === table);
+  return supa.from.mock.results[index].value as Record<string, { mock: unknown }> & {
+    in: ReturnType<typeof vi.fn>;
+    range: ReturnType<typeof vi.fn>;
+  };
+}
+
+describe("GET /api/clients: the 'owes money' filter", () => {
+  const get = async (clients: unknown[], owing: number[], query = "") => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    const supa = mockSupabaseAdmin({
+      clients: [{ data: clients, error: null, count: owing.length }],
+      client_balances: [
+        { data: owing.map((client_id) => ({ client_id })), error: null },
+        { data: owing.map((client_id) => ({ client_id, outstanding: 50 })), error: null },
+      ],
+      client_deployments: [{ data: [], error: null }],
+    });
+    const { GET } = await importRoute();
+    const res = await GET(new NextRequest(`http://localhost/api/clients?has_dues=true${query}`));
+    return { body: (await res.json()).data, supa };
+  };
+
+  it("asks the database for the clients that owe and counts only them", async () => {
+    const { body, supa } = await get([{ id: 2 }, { id: 4 }, { id: 5 }], [2, 4, 5]);
+    expect(body.total).toBe(3);
+    expect(body.data.map((c: { id: number }) => c.id)).toEqual([2, 4, 5]);
+    // The page is cut in the database, so a row cap can't drop clients first.
+    const builder = firstBuilder(supa, "clients");
+    expect(builder.range).toHaveBeenCalled();
+    expect(builder.in).toHaveBeenCalledWith("id", [2, 4, 5]);
+  });
+
+  it("returns an empty list, not everyone, when nobody owes", async () => {
+    const { body, supa } = await get([], []);
+    expect(body.total).toBe(0);
+    expect(body.data).toEqual([]);
+    expect(firstBuilder(supa, "clients").in).toHaveBeenCalledWith("id", [0]);
+  });
+});
+
+describe("clients route: failed lookups and individual names", () => {
+  const send = (method: string, body: unknown) =>
+    new NextRequest("http://localhost/api/clients", { method, body: JSON.stringify(body) });
+
+  beforeEach(() => requireStrictAdminAuth.mockResolvedValue(ADMIN_USER));
+
+  it("answers 500, not 'name is free', when the duplicate-name lookup fails", async () => {
+    const supa = mockSupabaseAdmin({
+      lookup_options: [{ data: { value: "VENDOR" }, error: null }],
+      clients: [{ data: null, error: { message: "timeout" } }],
+    });
+    const { POST } = await importRoute();
+
+    const res = await POST(send("POST", { name: "Acme", client_type: "VENDOR" }));
+
+    expect(res.status).toBe(500);
+    expect(supa.callCount("clients")).toBe(1); // no insert was attempted
+  });
+
+  it("refuses a different name for an individual, but accepts their own", async () => {
+    mockSupabaseAdmin({
+      clients: [
+        { data: { party_kind: "INDIVIDUAL", name: "Ravi" }, error: null },
+        { data: { id: 1, name: "Ravi" }, error: null },
+      ],
+    });
+    const { PUT } = await importRoute();
+
+    const res = await PUT(send("PUT", { id: 1, name: "Someone Else" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Rename the entity/);
+
+    mockSupabaseAdmin({
+      clients: [
+        { data: { party_kind: "INDIVIDUAL", name: "Ravi" }, error: null },
+        { data: { id: 1, name: "Ravi" }, error: null },
+      ],
+    });
+    const { PUT: PUT2 } = await importRoute();
+    const same = await PUT2(send("PUT", { id: 1, name: "Ravi", notes: "x" }));
+    expect(same.status).toBe(200);
+  });
+});
+
+describe("bad input to /api/clients that used to be a 500 or be stored as junk", () => {
+  const send = (method: string, body: unknown, raw?: string) =>
+    new NextRequest("http://localhost/api/clients", { method, body: raw ?? JSON.stringify(body) });
+
+  beforeEach(() => {
+    requireStrictAdminAuth.mockResolvedValue(ADMIN_USER);
+    mockSupabaseAdmin({});
+  });
+
+  it.each([["malformed JSON", "{bad"], ["null", "null"], ["an array", "[]"], ["an empty body", ""]])(
+    "POST and PUT answer 400 for %s",
+    async (_label, raw) => {
+      const { POST, PUT } = await importRoute();
+      expect((await POST(send("POST", undefined, raw))).status).toBe(400);
+      expect((await PUT(send("PUT", undefined, raw))).status).toBe(400);
+    },
+  );
+
+  it.each([1.5, "1.5", "", "abc", 0, -2])("PUT refuses %j as the client id", async (id) => {
+    const { PUT } = await importRoute();
+    expect((await PUT(send("PUT", { id, notes: "x" }))).status).toBe(400);
+  });
+
+  it.each(["1.5", "abc", "0"])("DELETE refuses id=%s", async (id) => {
+    const { DELETE } = await importRoute();
+    const res = await DELETE(new NextRequest(`http://localhost/api/clients?id=${id}`, { method: "DELETE" }));
+    expect(res.status).toBe(400);
+  });
+
+  it.each([
+    ["location", "x".repeat(151), /150 characters/],
+    ["address", "x".repeat(501), /500 characters/],
+    ["gst_number", "x".repeat(21), /20 characters/],
+    ["location", { a: 1 }, /must be text/],
+    ["address", ["x"], /must be text/],
+    ["gst_number", { a: 1 }, /must be text/],
+    ["notes", { a: 1 }, /must be text/],
+  ])("refuses %s = %j", async (field, value, message) => {
+    mockSupabaseAdmin({ clients: [{ data: [], error: null }] });
+    const { POST } = await importRoute();
+    const res = await POST(send("POST", { name: "Acme", [field]: value }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(message);
+  });
+
+  it.each(["false", "true", 0, 1, null, {}])("refuses is_active = %j (only true or false)", async (flag) => {
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, party_kind: "COMPANY" }, error: null }],
+    });
+    const { PUT } = await importRoute();
+    const res = await PUT(send("PUT", { id: 1, is_active: flag }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("is_active must be true or false");
+  });
+
+  it("refuses a client type that is not in the type list", async () => {
+    mockSupabaseAdmin({
+      clients: [{ data: [], error: null }],
+      lookup_options: [{ data: null, error: null }],
+    });
+    const { POST } = await importRoute();
+    const res = await POST(send("POST", { name: "Acme", client_type: "BOGUS" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Unknown client type");
+  });
+
+  it("refuses a client type that is not text", async () => {
+    mockSupabaseAdmin({ clients: [{ data: [], error: null }] });
+    const { POST } = await importRoute();
+    const res = await POST(send("POST", { name: "Acme", client_type: { a: 1 } }));
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a name that differs from another client's only by case", async () => {
+    mockSupabaseAdmin({ clients: [{ data: [{ id: 9 }], error: null }] });
+    const { POST } = await importRoute();
+    const res = await POST(send("POST", { name: "ACT" }));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("A client with that name already exists");
+  });
+
+  it("says which rule was broken when an entity already has a client account", async () => {
+    mockSupabaseAdmin({
+      clients: [{ data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "uq_clients_entity"' } }],
+      entities: [{ data: { id: 5 }, error: null }],
+    });
+    const { POST } = await importRoute();
+    const res = await POST(send("POST", { party_kind: "INDIVIDUAL", entity_id: 5 }));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("That person or firm already has a client account");
+  });
+
+  it("ignores a name sent for an individual: it comes from the linked entity", async () => {
+    mockSupabaseAdmin({
+      clients: [{ data: { id: 1, party_kind: "INDIVIDUAL" }, error: null }],
+    });
+    const { PUT } = await importRoute();
+    const res = await PUT(send("PUT", { id: 1, name: "Renamed" }));
+    // nothing else to change, so nothing is written
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("No fields to update");
+  });
+});
+

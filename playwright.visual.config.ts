@@ -13,8 +13,15 @@ export default defineConfig({
   fullyParallel: true,
   reporter: [["list"]],
   outputDir: "visual-snapshots/.results",
-  snapshotPathTemplate: "visual-snapshots/desktop-baseline/{arg}{ext}",
-  expect: { toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled" } },
+  // One baseline folder per project, so light/dark and phone/desktop never share a file.
+  snapshotPathTemplate: "visual-snapshots/baseline/{projectName}/{arg}{ext}",
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixels: 0,
+      animations: "disabled",
+      stylePath: "./e2e-visual/hide-dev-overlay.css",
+    },
+  },
 
   use: { baseURL },
 
@@ -30,6 +37,10 @@ export default defineConfig({
     {
       name: "desktop",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, colorScheme: "light" },
+    },
+    {
+      name: "desktop-dark",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, colorScheme: "dark" },
     },
   ],
 

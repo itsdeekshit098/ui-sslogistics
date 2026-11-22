@@ -4,6 +4,7 @@ import { requireStrictAdminAuth } from "@/lib/auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/apiResponse";
 import { logActivity } from "@/lib/activityLog";
 import { reverseLedgerEntry } from "@/lib/ledgerReversal";
+import { parseId } from "../../../../../loans/loans.utils";
 
 // Undoes a funding entry by inserting a row that points at it. Both are then
 // excluded from the principal timeline and the interest computation, so the
@@ -27,10 +28,10 @@ export async function POST(
     const authUser = await requireStrictAdminAuth();
 
     const { id: idParam, entryId: entryIdParam } = await params;
-    const fundingId = Number(idParam);
-    const entryId = Number(entryIdParam);
+    const fundingId = parseId(idParam);
+    const entryId = parseId(entryIdParam);
 
-    if (!Number.isFinite(fundingId) || !Number.isFinite(entryId)) {
+    if (fundingId === null || entryId === null) {
       return apiError("Invalid funding or entry ID", 400);
     }
 

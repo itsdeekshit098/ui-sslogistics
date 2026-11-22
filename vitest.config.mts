@@ -47,6 +47,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@ui": path.resolve(import.meta.dirname, "./src/ui"),
       "@": path.resolve(import.meta.dirname, "./src"),
       "@test": path.resolve(import.meta.dirname, "./test/support"),
     },

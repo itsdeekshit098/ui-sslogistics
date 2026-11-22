@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { PlusIcon, SearchIcon, EyeIcon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
+import { Button } from "@ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
+import { Badge } from "@ui/components/badge";
+import { PlusIcon, SearchIcon, EyeIcon } from "@ui/icons";
+import { Input } from "@ui/components/input";
 import { useState, useEffect } from "react";
 import {
   Select,
@@ -13,9 +13,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { DataTable } from "@/components/ui/dataTable";
-import { PageLoadingSkeleton } from "@/components/ui/pageLoadingSkeleton";
+} from "@ui/components/select";
+import { DataTable } from "@ui/patterns/dataTable";
+import { PageSkeleton } from "@ui/patterns/pageSkeleton";
 import { useAuth } from "@/context/AuthContext";
 
 interface MockVehicle {
@@ -119,7 +119,7 @@ export default function TripSheetsPage() {
     setSelectedVehicleId(id);
   };
 
-  if (authLoading) return <PageLoadingSkeleton variant="admin" />;
+  if (authLoading) return <PageSkeleton variant="admin" />;
 
   return (
     <div className="container mx-auto md:p-6 space-y-6 md:space-y-8">
@@ -168,7 +168,7 @@ export default function TripSheetsPage() {
 
       {selectedVehicleId && (
         <Card data-testid="app-admin-trip-sheets-card-1">
-          <CardHeader className="p-4 md:p-6">
+          <CardHeader className="p-4 md:p-6 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-xl">
                 Trips for{" "}
@@ -187,7 +187,7 @@ export default function TripSheetsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+          <CardContent className="p-4 md:p-6 pt-0 md:pt-0 sm:p-6 sm:pt-0">
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-3">
               {loading ? (

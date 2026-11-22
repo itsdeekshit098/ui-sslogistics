@@ -38,37 +38,44 @@ KEEP IN SYNC: every component, helper and path named below must exist. Update th
 - Feature code goes in `src/components/<camelCase>/`: `<name>.tsx`, `<name>.types.ts`, `index.ts` (`export *`), plus `<name>.utils.ts` for pure logic (it gets unit-tested) and `<name>.constants.ts` if needed. Files and folders are camelCase; component exports are PascalCase.
 - `"use client"` only where hooks or handlers are needed.
 - Load modals and other heavy children that open on demand with `next/dynamic` and `{ ssr: false }`, as `DriversPage` does.
-- A new page also needs `PAGE_ROLE_MAP` in `src/lib/routePermissions.ts` and an entry in `src/components/layout/navConfig.ts`, with an `accent` colour, because `PageFab` and the phone drawer read it.
+- A new page also needs `PAGE_ROLE_MAP` in `src/lib/routePermissions.ts` and an entry in `src/components/layout/navConfig.ts`, with an `accent` colour, because `FloatingActionButton` and the phone drawer read it.
 
 ## 2. Use the primitives, don't hand-roll
 
-Everything below lives in `src/components/ui/` unless noted. Each already carries its phone look as `max-md:` classes, so using it gets the Flutter layout for free.
+Everything below lives in `src/ui/` (the in-house component library: `@ui/components/<name>`, `@ui/patterns/<name>`, `@ui/icons`; never import a file inside a component's folder). Each carries its own phone look, so using it gets the Flutter layout for free. The catalogue and the rules for how it is styled are in `docs/ui/README.md`.
 
 | Need | Use |
 |---|---|
 | Title, description, main action | `PageHeader` (`primaryAction` with a `testId`) |
 | Table / phone card list | `DataTable`. Set `ColumnDef.mobile` to place a column in the phone card (`title`, `subtitle`, `trailing`, `field`, `footer`, `hidden`); `rowActions` take a per-row `testId` and `mobileOnly` |
 | Paging | `Pagination` (server-side, see §4) |
-| Loading / error / empty | `PageLoadingSkeleton`, `ErrorState` (with `onRetry`), `EmptyState` (with an action) |
+| Loading / error / empty | `PageSkeleton`, `ErrorState` (with `onRetry`), `EmptyState` (with an action) |
 | Dialog / phone sheet | `Modal` + `ModalContent/Header/Title/Description/Body/Footer`; `BottomSheet` for phone-only sheets; `FilterDrawer` for filters |
-| Destructive confirm | `ConfirmModal` from `@/components/confirmModal` |
+| Destructive confirm | `ConfirmModal` from `@ui/patterns/confirmModal` |
 | Choice chips / tabs | `SegmentedControl`, `Tabs` |
 | Summary strip | `StatCard` (on phones the parent becomes a scrolling strip) |
 | Status | `Badge` |
-| Phone "create" button | `PageFab` (takes the module accent from `navConfig`) |
-| Pickers | `Typeahead`, `@/components/lookupSelect` |
-| Rupees | `Money` (tabular digits, `tone`), or `formatCurrency` / `formatCurrencyPrecise` from `src/lib/format.ts` |
-| Icons | `@/components/ui/icon` only. There is no icon library dependency; add a new shape there if one is missing |
-| Form controls | `Input`, `Label`, `Textarea`, `Select`, `Button` (CVA variants) |
-| Shared class strings | `src/lib/designTokens.ts` (`PAGE_CONTAINER`, `MODAL_GRID`, `ERROR_BANNER`, …) |
+| Phone "create" button | `FloatingActionButton` (takes the module accent from `navConfig` through `RouteAccent` in the admin layout) |
+| Pickers | `Combobox` (searchable), `Select`, `@/components/lookupSelect` |
+| Dates and months | `DatePicker`, `MonthPicker`: value is a `YYYY-MM-DD` / `YYYY-MM` string; pass `today={todayInIndia()}`. Not a native `type="date"` |
+| Numbers and rupees in a form | `NumberInput`, `MoneyInput` (whole numbers or ≤ 2 decimals, no `1e20`, capped at ₹100 crore by default; reports `null` when empty) |
+| Rupees in a table | `Money` (tabular digits, `tone`), or `formatCurrency` / `formatCurrencyPrecise` from `src/lib/format.ts` |
+| A labelled field with hint and error | `FormField` (+ `FormGrid` for columns) instead of `fieldGroup`/`fieldLabel` |
+| Yes/no | `Checkbox`, `Switch` |
+| A "⋯" menu | `Menu` (a bottom sheet on phones); `Popover` for any anchored panel |
+| Messages | `Alert` (inline, by `tone`), `useToast()` under `ToastProvider` (transient) |
+| Tags, filters, people | `Chip`, `Avatar` |
+| Icons | `@ui/icons` only. There is no icon library dependency; add a new shape there if one is missing |
+| Form controls | `Input`, `Label`, `Textarea`, `Select`, `Button` |
+| Shared class strings in feature code | `src/lib/designTokens.ts` (`PAGE_CONTAINER`, `MODAL_GRID`, `ERROR_BANNER`, …), until the screen moves to `FormGrid`/`Alert` |
 
-If a primitive is almost right, extend it with a prop. Don't fork it inside a feature folder, and run its test in `test/components/ui/` after the change.
+If a primitive is almost right, extend it with a prop. Don't fork it inside a feature folder, and run its test in `test/ui/` after the change.
 
 ## 3. Styling
 
-- Use Tailwind 4 with `cn()` from `@/lib/utils`, and CVA for variants. Don't add a new `.style.ts` file. Leave the existing ones alone unless the task is the migration.
+- **Feature code** (`src/components`, `src/app`) uses Tailwind 4 with `cn()` from `@/lib/utils`. Don't add a new `.style.ts` file; leave the existing ones alone unless the task is the migration. **The UI library** (`src/ui`) is the opposite: styled-components only, in `*.styles.ts`, inside `@layer ui`, with no Tailwind, no inline `style` and no app imports (ESLint enforces it). A new shared component goes there, built from the guide in `docs/ui/README.md`; don't write a new generic component in a feature folder.
 - Use theme tokens only (`bg-card`, `text-muted-foreground`, `border-border`, `text-destructive`, `text-success-subtle-foreground`, `--m-*` for phone shapes). Raw hex is allowed only for the module `accent` from `navConfig`. Every screen must read well in **dark mode**: the `.dark` variant is set from `globals.css`, so check it there.
-- **Phone is `max-md:` and desktop pixels never change.** Put phone styling in `max-md:` classes on the element. Use `useIsMobile()` only when the two layouts are genuinely different trees, and keep the `md:hidden`/`max-md:hidden` classes so nothing flashes before hydration. The server render assumes desktop.
+- **Phone is `max-md:` and desktop pixels never change.** In feature code put phone styling in `max-md:` classes on the element; inside `src/ui` use `onPhone(css…)`. Use `useIsMobile()` only when the two layouts are genuinely different trees, and keep the `md:hidden`/`max-md:hidden` classes so nothing flashes before hydration. The server render assumes desktop.
 - Phone targets the Flutter look: 16px cards, 20px sheets, 12px controls, chips instead of tabs, and no bottom nav. When the Flutter screen and the web phone screen differ, follow Flutter.
 - Anything shown only on hover (row actions, Mark Paid, Reverse) must also be reachable by touch, either in the card's "⋯" sheet (`mobileOnly`) or always visible on phones.
 
@@ -99,12 +106,12 @@ If a primitive is almost right, extend it with a prop. Don't fork it inside a fe
 
 - Every input has a `Label` with `htmlFor`. Icon-only buttons have an `aria-label`. Dialogs have a `ModalTitle`.
 - Use `data-testid` as `<module>-<thing>-<kind>` (`drivers-add-btn`, `drivers-search-input`) and a per-row `` (row) => `edit-btn-${row.id}` `` for row actions. Mocked e2e specs and `e2e/pages/` page objects depend on them, so don't rename existing ones casually.
-- Respect the lint rules in place. For example, `react-hooks/set-state-in-effect` is only disabled with a reason in a comment, as in `PageFab`.
+- Respect the lint rules in place. For example, `react-hooks/set-state-in-effect` is only disabled with a reason in a comment, as in `FloatingActionButton`.
 
 ## 8. Tests
 
 - Pure logic in `<name>.utils.ts` gets a test in `test/components/<name>/<name>.utils.test.ts`.
-- A changed primitive gets its test in `test/components/ui/<name>.test.tsx` updated.
+- A changed primitive gets its test in `test/ui/components/<name>.test.tsx` (or `test/ui/patterns/`) updated.
 - A new flow gets a mocked Playwright spec in `e2e/features/<module>/`, with fixtures and `installXMocks(page)` in `e2e/fixtures/` (see `e2e/README.md`). Cover the role variants that change what is on screen.
 - Layout work: run `npm run visual:baseline` **before** you start and `npm run visual:compare` after. Any desktop diff is a bug.
 

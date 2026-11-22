@@ -1,4 +1,4 @@
-import type { LayoutDashboardIcon } from "@/components/ui/icon";
+import type { LayoutDashboardIcon } from "@ui/icons";
 
 export interface MobileDashboardModule {
   title: string;

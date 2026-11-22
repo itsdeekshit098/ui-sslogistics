@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { FormField } from "@ui/components/formField";
+import { DatePicker } from "@ui/components/datePicker";
+import { MoneyInput } from "@ui/components/moneyInput";
 import {
   Modal,
   ModalBody,
@@ -12,8 +14,9 @@ import {
   ModalFooter,
   ModalHeader,
   ModalTitle,
-} from "@/components/ui/modal";
-import { formatMonth, todayString } from "@/lib/format";
+} from "@ui/components/modal";
+import { formatMonth } from "@/lib/format";
+import { todayInIndia } from "@/lib/dateOnly";
 import {
   SALARY_DESCRIPTION_MAX_LENGTH,
   type CreateSalaryEntryPayload,
@@ -41,14 +44,16 @@ export const AddAdvanceModal: React.FC<AddAdvanceModalProps> = ({
   onClose,
   onSaved,
 }) => {
-  const [amount, setAmount] = useState("");
-  const [entryDate, setEntryDate] = useState(todayString());
+  const [amount, setAmount] = useState<number | null>(null);
+  // The business day in India: the UTC date is still "yesterday" until 05:30.
+  const today = todayInIndia();
+  const [entryDate, setEntryDate] = useState<string | null>(today);
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
-    if (!amount || Number(amount) <= 0) {
+    if (amount == null || amount <= 0) {
       setError("Enter an amount greater than zero");
       return;
     }
@@ -56,8 +61,8 @@ export const AddAdvanceModal: React.FC<AddAdvanceModalProps> = ({
     setError(null);
     const payload: CreateSalaryEntryPayload = {
       entry_type: "ADVANCE",
-      amount: Number(amount),
-      entry_date: entryDate,
+      amount,
+      entry_date: entryDate ?? today,
       period_month: month,
       description: description.trim() || null,
     };
@@ -92,46 +97,47 @@ export const AddAdvanceModal: React.FC<AddAdvanceModalProps> = ({
         <ModalBody>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="advance-amount">Amount (₹)</Label>
-                <Input
-                  id="advance-amount"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  autoFocus
-                  placeholder="Enter amount"
-                  disabled={saving}
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setError(null);
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="advance-date">Given on</Label>
-                <Input
-                  id="advance-date"
-                  type="date"
-                  max={todayString()}
-                  disabled={saving}
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                />
-              </div>
+              <FormField label="Amount (₹)">
+                {(control) => (
+                  <MoneyInput
+                    {...control}
+                    min={0}
+                    autoFocus
+                    placeholder="Enter amount"
+                    disabled={saving}
+                    value={amount}
+                    onValueChange={(v) => {
+                      setAmount(v);
+                      setError(null);
+                    }}
+                  />
+                )}
+              </FormField>
+              <FormField label="Given on">
+                {(control) => (
+                  <DatePicker
+                    {...control}
+                    today={today}
+                    max={today}
+                    disabled={saving}
+                    value={entryDate}
+                    onValueChange={setEntryDate}
+                  />
+                )}
+              </FormField>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="advance-description">Note (optional)</Label>
-              <Input
-                id="advance-description"
-                maxLength={SALARY_DESCRIPTION_MAX_LENGTH}
-                disabled={saving}
-                placeholder="e.g. cash for family function"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
+            <FormField label="Note (optional)">
+              {(control) => (
+                <Input
+                  {...control}
+                  maxLength={SALARY_DESCRIPTION_MAX_LENGTH}
+                  disabled={saving}
+                  placeholder="e.g. cash for family function"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              )}
+            </FormField>
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}

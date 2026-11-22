@@ -191,7 +191,7 @@ export const removeCostButton: CSSProperties = {
   transition: "opacity 0.15s",
 };
 
-/* ─── Typeahead Footer ─── */
+/* ─── Combobox Footer ─── */
 
 export const addDriverButton: CSSProperties = {
   width: "100%",

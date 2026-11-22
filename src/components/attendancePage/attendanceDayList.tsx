@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { CheckIcon, MoreHorizontalIcon, SettingsIcon, XIcon } from "@/components/ui/icon";
+import { Badge } from "@ui/components/badge";
+import { CheckIcon, MoreHorizontalIcon, SettingsIcon, XIcon } from "@ui/icons";
 import { cn } from "@/lib/utils";
 import {
   type AttendanceDayDriver,

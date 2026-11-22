@@ -49,7 +49,7 @@ The Mark Paid, Bounced, Clear and Reverse buttons are invisible until you hover 
 
 ### EMI Calendar tab
 
-A month picker (arrows and a month input) with the month's total due. Dates are grouped into cards listing each installment with lender, borrower, vehicle, "EMI 7", status badge and amount still to pay. Overdue days come first whatever their date, then the rest in date order; today is badged "Today". Closed loans never appear.
+A month picker (arrows and a month calendar) with the month's total due. Dates are grouped into cards listing each installment with lender, borrower, vehicle, "EMI 7", status badge and amount still to pay. Overdue days come first whatever their date, then the rest in date order; today is badged "Today". Closed loans never appear.
 
 ### Private Fundings and Lent Out tabs
 
@@ -58,7 +58,7 @@ Lists of money borrowed from private funders and money lent to individuals, sort
 ## Flows
 
 **Create a loan**
-1. Click "New Loan" → form: Loan Type* , In Whose Name*, Lender, Loan Number, Vehicle, Other Collateral, Auto-debit from (bank account), Mandate, Principal*, Disbursed, Interest Rate (% p.a.), Start date*, First EMI date*, EMI*, EMI day of month*, Total installments*, Processing Fee, Outstanding Override, Notes.
+1. Click "New Loan" → form: Loan Type* , In Whose Name*, Lender, Loan Number, Vehicle, Other Collateral, Auto-debit from (bank account), Mandate, Principal*, Disbursed, Interest Rate (% p.a.), Start date*, First EMI date*, EMI*, EMI day of month*, Total installments*, Processing Fee, Outstanding Override, Notes. Dates are chosen from a calendar (the field shows "1 Jan 2026"); amounts take up to two decimals and refuse an exponent or a minus sign as you type; choosing the start date prefills the first EMI a month on (never past that month's end: 31 Jan → 28 Feb) and the EMI day. Required fields that fail on Save get a red border and a message under them; a field the form fills in for you (the first EMI date and the EMI day) loses its message at once.
 2. Save. The whole schedule is generated at once: one installment a month from the first EMI date, on the EMI day (clamped to short months — day 31 falls on the 28th/29th in February and goes back to the 31st in March). The first installment keeps the exact date you gave.
 3. Errors show in the form. Server limits: loan type must exist in the loan-type list; money must be positive, at most ₹100 crore, at most 2 decimals; interest 0–100%; EMI day 1–31; installments 1–600; first EMI not before the start date; notes up to 500 characters.
 

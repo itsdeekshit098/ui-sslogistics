@@ -1,14 +1,15 @@
 import { after } from "next/server";
 import { requireStrictAdminAuth, requireUserAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { apiError, apiSuccess, handleApiError, serverError } from "@/lib/apiResponse";
+import { apiError, apiSuccess, handleApiError, readJsonObject, serverError } from "@/lib/apiResponse";
+import { todayInIndia } from "@/lib/dateOnly";
 import { logActivity } from "@/lib/activityLog";
 import { logger } from "@/lib/logger";
 import type {
   DriverShiftCount,
   ShiftCountConflicts,
 } from "@/components/attendancePage/attendancePage.types";
-import { isValidMonth } from "../../driver-attendance.utils";
+import { isValidMonth, startMonthProblem } from "../../driver-attendance.utils";
 
 // How many shifts one driver runs in a day (sql/48). A change takes effect
 // from a month, so the months before it keep the count they were marked and
@@ -117,16 +118,20 @@ export async function POST(
       return apiError("Invalid driver ID", 400);
     }
 
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonObject(req);
+    if (!body) return apiError("The request body must be a JSON object", 400);
 
-    const shiftCount = Number(body.shift_count);
-    if (![1, 2, 3].includes(shiftCount)) {
+    // A real number only: Number("2") and Number(true) would pass as 2 and 1.
+    const shiftCount = body.shift_count;
+    if (typeof shiftCount !== "number" || ![1, 2, 3].includes(shiftCount)) {
       return apiError("Shifts per day must be 1, 2 or 3", 400);
     }
 
     if (!isValidMonth(body.effective_month)) {
       return apiError("The month the change starts from is required (YYYY-MM)", 400);
     }
+    const monthProblem = startMonthProblem(body.effective_month, todayInIndia());
+    if (monthProblem) return apiError(monthProblem, 400);
     const effectiveFrom = `${body.effective_month}-01`;
     const note =
       typeof body.note === "string" && body.note.trim()

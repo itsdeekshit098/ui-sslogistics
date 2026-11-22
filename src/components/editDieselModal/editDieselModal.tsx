@@ -2,20 +2,20 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { EditDieselModalProps } from "./editDieselModal.types";
-import { SaveIcon, UserPlusIcon } from "@/components/ui/icon";
-import { LoadingSpinner } from "@/components/ui/loadingSpinner";
-import { Typeahead } from "@/components/ui/typeahead";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { SaveIcon, UserPlusIcon } from "@ui/icons";
+import { Spinner } from "@ui/components/spinner";
+import { Combobox } from "@ui/components/combobox";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
+import { Textarea } from "@ui/components/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@ui/components/select";
 import {
   Modal,
   ModalContent,
@@ -23,7 +23,7 @@ import {
   ModalTitle,
   ModalDescription,
   ModalBody,
-} from "@/components/ui/modal";
+} from "@ui/components/modal";
 import { AddDriverModal } from "@/components/addDriverModal";
 import type { Driver } from "@/components/driversPage/driversPage.types";
 import type { PaymentMethod } from "@/app/admin/diesel-records/dieselRecords.types";
@@ -199,7 +199,7 @@ const EditDieselForm: React.FC<{
             <Label htmlFor="driverName">
               Driver Name <span className="text-destructive">*</span>
             </Label>
-            <Typeahead disabled={loading}
+            <Combobox disabled={loading}
               id="driverName"
               data-testid="components-editDieselModal-editDieselModal-driver-typeahead"
               options={driversList.filter((d) => d.is_active)}
@@ -383,7 +383,7 @@ const EditDieselForm: React.FC<{
             className="w-full sm:w-auto"
           >
             {loading ? (
-              <LoadingSpinner size="sm" className="mr-2" />
+              <Spinner size="sm" className="mr-2" />
             ) : (
               <SaveIcon size={16} style={{ marginRight: "0.5rem" }} />
             )}

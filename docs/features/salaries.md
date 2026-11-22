@@ -22,7 +22,7 @@ Money here is admin-only on every method, GET included. The Flutter app hides it
 **Desktop (`md` and up)**
 - Header "Salaries".
 - Four summary cards: **Monthly Salaries**, **Attendance Cuts**, **Advances & Deductions** (with "advances · other" underneath) and **Net Payable** (labelled "So far this month" while the month is running).
-- A panel with: previous / next month buttons, the month name, a month picker, a search box ("Search driver or place...") and **Export** (CSV).
+- A panel with: previous / next month buttons, the month name, a month picker (a small calendar of months, not the browser's own control; later months than the current one are greyed out), a search box ("Search driver or place...") and **Export** (CSV).
 - Banners: an amber one while the month isn't over ("…Absences and advances recorded later this month will change these figures"); a grey one "N drivers have no salary set and are left out of the totals".
 - The table, one row per driver: Driver (name, place, "Inactive"), **Salary / Rate** (a rupee amount, `₹x/trip`, or a blue "Set salary" / "Set rate" prompt), **Unpaid Days / Trips** (e.g. "2 of 30" with "1 absent · 1 leave", an amber "N not marked" badge, or "12 trips", or "Enter trips"), Attendance Cut, Advances, Deductions, **Net Pay** (red if negative, green "Paid" badge once settled).
 - Click a row to open that driver. A row action **Add advance** opens a quick form; it is disabled once the month is settled ("This month is settled — undo it first to add an advance").
@@ -49,13 +49,13 @@ While any save is in flight every control in the window is disabled and the wind
 
 **Set a driver's first salary.** Row shows "Set salary" → open the driver → Pay setup is already in edit mode → type the salary, check **From month** (defaults to the month being viewed) → **Save**. The sheet reloads. Errors: "Enter the monthly salary", "Choose the month it starts from".
 
-**Give a raise.** Open the driver → **Change** → new salary and the month it starts from → Save. Earlier months keep their old figure; the history list shows both.
+**Give a raise.** Open the driver → **Change** → new salary and the month it starts from (January 2020 up to a year ahead; anything else is refused) → Save. Earlier months keep their old figure; the history list shows both.
 
 **Switch to per-trip.** **Change** → choose "Per trip" → rate (must be above zero) and From month → Save. The page sends the pay type first, then (for monthly) the salary. Earlier months keep how they were paid. Then use **Enter trips** each month.
 
 **Enter trips.** Per-trip driver → **Enter trips** → whole number 0 or more → **Save trips**. Until entered, net pay is blank and the row shows "Enter trips". Re-saving the same month corrects it in place.
 
-**Add an advance or deduction.** Either the **Add advance** row action (advances only, against the sheet month, date defaults to today) or inside the driver window (**Add advance** / **Add deduction**, amount, date up to today, optional note → **Record advance** / **Record deduction**). Errors: "Enter an amount greater than zero"; the server also refuses more than ₹1,00,00,000, more than two decimals, a future date or future salary month, and a settled month.
+**Add an advance or deduction.** Either the **Add advance** row action (advances only, against the sheet month, date defaults to today in India, chosen from a calendar and never later than today) or inside the driver window (**Add advance** / **Add deduction**, amount, date up to today, optional note → **Record advance** / **Record deduction**). Errors: "Enter an amount greater than zero"; the server also refuses more than ₹1,00,00,000, more than two decimals, a future date or future salary month, and a settled month.
 
 **Reverse an entry.** **Reverse** next to the entry → **Reverse** to confirm (or **Keep**). Both rows stay on the record and drop out of the totals. Not allowed for a carry-forward entry or a settled month.
 
@@ -111,6 +111,10 @@ While any save is in flight every control in the window is disabled and the wind
 - Pay rule, append-only entries and carry-forward: `.claude/rules/attendance-and-salaries.md` and the money-module rules in `.claude/rules/database-and-money.md`.
 
 ## 8. Not built / open questions
+
+- **Checked live in Nov 2026 (admin only):** the pay rule by hand (monthly and per-trip), advances and reversals through the new money input, settle exact/short/over, undo, the locks on a settled month, both CSVs, phone layout. **Not checked live:** staff and driver 403s.
+- **Whole-rupee display:** an advance of ₹1,512.34 shows as ₹1,512 and the net ₹28,487.66 as ₹28,488; the server and the CSV are exact (see known-issues).
+- A salary rate of ₹0 is accepted.
 
 - A settled month cannot be edited, only undone and redone; there is no "adjust amount paid".
 - No per-driver payslip, no payment method or bank reference on a settlement, no history view across months beyond switching the month.
